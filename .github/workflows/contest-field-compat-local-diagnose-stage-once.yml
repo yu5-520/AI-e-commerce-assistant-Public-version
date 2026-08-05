@@ -1,0 +1,39 @@
+name: Diagnose field compatibility staged boundary once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-field-compat-local-diagnose-stage-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-stage:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 5
+    env:
+      WORK: /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version
+      BASE_COMMIT: 42732acfdec2dc7d94693880c4e9969ceffad04e
+    steps:
+      - name: Inspect current local index and worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$WORK" 2>/dev/null || true
+          cd "$WORK"
+          echo "HEAD=$(git rev-parse HEAD)"
+          echo "--- staged ---"
+          git diff --cached --name-status || true
+          echo "--- unstaged ---"
+          git diff --name-status || true
+          echo "--- untracked ---"
+          git ls-files --others --exclude-standard || true
+          echo "--- forbidden staged ---"
+          forbidden="$(git diff --cached --name-only | grep -Ev '^(src/services/.*\.py|governance/contest/generated/field-compat-(transaction|apply-receipt|semantic-verification)\.json)$' || true)"
+          printf '%s\n' "$forbidden"
+          echo "FORBIDDEN_COUNT=$(printf '%s\n' "$forbidden" | sed '/^$/d' | wc -l | tr -d ' ')"
+          echo "STAGED_COUNT=$(git diff --cached --name-only | wc -l | tr -d ' ')"
+          echo "LOCAL_STAGE_DIAGNOSTIC=PASS"
