@@ -1,0 +1,41 @@
+{
+  "generatedBy": "tools.registry_compiler.compile_registry",
+  "mode": "report_only",
+  "registryFiles": [
+    {
+      "contentHash": "sha256:22167de29d4aac9e040cc20a32b3da668811a109271aa2eca2b3402d929b7249",
+      "path": "contracts/registry/fields.json"
+    },
+    {
+      "contentHash": "sha256:10a30d0007e3118eb42c0152ca7c609357db23aee2372038dc84e034b8c63978",
+      "path": "contracts/registry/interfaces.json"
+    },
+    {
+      "contentHash": "sha256:03591c395964e95e7d9118918c8c7048f13036075c138ac217d9197363748709",
+      "path": "contracts/registry/migrations.json"
+    },
+    {
+      "contentHash": "sha256:f91d49664e7dffc49831664bd4809c41be789f14f28b0f6298eadf71718ba4f7",
+      "path": "contracts/registry/modules.json"
+    },
+    {
+      "contentHash": "sha256:24a26a75c1d22c96cae74944ee42e058b1d61546fb053dc2f716f50b872a2851",
+      "path": "contracts/registry/ownership.json"
+    },
+    {
+      "contentHash": "sha256:350dc1eb501c26b239b1d6c37022b91415c15325dbc3f21c8edfd791bb274511",
+      "path": "contracts/registry/schemas.json"
+    },
+    {
+      "contentHash": "sha256:d2386f7c4c1d1dca77864ffa227f181e70bac981da99133e866507852ef56003",
+      "path": "contracts/registry/stations.json"
+    },
+    {
+      "contentHash": "sha256:aba03d7278746ccaa743403e8c8b6fb880e96188862a11f81ef6f3f78ae4ed62",
+      "path": "contracts/registry/tombstones.json"
+    }
+  ],
+  "registryRootHash": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0",
+  "schema": "registry.manifest.v1",
+  "version": "23.0.0-alpha.1"
+}
