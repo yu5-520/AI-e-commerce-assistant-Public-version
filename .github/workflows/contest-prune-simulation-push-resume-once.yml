@@ -1,0 +1,82 @@
+name: Resume verified prune simulation evidence push only
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-prune-simulation-push-resume-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-prune-simulation-push-resume-v1
+  cancel-in-progress: false
+
+jobs:
+  push-verified-local-commit:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      VERIFIED_PARENT: 435d213441c683147aeeacff432e10a179760a77
+      VERIFIED_COMMIT: 3fb8d54
+      TARGET_BRANCH: simulation/contest-prune-v1
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify local commit object and push without recomputation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          test -d .git
+          git cat-file -e "$VERIFIED_PARENT^{commit}"
+          git cat-file -e "$VERIFIED_COMMIT^{commit}"
+
+          FULL_COMMIT="$(git rev-parse "$VERIFIED_COMMIT^{commit}")"
+          PARENT="$(git rev-parse "$FULL_COMMIT^")"
+          test "$PARENT" = "$VERIFIED_PARENT"
+          test "$(git show -s --format=%s "$FULL_COMMIT")" = "governance(contest): fix simulation output gate and reseal prune evidence [skip ci]"
+
+          git show "$FULL_COMMIT:governance/contest/generated/post-migration-prune-simulation-review.json" \
+            | grep -q 'PRUNE_SIMULATION_VERIFIED_PHYSICAL_PRUNE_AWAITS_APPROVAL'
+          git show "$FULL_COMMIT:governance/contest/generated/post-migration-prune-simulation-review.json" \
+            | grep -q '"authorized": false'
+          git show "$FULL_COMMIT:governance/contest/generated/post-migration-prune-simulation-receipt.json" \
+            | grep -q '"physicalDeletionExecuted": false'
+          git show "$FULL_COMMIT:governance/contest/generated/module-isolation-simulation.json" \
+            | grep -q '"unexpectedRunnerDriftModuleIds": \[\]'
+          git show "$FULL_COMMIT:governance/contest/generated/module-isolation-simulation.json" \
+            | grep -q '"selectionHashStable": true'
+          git show "$FULL_COMMIT:governance/contest/generated/module-isolation-simulation.json" \
+            | grep -q '"graphHashStable": true'
+
+          git diff --name-only "$VERIFIED_PARENT..$FULL_COMMIT" | sort -u > /tmp/prune-resume-paths
+          while IFS= read -r path; do
+            case "$path" in
+              tools/contest_governance/simulate_module_isolation.py) ;;
+              governance/contest/generated/*) ;;
+              *) echo "FORBIDDEN_COMMIT_PATH=$path"; exit 1 ;;
+            esac
+          done < /tmp/prune-resume-paths
+          grep -Fxq 'tools/contest_governance/simulate_module_isolation.py' /tmp/prune-resume-paths
+          ! grep -q '^src/' /tmp/prune-resume-paths
+          ! grep -q '^contracts/registry/' /tmp/prune-resume-paths
+          echo "LOCAL_PRUNE_EVIDENCE_COMMIT=VERIFIED:$FULL_COMMIT"
+
+          gh auth setup-git
+          PUSHED=0
+          for attempt in $(seq 1 15); do
+            echo "PUSH_ATTEMPT=$attempt/15"
+            if git -c http.lowSpeedLimit=1 -c http.lowSpeedTime=120 \
+              push origin "$FULL_COMMIT:refs/heads/$TARGET_BRANCH"; then
+              PUSHED=1
+              break
+            fi
+            sleep $((attempt * 5))
+          done
+          test "$PUSHED" = "1"
+
+          REMOTE_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/$TARGET_BRANCH" --jq '.object.sha')"
+          test "$REMOTE_SHA" = "$FULL_COMMIT"
+          echo "PRUNE_SIMULATION_REMOTE_PUSH=PASS:$REMOTE_SHA"
