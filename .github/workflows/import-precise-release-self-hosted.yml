@@ -1,0 +1,42 @@
+name: Import Verified Precise Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+concurrency:
+  group: public-precise-release-import
+  cancel-in-progress: false
+
+jobs:
+  import-release:
+    runs-on: [self-hosted, Linux, X64, public-prune]
+    timeout-minutes: 180
+    steps:
+      - name: Checkout migration control branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Import verified parent release through Git Data API
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          PY=/opt/ai-runtime/python/current/bin/python3.11
+          test -x "$PY"
+          test "$($PY -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          test -f migration/release-bundle.tar.gz
+          "$PY" scripts/import_precise_release_via_api.py \
+            --bundle migration/release-bundle.tar.gz \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            --parent-commit "$GITHUB_SHA" \
+            --workers 3
