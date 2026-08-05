@@ -19,7 +19,6 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 15
     env:
-      SOURCE_REPOSITORY: /opt/ai-ecommerce-assistant
       SOURCE_COMMIT: f5186451c80631fea550da17d481f5e8793215e5
       EXPECTED_REGISTRY_TREE: 3cefcdea30086124a70999d942c5f552afd613fd
       EXPECTED_COMPILER_TREE: 658c88d3d6387d0e6c1c18f9834d9fb3c308dc42
@@ -33,31 +32,53 @@ jobs:
           ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 0
 
-      - name: Verify mother authority without reading mutable worktree
+      - name: Locate and verify mother authority by hash identity
         shell: bash
         run: |
           set -euo pipefail
-          test -x "$PYTHON_EXACT"
-          test -d "$SOURCE_REPOSITORY/.git" || {
-            echo "ERROR: mother git object store not found at $SOURCE_REPOSITORY/.git"
+
+          source_repository=""
+          candidates="$(
+            {
+              printf '%s\n' \
+                /opt/ai-ecommerce-assistant \
+                /opt/ai-ecommerce-assistant/current \
+                /srv/ai-ecommerce-assistant
+              find /opt /srv -maxdepth 6 -type d -name .git -printf '%h\n' 2>/dev/null || true
+            } | awk 'NF && !seen[$0]++'
+          )"
+
+          while IFS= read -r candidate; do
+            test -n "$candidate" || continue
+            test -d "$candidate/.git" || continue
+
+            git config --global --add safe.directory "$candidate" 2>/dev/null || true
+            git -C "$candidate" cat-file -e "$SOURCE_COMMIT^{commit}" 2>/dev/null || continue
+
+            registry_tree="$(git -C "$candidate" rev-parse "$SOURCE_COMMIT:contracts/registry" 2>/dev/null || true)"
+            compiler_tree="$(git -C "$candidate" rev-parse "$SOURCE_COMMIT:tools/registry_compiler" 2>/dev/null || true)"
+            tools_init_blob="$(git -C "$candidate" rev-parse "$SOURCE_COMMIT:tools/__init__.py" 2>/dev/null || true)"
+
+            if test "$registry_tree" = "$EXPECTED_REGISTRY_TREE" \
+              && test "$compiler_tree" = "$EXPECTED_COMPILER_TREE" \
+              && test "$tools_init_blob" = "$EXPECTED_TOOLS_INIT_BLOB"; then
+              source_repository="$candidate"
+              break
+            fi
+          done <<< "$candidates"
+
+          test -n "$source_repository" || {
+            echo "ERROR: no readable ECS git object store matches source commit and governance tree identities"
+            echo "searched_roots=/opt,/srv maxdepth=6"
             exit 1
           }
 
-          git config --global --add safe.directory "$SOURCE_REPOSITORY"
-          git -C "$SOURCE_REPOSITORY" cat-file -e "$SOURCE_COMMIT^{commit}"
-
-          registry_tree="$(git -C "$SOURCE_REPOSITORY" rev-parse "$SOURCE_COMMIT:contracts/registry")"
-          compiler_tree="$(git -C "$SOURCE_REPOSITORY" rev-parse "$SOURCE_COMMIT:tools/registry_compiler")"
-          tools_init_blob="$(git -C "$SOURCE_REPOSITORY" rev-parse "$SOURCE_COMMIT:tools/__init__.py")"
-
+          echo "SOURCE_REPOSITORY=$source_repository" >> "$GITHUB_ENV"
+          printf 'source_repository=%s\n' "$source_repository"
           printf 'source_commit=%s\n' "$SOURCE_COMMIT"
-          printf 'registry_tree=%s\n' "$registry_tree"
-          printf 'compiler_tree=%s\n' "$compiler_tree"
-          printf 'tools_init_blob=%s\n' "$tools_init_blob"
-
-          test "$registry_tree" = "$EXPECTED_REGISTRY_TREE"
-          test "$compiler_tree" = "$EXPECTED_COMPILER_TREE"
-          test "$tools_init_blob" = "$EXPECTED_TOOLS_INIT_BLOB"
+          printf 'registry_tree=%s\n' "$EXPECTED_REGISTRY_TREE"
+          printf 'compiler_tree=%s\n' "$EXPECTED_COMPILER_TREE"
+          printf 'tools_init_blob=%s\n' "$EXPECTED_TOOLS_INIT_BLOB"
           echo "MOTHER_GOVERNANCE_AUTHORITY=PASS"
 
       - name: Transfer governance package first
@@ -73,9 +94,11 @@ jobs:
             tools/registry_compiler \
           | tar -x -C "$stage"
 
-          file_count="$(find "$stage/contracts/registry" "$stage/tools/registry_compiler" -type f | wc -l | tr -d ' ')"
-          file_count="$((file_count + 1))"
-          test "$file_count" = "27"
+          registry_count="$(find "$stage/contracts/registry" -type f | wc -l | tr -d ' ')"
+          compiler_count="$(find "$stage/tools/registry_compiler" -type f | wc -l | tr -d ' ')"
+          test "$registry_count" = "10"
+          test "$compiler_count" = "16"
+          test -f "$stage/tools/__init__.py"
 
           rm -rf contracts/registry tools/registry_compiler
           mkdir -p contracts tools
@@ -115,6 +138,7 @@ jobs:
           source_paths="$(git -C "$SOURCE_REPOSITORY" ls-tree -r --name-only "$SOURCE_COMMIT" -- contracts/registry tools/__init__.py tools/registry_compiler | sort)"
           target_paths="$(git ls-tree -r --name-only HEAD -- contracts/registry tools/__init__.py tools/registry_compiler | sort)"
           test "$source_paths" = "$target_paths"
+          test "$(printf '%s\n' "$target_paths" | sed '/^$/d' | wc -l | tr -d ' ')" = "27"
 
           while IFS= read -r path; do
             source_blob="$(git -C "$SOURCE_REPOSITORY" rev-parse "$SOURCE_COMMIT:$path")"
@@ -131,6 +155,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -x "$PYTHON_EXACT" || {
+            echo "ERROR: exact Python is not executable by runner: $PYTHON_EXACT"
+            namei -l "$PYTHON_EXACT" || true
+            exit 1
+          }
+
           export PYTHONPATH="$GITHUB_WORKSPACE"
           mkdir -p /tmp/contest-governance-audit
 
@@ -184,9 +214,10 @@ jobs:
           echo "NATIVE_REGISTRY_AUDIT=PASS"
 
       - name: Upload governance audit evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: contest-governance-native-audit
           path: /tmp/contest-governance-audit
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 7
