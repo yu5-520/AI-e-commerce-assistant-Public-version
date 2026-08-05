@@ -1,0 +1,65 @@
+name: Diagnose remaining Runner drift once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-runner-drift-diagnostic-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      Z_INTERFACE_ROOT: governance/contest/z-interface/Z1.0.5
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: analysis/contest-lineage-v1
+          fetch-depth: 1
+
+      - name: Generate read-only audit and print Runner drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          out="$(mktemp -d)"
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output "$out" \
+            --z-source "$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT" \
+            >/tmp/runner-drift-diagnostic-summary.json
+
+          "$AUDIT_PYTHON" - "$out/repository-audit.json" <<'PY' | tee /tmp/runner-drift-diagnostic.json
+          import json
+          import sys
+          from pathlib import Path
+
+          audit = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          result = {
+              "schema": "contest.runner_drift_diagnostic.v1",
+              "runnerDriftCount": audit.get("summary", {}).get("runnerDriftCount"),
+              "runnerDrift": audit.get("runnerDrift") or [],
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+          }
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+      - name: Upload diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-runner-drift-diagnostic
+          path: |
+            /tmp/runner-drift-diagnostic.json
+            /tmp/runner-drift-diagnostic-summary.json
+          if-no-files-found: error
+          retention-days: 7
