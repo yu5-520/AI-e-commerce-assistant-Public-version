@@ -93,9 +93,51 @@
   "providerCallsExecuted": 0,
   "registryCompilerTreeSha": "658c88d3d6387d0e6c1c18f9834d9fb3c308dc42",
   "registryTreeSha": "3cefcdea30086124a70999d942c5f552afd613fd",
-  "repositoryCommit": "b5a14ab5898ba928df8a5074dcc6b70d299badae",
-  "repositoryTreeSha": "6123d8f3270932b4e16c2e16292334fc18f84dbf",
-  "rootEquivalent": false,
+  "repositoryCommit": "feed4859c4849b5fa3e50e8f7ee904acd682650f",
+  "repositoryTreeSha": "d69d461cbb897e4af7a692a5ca7700160f66f4d8",
+  "rootEquivalenceContract": {
+    "activationState": "EQUIVALENCE_VERIFIED_RUNTIME_SWITCH_NOT_AUTHORIZED",
+    "equivalenceMode": "LAYERED_ROOT_COMPOSITION",
+    "layerChecks": [
+      {
+        "actualRegistryRootHash": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+        "expectedRegistryRootHash": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+        "layerId": "activeRuntimeCompatibility",
+        "matches": true,
+        "path": "config/v23_registry_runtime.json",
+        "role": "ACTIVE_RUNTIME_COMPATIBILITY_PROJECTION"
+      },
+      {
+        "actualRegistryRootHash": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0",
+        "expectedRegistryRootHash": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0",
+        "layerId": "authoritativeFullRegistry",
+        "matches": true,
+        "path": "contracts/registry/registry-manifest.json",
+        "role": "AUTHORITATIVE_PRODUCT_REGISTRY"
+      },
+      {
+        "actualRegistryRootHash": "sha256:ff37e43cd374986b1edf1ff735e97d6b19c9635efd2a0167e68f2943444dcdbd",
+        "expectedRegistryRootHash": "sha256:ff37e43cd374986b1edf1ff735e97d6b19c9635efd2a0167e68f2943444dcdbd",
+        "layerId": "historicalGovernanceDocument",
+        "matches": true,
+        "path": "GOVERNANCE_VERSION.md",
+        "role": "HISTORICAL_GOVERNANCE_DECLARATION"
+      }
+    ],
+    "layerDeclarationsMatch": true,
+    "literalRootEquality": false,
+    "literalRootEqualityRequired": false,
+    "observedLayeredRoots": {
+      "governanceDocumentDeclaredRoot": "sha256:ff37e43cd374986b1edf1ff735e97d6b19c9635efd2a0167e68f2943444dcdbd",
+      "runtimeProjectionDeclaredRoot": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+      "sourceManifestRoot": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0"
+    },
+    "observedRootsMatchContract": true,
+    "schema": "z.ai_ecommerce.root_equivalence.v1",
+    "verified": true,
+    "version": "Z1.0.5"
+  },
+  "rootEquivalent": true,
   "runtimeProjectionRegistryRootHash": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
   "schema": "contest.registry_snapshot.v1",
   "state": "BASELINE_LOCKED",

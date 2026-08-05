@@ -4,11 +4,10 @@
     "approvedBy": null,
     "state": "REVIEW_PENDING"
   },
-  "baselineCommit": "b5a14ab5898ba928df8a5074dcc6b70d299badae",
+  "baselineCommit": "feed4859c4849b5fa3e50e8f7ee904acd682650f",
   "businessRuntimeMutated": false,
   "databaseMutated": false,
   "findings": [
-    "LAYERED_REGISTRY_ROOTS_NOT_EQUIVALENT",
     "REGISTERED_RUNNER_DRIFT_REVIEW_REQUIRED",
     "TOMBSTONE_REFERENCES_REMAIN",
     "Z_INTERFACE_PRODUCT_REGISTRY_PROTOCOL_REVIEW_REQUIRED"
@@ -1465,9 +1464,9 @@
     }
   ],
   "providerCallsExecuted": 0,
-  "registryAdapterState": "REGISTRY_DOCUMENTS_VERIFIED_ROOT_EQUIVALENCE_PENDING",
+  "registryAdapterState": "REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED",
   "repositoryScanHash": "sha256:ac96d9a8aa3ab2bd228adcf66264afa7f25eb4597d2be25f2427c84211d87284",
-  "reviewHash": "sha256:eed4428fab34e46d27e83d16f4402b6a8b0cb54c0f5cb44e985eba672fca3a03",
+  "reviewHash": "sha256:4df7a519894a7196133d24c8464774ee1a49bca1c939b3fc4fe0826225f5e7ec",
   "reviewState": "REVIEW_PENDING",
   "schema": "contest.chain_review.v1",
   "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
