@@ -1,0 +1,25 @@
+{
+  "applicationHash": "sha256:bbc3d25e74f9465db6f37a9ef54af483fe14d7c3e1019e72296582966c6ab7d7",
+  "databaseMutated": false,
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "isolatedModuleCount": 7,
+  "mainMutated": false,
+  "physicalDeletionExecuted": false,
+  "physicalFilesMoved": 0,
+  "providerCallsExecuted": 0,
+  "receiptHash": "sha256:383d5dfacf87dd9b950373baa20e2b964af3817bca380b521a69092fcf186bd2",
+  "registryRootHash": "sha256:cbc9860b02f8cc70eed5bbaea2e0465729e3cbc1babbe67cfe1ef42ec0034003",
+  "schema": "contest.logical_isolation_application_receipt.v1",
+  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "state": "LOGICAL_ISOLATION_APPLIED",
+  "states": [
+    "ISOLATION_POLICY_ACTIVE",
+    "REGISTERED_ONLY_IDENTITIES_PRESERVED",
+    "RUNTIME_PROJECTION_EXCLUDED",
+    "INTERFACE_AND_STATION_EXCLUDED",
+    "GRAPH_EDGES_EXCLUDED",
+    "ACTIVE_DISPATCH_EXCLUDED",
+    "LOGICAL_ISOLATION_APPLIED",
+    "PRUNE_CANDIDATE_COMPILATION_READY"
+  ]
+}

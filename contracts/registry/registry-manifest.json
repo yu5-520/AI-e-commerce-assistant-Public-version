@@ -11,7 +11,7 @@
       "path": "contracts/registry/interfaces.json"
     },
     {
-      "contentHash": "sha256:e5406a2e2bcb52cda21f0a430028c738009c0c85e86195749156c485431a0ba3",
+      "contentHash": "sha256:6c50ec41a0fb7e0d91523fbf2147253577f8b361181e4a47f00e4b60a9b50e6c",
       "path": "contracts/registry/migrations.json"
     },
     {
@@ -35,7 +35,7 @@
       "path": "contracts/registry/tombstones.json"
     }
   ],
-  "registryRootHash": "sha256:f0868111f3ae79c9788af965f941f3820b491c0d53fb22e44dc03090daa48f1d",
+  "registryRootHash": "sha256:cbc9860b02f8cc70eed5bbaea2e0465729e3cbc1babbe67cfe1ef42ec0034003",
   "schema": "registry.manifest.v1",
   "version": "23.0.0-alpha.1"
 }
