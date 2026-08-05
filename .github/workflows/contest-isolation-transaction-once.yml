@@ -1,0 +1,130 @@
+name: Build REGISTERED_ONLY isolation transaction once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-isolation-transaction-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-isolation-transaction-once
+  cancel-in-progress: false
+
+jobs:
+  build-isolation-transaction:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+      EXPECTED_FIELD_SCOPE_HASH: sha256:c2b581e523ec730a454903f0f3b155ad5fc0845f3f9a1b919e37ab5f4c675d84
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Verify analysis gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" -m py_compile \
+            tools/contest_governance/build_isolation_transaction.py \
+            tools/contest_governance/scope_unregistered_fields.py
+
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit.json
+          grep -q '"rootEquivalent": true' governance/contest/generated/registry-snapshot.json
+          grep -q "\"graphHash\": \"$EXPECTED_GRAPH_HASH\"" governance/contest/generated/contest-chain-review.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/contest-chain-review.json
+          grep -q "\"scopeHash\": \"$EXPECTED_FIELD_SCOPE_HASH\"" governance/contest/generated/unregistered-field-scope-review.json
+          grep -q '"ISOLATE": 7' governance/contest/generated/contest-chain-review.json
+          grep -q '"ISOLATE_DEFER": 0' governance/contest/generated/unregistered-field-scope-review.json
+          echo "ISOLATION_INPUT_GATES=PASS"
+
+      - name: Build logical isolation transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" tools/contest_governance/build_isolation_transaction.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/contest-isolation-transaction-summary.json
+
+          grep -q '"state": "ISOLATION_VERIFIED_SIMULATION_READY"' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"moduleCount": 7' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"verifiedLogicalIsolationCount": 7' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"fieldScopeIsolateCandidateCount": 0' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"physicalDeletion": "NOT_AUTHORIZED"' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/module-isolation-receipt.json
+          grep -q '"physicalFilesMoved": 0' governance/contest/generated/module-isolation-receipt.json
+          grep -q '"mainMutated": false' governance/contest/generated/module-isolation-receipt.json
+          echo "LOGICAL_ISOLATION_TRANSACTION=PASS"
+
+      - name: Print physical path policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/contest-isolation-path-policy.json
+          import json
+          from pathlib import Path
+
+          transaction = json.loads(
+              Path("governance/contest/generated/module-isolation-transaction.json")
+              .read_text(encoding="utf-8")
+          )
+          result = {
+              "schema": "contest.isolation_path_policy_summary.v1",
+              "transactionHash": transaction.get("transactionHash"),
+              "state": transaction.get("state"),
+              "simulationExcludePaths": transaction.get("simulationExcludePaths"),
+              "preserveSharedPaths": transaction.get("preserveSharedPaths"),
+              "physicalPaths": transaction.get("physicalPaths"),
+              "businessRuntimeMutated": False,
+              "physicalDeletionExecuted": False,
+          }
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+      - name: Commit isolation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            governance/contest/generated/module-isolation-transaction.json \
+            governance/contest/generated/module-isolation-transaction.md \
+            governance/contest/generated/module-isolation-receipt.json
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/' || true)"
+          test -z "$forbidden"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): seal REGISTERED_ONLY isolation transaction [skip ci]"
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "ISOLATION_EVIDENCE_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload isolation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-isolation-transaction
+          path: |
+            governance/contest/generated/module-isolation-transaction.json
+            governance/contest/generated/module-isolation-transaction.md
+            governance/contest/generated/module-isolation-receipt.json
+            /tmp/contest-isolation-transaction-summary.json
+            /tmp/contest-isolation-path-policy.json
+          if-no-files-found: error
+          retention-days: 14
