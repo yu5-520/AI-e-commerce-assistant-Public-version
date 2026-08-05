@@ -10,7 +10,7 @@ from __future__ import annotations
 import ast
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Set, Tuple
+from typing import Any, Dict, List, MutableMapping, Optional, Set, Tuple
 
 
 RUNNER_DISPATCH_EVIDENCE_VERSION = "23.0.0-alpha.3"
@@ -161,7 +161,9 @@ def collect_runner_dispatch_evidence(
         module_name,
         registered_symbol,
     )
+    alias_targets = symbols - {str(registered_symbol)}
     providers = _provider_modules(repository, module_name, symbols)
+    runner_relative = _module_path(repository, module_name).relative_to(repository).as_posix()
 
     evidence: List[Dict[str, Any]] = []
     seen: Set[Tuple[str, int, str, str]] = set()
@@ -207,6 +209,14 @@ def collect_runner_dispatch_evidence(
             if isinstance(function, ast.Name) and function.id in imported_callables:
                 provider_module, matched_symbol = imported_callables[function.id]
                 kind = "imported_callable_call"
+            elif (
+                relative == runner_relative
+                and isinstance(function, ast.Name)
+                and function.id in alias_targets
+            ):
+                provider_module = str(module_name)
+                matched_symbol = function.id
+                kind = "registered_alias_target_call"
             elif (
                 isinstance(function, ast.Attribute)
                 and function.attr in symbols
