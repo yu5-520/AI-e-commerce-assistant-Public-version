@@ -1,0 +1,71 @@
+name: Export verified local field compatibility commit
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-field-compat-export-local-commit-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contest-field-compat-export-local-commit-once
+  cancel-in-progress: false
+
+jobs:
+  export-local-commit:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 10
+    env:
+      WORK: /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version
+      BASE_COMMIT: 42732acfdec2dc7d94693880c4e9969ceffad04e
+    steps:
+      - name: Seal local verified commit export
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$WORK" 2>/dev/null || true
+          cd "$WORK"
+          head="$(git rev-parse HEAD)"
+          parent="$(git rev-parse HEAD^)"
+          test "$head" != "$BASE_COMMIT"
+          test "$parent" = "$BASE_COMMIT"
+
+          export_dir="/tmp/field-compat-local-export"
+          rm -rf "$export_dir"
+          mkdir -p "$export_dir/files"
+
+          git diff-tree --no-commit-id --name-only -r "$head" | sort > "$export_dir/paths.txt"
+          test "$(wc -l < "$export_dir/paths.txt" | tr -d ' ')" = "14"
+          test -z "$(grep -E '(__pycache__|\.py[co]$)' "$export_dir/paths.txt" || true)"
+
+          while IFS= read -r path; do
+            mkdir -p "$export_dir/files/$(dirname "$path")"
+            git show "$head:$path" > "$export_dir/files/$path"
+          done < "$export_dir/paths.txt"
+
+          git format-patch -1 --stdout "$head" > "$export_dir/field-compat.patch"
+          git show -s --format='%H%n%P%n%T%n%s' "$head" > "$export_dir/commit.txt"
+          git diff-tree --no-commit-id --numstat -r "$head" > "$export_dir/numstat.txt"
+          tar -C "$export_dir/files" -czf "$export_dir/field-compat-files.tar.gz" .
+          sha256sum \
+            "$export_dir/field-compat.patch" \
+            "$export_dir/field-compat-files.tar.gz" \
+            "$export_dir/paths.txt" \
+            > "$export_dir/SHA256SUMS"
+
+          echo "LOCAL_EXPORT_COMMIT=$head"
+          echo "LOCAL_EXPORT_PARENT=$parent"
+          echo "LOCAL_EXPORT_FILE_COUNT=14"
+          echo "LOCAL_VERIFIED_COMMIT_EXPORT=PASS"
+
+      - name: Upload verified local commit export
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-field-compat-local-commit-export
+          path: /tmp/field-compat-local-export
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
