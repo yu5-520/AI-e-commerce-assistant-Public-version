@@ -1,0 +1,67 @@
+{
+  "activationState": "REFERENCE_ONLY",
+  "adapterVersion": "1.0.0",
+  "applicationId": "ai-ecommerce-assistant",
+  "asgiEntry": "src.api.main:app",
+  "compatibilityServiceNames": [
+    "ai-operating-advisor.service",
+    "ai-operating-advisor",
+    "ai-ecommerce.service"
+  ],
+  "defaultPort": 3000,
+  "deploymentAuthorityVersion": "22.5.4",
+  "productVersion": "22.4.0",
+  "requiredZCoreVersion": "Z1.0.5",
+  "runtimeLineageVersion": "Z1.0.4",
+  "runtimeMode": "single_release_sealed_runtime",
+  "runtimeRoot": "/opt/ai-ecommerce-assistant",
+  "schema": "z.ai_ecommerce.deployment_identity_adapter.v1",
+  "sources": [
+    {
+      "gitBlobSha": "49fa2df6ee6ef649c2e44be7632a27af3659cb5c",
+      "path": "scripts/start_server_z1.sh"
+    },
+    {
+      "gitBlobSha": "c9dd6f17a9f3eb3f92adbec90487781f2b60d0ae",
+      "path": "scripts/deploy_release_z1.sh"
+    },
+    {
+      "gitBlobSha": "43f44e5c77fbd7e0bdf84d6b4cff010737b41ddd",
+      "path": "scripts/runtime_service_resolver.sh"
+    },
+    {
+      "gitBlobSha": "c7ac78ff40d2816237b45a31ec84c444e27163bd",
+      "path": "src/services/server_runtime_identity_z1_service.py"
+    },
+    {
+      "gitBlobSha": "36d428fa85cb260e4cd89ae138d16d1d5301037e",
+      "path": "src/services/release_identity_service.py"
+    },
+    {
+      "gitBlobSha": "4a26b31435870b52526c2651ce0a0f612e8d5bef",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "gitBlobSha": "419588f3418dbee8ef41bf809dfb693a095de329",
+      "path": "release/release-policy.json"
+    },
+    {
+      "gitBlobSha": "b7d4240823bf179efe326c34f9317a08b6655683",
+      "path": "VERSION.md"
+    },
+    {
+      "gitBlobSha": "ab680dbf7351f48218ffcc5496c85a3fcf4f7d99",
+      "path": "GOVERNANCE_VERSION.md"
+    },
+    {
+      "gitBlobSha": "453f3049b0aca82093fca021fe7787a32d16f10e",
+      "path": "SELF_UPDATE_BASE_VERSION.md"
+    }
+  ],
+  "switchPolicy": {
+    "ecsMutationAllowed": false,
+    "productCodeDeletionAllowed": false,
+    "requiresStep9Equivalence": true,
+    "runtimeSwitchAllowed": false
+  }
+}

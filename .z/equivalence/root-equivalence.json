@@ -1,0 +1,103 @@
+{
+  "activationState": "EQUIVALENCE_VERIFIED_RUNTIME_SWITCH_NOT_AUTHORIZED",
+  "applicationId": "ai-ecommerce-assistant",
+  "compositionRules": {
+    "crossLayerRootSubstitutionAllowed": false,
+    "embeddedSourceDeletionAuthorized": false,
+    "literalRootEqualityRequired": false,
+    "productExtensionsRemainProductOwned": true,
+    "productMainDeploymentAuthorized": false,
+    "productRegistryRootRotated": false,
+    "runtimeSwitchAuthorized": false,
+    "serverBindingAuthorized": false
+  },
+  "equivalenceHash": "sha256:e1f4d679bd49ed2f2d266ac071256127e4c18ec07410ea47f90f786a43d4e1f7",
+  "equivalenceMode": "LAYERED_ROOT_COMPOSITION",
+  "moduleMappings": [
+    {
+      "mappingMode": "DIRECT_OWNER_EQUIVALENCE",
+      "productModuleIds": [
+        "registry_compiler"
+      ],
+      "zModuleIds": [
+        "registry_compiler"
+      ]
+    },
+    {
+      "mappingMode": "LEGACY_COLLAPSED_OWNERSHIP_EQUIVALENCE",
+      "productModuleIds": [
+        "registry_compiler"
+      ],
+      "zModuleIds": [
+        "self_update_runtime",
+        "lineage_compiler",
+        "level_gate"
+      ]
+    },
+    {
+      "mappingMode": "DIRECT_OWNER_EQUIVALENCE",
+      "productModuleIds": [
+        "release_governance"
+      ],
+      "zModuleIds": [
+        "release_governance"
+      ]
+    },
+    {
+      "mappingMode": "LOCKED_INSTALL_ARTIFACT_ONLY",
+      "productArtifacts": [
+        ".z/install-manifest.json"
+      ],
+      "zModuleIds": [
+        "bootstrap_installer"
+      ]
+    }
+  ],
+  "productLayers": {
+    "activeRuntimeCompatibility": {
+      "path": "config/v23_registry_runtime.json",
+      "registryRootHash": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+      "role": "ACTIVE_RUNTIME_COMPATIBILITY_PROJECTION"
+    },
+    "authoritativeFullRegistry": {
+      "path": "contracts/registry/registry-manifest.json",
+      "registryRootHash": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0",
+      "role": "AUTHORITATIVE_PRODUCT_REGISTRY"
+    },
+    "historicalGovernanceDocument": {
+      "path": "GOVERNANCE_VERSION.md",
+      "registryRootHash": "sha256:ff37e43cd374986b1edf1ff735e97d6b19c9635efd2a0167e68f2943444dcdbd",
+      "role": "HISTORICAL_GOVERNANCE_DECLARATION"
+    }
+  },
+  "runtimeBoundary": {
+    "adapterRegistrationPath": ".z/adapter/runtime-registration.json",
+    "bootstrapInstallerActive": false,
+    "productRegistrationPath": "contracts/runtime/active-runtime-registration.json",
+    "productRuntimeRemainsAuthoritative": true,
+    "zCoreProductRuntimeEnabled": false,
+    "zCoreServerBindingEnabled": false
+  },
+  "schema": "z.ai_ecommerce.root_equivalence.v1",
+  "version": "Z1.0.5",
+  "zCore": {
+    "archiveHash": "sha256:2b841f6d4e382511c68ef9e290ed620f5d34f1229216d958aa4f156ad8bda9a2",
+    "moduleIds": [
+      "bootstrap_installer",
+      "level_gate",
+      "lineage_compiler",
+      "registry_compiler",
+      "release_governance",
+      "self_update_runtime"
+    ],
+    "productRuntimeEnabled": false,
+    "registryManifestGitBlobSha": "4dd906b48fd658d381f0dcf2e933196f60eba7e2",
+    "registryManifestPath": "contracts/registry/registry-manifest.json",
+    "registryRootHash": "sha256:21078bf8228c3ca3a4cb755015023001d962c9062d0a48e8a92e99f8fdb48360",
+    "releaseHash": "sha256:1f0aacabc028b777d47513f81538525b37fda5ff840e25660b45e38285e2dabd",
+    "releaseRef": "release/z1.0.5-bootstrap-source",
+    "repository": "yu5-520/Z-Century",
+    "serverBindingEnabled": false,
+    "sourceCommit": "c924e646673a41857cca5e39650e022f9ce8c0a5"
+  }
+}

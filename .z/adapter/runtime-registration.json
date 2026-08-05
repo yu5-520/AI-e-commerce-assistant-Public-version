@@ -1,0 +1,76 @@
+{
+  "activationState": "REFERENCE_ONLY",
+  "activeModules": [
+    "action_pack",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_input_projection",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "artifact_execution_runtime",
+    "artifact_transport",
+    "frontend_view",
+    "pipeline_runtime",
+    "release_governance",
+    "signal_admission",
+    "task_mapping",
+    "task_pool"
+  ],
+  "adapterVersion": "1.0.0",
+  "application": {
+    "applicationId": "ai-ecommerce-assistant",
+    "asgiEntry": "src.api.main:app",
+    "defaultPort": 3000,
+    "mainFile": "src/api/main.py",
+    "runtimeRootDefault": "/opt/ai-ecommerce-assistant",
+    "runtimeRootEnvironment": "AI_ECOMMERCE_ROOT"
+  },
+  "cliEntries": [
+    "registry_compile_cli",
+    "requirement_self_update_cli",
+    "repository_self_update_cli",
+    "registry_runtime_receipt_cli",
+    "runtime_database_prepare_cli"
+  ],
+  "httpRouterModules": [
+    "accounts",
+    "action_authority",
+    "approvals",
+    "artifacts_ops",
+    "audit",
+    "data_import",
+    "frontend_views",
+    "health",
+    "modules",
+    "ops",
+    "stations",
+    "system",
+    "task_lifecycle_stations",
+    "task_pool",
+    "task_snapshots"
+  ],
+  "registrationVersion": "Z1.0.4",
+  "requiredZCoreVersion": "Z1.0.5",
+  "schedulers": [
+    "station_queue_scheduler"
+  ],
+  "schema": "z.ai_ecommerce.runtime_registration_adapter.v1",
+  "serverIdentity": {
+    "compatibilityServiceNames": [
+      "ai-operating-advisor.service",
+      "ai-operating-advisor",
+      "ai-ecommerce.service"
+    ],
+    "deploymentScript": "scripts/deploy_release_z1.sh",
+    "serviceResolver": "src.services.server_runtime_identity_z1_service:server_runtime_identity",
+    "startupScript": "scripts/start_server_z1.sh"
+  },
+  "source": {
+    "gitBlobSha": "3342bec667892aff317648a371a568b1c2a00743",
+    "path": "contracts/runtime/active-runtime-registration.json"
+  },
+  "workers": [
+    "station_queue_worker"
+  ]
+}

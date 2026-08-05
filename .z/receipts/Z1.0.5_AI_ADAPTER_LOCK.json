@@ -1,0 +1,41 @@
+{
+  "schema": "z.ai_ecommerce.adapter_lock_receipt.v1",
+  "version": "Z1.0.5",
+  "status": "VERIFIED_LOCKED_NOT_INSTALLED",
+  "adapter": {
+    "adapterHash": "sha256:3f1007724a20f9e3a7885380fff4bd05cbcd9dddb2fc952c006ead50e16134e4",
+    "adapterVersion": "1.0.0",
+    "installedHash": "sha256:d450f32b29a4fae4184f53e1def206c985d666fa29fde1ada33d10e7005e3253",
+    "lockHash": "sha256:04931a25d9ad904a1ee7eff7ac784eb4ffd80b731ee753c774eaddb205c00b15"
+  },
+  "release": {
+    "repository": "yu5-520/Z-Century",
+    "version": "Z1.0.5",
+    "releaseRef": "release/z1.0.5-bootstrap-source",
+    "sourceCommit": "c924e646673a41857cca5e39650e022f9ce8c0a5",
+    "releaseHash": "sha256:1f0aacabc028b777d47513f81538525b37fda5ff840e25660b45e38285e2dabd",
+    "archiveHash": "sha256:2b841f6d4e382511c68ef9e290ed620f5d34f1229216d958aa4f156ad8bda9a2",
+    "artifactTransportHash": "sha256:79e56ac6c91d945dd893f5972818317f2c3dff8e6723961fb22d190e7cea41a2"
+  },
+  "verification": {
+    "sourceCommit": "732a405264caa5fd3387c8ae08f4fbb7fa0bdbc9",
+    "workflowRunId": 30686480065,
+    "workflowJobId": 91333220851,
+    "verificationHash": "sha256:082e5051d54896f9eaafeff17180a170d5c0fe32eb8d548fde9e37973eb4ca2f",
+    "verified": true,
+    "findings": [],
+    "warnings": [
+      "REGISTRY_ROOT_LAYERING_REQUIRES_STEP9_EQUIVALENCE"
+    ],
+    "databaseMutated": false,
+    "providerCallsExecuted": 0,
+    "ecsMutated": false
+  },
+  "integration": {
+    "pullRequest": 100,
+    "targetBranch": "migration/z-century-source-z1.0.5",
+    "mergeState": "BLOCKED_BY_HASH_BOUND_POST_CODEGEN_APPROVAL",
+    "runtimeSwitchAllowed": false,
+    "nextPhase": "STEP_9_EQUIVALENCE_AND_APPROVAL"
+  }
+}

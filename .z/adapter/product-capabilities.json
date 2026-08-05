@@ -1,0 +1,42 @@
+{
+  "activationState": "REFERENCE_ONLY",
+  "adapterVersion": "1.0.0",
+  "applicationId": "ai-ecommerce-assistant",
+  "capabilityIds": [
+    "action_capability_enrichment",
+    "data_ingestion_signal",
+    "final_sop_generation",
+    "frontend_read_model",
+    "operating_action_generation",
+    "operating_judgment",
+    "release_self_update_governance",
+    "task_generation_pool",
+    "v24_task_blueprint_registry_governance"
+  ],
+  "capabilitySchema": "self_update.product_capabilities.v1",
+  "capabilityVersion": "23.1.0",
+  "moduleIds": [
+    "action_pack",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_input_projection",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "artifact_execution_runtime",
+    "artifact_transport",
+    "frontend_view",
+    "pipeline_runtime",
+    "registry_compiler",
+    "release_governance",
+    "signal_admission",
+    "task_blueprint_compiler",
+    "task_mapping",
+    "task_pool"
+  ],
+  "schema": "z.ai_ecommerce.product_capability_adapter.v1",
+  "source": {
+    "gitBlobSha": "083577250d29f2d276c7db361376f272982b79e2",
+    "path": "contracts/self_update/product-capabilities.json"
+  }
+}

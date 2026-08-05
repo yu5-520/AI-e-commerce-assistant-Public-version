@@ -1,0 +1,40 @@
+{
+  "activationState": "LOCKED_NOT_INSTALLED",
+  "adapterHash": "sha256:3f1007724a20f9e3a7885380fff4bd05cbcd9dddb2fc952c006ead50e16134e4",
+  "adapterVersion": "1.0.0",
+  "applicationId": "ai-ecommerce-assistant",
+  "documents": [
+    {
+      "path": ".z/adapter/deployment-identity.json",
+      "sha256": "sha256:ba3b37c4726e0deaf65891631c6664b0419b17a5b994e2976ab692537beacc40"
+    },
+    {
+      "path": ".z/adapter/product-capabilities.json",
+      "sha256": "sha256:385710e13f1eb7206c2cf39acdefe5c924c770c3058594438057bbe5fc84ab45"
+    },
+    {
+      "path": ".z/adapter/registry-layout.json",
+      "sha256": "sha256:08653713fde5a10ae6825519629e6be08cd00176ee57140baa14b6adaa4e7d61"
+    },
+    {
+      "path": ".z/adapter/runtime-projection.json",
+      "sha256": "sha256:e2cca5d9d5eb7d890f38c9f8e63d8949ebfe5470e8fb9a498293f4432d589144"
+    },
+    {
+      "path": ".z/adapter/runtime-registration.json",
+      "sha256": "sha256:826a24b9bc28d7c188464ff3ed8ca4ff18bc418719c2e67eccbc51c8fcae006e"
+    }
+  ],
+  "findings": [
+    "AI_RUNTIME_LINEAGE_REMAINS_Z1.0.4",
+    "REGISTRY_ROOT_LAYERING_REQUIRES_STEP9_EQUIVALENCE"
+  ],
+  "requiredRelease": {
+    "releaseHash": "sha256:1f0aacabc028b777d47513f81538525b37fda5ff840e25660b45e38285e2dabd",
+    "releaseRef": "release/z1.0.5-bootstrap-source",
+    "repository": "yu5-520/Z-Century",
+    "sourceCommit": "c924e646673a41857cca5e39650e022f9ce8c0a5",
+    "version": "Z1.0.5"
+  },
+  "schema": "z.ai_ecommerce.adapter_manifest.v1"
+}

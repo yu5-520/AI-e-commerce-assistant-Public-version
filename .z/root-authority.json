@@ -1,0 +1,22 @@
+{
+  "schema": "z.ai_ecommerce.root_authority.v1",
+  "version": "Z1.0.5",
+  "state": "EXTERNAL_Z_AUTHORITY_ACTIVE",
+  "authorityRepository": "yu5-520/Z-Century",
+  "authorityIntegrationCommit": "27ccdc0a9e39a212671906c25594fa91293a2250",
+  "releaseCommit": "c924e646673a41857cca5e39650e022f9ce8c0a5",
+  "releaseRef": "release/z1.0.5-bootstrap-source",
+  "releaseHash": "sha256:1f0aacabc028b777d47513f81538525b37fda5ff840e25660b45e38285e2dabd",
+  "coreHash": "sha256:7f7e1e34819c724452868a68497651f91820f294a58f03fcf57ed369ce26613b",
+  "registryRootHash": "sha256:21078bf8228c3ca3a4cb755015023001d962c9062d0a48e8a92e99f8fdb48360",
+  "adapterHash": "sha256:3f1007724a20f9e3a7885380fff4bd05cbcd9dddb2fc952c006ead50e16134e4",
+  "equivalenceHash": "sha256:e1f4d679bd49ed2f2d266ac071256127e4c18ec07410ea47f90f786a43d4e1f7",
+  "oldScopeHash": "sha256:6a83be05199c7e505cc755e9c078c7e0f2a2ebd4749b9ccf9555250dedcde4f5",
+  "newScopeHash": "sha256:2959902677437be30d69bcab946381efdd0ba474e5abe28e497b2274c4e3fce8",
+  "productRuntimeAuthority": "AI_ECOMMERCE_PRODUCT_REPOSITORY",
+  "runtimeSwitchAuthorized": false,
+  "serverBindingAuthorized": false,
+  "embeddedSourceDeletionAuthorized": false,
+  "rollbackCommit": "9f482e1f0c331709cf8d98062548614bd471d65e",
+  "authorityHash": "sha256:74f6e2bff6e4fa724224dd52381d70833627f60315a82871ea6446c1775c6fbd"
+}

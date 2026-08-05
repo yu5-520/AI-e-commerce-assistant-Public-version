@@ -1,0 +1,78 @@
+{
+  "schema": "z.ai_ecommerce.dependency_manifest.v1",
+  "version": "Z1.0.5",
+  "state": "EXTERNAL_DEPENDENCY_ACTIVE",
+  "dependency": {
+    "repository": "yu5-520/Z-Century",
+    "releaseRef": "release/z1.0.5-bootstrap-source",
+    "sourceCommit": "c924e646673a41857cca5e39650e022f9ce8c0a5",
+    "authorityIntegrationCommit": "27ccdc0a9e39a212671906c25594fa91293a2250",
+    "releaseHash": "sha256:1f0aacabc028b777d47513f81538525b37fda5ff840e25660b45e38285e2dabd",
+    "archiveHash": "sha256:2b841f6d4e382511c68ef9e290ed620f5d34f1229216d958aa4f156ad8bda9a2",
+    "coreHash": "sha256:7f7e1e34819c724452868a68497651f91820f294a58f03fcf57ed369ce26613b",
+    "registryRootHash": "sha256:21078bf8228c3ca3a4cb755015023001d962c9062d0a48e8a92e99f8fdb48360",
+    "minimumAdapterVersion": "1.0.0",
+    "checkoutPath": ".z/dependency-src",
+    "sourceDirectoryEnvironment": "Z_CENTURY_SOURCE_DIR",
+    "tokenEnvironment": "Z_CENTURY_TOKEN",
+    "mutableReferenceAllowed": false,
+    "fallbackToEmbeddedSourceAllowed": false
+  },
+  "productAdapter": {
+    "adapterManifest": ".z/adapter/adapter-manifest.json",
+    "adapterHash": "sha256:3f1007724a20f9e3a7885380fff4bd05cbcd9dddb2fc952c006ead50e16134e4",
+    "lockPath": ".z/z.lock.json",
+    "installManifest": ".z/install-manifest.json",
+    "rootAuthority": ".z/root-authority.json",
+    "productCapabilities": "contracts/self_update/product-capabilities.json",
+    "runtimeProjectionSource": "config/v23_registry_runtime.json",
+    "runtimeProjectionMaterializedPath": "config/z.runtime.json",
+    "productRuntimeAuthority": "AI_ECOMMERCE_PRODUCT_REPOSITORY"
+  },
+  "embeddedGenericSource": {
+    "state": "REMOVED_OR_DEPENDENCY_SHIM_ONLY",
+    "forbiddenImplementationPaths": [
+      "tools/registry_compiler/change_program.py",
+      "tools/registry_compiler/module_contracts.py",
+      "tools/registry_compiler/requirement_resolver.py",
+      "tools/self_update/active_module_resolver.py",
+      "tools/self_update/impact_bundle.py",
+      "tools/self_update/level_classifier.py",
+      "tools/self_update/level_escalation.py",
+      "tools/self_update/level_policy.py",
+      "tools/self_update/lineage_scope_compiler.py",
+      "tools/self_update/scope_policy.py"
+    ],
+    "allowedShimPaths": [
+      "tools/registry_compiler/__init__.py",
+      "tools/registry_compiler/compile_registry.py",
+      "tools/registry_compiler/v231_self_update.py",
+      "tools/self_update/__init__.py",
+      "tools/self_update/__main__.py",
+      "tools/self_update/cli.py",
+      "tools/self_update/level_gate.py"
+    ],
+    "removedProtocolRoots": [
+      ".ai/skills/repository-self-update"
+    ]
+  },
+  "retainedEvidence": [
+    "migration/Z1.0.5_SOURCE_MANIFEST.json",
+    "migration/Z1.0.5_PROTOCOL_MIGRATION_RECEIPT.json",
+    "migration/Z1.0.5_COMPILER_BOOTSTRAP_RECEIPT.json",
+    ".z/receipts/Z1.0.5_AI_ADAPTER_LOCK.json",
+    ".z/receipts/Z1.0.5_AI_ROOT_EQUIVALENCE.json",
+    ".z/receipts/Z1.0.5_L5_ROOT_MIGRATION.json",
+    "SELF_UPDATE_BASE_VERSION.md"
+  ],
+  "runtimeBoundary": {
+    "productRuntimeChanged": false,
+    "serverBindingChanged": false,
+    "databaseMutationAuthorized": false,
+    "providerCallsAuthorized": false,
+    "ecsMutationAuthorized": false,
+    "secondZRuntimeAuthorized": false
+  },
+  "rollbackCommit": "79d4034ae3b395edaf8318829529189c785668a5",
+  "dependencyManifestHash": "sha256:fcb00980ee1284c579fe5a392ddaa7add77d15d7b979067b88ab638ecd249a2f"
+}

@@ -1,0 +1,37 @@
+{
+  "adapter": {
+    "adapterHash": "sha256:3f1007724a20f9e3a7885380fff4bd05cbcd9dddb2fc952c006ead50e16134e4",
+    "manifestPath": ".z/adapter/adapter-manifest.json",
+    "version": "1.0.0"
+  },
+  "applicationId": "ai-ecommerce-assistant",
+  "installation": {
+    "activationState": "LOCKED_NOT_INSTALLED",
+    "installedHash": "sha256:d450f32b29a4fae4184f53e1def206c985d666fa29fde1ada33d10e7005e3253",
+    "manifestPath": ".z/install-manifest.json"
+  },
+  "latestAliasAllowed": false,
+  "lockHash": "sha256:04931a25d9ad904a1ee7eff7ac784eb4ffd80b731ee753c774eaddb205c00b15",
+  "lockVersion": "1.0.0",
+  "mutableReferencesAllowed": false,
+  "release": {
+    "archiveHash": "sha256:2b841f6d4e382511c68ef9e290ed620f5d34f1229216d958aa4f156ad8bda9a2",
+    "artifactTransportHash": "sha256:79e56ac6c91d945dd893f5972818317f2c3dff8e6723961fb22d190e7cea41a2",
+    "compilerHash": "sha256:b03716a226c6e5afa7c4bd60bfa1f2abdd2eac44b23e6336fb799cf71f59077f",
+    "coreHash": "sha256:7f7e1e34819c724452868a68497651f91820f294a58f03fcf57ed369ce26613b",
+    "gateHash": "sha256:5196e332ce7bfcd75ca4ed30417eed06fc41931e67977d68947d2efdb547b563",
+    "identityHash": "sha256:b04cf726610b596efc0dac5cba8a333fd986493a9fb63e500471aad1276cec82",
+    "minimumAdapterVersion": "1.0.0",
+    "protocolHash": "sha256:4bedcf7d1992f92b7bf5fd4d4d5918783c6794edf9e6e6a5f58ccdde022f1998",
+    "registryHash": "sha256:409824c665162b13f01b1fed39313d2ca5480a8750ba7bd41bb94b68aa3e5797",
+    "releaseHash": "sha256:1f0aacabc028b777d47513f81538525b37fda5ff840e25660b45e38285e2dabd",
+    "releaseRef": "release/z1.0.5-bootstrap-source",
+    "repository": "yu5-520/Z-Century",
+    "runtimeHash": "sha256:30e5b3dc436c1b532c906ad99570c0d304d61ec4ec4d01e97d1b0b083b5fd3cc",
+    "schemaHash": "sha256:dcc01caf0dbc23477604f4f2b749841121a5f31955d1ec51281c938dce72fb37",
+    "sourceCommit": "c924e646673a41857cca5e39650e022f9ce8c0a5",
+    "version": "Z1.0.5"
+  },
+  "resolutionMode": "EXACT_COMMIT_AND_HASH",
+  "schema": "z.dependency_lock.v1"
+}

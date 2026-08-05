@@ -1,0 +1,62 @@
+{
+  "activationState": "REFERENCE_ONLY",
+  "adapterVersion": "1.0.0",
+  "registeredOnlyV24Modules": [
+    "action_node_transport",
+    "execution_resource_orchestrator",
+    "node_authorization",
+    "operating_plan_compiler",
+    "stage_frontend_projection",
+    "stage_lifecycle",
+    "task_blueprint_compiler"
+  ],
+  "requiredActiveModules": [
+    "action_pack",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_input_projection",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "artifact_execution_runtime",
+    "artifact_transport",
+    "frontend_view",
+    "pipeline_runtime",
+    "release_governance",
+    "signal_admission",
+    "task_mapping",
+    "task_pool"
+  ],
+  "rules": {
+    "allActiveRegistryModulesRequired": true,
+    "databaseMutationAllowed": false,
+    "providerCallsAllowed": false,
+    "runnerFileRequired": true,
+    "runnerSymbolRequired": true,
+    "runtimeErrorOwnerRequired": true
+  },
+  "schema": "z.ai_ecommerce.runtime_projection_adapter.v1",
+  "selectedRuntimeModules": [
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "frontend_view",
+    "release_governance",
+    "task_mapping",
+    "task_pool"
+  ],
+  "sources": [
+    {
+      "gitBlobSha": "c6b38901b0932ba988b94e39485ac22ccfb04fa1",
+      "path": "config/z1_active_runtime_projection.json",
+      "version": "Z1.0.2"
+    },
+    {
+      "gitBlobSha": "37b71b064912dcfb0375db2b46956d334ad91048",
+      "path": "config/v23_registry_runtime.json",
+      "version": "23.0.0-rc.1"
+    }
+  ]
+}
