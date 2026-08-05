@@ -1,0 +1,119 @@
+name: Clear verified contest Runner drift once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-runner-drift-clear-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-runner-drift-clear-once
+  cancel-in-progress: false
+
+jobs:
+  clear-runner-drift:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      Z_INTERFACE_ROOT: governance/contest/z-interface/Z1.0.5
+      EXPECTED_Z_COMPILER_BLOB: 7a9546b02fd598548891fd080c98a6553695b796
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Verify complete Runner diagnostic receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$AUDIT_PYTHON"
+          test "$($AUDIT_PYTHON --version 2>&1)" = "Python 3.11.9"
+          interface="$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT/tools/registry_compiler/compile_registry.py"
+          test "$(git hash-object "$interface")" = "$EXPECTED_Z_COMPILER_BLOB"
+
+          "$AUDIT_PYTHON" - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(
+              Path("governance/contest/generated/runner-drift-diagnostic.json")
+              .read_text(encoding="utf-8")
+          )
+          assert data["registeredModuleCount"] == 23, data
+          assert data["runnerDriftCount"] == 0, data
+          assert data["runnerDrift"] == [], data
+          assert data["businessRuntimeMutated"] is False, data
+          assert data["databaseMutated"] is False, data
+          assert data["providerCallsExecuted"] == 0, data
+          assert data["physicalDeletionExecuted"] is False, data
+          print("COMPLETE_RUNNER_DIAGNOSTIC=PASS")
+          PY
+
+      - name: Regenerate complete review from verified audit implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/generated \
+            --z-source "$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT" \
+            | tee /tmp/contest-runner-drift-cleared-summary.json
+
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit.json
+          ! grep -q 'REGISTERED_RUNNER_DRIFT_REVIEW_REQUIRED' governance/contest/generated/contest-chain-review.json
+          grep -q '"rootEquivalent": true' governance/contest/generated/registry-snapshot.json
+          grep -q 'REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED' governance/contest/generated/contest-chain-review.json
+          grep -q "\"graphHash\": \"$EXPECTED_GRAPH_HASH\"" governance/contest/generated/contest-chain-review.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/contest-chain-review.json
+          grep -q '"KEEP_CORE": 14' governance/contest/generated/contest-chain-review.json
+          grep -q '"KEEP_SUPPORT": 2' governance/contest/generated/contest-chain-review.json
+          grep -q '"ISOLATE": 7' governance/contest/generated/contest-chain-review.json
+          grep -q '"businessRuntimeMutated": false' governance/contest/generated/execution-receipt.json
+          grep -q '"databaseMutated": false' governance/contest/generated/execution-receipt.json
+          grep -q '"providerCallsExecuted": 0' governance/contest/generated/execution-receipt.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/execution-receipt.json
+          echo "RUNNER_DRIFT_CLEARED=PASS"
+
+      - name: Commit resealed review evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add governance/contest/generated
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/' || true)"
+          test -z "$forbidden"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): reseal review with Runner drift cleared [skip ci]"
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "RUNNER_REVIEW_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload cleared review evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-runner-drift-cleared
+          path: |
+            governance/contest/generated
+            /tmp/contest-runner-drift-cleared-summary.json
+          if-no-files-found: error
+          retention-days: 14
