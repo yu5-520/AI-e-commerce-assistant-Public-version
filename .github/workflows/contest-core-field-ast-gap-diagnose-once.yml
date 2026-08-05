@@ -1,0 +1,138 @@
+name: Diagnose approved core field AST evidence gaps once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-core-field-ast-gap-diagnose-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contest-core-field-migration-v1
+  cancel-in-progress: false
+
+jobs:
+  diagnose-ast-gaps:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    env:
+      TARGET_BRANCH: transaction/contest-core-field-migration-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      PYTHONPYCACHEPREFIX: /tmp/contest-core-field-diagnostic-pycache
+    steps:
+      - name: Checkout transaction branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Compare sealed references with complete AST string evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/core-field-ast-gap-diagnostic.json
+          import ast
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          generated = Path("governance/contest/generated")
+          review = json.loads((generated / "tombstone-scope-review.json").read_text(encoding="utf-8"))
+          keys = {
+              "payload.selectedActionFamilyHint": "selectedActionFamilyHint",
+              "payload.creativeTestPlan": "creativeTestPlan",
+          }
+          sealed = [
+              item for item in review.get("references") or []
+              if item.get("classification") == "CORE_REVIEW"
+              and item.get("legacyPath") in keys
+          ]
+          approved_paths = sorted({str(item["path"]) for item in sealed})
+          sealed_by = defaultdict(list)
+          for item in sealed:
+              sealed_by[(str(item["path"]), str(item["legacyPath"]))].append(item)
+
+          files = []
+          total_ast = Counter()
+          total_sealed = Counter()
+          for path in approved_paths:
+              source = Path(path).read_text(encoding="utf-8")
+              tree = ast.parse(source, filename=path)
+              parent = {}
+              for node in ast.walk(tree):
+                  for child in ast.iter_child_nodes(node):
+                      parent[child] = node
+              records = []
+              for legacy, key in keys.items():
+                  sealed_items = sealed_by.get((path, legacy), [])
+                  sealed_lines = Counter(int(item.get("line") or 0) for item in sealed_items)
+                  ast_items = []
+                  for node in ast.walk(tree):
+                      if not (
+                          isinstance(node, ast.Constant)
+                          and isinstance(node.value, str)
+                          and node.value == key
+                      ):
+                          continue
+                      owner = parent.get(node)
+                      ast_items.append({
+                          "line": int(getattr(node, "lineno", 0) or 0),
+                          "column": int(getattr(node, "col_offset", 0) or 0),
+                          "parentNode": type(owner).__name__ if owner is not None else None,
+                      })
+                  if not ast_items and not sealed_items:
+                      continue
+                  total_ast[legacy] += len(ast_items)
+                  total_sealed[legacy] += len(sealed_items)
+                  remaining = Counter(item["line"] for item in ast_items)
+                  for line, count in sealed_lines.items():
+                      remaining[line] -= count
+                  supplemental = []
+                  for item in ast_items:
+                      line = item["line"]
+                      if remaining[line] > 0:
+                          supplemental.append(item)
+                          remaining[line] -= 1
+                  records.append({
+                      "legacyPath": legacy,
+                      "legacyKey": key,
+                      "sealedCount": len(sealed_items),
+                      "sealedLines": sorted(int(item.get("line") or 0) for item in sealed_items),
+                      "astCount": len(ast_items),
+                      "astOccurrences": ast_items,
+                      "supplementalCount": len(supplemental),
+                      "supplementalOccurrences": supplemental,
+                  })
+              files.append({"path": path, "fields": records})
+
+          result = {
+              "schema": "contest.core_field_ast_gap_diagnostic.v1",
+              "approvedFileCount": len(approved_paths),
+              "sealedCounts": dict(sorted(total_sealed.items())),
+              "completeAstCounts": dict(sorted(total_ast.items())),
+              "supplementalCounts": {
+                  key: int(total_ast[key] - total_sealed[key]) for key in sorted(keys)
+              },
+              "files": files,
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "physicalDeletionExecuted": False,
+          }
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+          grep -q '"approvedFileCount": 14' /tmp/core-field-ast-gap-diagnostic.json
+          grep -q '"businessRuntimeMutated": false' /tmp/core-field-ast-gap-diagnostic.json
+          echo "CORE_FIELD_AST_GAP_DIAGNOSTIC=PASS"
+
+      - name: Upload diagnostic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-core-field-ast-gap-diagnostic
+          path: /tmp/core-field-ast-gap-diagnostic.json
+          if-no-files-found: error
+          retention-days: 14
