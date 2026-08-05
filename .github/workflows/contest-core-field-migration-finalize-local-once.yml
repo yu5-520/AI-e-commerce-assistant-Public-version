@@ -1,0 +1,346 @@
+name: Finalize verified contest core field migration from local object once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-core-field-migration-finalize-local-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-core-field-migration-finalize-v1
+  cancel-in-progress: false
+
+jobs:
+  finalize-core-field-migration:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: transaction/contest-core-field-migration-v1
+      VERIFIED_TRANSACTION_HEAD: 5fceb7c48083815448c2831629c6cbeafac8ad4f
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      PYTHONPYCACHEPREFIX: /tmp/contest-core-field-finalize-pycache
+      EXPECTED_EXECUTOR_BLOB: 6a4e6f70394ec8e1662c88032d8bbc9dcc7435a9
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_BEFORE: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+      EXPECTED_SELECTION_AFTER: sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb
+      EXPECTED_STABLE_SELECTION_HASH: sha256:406e016817a7b5d3aafbdf0cc2fbe87252397e7e112d55be9d201458c3c79b47
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Apply verify commit and push approved transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          test -d .git
+          test -x "$AUDIT_PYTHON"
+          git cat-file -e "$VERIFIED_TRANSACTION_HEAD^{commit}"
+
+          COMPLETED=0
+          cleanup() {
+            rm -rf "$PYTHONPYCACHEPREFIX"
+            if test "$COMPLETED" != "1"; then
+              git reset --hard "$VERIFIED_TRANSACTION_HEAD" >/dev/null 2>&1 || true
+              git clean -ffdx >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          git reset --hard "$VERIFIED_TRANSACTION_HEAD"
+          git clean -ffdx
+          git checkout --detach "$VERIFIED_TRANSACTION_HEAD"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+
+          test "$(git rev-parse HEAD)" = "$VERIFIED_TRANSACTION_HEAD"
+          test "$(git hash-object tools/contest_governance/migrate_core_tombstone_fields.py)" = "$EXPECTED_EXECUTOR_BLOB"
+          test -z "$(git status --porcelain)"
+          cp governance/contest/generated/contest-selection-manifest.json /tmp/core-selection-before.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_BEFORE\"" /tmp/core-selection-before.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/migrate_core_tombstone_fields.py apply \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/core-field-finalize-apply.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/generated \
+            --z-source "$GITHUB_WORKSPACE/governance/contest/z-interface/Z1.0.5" \
+            | tee /tmp/core-field-finalize-selection.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/scope_unregistered_fields.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            > /tmp/core-field-finalize-unregistered.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/scope_tombstone_references.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            > /tmp/core-field-finalize-tombstones.json
+
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/core-field-finalize-review.json
+          import ast
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path.cwd()
+          generated = root / "governance/contest/generated"
+
+          def read(path):
+              value = json.loads(Path(path).read_text(encoding="utf-8"))
+              assert isinstance(value, dict), path
+              return value
+
+          def sha(value):
+              raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+              return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+          def write(path, value):
+              Path(path).write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+
+          selection_before = read("/tmp/core-selection-before.json")
+          selection_after = read(generated / "contest-selection-manifest.json")
+          plan = read(generated / "core-field-migration-plan.json")
+          audit = read(generated / "repository-audit.json")
+          tombstones = read(generated / "tombstone-scope-review.json")
+
+          expected_before = "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e"
+          expected_after = "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb"
+          expected_graph = "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00"
+          expected_stable = "sha256:406e016817a7b5d3aafbdf0cc2fbe87252397e7e112d55be9d201458c3c79b47"
+
+          stable_before = {k: v for k, v in selection_before.items() if k not in {"selectionHash", "tombstoneReview"}}
+          stable_after = {k: v for k, v in selection_after.items() if k not in {"selectionHash", "tombstoneReview"}}
+
+          def tombstone_index(document):
+              return {
+                  str(item["legacyPath"]): {
+                      "repositoryHitCount": int(item["repositoryHitCount"]),
+                      "classification": item["classification"],
+                      "replacementFieldId": item["replacementFieldId"],
+                      "status": item["status"],
+                  }
+                  for item in document["tombstoneReview"]
+              }
+
+          old_tombstones = tombstone_index(selection_before)
+          new_tombstones = tombstone_index(selection_after)
+          expected_transitions = {
+              "payload.creativeTestPlan": (24, 18),
+              "payload.selectedActionFamilyHint": (37, 18),
+              "payload.imageDirections": (1, 1),
+              "payload.testPackages": (5, 5),
+          }
+          assert set(old_tombstones) == set(new_tombstones) == set(expected_transitions)
+          transitions = []
+          for legacy, (old_count, new_count) in sorted(expected_transitions.items()):
+              assert old_tombstones[legacy]["repositoryHitCount"] == old_count
+              assert new_tombstones[legacy]["repositoryHitCount"] == new_count
+              assert old_tombstones[legacy]["classification"] == new_tombstones[legacy]["classification"] == "REVIEW_REQUIRED"
+              assert old_tombstones[legacy]["replacementFieldId"] == new_tombstones[legacy]["replacementFieldId"]
+              assert old_tombstones[legacy]["status"] == new_tombstones[legacy]["status"]
+              transitions.append({
+                  "legacyPath": legacy,
+                  "repositoryHitCountBefore": old_count,
+                  "repositoryHitCountAfter": new_count,
+              })
+
+          scope_summary = tombstones["summary"]
+          scope_counts = scope_summary["classificationCounts"]
+          assertions = {
+              "selectionHashBeforeLocked": selection_before["selectionHash"] == expected_before,
+              "selectionHashAfterLocked": selection_after["selectionHash"] == expected_after,
+              "selectionTransitionExpected": selection_before["selectionHash"] != selection_after["selectionHash"],
+              "stableSelectionMaterialEqual": stable_before == stable_after,
+              "stableSelectionMaterialHashLocked": sha(stable_before) == sha(stable_after) == expected_stable,
+              "graphHashStable": selection_before["graphHash"] == selection_after["graphHash"] == expected_graph,
+              "classificationSetsStable": selection_before["classifications"] == selection_after["classifications"],
+              "forwardClosureHashStable": selection_before["forwardClosureHash"] == selection_after["forwardClosureHash"],
+              "reverseClosureHashStable": selection_before["reverseClosureHash"] == selection_after["reverseClosureHash"],
+              "physicalPathReviewStable": selection_before["physicalPathReview"] == selection_after["physicalPathReview"],
+              "runnerDriftCountZero": int(audit["summary"]["runnerDriftCount"]) == 0,
+              "sourceFileCountLocked": int(plan["sourceFileCount"]) == 14,
+              "sealedEvidenceCountLocked": int(plan["sealedReferenceCount"]) == 25,
+              "supplementalAstEvidenceCountLocked": int(plan["supplementalAstReferenceCount"]) == 4,
+              "completeMigrationCountLocked": int(plan["migratedReferenceCount"]) == 29,
+              "coreLegacyReferencesZero": int(scope_counts["CORE_REVIEW"]) == 0,
+              "supportLegacyReferencesZero": int(scope_counts["SUPPORT_REVIEW"]) == 0,
+              "outsideCompatibilityReferencesPreserved": int(scope_counts["OUTSIDE_CONTEST_SCOPE"]) == 42,
+              "sourceReferencesReducedToOutsideOnly": int(scope_summary["sourceReferenceCount"]) == 42,
+              "partitionComplete": scope_summary["sourceReferenceCount"] == scope_summary["partitionReferenceCount"],
+              "blockedKeysZero": int(scope_summary["contestDeletionBlockedKeyCount"]) == 0,
+          }
+          assert all(assertions.values()), assertions
+
+          old_keys = {"selectedActionFamilyHint", "creativeTestPlan"}
+          for item in plan["files"]:
+              path = root / item["path"]
+              source = path.read_text(encoding="utf-8")
+              tree = ast.parse(source, filename=str(path))
+              remaining = [
+                  node.value for node in ast.walk(tree)
+                  if isinstance(node, ast.Constant)
+                  and isinstance(node.value, str)
+                  and node.value in old_keys
+              ]
+              assert remaining == [], {"path": item["path"], "remaining": remaining}
+
+          transition_material = {
+              "schema": "contest.selection_hash_transition_review.v1",
+              "state": "APPROVED_EVIDENCE_DELTA_ONLY",
+              "selectionHashBefore": expected_before,
+              "selectionHashAfter": expected_after,
+              "stableSelectionMaterialHash": expected_stable,
+              "graphHash": expected_graph,
+              "reason": "approved_core_tombstone_hit_counts_changed",
+              "tombstoneTransitions": transitions,
+              "assertions": {
+                  key: assertions[key]
+                  for key in (
+                      "stableSelectionMaterialEqual",
+                      "stableSelectionMaterialHashLocked",
+                      "graphHashStable",
+                      "classificationSetsStable",
+                      "forwardClosureHashStable",
+                      "reverseClosureHashStable",
+                      "physicalPathReviewStable",
+                  )
+              },
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "physicalDeletionExecuted": False,
+          }
+          transition_review = {**transition_material, "transitionReviewHash": sha(transition_material)}
+          write(generated / "selection-hash-transition-review.json", transition_review)
+
+          migration_material = {
+              "schema": "contest.core_field_migration_review.v3",
+              "state": "CORE_LEGACY_FIELD_MIGRATION_VERIFIED_PRUNE_SIMULATION_READY",
+              "transactionHash": plan["transactionHash"],
+              "supersedesConsolidatedReviewHash": "sha256:f1efe99fa15eca67e9c2c306f635f2431a34890832a7eefd22c33e11723d0e99",
+              "selectionHashBefore": expected_before,
+              "selectionHashAfter": expected_after,
+              "selectionTransitionReviewHash": transition_review["transitionReviewHash"],
+              "graphHash": expected_graph,
+              "sourceFileChangeCount": 14,
+              "sealedCoreReferenceCount": 25,
+              "supplementalAstReferenceCount": 4,
+              "migratedCoreReferenceCount": 29,
+              "preservedOutsideReferenceCount": 42,
+              "migratedLegacyPaths": ["payload.creativeTestPlan", "payload.selectedActionFamilyHint"],
+              "replacementFieldIds": ["agent1.locked_action_family", "agent2.creative_draft"],
+              "assertions": assertions,
+              "sourceCodeModified": True,
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "deploymentExecuted": False,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+              "publicReleaseExecuted": False,
+          }
+          migration_review = {**migration_material, "migrationReviewHash": sha(migration_material)}
+          write(generated / "core-field-migration-review.json", migration_review)
+
+          receipt_material = {
+              "schema": "contest.core_field_migration_receipt.v3",
+              "state": migration_review["state"],
+              "transactionHash": plan["transactionHash"],
+              "migrationReviewHash": migration_review["migrationReviewHash"],
+              "selectionTransitionReviewHash": transition_review["transitionReviewHash"],
+              "states": [
+                  "HUMAN_CONTINUE_APPROVAL_RECORDED",
+                  "SEALED_REFERENCE_SET_LOCKED",
+                  "AST_SUPPLEMENTAL_EVIDENCE_LOCKED",
+                  "EXACT_29_LITERAL_IDENTITIES_MIGRATED",
+                  "SELECTION_HASH_TRANSITION_VERIFIED",
+                  "REGISTRY_AND_LINEAGE_RECOMPILED",
+                  "RUNNER_GATE_VERIFIED",
+                  "OUTSIDE_COMPATIBILITY_REFERENCES_PRESERVED",
+                  "PRUNE_SIMULATION_READY",
+              ],
+              "sourceCodeModified": True,
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "deploymentExecuted": False,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+              "publicReleaseExecuted": False,
+          }
+          receipt = {**receipt_material, "receiptHash": sha(receipt_material)}
+          write(generated / "core-field-migration-receipt.json", receipt)
+
+          print(json.dumps({
+              "state": migration_review["state"],
+              "transactionHash": plan["transactionHash"],
+              "selectionHashBefore": expected_before,
+              "selectionHashAfter": expected_after,
+              "selectionTransitionReviewHash": transition_review["transitionReviewHash"],
+              "migrationReviewHash": migration_review["migrationReviewHash"],
+              "receiptHash": receipt["receiptHash"],
+              "assertions": assertions,
+          }, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+          grep -q 'CORE_LEGACY_FIELD_MIGRATION_VERIFIED_PRUNE_SIMULATION_READY' governance/contest/generated/core-field-migration-review.json
+          grep -q 'APPROVED_EVIDENCE_DELTA_ONLY' governance/contest/generated/selection-hash-transition-review.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_AFTER\"" governance/contest/generated/contest-selection-manifest.json
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit.json
+          grep -q '"CORE_REVIEW": 0' governance/contest/generated/tombstone-scope-review.json
+          grep -q '"OUTSIDE_CONTEST_SCOPE": 42' governance/contest/generated/tombstone-scope-review.json
+          git diff --check
+
+          cat > /tmp/allowed-source-paths <<'EOF'
+          src/services/action_pack_core_v20_service.py
+          src/services/agent2_action_draft_core_v225_service.py
+          src/services/agent2_action_plan_core_v20_service.py
+          src/services/agent_execution_lock_v2255_service.py
+          src/services/agent_input_transport_v22514_service.py
+          src/services/agent_runtime_contract_v2010_service.py
+          src/services/agent_runtime_hard_interface_v2257_service.py
+          src/services/decision_write_guard_v19122_service.py
+          src/services/pipeline_agent1_microbatch_v20101_service.py
+          src/services/pipeline_item_service.py
+          src/services/real_product_judgment_agent_v196_service.py
+          src/services/route_action_department_matrix_v1915_service.py
+          src/services/v2172_inventory_action_guard_service.py
+          src/services/v2173_agent2_policy_shape_recovery_service.py
+          EOF
+          sort -u /tmp/allowed-source-paths -o /tmp/allowed-source-paths
+          git status --porcelain | sed -E 's/^.. //' | sort -u > /tmp/changed-paths
+          while IFS= read -r path; do
+            case "$path" in
+              governance/contest/generated/*) ;;
+              *) grep -Fxq "$path" /tmp/allowed-source-paths || { echo "FORBIDDEN_CHANGE=$path"; exit 1; } ;;
+            esac
+          done < /tmp/changed-paths
+          diff -u /tmp/allowed-source-paths <(grep '^src/' /tmp/changed-paths | sort -u)
+          ! grep -q '^contracts/registry/' /tmp/changed-paths
+          ! grep -q '^release/' /tmp/changed-paths
+          ! grep -q '^src/deployment/' /tmp/changed-paths
+          echo "FINAL_MIGRATION_BOUNDARY=PASS"
+
+          git add governance/contest/generated
+          xargs -r git add < /tmp/allowed-source-paths
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "migration(contest): migrate registered core field identities [skip ci]"
+
+          gh auth setup-git
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "FINAL_CORE_FIELD_MIGRATION_PUSH=PASS"
+              COMPLETED=1
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+          test "$COMPLETED" = "1"
