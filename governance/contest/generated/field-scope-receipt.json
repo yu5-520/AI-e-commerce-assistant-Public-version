@@ -1,0 +1,19 @@
+{
+  "businessRuntimeMutated": false,
+  "contestReviewCandidateCount": 172,
+  "databaseMutated": false,
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "receiptHash": "sha256:386b914ed791d7ed4e55736e4d79726ff409bb3687dd15b177d000036f1ce727",
+  "repositoryScanHash": "sha256:c85ea6b755280f16a94d7b5aedc3306f26c2dbd6e77611ab712ce210a23a4893",
+  "schema": "contest.field_scope_receipt.v1",
+  "scopeHash": "sha256:c2b581e523ec730a454903f0f3b155ad5fc0845f3f9a1b919e37ab5f4c675d84",
+  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "sourceCandidateCount": 500,
+  "states": [
+    "REGISTERED_PATHS_SEEDED",
+    "IMPORT_CLOSURE_BUILT",
+    "FIELD_CANDIDATES_PARTITIONED",
+    "REVIEW_SCOPE_LOCKED"
+  ]
+}

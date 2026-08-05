@@ -1,0 +1,6135 @@
+{
+  "businessRuntimeMutated": false,
+  "candidates": [
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "productVersion",
+      "line": 90,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "contractVersion",
+      "line": 91,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "publicApiVersion",
+      "line": 92,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "threeAgentPipelineVersion",
+      "line": 93,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "stateMachineVersion",
+      "line": 94,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent1InputSemanticVersion",
+      "line": 95,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent1InputSchema",
+      "line": 96,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 97,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "interfaceDocumentationVersion",
+      "line": 98,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "apiSelfDescriptionVersion",
+      "line": 99,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "stateMachineVersion",
+      "line": 117,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "activeHardInterfaceVersion",
+      "line": 118,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "hashExecutionRuntimeVersion",
+      "line": 119,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent1InputSchema",
+      "line": 124,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "batchManifestContract",
+      "line": 127,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "frontendViewManifestContract",
+      "line": 128,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 130,
+      "operation": "get",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "executionLockContract",
+      "line": 163,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "productVersion",
+      "line": 300,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "contractVersion",
+      "line": 301,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "publicApiVersion",
+      "line": 302,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "threeAgentPipelineVersion",
+      "line": 304,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "stateMachineVersion",
+      "line": 305,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent1InputSemanticVersion",
+      "line": 306,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent1InputSchema",
+      "line": 307,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 308,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "interfaceDocumentationVersion",
+      "line": 309,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "apiSelfDescriptionVersion",
+      "line": 310,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "batchManifestContract",
+      "line": 313,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "frontendViewManifestContract",
+      "line": 314,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent2Draft",
+      "line": 322,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "batchManifestContract",
+      "line": 341,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "frontendViewManifestContract",
+      "line": 342,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "operatingEvidenceContract",
+      "line": 355,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "stateMachineVersion",
+      "line": 365,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "hardInterfaceVersion",
+      "line": 366,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "activeHardInterfaceVersion",
+      "line": 367,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 368,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "activeBusinessPipelineVersion",
+      "line": 369,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent1InputSemanticVersion",
+      "line": 370,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent1InputSchema",
+      "line": 371,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "batchManifestContract",
+      "line": 389,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "frontendViewManifestContract",
+      "line": 390,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "executionLockContract",
+      "line": 405,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskDtoVersion",
+      "line": 427,
+      "operation": "dict_key",
+      "path": "src/api/main.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 77,
+      "operation": "get",
+      "path": "src/api/routes/accounts.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 99,
+      "operation": "get",
+      "path": "src/api/routes/accounts.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "primaryOperatorId",
+      "line": 132,
+      "operation": "get",
+      "path": "src/api/routes/accounts.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "reviewerId",
+      "line": 133,
+      "operation": "get",
+      "path": "src/api/routes/accounts.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 110,
+      "operation": "get",
+      "path": "src/api/routes/action_authority.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "assigneeId",
+      "line": 42,
+      "operation": "dict_key",
+      "path": "src/api/routes/approvals.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "assigneeId",
+      "line": 42,
+      "operation": "get",
+      "path": "src/api/routes/approvals.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "artifactId",
+      "line": 23,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "artifactId",
+      "line": 23,
+      "operation": "get",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "artifactType",
+      "line": 24,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "artifactType",
+      "line": 24,
+      "operation": "get",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "schemaVersion",
+      "line": 25,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "schemaVersion",
+      "line": 25,
+      "operation": "get",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "currentStageRef",
+      "line": 86,
+      "operation": "get",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "itemId",
+      "line": 90,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "payloadArtifactRef",
+      "line": 97,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "lastErrorCode",
+      "line": 98,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "lastErrorArtifactRef",
+      "line": 99,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "traceId",
+      "line": 46,
+      "operation": "get",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "traceId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 61,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "eventType",
+      "line": 79,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "traceId",
+      "line": 79,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 80,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "traceId",
+      "line": 103,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "traceId",
+      "line": 106,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "eventType",
+      "line": 108,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 111,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 50,
+      "operation": "get",
+      "path": "src/api/routes/data_import.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 56,
+      "operation": "get",
+      "path": "src/api/routes/data_import.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskGenerationStatus",
+      "line": 152,
+      "operation": "dict_key",
+      "path": "src/api/routes/data_import.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "runtimeVersion",
+      "line": 49,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "routeVersion",
+      "line": 50,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "contractVersion",
+      "line": 51,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "threeAgentPipelineVersion",
+      "line": 53,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskStatus",
+      "line": 74,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskPlan",
+      "line": 80,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskStatus",
+      "line": 82,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "activeActionContract",
+      "line": 86,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "activeActionContract",
+      "line": 89,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "assigneeId",
+      "line": 95,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 96,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "productTrendReadModelVersion",
+      "line": 125,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "pipelineLiveReadModelVersion",
+      "line": 183,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "currentDataVersion",
+      "line": 202,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "routeVersion",
+      "line": 208,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "lineStatus",
+      "line": 211,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "lineStatus",
+      "line": 212,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskPoolLifecycleSyncVersion",
+      "line": 297,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskDetailSnapshotVersion",
+      "line": 299,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
+      }
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 18,
+      "operation": "get",
+      "path": "src/api/routes/health.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "productVersion",
+      "line": 22,
+      "operation": "dict_key",
+      "path": "src/api/routes/health.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "contractVersion",
+      "line": 23,
+      "operation": "dict_key",
+      "path": "src/api/routes/health.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseStatus",
+      "line": 27,
+      "operation": "dict_key",
+      "path": "src/api/routes/health.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "governanceVersion",
+      "line": 42,
+      "operation": "dict_key",
+      "path": "src/api/routes/health.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "metricCode",
+      "line": 27,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "metricCode",
+      "line": 31,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bundleId",
+      "line": 40,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bundleId",
+      "line": 46,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "inventoryStatus",
+      "line": 48,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "readModelVersion",
+      "line": 48,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bundleId",
+      "line": 62,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 18,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/competitor.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 18,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/competitor.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 18,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/competitor.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 18,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/competitor.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "metricCode",
+      "line": 29,
+      "operation": "get",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 38,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bundleId",
+      "line": 38,
+      "operation": "get",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 38,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 38,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 38,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bundleId",
+      "line": 43,
+      "operation": "get",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "inventoryStatus",
+      "line": 44,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "readModelVersion",
+      "line": 44,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bundleId",
+      "line": 58,
+      "operation": "get",
+      "path": "src/api/routes/modules/inventory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 21,
+      "operation": "get",
+      "path": "src/api/routes/modules/listing.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 28,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/listing.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 28,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/listing.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 28,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/listing.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 28,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/listing.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "testPlan",
+      "line": 28,
+      "operation": "read",
+      "path": "src/api/routes/modules/listing.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "testType",
+      "line": 28,
+      "operation": "read",
+      "path": "src/api/routes/modules/listing.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "snapshotVersion",
+      "line": 32,
+      "operation": "write",
+      "path": "src/api/routes/modules/operating_unit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "pipelineGateVersion",
+      "line": 33,
+      "operation": "write",
+      "path": "src/api/routes/modules/operating_unit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 34,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/operating_unit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 34,
+      "operation": "get",
+      "path": "src/api/routes/modules/operating_unit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "snapshotVersion",
+      "line": 47,
+      "operation": "write",
+      "path": "src/api/routes/modules/operating_unit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "pipelineGateVersion",
+      "line": 48,
+      "operation": "write",
+      "path": "src/api/routes/modules/operating_unit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 49,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/operating_unit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 49,
+      "operation": "get",
+      "path": "src/api/routes/modules/operating_unit.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bundleId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "objectId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "metricCode",
+      "line": 122,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bundleId",
+      "line": 157,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "objectId",
+      "line": 164,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "objectId",
+      "line": 164,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "archiveId",
+      "line": 165,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "rawProductId",
+      "line": 167,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "skuId",
+      "line": 168,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "skuId",
+      "line": 168,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "spuId",
+      "line": 169,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "spuId",
+      "line": 169,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "erpProductCode",
+      "line": 170,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "erpProductCode",
+      "line": 170,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "productArchiveVersion",
+      "line": 195,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "readModelVersion",
+      "line": 196,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "systemStoreCode",
+      "line": 202,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "systemStoreCode",
+      "line": 202,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "systemSpuCode",
+      "line": 203,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "systemSpuCode",
+      "line": 203,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "systemLinkCode",
+      "line": 204,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "systemLinkCode",
+      "line": 204,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "systemSkuCode",
+      "line": 205,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "systemSkuCode",
+      "line": 205,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "skuId",
+      "line": 209,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "skuId",
+      "line": 209,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "erpProductCode",
+      "line": 210,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "erpProductCode",
+      "line": 210,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "metricCode",
+      "line": 252,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "objectId",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "primarySignalType",
+      "line": 252,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 256,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 260,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 260,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 260,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 260,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 260,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 260,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 260,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 261,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 261,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 261,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "signalRef",
+      "line": 261,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskPlan",
+      "line": 261,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskSnapshotId",
+      "line": 262,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "archiveId",
+      "line": 279,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "objectId",
+      "line": 279,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "skuId",
+      "line": 279,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "objectId",
+      "line": 28,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "archiveId",
+      "line": 29,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "rawProductId",
+      "line": 31,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "skuId",
+      "line": 32,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "skuId",
+      "line": 34,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "rawProductId",
+      "line": 63,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 29,
+      "operation": "get",
+      "path": "src/api/routes/modules/rag_memory.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "latestDataVersion",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "latestDataVersion",
+      "line": 64,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "sourceDataVersion",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 68,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "sourceDataVersion",
+      "line": 69,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 70,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 70,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 70,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 70,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 70,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 70,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 70,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 71,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 71,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 71,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "signalRef",
+      "line": 71,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskPlan",
+      "line": 71,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskSnapshotId",
+      "line": 72,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bridgeVersion",
+      "line": 27,
+      "operation": "write",
+      "path": "src/api/routes/modules/todo.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "assigneeId",
+      "line": 72,
+      "operation": "get",
+      "path": "src/api/routes/modules/todo.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "reviewerId",
+      "line": 72,
+      "operation": "get",
+      "path": "src/api/routes/modules/todo.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskId",
+      "line": 124,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/todo.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskId",
+      "line": 129,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/todo.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "bundleId",
+      "line": 22,
+      "operation": "get",
+      "path": "src/api/routes/modules/traffic.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "primarySignalType",
+      "line": 25,
+      "operation": "get",
+      "path": "src/api/routes/modules/traffic.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "readModelVersion",
+      "line": 25,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionType",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityId",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "entityType",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "sourceType",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskType",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 33,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "diagnosticTrainVersion",
+      "line": 34,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 41,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "diagnosticTrainVersion",
+      "line": 42,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 49,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "diagnosticTrainVersion",
+      "line": 50,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 57,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "diagnosticTrainVersion",
+      "line": 58,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 65,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "diagnosticTrainVersion",
+      "line": 66,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 73,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "diagnosticTrainVersion",
+      "line": 74,
+      "operation": "write",
+      "path": "src/api/routes/ops.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "contractVersion",
+      "line": 31,
+      "operation": "write",
+      "path": "src/api/routes/stations.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "interfaceVersion",
+      "line": 32,
+      "operation": "write",
+      "path": "src/api/routes/stations.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "contractVersion",
+      "line": 42,
+      "operation": "dict_key",
+      "path": "src/api/routes/stations.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "interfaceVersion",
+      "line": 43,
+      "operation": "dict_key",
+      "path": "src/api/routes/stations.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "stationId",
+      "line": 131,
+      "operation": "dict_key",
+      "path": "src/api/routes/stations.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 146,
+      "operation": "setdefault",
+      "path": "src/api/routes/stations.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 164,
+      "operation": "setdefault",
+      "path": "src/api/routes/stations.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 50,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 51,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 51,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "interfaceDocumentationVersion",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 61,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 62,
+      "operation": "read",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 66,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 67,
+      "operation": "read",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "publicApiVersion",
+      "line": 73,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "stateMachineVersion",
+      "line": 74,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent1InputSemanticVersion",
+      "line": 75,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent1InputSchema",
+      "line": 76,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 77,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "interfaceDocumentationVersion",
+      "line": 78,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "apiSelfDescriptionVersion",
+      "line": 79,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "batchManifestContract",
+      "line": 86,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "frontendViewManifestContract",
+      "line": 87,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 111,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "processId",
+      "line": 119,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 138,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 140,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 141,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "productVersion",
+      "line": 153,
+      "operation": "write",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "lastSelectedDataVersion",
+      "line": 169,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 199,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 203,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "releaseHash",
+      "line": 204,
+      "operation": "get",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent2Draft",
+      "line": 232,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "productVersion",
+      "line": 305,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "threeAgentPipelineVersion",
+      "line": 307,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "stateMachineVersion",
+      "line": 308,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 309,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "interfaceDocumentationVersion",
+      "line": 310,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "productVersion",
+      "line": 343,
+      "operation": "write",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "contractVersion",
+      "line": 344,
+      "operation": "write",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "threeAgentPipelineVersion",
+      "line": 346,
+      "operation": "write",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "stateMachineVersion",
+      "line": 347,
+      "operation": "write",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 348,
+      "operation": "write",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "interfaceDocumentationVersion",
+      "line": 351,
+      "operation": "write",
+      "path": "src/api/routes/system.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "assigneeId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/api/routes/task_lifecycle_stations.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "reviewerId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/api/routes/task_lifecycle_stations.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 23,
+      "operation": "write",
+      "path": "src/api/routes/task_pool.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 30,
+      "operation": "write",
+      "path": "src/api/routes/task_pool.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 38,
+      "operation": "write",
+      "path": "src/api/routes/task_pool.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 46,
+      "operation": "write",
+      "path": "src/api/routes/task_pool.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 23,
+      "operation": "write",
+      "path": "src/api/routes/task_snapshots.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 30,
+      "operation": "write",
+      "path": "src/api/routes/task_snapshots.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "routeVersion",
+      "line": 37,
+      "operation": "write",
+      "path": "src/api/routes/task_snapshots.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "artifactId",
+      "line": 166,
+      "operation": "read",
+      "path": "src/repositories/artifact_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/artifact_registry_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "artifactType",
+      "line": 167,
+      "operation": "read",
+      "path": "src/repositories/artifact_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/artifact_registry_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "schemaVersion",
+      "line": 168,
+      "operation": "read",
+      "path": "src/repositories/artifact_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/artifact_registry_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "artifactId",
+      "line": 185,
+      "operation": "read",
+      "path": "src/repositories/artifact_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/artifact_registry_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "relationType",
+      "line": 219,
+      "operation": "dict_key",
+      "path": "src/repositories/artifact_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/artifact_registry_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "relationType",
+      "line": 235,
+      "operation": "dict_key",
+      "path": "src/repositories/artifact_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/artifact_registry_service.py"
+      }
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 27,
+      "operation": "get",
+      "path": "src/repositories/scoped_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "orgId",
+      "line": 29,
+      "operation": "get",
+      "path": "src/repositories/scoped_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "roleId",
+      "line": 30,
+      "operation": "get",
+      "path": "src/repositories/scoped_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "assigneeId",
+      "line": 386,
+      "operation": "get",
+      "path": "src/repositories/sqlite_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 386,
+      "operation": "get",
+      "path": "src/repositories/sqlite_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskType",
+      "line": 386,
+      "operation": "get",
+      "path": "src/repositories/sqlite_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "workflowStatus",
+      "line": 386,
+      "operation": "get",
+      "path": "src/repositories/sqlite_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "workflowStatus",
+      "line": 446,
+      "operation": "setdefault",
+      "path": "src/repositories/sqlite_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "assigneeId",
+      "line": 447,
+      "operation": "setdefault",
+      "path": "src/repositories/sqlite_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 448,
+      "operation": "setdefault",
+      "path": "src/repositories/sqlite_repository.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py"
+      }
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskId",
+      "line": 31,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "workflowStatus",
+      "line": 33,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "assigneeId",
+      "line": 34,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "reviewerId",
+      "line": 35,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "orgId",
+      "line": 37,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "storeGroupId",
+      "line": 38,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "repositoryVersion",
+      "line": 43,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "orgId",
+      "line": 90,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "orgId",
+      "line": 138,
+      "operation": "dict_key",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "queryPlan",
+      "line": 141,
+      "operation": "dict_key",
+      "path": "src/repositories/task_repository.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "stateMachineVersion",
+      "line": 154,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "agent1ExecutionLock",
+      "line": 155,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "agent1InputSchema",
+      "line": 157,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "agentBatchManifestContract",
+      "line": 164,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "frontendViewManifestContract",
+      "line": 171,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "frontendViewModuleContract",
+      "line": 172,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "frontendCacheContract",
+      "line": 173,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "pipelineArtifactContract",
+      "line": 182,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "agentInputContract",
+      "line": 183,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "stableAgentTokenFacadeContract",
+      "line": 188,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "stableAgentRuntimeFacadeContract",
+      "line": 189,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatingEvidenceContract",
+      "line": 193,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "stationTruthContract",
+      "line": 194,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "pipelineLiveContract",
+      "line": 200,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "agent2Draft",
+      "line": 206,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "postStartSchemaHashMustMatchPreparedHash",
+      "line": 212,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "oneExecutionHashOneAcceptedOutputRef",
+      "line": 218,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "providerStatus",
+      "line": 229,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "exactIdentityStatus",
+      "line": 230,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "normalizationStatus",
+      "line": 231,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "sourceValidationStatus",
+      "line": 232,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "decisionContractStatus",
+      "line": 233,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py",
+      "registeredScopes": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/api/routes/frontend_views.py",
+        "KEEP_SUPPORT": "IMPORT_CLOSURE:src/services/release_identity_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "managerId",
+      "line": 39,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "ownerId",
+      "line": 39,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "groupId",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "groupId",
+      "line": 42,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "groupId",
+      "line": 43,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "groupId",
+      "line": 44,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 47,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 48,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 49,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 50,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 51,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 52,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatingUnitId",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatingUnitId",
+      "line": 56,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 56,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 56,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatingUnitId",
+      "line": 57,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 57,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 57,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatingUnitId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "newOperatorId",
+      "line": 81,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "oldOperatorId",
+      "line": 81,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 81,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 81,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "groupId",
+      "line": 86,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatingUnitId",
+      "line": 86,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 86,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 86,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 86,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 86,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 92,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 92,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 96,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "X-Mock-User-Id",
+      "line": 111,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 114,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 120,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "groupId",
+      "line": 123,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 130,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 133,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 135,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 139,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "newOperatorId",
+      "line": 150,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 150,
+      "operation": "write",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 151,
+      "operation": "write",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 151,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "newRoleId",
+      "line": 160,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "oldRoleId",
+      "line": 160,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 160,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 160,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 160,
+      "operation": "write",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "userId",
+      "line": 160,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 167,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "userId",
+      "line": 167,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "groupId",
+      "line": 174,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatingUnitId",
+      "line": 174,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 174,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 174,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 177,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 178,
+      "operation": "write",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 179,
+      "operation": "write",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 179,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "newOperatorId",
+      "line": 181,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "oldOperatorId",
+      "line": 181,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 181,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 181,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 181,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "groupId",
+      "line": 191,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatingUnitId",
+      "line": 191,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 191,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 191,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "groupId",
+      "line": 197,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "newOperatorId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "oldOperatorId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatingUnitId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 197,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "reviewerId",
+      "line": 197,
+      "operation": "get",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "newOperatorId",
+      "line": 199,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "oldOperatorId",
+      "line": 199,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "oldOperatorId",
+      "line": 199,
+      "operation": "read",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 199,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 205,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "roleId",
+      "line": 205,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/lifecycle_task_v183_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskPlan",
+      "line": 42,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "assignedOperatorId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "primaryOperatorId",
+      "line": 50,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "actionFamily",
+      "line": 54,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "selectedActionFamily",
+      "line": 54,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskPlan",
+      "line": 54,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "actionFamily",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "agent2ActionPlan",
+      "line": 60,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlan",
+      "line": 60,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlan",
+      "line": 60,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlan",
+      "line": 62,
+      "operation": "write",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "actionFamily",
+      "line": 65,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlan",
+      "line": 65,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 65,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "actionFamily",
+      "line": 85,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlan",
+      "line": 85,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlanVersion",
+      "line": 85,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 85,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "authorizationVersion",
+      "line": 89,
+      "operation": "write",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskPlan",
+      "line": 91,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "assignedOperatorId",
+      "line": 92,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "authorizationVersion",
+      "line": 92,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlan",
+      "line": 92,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlan",
+      "line": 92,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operatorId",
+      "line": 92,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlan",
+      "line": 93,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "operationPlan",
+      "line": 93,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "contestReviewRequired": true,
+      "key": "taskPlan",
+      "line": 93,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py",
+      "registeredScopes": [
+        "KEEP_CORE"
+      ],
+      "scopeOrigins": {
+        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
+      }
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionFamily",
+      "line": 171,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 171,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "userId",
+      "line": 174,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionFamily",
+      "line": 175,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskPlan",
+      "line": 343,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "assignedOperatorId",
+      "line": 353,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "operatorId",
+      "line": 353,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "primaryOperatorId",
+      "line": 357,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskPlan",
+      "line": 361,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "agent2ActionPlan",
+      "line": 362,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "budgetPlan",
+      "line": 363,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "selectedActionFamily",
+      "line": 382,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskPlan",
+      "line": 405,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionFamily",
+      "line": 406,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "selectedActionFamily",
+      "line": 406,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "operatorId",
+      "line": 425,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionFamily",
+      "line": 428,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "operatorId",
+      "line": 442,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionFamily",
+      "line": 445,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "operatorId",
+      "line": 463,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionFamily",
+      "line": 466,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "operatorId",
+      "line": 524,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionFamily",
+      "line": 527,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskPlan",
+      "line": 556,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "assignedOperatorId",
+      "line": 562,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "operatorId",
+      "line": 562,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "authorizationVersion",
+      "line": 565,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "authorizationVersion",
+      "line": 573,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskPlan",
+      "line": 574,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "decisionId",
+      "line": 585,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "operatorId",
+      "line": 598,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "actionFamily",
+      "line": 601,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "contestReviewRequired": false,
+      "key": "taskId",
+      "line": 622,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py",
+      "registeredScopes": [],
+      "scopeOrigins": {}
+    }
+  ],
+  "classificationPolicy": {
+    "ISOLATE": "ISOLATE_DEFER",
+    "KEEP_CORE": "CORE_REVIEW",
+    "KEEP_SUPPORT": "SUPPORT_REVIEW",
+    "unclaimed": "OUTSIDE_CONTEST_SCOPE"
+  },
+  "closurePaths": {
+    "ISOLATE": [
+      "tools/registry_compiler/v24_identity_catalog.py",
+      "tools/registry_compiler/v24_task_blueprint_compiler.py"
+    ],
+    "KEEP_CORE": [
+      "config/v23_registry_runtime.json",
+      "scripts/sqlite_data_identity.py",
+      "src/api/routes/frontend_views.py",
+      "src/repositories/artifact_repository.py",
+      "src/repositories/sqlite_repository.py",
+      "src/runtime_version.py",
+      "src/services/__init__.py",
+      "src/services/account_service.py",
+      "src/services/action_authority_v214_service.py",
+      "src/services/action_pack_core_v20_service.py",
+      "src/services/action_plan_ir_v214_service.py",
+      "src/services/agent2_action_draft_core_v225_service.py",
+      "src/services/agent2_action_plan_core_v20_service.py",
+      "src/services/agent2_hash_proof_bridge_v22515_service.py",
+      "src/services/agent2_provenance_v2141_service.py",
+      "src/services/agent2_runtime_resilience_v2143_service.py",
+      "src/services/agent2_runtime_v22514_service.py",
+      "src/services/agent2_runtime_v22515_service.py",
+      "src/services/agent3_runtime_v23215_service.py",
+      "src/services/agent3_sop_core_v225_service.py",
+      "src/services/agent3_system_constraint_base_v23214_service.py",
+      "src/services/agent3_system_constraint_v23213_service.py",
+      "src/services/agent3_system_constraint_v23214_service.py",
+      "src/services/agent3_system_constraint_v23215_service.py",
+      "src/services/agent_execution_lock_v2255_service.py",
+      "src/services/agent_input_contract_v2257_service.py",
+      "src/services/agent_input_contract_v2258_service.py",
+      "src/services/agent_input_contract_v225_service.py",
+      "src/services/agent_input_contract_v230_service.py",
+      "src/services/agent_input_transport_v22514_service.py",
+      "src/services/agent_input_transport_v2257_service.py",
+      "src/services/agent_input_transport_v2258_service.py",
+      "src/services/agent_input_transport_v225_service.py",
+      "src/services/agent_input_transport_v230_service.py",
+      "src/services/agent_pipeline_governance_v213_service.py",
+      "src/services/agent_pipeline_item_worker_v2010_service.py",
+      "src/services/agent_rag_context_v2028_service.py",
+      "src/services/agent_runtime_contract_v2010_service.py",
+      "src/services/agent_runtime_contract_v2141_service.py",
+      "src/services/agent_runtime_contract_v225_service.py",
+      "src/services/agent_runtime_hard_interface_v22514_service.py",
+      "src/services/agent_runtime_hard_interface_v22515_service.py",
+      "src/services/agent_runtime_hard_interface_v2255_service.py",
+      "src/services/agent_runtime_hard_interface_v2257_service.py",
+      "src/services/agent_runtime_recovery_v2261_service.py",
+      "src/services/agent_token_runtime_hash_exact_v2259_service.py",
+      "src/services/agent_token_runtime_v22520_service.py",
+      "src/services/agent_token_runtime_v2257_service.py",
+      "src/services/agent_token_runtime_v2259_service.py",
+      "src/services/agent_token_runtime_v225_service.py",
+      "src/services/artifact_registry_service.py",
+      "src/services/artifact_signal_admission_v225_service.py",
+      "src/services/artifact_storage_service.py",
+      "src/services/artifact_transport_service.py",
+      "src/services/backend_isolation_service.py",
+      "src/services/company_sop_rag_context_v225_service.py",
+      "src/services/decision_write_guard_v19122_service.py",
+      "src/services/frontend_read_model_service.py",
+      "src/services/frontend_view_artifact_v2259_service.py",
+      "src/services/hard_interface_bridge_v2301_service.py",
+      "src/services/hash_directed_artifact_runtime_v2259_service.py",
+      "src/services/import_row_store_service.py",
+      "src/services/legacy_task_chain_cleanup_v2085_service.py",
+      "src/services/lifecycle_task_v183_service.py",
+      "src/services/llm_gateway_hash_directed_v2259_service.py",
+      "src/services/llm_gateway_v196_service.py",
+      "src/services/llm_input_projection_v211_service.py",
+      "src/services/llm_input_projection_v2259_service.py",
+      "src/services/metric_catalog_service.py",
+      "src/services/module_data_service.py",
+      "src/services/module_projection_service.py",
+      "src/services/operating_policy_context_v2028_service.py",
+      "src/services/permission_stamp_service.py",
+      "src/services/pipeline_action_microbatch_v205_service.py",
+      "src/services/pipeline_agent1_microbatch_v20101_service.py",
+      "src/services/pipeline_agent3_sop_v225_service.py",
+      "src/services/pipeline_artifact_contract_service.py",
+      "src/services/pipeline_item_service.py",
+      "src/services/pipeline_live_read_model_v2258_service.py",
+      "src/services/pipeline_live_read_model_v225_service.py",
+      "src/services/pipeline_sop_task_pool_v2010_service.py",
+      "src/services/pipeline_task_mapping_v225_service.py",
+      "src/services/product_signal_admission_v197_service.py",
+      "src/services/product_signal_snapshot_service.py",
+      "src/services/product_trend_read_model_v217_service.py",
+      "src/services/public_task_dto_service.py",
+      "src/services/real_product_judgment_agent_v196_service.py",
+      "src/services/real_product_judgment_agent_v2259_service.py",
+      "src/services/report_alert_service.py",
+      "src/services/route_action_department_matrix_v1915_service.py",
+      "src/services/runtime_database_prepare_v22511_service.py",
+      "src/services/signal_pool_service.py",
+      "src/services/sop_builder_core_v20_service.py",
+      "src/services/station_agent_worker_v22515_service.py",
+      "src/services/station_agent_worker_v2259_service.py",
+      "src/services/system_product_snapshot_service.py",
+      "src/services/task_detail_snapshot_v2024_service.py",
+      "src/services/task_fast_read_model_v2021_service.py",
+      "src/services/task_generation_run_service.py",
+      "src/services/task_pool_acceptance_v163_service.py",
+      "src/services/task_pool_admission_core_v20_service.py",
+      "src/services/task_pool_lifecycle_sync_v2020_service.py",
+      "src/services/task_read_model_v2082_service.py",
+      "src/services/task_snapshot_station_service.py",
+      "src/services/v215_report_batch_evidence_service.py",
+      "src/services/v2172_inventory_action_guard_service.py",
+      "src/services/v2173_agent2_policy_shape_recovery_service.py",
+      "src/services/v2174_budget_governance_service.py",
+      "src/services/v2177_agent2_single_action_contract_service.py",
+      "web_demo/bootstrap.js",
+      "web_demo/core/router.js",
+      "web_demo/core/task-read-model-v2082.js",
+      "web_demo/index.html",
+      "web_demo/loading-ui.css",
+      "web_demo/modules/task-report/page.js"
+    ],
+    "KEEP_SUPPORT": [
+      "release/release-policy.json",
+      "scripts/deploy_release.sh",
+      "scripts/start_server.sh",
+      "src/deployment/deploy_release_core_v22516.sh",
+      "src/runtime_version.py",
+      "src/services/registry_runtime_receipt_v23_service.py",
+      "src/services/release_identity_service.py",
+      "tools/registry_compiler/compile_registry.py",
+      "tools/z_adapter/dependency.py",
+      "tools/z_adapter/external_cli.py"
+    ]
+  },
+  "databaseMutated": false,
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "mode": "report_only",
+  "pathCounts": [
+    {
+      "classification": "CORE_REVIEW",
+      "count": 19,
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "count": 6,
+      "path": "src/repositories/artifact_repository.py"
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "count": 7,
+      "path": "src/repositories/sqlite_repository.py"
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "count": 22,
+      "path": "src/runtime_version.py"
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "count": 88,
+      "path": "src/services/account_service.py"
+    },
+    {
+      "classification": "CORE_REVIEW",
+      "count": 30,
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 45,
+      "path": "src/api/main.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 4,
+      "path": "src/api/routes/accounts.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 1,
+      "path": "src/api/routes/action_authority.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 2,
+      "path": "src/api/routes/approvals.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 11,
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 10,
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 3,
+      "path": "src/api/routes/data_import.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 5,
+      "path": "src/api/routes/health.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 11,
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 4,
+      "path": "src/api/routes/modules/competitor.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 10,
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 7,
+      "path": "src/api/routes/modules/listing.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 8,
+      "path": "src/api/routes/modules/operating_unit.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 52,
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 6,
+      "path": "src/api/routes/modules/product_detail_v2256.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 1,
+      "path": "src/api/routes/modules/rag_memory.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 22,
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 5,
+      "path": "src/api/routes/modules/todo.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 8,
+      "path": "src/api/routes/modules/traffic.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 12,
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 7,
+      "path": "src/api/routes/stations.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 39,
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 2,
+      "path": "src/api/routes/task_lifecycle_stations.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 4,
+      "path": "src/api/routes/task_pool.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 3,
+      "path": "src/api/routes/task_snapshots.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 3,
+      "path": "src/repositories/scoped_repository.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 10,
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "classification": "OUTSIDE_CONTEST_SCOPE",
+      "count": 33,
+      "path": "src/services/action_authority_v21_service.py"
+    }
+  ],
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "registeredSeeds": {
+    "ISOLATE": [
+      "tools/registry_compiler/v24_identity_catalog.py",
+      "tools/registry_compiler/v24_task_blueprint_compiler.py"
+    ],
+    "KEEP_CORE": [
+      "config/v23_registry_runtime.json",
+      "src/api/routes/frontend_views.py",
+      "src/services/agent2_action_draft_core_v225_service.py",
+      "src/services/agent2_hash_proof_bridge_v22515_service.py",
+      "src/services/agent2_runtime_v22515_service.py",
+      "src/services/agent3_runtime_v23215_service.py",
+      "src/services/agent3_sop_core_v225_service.py",
+      "src/services/agent3_system_constraint_base_v23214_service.py",
+      "src/services/agent3_system_constraint_v23213_service.py",
+      "src/services/agent3_system_constraint_v23214_service.py",
+      "src/services/agent3_system_constraint_v23215_service.py",
+      "src/services/agent_input_contract_v2258_service.py",
+      "src/services/agent_input_contract_v225_service.py",
+      "src/services/agent_input_transport_v2258_service.py",
+      "src/services/agent_input_transport_v225_service.py",
+      "src/services/agent_input_transport_v230_service.py",
+      "src/services/agent_pipeline_item_worker_v2010_service.py",
+      "src/services/agent_runtime_contract_v225_service.py",
+      "src/services/agent_runtime_hard_interface_v22514_service.py",
+      "src/services/agent_runtime_hard_interface_v22515_service.py",
+      "src/services/agent_runtime_hard_interface_v2257_service.py",
+      "src/services/agent_token_runtime_hash_exact_v2259_service.py",
+      "src/services/agent_token_runtime_v2259_service.py",
+      "src/services/agent_token_runtime_v225_service.py",
+      "src/services/artifact_signal_admission_v225_service.py",
+      "src/services/artifact_transport_service.py",
+      "src/services/frontend_view_artifact_v2259_service.py",
+      "src/services/hard_interface_bridge_v2301_service.py",
+      "src/services/hash_directed_artifact_runtime_v2259_service.py",
+      "src/services/lifecycle_task_v183_service.py",
+      "src/services/pipeline_agent3_sop_v225_service.py",
+      "src/services/pipeline_artifact_contract_service.py",
+      "src/services/pipeline_item_service.py",
+      "src/services/pipeline_task_mapping_v225_service.py",
+      "src/services/public_task_dto_service.py",
+      "src/services/real_product_judgment_agent_v2259_service.py",
+      "src/services/station_agent_worker_v22515_service.py",
+      "src/services/station_agent_worker_v2259_service.py",
+      "src/services/task_pool_admission_core_v20_service.py",
+      "src/services/task_snapshot_station_service.py",
+      "web_demo/bootstrap.js",
+      "web_demo/core/router.js",
+      "web_demo/core/task-read-model-v2082.js",
+      "web_demo/index.html",
+      "web_demo/loading-ui.css",
+      "web_demo/modules/task-report/page.js"
+    ],
+    "KEEP_SUPPORT": [
+      "release/release-policy.json",
+      "scripts/deploy_release.sh",
+      "scripts/start_server.sh",
+      "src/deployment/deploy_release_core_v22516.sh",
+      "src/services/registry_runtime_receipt_v23_service.py",
+      "src/services/release_identity_service.py",
+      "tools/registry_compiler/compile_registry.py"
+    ]
+  },
+  "repositoryScanHash": "sha256:c85ea6b755280f16a94d7b5aedc3306f26c2dbd6e77611ab712ce210a23a4893",
+  "schema": "contest.unregistered_field_scope_review.v1",
+  "scopeHash": "sha256:c2b581e523ec730a454903f0f3b155ad5fc0845f3f9a1b919e37ab5f4c675d84",
+  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "summary": {
+    "classificationCounts": {
+      "CORE_REVIEW": 172,
+      "ISOLATE_DEFER": 0,
+      "OUTSIDE_CONTEST_SCOPE": 328,
+      "SUPPORT_REVIEW": 0
+    },
+    "closurePathCount": 126,
+    "contestReviewCandidateCount": 172,
+    "partitionCandidateCount": 500,
+    "registeredPathSeedCount": 55,
+    "sourceCandidateCount": 500
+  }
+}
