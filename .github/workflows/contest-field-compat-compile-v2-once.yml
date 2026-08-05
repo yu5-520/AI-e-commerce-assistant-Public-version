@@ -1,0 +1,65 @@
+name: Recompile contest field compatibility transaction v2 once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-field-compat-compile-v2-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  compile-v2:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: migration/contest-field-compat-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+    steps:
+      - name: Checkout compatibility branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Compile v2 transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" -m py_compile tools/contest_governance/compile_field_compat_transaction.py
+          "$AUDIT_PYTHON" tools/contest_governance/compile_field_compat_transaction.py \
+            | tee /tmp/contest-field-compat-v2-summary.json
+          grep -q '"schema": "contest.field_compat_transaction.v2"' governance/contest/generated/field-compat-transaction.json
+          grep -q '"reviewRequiredCount": 0' governance/contest/generated/field-compat-transaction.json
+          grep -q '"automaticApplyAuthorized": true' governance/contest/generated/field-compat-transaction.json
+          echo "FIELD_COMPAT_V2_COMPILED=PASS"
+
+      - name: Commit v2 transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add governance/contest/generated/field-compat-transaction.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): authorize AST-classified field compatibility apply [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "FIELD_COMPAT_V2_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload v2 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-field-compat-transaction-v2
+          path: |
+            governance/contest/generated/field-compat-transaction.json
+            /tmp/contest-field-compat-v2-summary.json
+          if-no-files-found: error
+          retention-days: 14
