@@ -1,0 +1,105 @@
+name: Resume REGISTERED_ONLY isolation transaction
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-isolation-transaction-resume-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-isolation-transaction-resume-once
+  cancel-in-progress: false
+
+jobs:
+  resume-isolation:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+      EXPECTED_FIELD_SCOPE_HASH: sha256:c2b581e523ec730a454903f0f3b155ad5fc0845f3f9a1b919e37ab5f4c675d84
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Verify inputs and Python import boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" -m py_compile \
+            tools/contest_governance/build_isolation_transaction.py \
+            tools/contest_governance/scope_unregistered_fields.py
+          "$AUDIT_PYTHON" - <<'PY'
+          from tools.contest_governance.scope_unregistered_fields import _closure
+          from tools.contest_governance.build_isolation_transaction import build
+          print("CONTEST_GOVERNANCE_IMPORTS=PASS")
+          PY
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit.json
+          grep -q '"rootEquivalent": true' governance/contest/generated/registry-snapshot.json
+          grep -q "\"graphHash\": \"$EXPECTED_GRAPH_HASH\"" governance/contest/generated/contest-chain-review.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/contest-chain-review.json
+          grep -q "\"scopeHash\": \"$EXPECTED_FIELD_SCOPE_HASH\"" governance/contest/generated/unregistered-field-scope-review.json
+          echo "ISOLATION_RESUME_INPUTS=PASS"
+
+      - name: Build logical isolation transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" tools/contest_governance/build_isolation_transaction.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/contest-isolation-resume-summary.json
+
+          grep -q '"state": "ISOLATION_VERIFIED_SIMULATION_READY"' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"moduleCount": 7' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"verifiedLogicalIsolationCount": 7' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"fieldScopeIsolateCandidateCount": 0' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"physicalDeletion": "NOT_AUTHORIZED"' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/module-isolation-receipt.json
+          grep -q '"mainMutated": false' governance/contest/generated/module-isolation-receipt.json
+          echo "ISOLATION_TRANSACTION=PASS"
+
+      - name: Commit isolation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            governance/contest/generated/module-isolation-transaction.json \
+            governance/contest/generated/module-isolation-transaction.md \
+            governance/contest/generated/module-isolation-receipt.json
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/' || true)"
+          test -z "$forbidden"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): seal REGISTERED_ONLY isolation transaction [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "ISOLATION_EVIDENCE_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload isolation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-isolation-transaction-resume
+          path: |
+            governance/contest/generated/module-isolation-transaction.json
+            governance/contest/generated/module-isolation-transaction.md
+            governance/contest/generated/module-isolation-receipt.json
+            /tmp/contest-isolation-resume-summary.json
+          if-no-files-found: error
+          retention-days: 14
