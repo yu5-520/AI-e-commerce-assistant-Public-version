@@ -25,6 +25,7 @@ jobs:
       EXPECTED_Z_ADAPTER_TREE: 4a0ed1645fac6d09a44c04a7d0fd2eb477584ee2
       Z_SOURCE_COMMIT: c924e646673a41857cca5e39650e022f9ce8c0a5
       EXPECTED_Z_COMPILER_BLOB: 7a9546b02fd598548891fd080c98a6553695b796
+      Z_INTERFACE_ROOT: governance/contest/z-interface/Z1.0.5
     steps:
       - name: Checkout analysis branch
         uses: actions/checkout@v4
@@ -74,48 +75,17 @@ jobs:
           echo "MOTHER_REPOSITORY=$mother_repository"
           echo "MOTHER_AUTHORITY_IDENTITY=PASS"
 
-      - name: Locate exact Z registry interface by Git blob identity
+      - name: Verify pinned Z registry interface evidence
         shell: bash
         run: |
           set -euo pipefail
-
-          interface_source=""
-          preferred_candidates="$(
-            printf '%s\n' \
-              /srv/z-century/runner/_work/Z-Century/Z-Century \
-              "$MOTHER_REPOSITORY/.z/dependency-src"
-          )"
-
-          candidate_files="$(
-            {
-              while IFS= read -r candidate; do
-                test -n "$candidate" || continue
-                printf '%s\n' "$candidate/tools/registry_compiler/compile_registry.py"
-              done <<< "$preferred_candidates"
-
-              find /opt /srv -maxdepth 15 -type f \
-                -path '*/tools/registry_compiler/compile_registry.py' \
-                -print 2>/dev/null || true
-            } | awk 'NF && !seen[$0]++'
-          )"
-
-          while IFS= read -r candidate_file; do
-            test -f "$candidate_file" || continue
-            blob="$(git hash-object "$candidate_file" 2>/dev/null || true)"
-            if test "$blob" = "$EXPECTED_Z_COMPILER_BLOB"; then
-              interface_source="$candidate_file"
-              break
-            fi
-          done <<< "$candidate_files"
-
-          test -n "$interface_source" || {
-            echo "ERROR: exact Z Registry compiler interface not found"
-            echo "EXPECTED_Z_COMPILER_BLOB=$EXPECTED_Z_COMPILER_BLOB"
-            exit 1
-          }
-
-          echo "Z_INTERFACE_SOURCE=$interface_source" >> "$GITHUB_ENV"
-          echo "Z_INTERFACE_SOURCE=$interface_source"
+          interface="$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT/tools/registry_compiler/compile_registry.py"
+          test -f "$interface"
+          actual_blob="$(git hash-object "$interface")"
+          echo "Z_INTERFACE_BLOB=$actual_blob"
+          test "$actual_blob" = "$EXPECTED_Z_COMPILER_BLOB"
+          echo "Z_CENTURY_SOURCE_DIR=$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT" >> "$GITHUB_ENV"
+          echo "Z_INTERFACE_SOURCE_COMMIT=$Z_SOURCE_COMMIT"
           echo "Z_INTERFACE_BLOB_IDENTITY=PASS"
 
       - name: Transfer product Z adapter assets before validation
@@ -143,23 +113,6 @@ jobs:
           test "$actual_z_tree" = "$EXPECTED_Z_METADATA_TREE"
           test "$actual_adapter_tree" = "$EXPECTED_Z_ADAPTER_TREE"
           echo "PRODUCT_Z_ADAPTER_TRANSFERRED_UNVERIFIED=PASS"
-
-      - name: Materialize immutable Z interface source
-        shell: bash
-        run: |
-          set -euo pipefail
-          z_stage="$(mktemp -d)"
-          mkdir -p "$z_stage/tools/registry_compiler"
-          cp -a "$Z_INTERFACE_SOURCE" "$z_stage/tools/registry_compiler/compile_registry.py"
-
-          test "$(git hash-object "$z_stage/tools/registry_compiler/compile_registry.py")" = "$EXPECTED_Z_COMPILER_BLOB"
-
-          printf '%s\n' "$Z_SOURCE_COMMIT" > "$z_stage/Z_PINNED_SOURCE_COMMIT"
-          printf '%s\n' "$EXPECTED_Z_COMPILER_BLOB" > "$z_stage/Z_REGISTRY_COMPILER_BLOB"
-
-          echo "Z_CENTURY_SOURCE_DIR=$z_stage" >> "$GITHUB_ENV"
-          echo "Z_STAGE_CLEANUP=$z_stage" >> "$GITHUB_ENV"
-          echo "IMMUTABLE_Z_INTERFACE_MATERIALIZED=PASS"
 
       - name: Resolve report-only Python executor
         shell: bash
@@ -273,9 +226,3 @@ jobs:
             /tmp/contest-lineage-summary.json
           if-no-files-found: ignore
           retention-days: 14
-
-      - name: Cleanup immutable Z stage
-        if: always()
-        shell: bash
-        run: |
-          rm -rf "${Z_STAGE_CLEANUP:-}" 2>/dev/null || true
