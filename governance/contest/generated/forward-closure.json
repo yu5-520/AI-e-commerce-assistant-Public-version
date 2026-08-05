@@ -1,0 +1,25 @@
+{
+  "entryModuleIds": [
+    "artifact_transport",
+    "signal_admission"
+  ],
+  "forwardClosureHash": "sha256:458b517416ac668774d298e3e03c1b26d969035d3810aebd2bd555fc7ff0f0c8",
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "moduleIds": [
+    "action_pack",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_input_projection",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "artifact_execution_runtime",
+    "artifact_transport",
+    "frontend_view",
+    "pipeline_runtime",
+    "signal_admission",
+    "task_mapping",
+    "task_pool"
+  ],
+  "schema": "contest.forward_closure.v1"
+}

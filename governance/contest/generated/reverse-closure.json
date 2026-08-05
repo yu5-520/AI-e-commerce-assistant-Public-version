@@ -1,0 +1,24 @@
+{
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "moduleIds": [
+    "action_pack",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_input_projection",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "artifact_execution_runtime",
+    "artifact_transport",
+    "frontend_view",
+    "pipeline_runtime",
+    "signal_admission",
+    "task_mapping",
+    "task_pool"
+  ],
+  "reverseClosureHash": "sha256:c9ac48c1f434df2bd60401c84a7381f69bb9fcc7bac5ac0c23c4923d60925efd",
+  "schema": "contest.reverse_closure.v1",
+  "terminalModuleIds": [
+    "frontend_view"
+  ]
+}

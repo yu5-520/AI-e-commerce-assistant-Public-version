@@ -1,0 +1,619 @@
+{
+  "downstream": {
+    "action_node_transport": [],
+    "action_pack": [
+      "agent2_input_projection"
+    ],
+    "agent1_input_projection": [
+      "agent1_runtime"
+    ],
+    "agent1_runtime": [
+      "action_pack"
+    ],
+    "agent2_input_projection": [
+      "agent2_runtime"
+    ],
+    "agent2_runtime": [
+      "agent3_input_projection"
+    ],
+    "agent3_input_projection": [
+      "agent3_runtime"
+    ],
+    "agent3_runtime": [
+      "task_mapping"
+    ],
+    "artifact_execution_runtime": [
+      "agent1_runtime",
+      "agent2_runtime"
+    ],
+    "artifact_transport": [
+      "artifact_execution_runtime"
+    ],
+    "execution_resource_orchestrator": [],
+    "frontend_view": [],
+    "node_authorization": [],
+    "operating_plan_compiler": [],
+    "pipeline_runtime": [
+      "agent1_input_projection",
+      "agent1_runtime"
+    ],
+    "registry_compiler": [
+      "release_governance"
+    ],
+    "release_governance": [],
+    "signal_admission": [
+      "pipeline_runtime"
+    ],
+    "stage_frontend_projection": [],
+    "stage_lifecycle": [],
+    "task_blueprint_compiler": [],
+    "task_mapping": [
+      "task_pool"
+    ],
+    "task_pool": [
+      "frontend_view"
+    ]
+  },
+  "fields": {
+    "action_pack.matrix_dispatch": [
+      "action_pack",
+      "agent2_input_projection",
+      "agent2_runtime"
+    ],
+    "action_pack.parameter_pack": [
+      "action_pack",
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "execution_resource_orchestrator",
+      "node_authorization"
+    ],
+    "agent1.decision_ir": [
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime"
+    ],
+    "agent1.decision_type": [
+      "action_pack",
+      "agent1_runtime",
+      "pipeline_runtime"
+    ],
+    "agent1.execution_lock": [
+      "action_pack",
+      "agent1_runtime",
+      "agent2_runtime"
+    ],
+    "agent1.locked_action_family": [
+      "action_pack",
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime"
+    ],
+    "agent1.operating_judgment": [
+      "action_pack",
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime"
+    ],
+    "agent1.operating_plan_ir": [
+      "agent1_runtime",
+      "operating_plan_compiler"
+    ],
+    "agent1.plan_dependency_edges": [
+      "agent1_runtime",
+      "operating_plan_compiler"
+    ],
+    "agent1.primary_action_node": [
+      "agent1_runtime",
+      "operating_plan_compiler"
+    ],
+    "agent1.supporting_action_nodes": [
+      "agent1_runtime",
+      "operating_plan_compiler"
+    ],
+    "agent2.action_draft": [
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "task_mapping"
+    ],
+    "agent2.action_node_draft": [
+      "action_node_transport",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "task_blueprint_compiler"
+    ],
+    "agent2.action_node_execution_proof": [
+      "action_node_transport",
+      "agent2_runtime",
+      "agent3_input_projection"
+    ],
+    "agent2.creative_draft": [
+      "agent2_runtime",
+      "agent3_runtime",
+      "task_mapping"
+    ],
+    "agent3.action_node_execution_proof": [
+      "action_node_transport",
+      "agent3_runtime",
+      "task_blueprint_compiler"
+    ],
+    "agent3.action_node_sop": [
+      "action_node_transport",
+      "agent3_runtime",
+      "task_blueprint_compiler"
+    ],
+    "entity.action_node_id": [
+      "action_node_transport",
+      "agent2_runtime",
+      "agent3_runtime",
+      "execution_resource_orchestrator",
+      "node_authorization",
+      "operating_plan_compiler",
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "entity.data_version": [
+      "action_pack",
+      "agent1_input_projection",
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "artifact_transport",
+      "frontend_view",
+      "operating_plan_compiler",
+      "pipeline_runtime",
+      "signal_admission"
+    ],
+    "entity.package_id": [
+      "action_pack",
+      "agent1_input_projection",
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "pipeline_runtime",
+      "signal_admission"
+    ],
+    "entity.parent_task_id": [
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "entity.plan_id": [
+      "action_node_transport",
+      "agent2_runtime",
+      "agent3_runtime",
+      "execution_resource_orchestrator",
+      "node_authorization",
+      "operating_plan_compiler",
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "entity.product_id": [
+      "action_node_transport",
+      "action_pack",
+      "agent1_input_projection",
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "artifact_transport",
+      "execution_resource_orchestrator",
+      "frontend_view",
+      "operating_plan_compiler",
+      "pipeline_runtime",
+      "signal_admission",
+      "task_mapping",
+      "task_pool"
+    ],
+    "entity.signal_id": [
+      "agent1_input_projection",
+      "agent1_runtime",
+      "pipeline_runtime",
+      "signal_admission"
+    ],
+    "entity.stage_id": [
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "entity.store_id": [
+      "action_node_transport",
+      "action_pack",
+      "agent1_input_projection",
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "artifact_transport",
+      "execution_resource_orchestrator",
+      "frontend_view",
+      "operating_plan_compiler",
+      "pipeline_runtime",
+      "signal_admission",
+      "task_mapping",
+      "task_pool"
+    ],
+    "entity.tenant_id": [
+      "artifact_transport",
+      "frontend_view"
+    ],
+    "execution.action_node_contract_ref": [
+      "action_node_transport",
+      "agent2_input_projection",
+      "execution_resource_orchestrator",
+      "node_authorization",
+      "task_blueprint_compiler"
+    ],
+    "execution.agent2_node_draft_ref": [
+      "action_node_transport",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "task_blueprint_compiler"
+    ],
+    "execution.agent3_node_sop_ref": [
+      "action_node_transport",
+      "task_blueprint_compiler"
+    ],
+    "execution.execution_hash": [
+      "artifact_execution_runtime",
+      "pipeline_runtime"
+    ],
+    "execution.input_artifact_ref": [
+      "agent1_input_projection",
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "artifact_execution_runtime",
+      "artifact_transport",
+      "pipeline_runtime",
+      "signal_admission"
+    ],
+    "execution.input_content_hash": [
+      "agent1_input_projection",
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "artifact_execution_runtime",
+      "artifact_transport"
+    ],
+    "execution.item_execution_id": [
+      "agent1_runtime",
+      "agent2_runtime",
+      "agent3_runtime",
+      "artifact_execution_runtime"
+    ],
+    "execution.node_authorization": [
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_runtime",
+      "node_authorization",
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "execution.operating_plan_ir_ref": [
+      "action_node_transport",
+      "operating_plan_compiler"
+    ],
+    "execution.output_artifact_ref": [
+      "artifact_execution_runtime",
+      "pipeline_runtime"
+    ],
+    "execution.output_content_hash": [
+      "artifact_execution_runtime",
+      "pipeline_runtime"
+    ],
+    "execution.pipeline_item_id": [
+      "agent1_runtime",
+      "agent2_runtime",
+      "agent3_runtime",
+      "pipeline_runtime",
+      "task_mapping"
+    ],
+    "execution.plan_graph_ref": [
+      "action_node_transport",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "execution.resource_context": [
+      "agent2_input_projection",
+      "agent2_runtime",
+      "execution_resource_orchestrator",
+      "node_authorization",
+      "task_blueprint_compiler"
+    ],
+    "execution.stage_lifecycle_snapshot_ref": [
+      "action_node_transport",
+      "frontend_view",
+      "stage_frontend_projection",
+      "stage_lifecycle"
+    ],
+    "execution.task_execution_blueprint_ref": [
+      "action_node_transport",
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler",
+      "task_mapping",
+      "task_pool"
+    ],
+    "frontend.active_stage_content_hash": [
+      "stage_frontend_projection"
+    ],
+    "frontend.blueprint_manifest_hash": [
+      "stage_frontend_projection"
+    ],
+    "frontend.manifest_hash": [
+      "frontend_view"
+    ],
+    "frontend.module_content_hash": [
+      "frontend_view"
+    ],
+    "frontend.stage_navigation_hash": [
+      "stage_frontend_projection"
+    ],
+    "plan.action_node_contract": [
+      "action_node_transport",
+      "execution_resource_orchestrator",
+      "node_authorization",
+      "operating_plan_compiler",
+      "task_blueprint_compiler"
+    ],
+    "plan.blueprint_status": [
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "plan.current_stage_id": [
+      "frontend_view",
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "plan.decision_branches": [
+      "action_node_transport",
+      "execution_resource_orchestrator",
+      "operating_plan_compiler",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "plan.dependency_edges": [
+      "action_node_transport",
+      "execution_resource_orchestrator",
+      "operating_plan_compiler",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "plan.stage_graph": [
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "registry.module_contract_hash": [
+      "registry_compiler",
+      "release_governance"
+    ],
+    "registry.root_hash": [
+      "registry_compiler",
+      "release_governance"
+    ],
+    "registry.schema_contract_hash": [
+      "registry_compiler",
+      "release_governance"
+    ],
+    "task.awaiting_approval_stage_ids": [
+      "frontend_view",
+      "stage_frontend_projection",
+      "stage_lifecycle"
+    ],
+    "task.blocked_stage_ids": [
+      "frontend_view",
+      "stage_frontend_projection",
+      "stage_lifecycle"
+    ],
+    "task.completed_stage_ids": [
+      "frontend_view",
+      "stage_frontend_projection",
+      "stage_lifecycle"
+    ],
+    "task.current_stage_id": [
+      "frontend_view",
+      "stage_frontend_projection",
+      "stage_lifecycle"
+    ],
+    "task.node_status_map": [
+      "frontend_view",
+      "stage_frontend_projection",
+      "stage_lifecycle"
+    ],
+    "task.stage_status_map": [
+      "frontend_view",
+      "stage_frontend_projection",
+      "stage_lifecycle"
+    ]
+  },
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "interfaces": {
+    "stations.list.get": [
+      "pipeline_runtime"
+    ],
+    "stations.run.post": [
+      "pipeline_runtime"
+    ],
+    "system.version.get": [
+      "release_governance"
+    ],
+    "view.artifact.get": [
+      "frontend_view"
+    ],
+    "view.head.get": [
+      "frontend_view"
+    ],
+    "view.refresh.post": [
+      "frontend_view"
+    ]
+  },
+  "mode": "report_only",
+  "schema": "registry.dependency_graph.v1",
+  "schemas": {
+    "agent1.operating_plan_ir.v24": [
+      "agent1_runtime",
+      "operating_plan_compiler"
+    ],
+    "agent_input.agent1.v3": [
+      "agent1_input_projection",
+      "agent1_runtime"
+    ],
+    "agent_input.agent2.v1": [
+      "agent2_input_projection",
+      "agent2_runtime"
+    ],
+    "agent_input.agent2_draft.v1": [
+      "agent2_input_projection"
+    ],
+    "agent_input.agent3_sop.v1": [
+      "agent3_input_projection",
+      "agent3_runtime"
+    ],
+    "agent_output.agent2_action_node.v24": [
+      "agent2_runtime"
+    ],
+    "agent_output.agent3_action_node_sop.v24": [
+      "agent3_runtime",
+      "task_blueprint_compiler"
+    ],
+    "execution.node_authorization.v24": [
+      "node_authorization",
+      "task_blueprint_compiler"
+    ],
+    "execution.resource_context.v24": [
+      "execution_resource_orchestrator",
+      "node_authorization"
+    ],
+    "frontend_view.manifest.v2259": [
+      "frontend_view"
+    ],
+    "frontend_view.module.v2259": [
+      "frontend_view"
+    ],
+    "frontend_view.task_stage_navigation.v24": [
+      "stage_frontend_projection"
+    ],
+    "pipelineItemEnvelope.v22": [
+      "pipeline_runtime",
+      "signal_admission"
+    ],
+    "plan.action_node_contract.v24": [
+      "action_node_transport",
+      "execution_resource_orchestrator",
+      "operating_plan_compiler"
+    ],
+    "plan.stage_graph.v24": [
+      "task_blueprint_compiler"
+    ],
+    "task.execution_blueprint.v24": [
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "task.stage_lifecycle_snapshot.v24": [
+      "stage_frontend_projection",
+      "stage_lifecycle"
+    ],
+    "transport.action_node_artifacts.v24": [
+      "action_node_transport"
+    ]
+  },
+  "stations": {
+    "action_parameter_enrichment_station": [
+      "action_pack"
+    ],
+    "action_plan_judgment_agent_station": [
+      "agent2_runtime"
+    ],
+    "frontend_read_model_station": [
+      "frontend_view"
+    ],
+    "product_judgment_agent_station": [
+      "agent1_runtime"
+    ],
+    "product_signal_admission_station": [
+      "signal_admission"
+    ],
+    "task_mapping_agent_station": [
+      "task_mapping"
+    ],
+    "task_pool_admission_station": [
+      "task_pool"
+    ]
+  },
+  "upstream": {
+    "action_node_transport": [],
+    "action_pack": [
+      "agent1_runtime"
+    ],
+    "agent1_input_projection": [
+      "pipeline_runtime"
+    ],
+    "agent1_runtime": [
+      "agent1_input_projection",
+      "artifact_execution_runtime",
+      "pipeline_runtime"
+    ],
+    "agent2_input_projection": [
+      "action_pack"
+    ],
+    "agent2_runtime": [
+      "agent2_input_projection",
+      "artifact_execution_runtime"
+    ],
+    "agent3_input_projection": [
+      "agent2_runtime"
+    ],
+    "agent3_runtime": [
+      "agent3_input_projection"
+    ],
+    "artifact_execution_runtime": [
+      "artifact_transport"
+    ],
+    "artifact_transport": [],
+    "execution_resource_orchestrator": [],
+    "frontend_view": [
+      "task_pool"
+    ],
+    "node_authorization": [],
+    "operating_plan_compiler": [],
+    "pipeline_runtime": [
+      "signal_admission"
+    ],
+    "registry_compiler": [],
+    "release_governance": [
+      "registry_compiler"
+    ],
+    "signal_admission": [],
+    "stage_frontend_projection": [],
+    "stage_lifecycle": [],
+    "task_blueprint_compiler": [],
+    "task_mapping": [
+      "agent3_runtime"
+    ],
+    "task_pool": [
+      "task_mapping"
+    ]
+  },
+  "version": "23.0.0-alpha.2"
+}

@@ -1,0 +1,775 @@
+{
+  "classifications": {
+    "ISOLATE": [
+      "action_node_transport",
+      "execution_resource_orchestrator",
+      "node_authorization",
+      "operating_plan_compiler",
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "KEEP_CORE": [
+      "action_pack",
+      "agent1_input_projection",
+      "agent1_runtime",
+      "agent2_input_projection",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "artifact_execution_runtime",
+      "artifact_transport",
+      "frontend_view",
+      "pipeline_runtime",
+      "signal_admission",
+      "task_mapping",
+      "task_pool"
+    ],
+    "KEEP_SUPPORT": [
+      "registry_compiler",
+      "release_governance"
+    ],
+    "REMOVE_CANDIDATE": [],
+    "REVIEW_REQUIRED": []
+  },
+  "coreModuleIds": [
+    "action_pack",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_input_projection",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "artifact_execution_runtime",
+    "artifact_transport",
+    "frontend_view",
+    "pipeline_runtime",
+    "signal_admission",
+    "task_mapping",
+    "task_pool"
+  ],
+  "forwardClosureHash": "sha256:458b517416ac668774d298e3e03c1b26d969035d3810aebd2bd555fc7ff0f0c8",
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "mode": "report_only",
+  "pathCoreModuleIds": [
+    "action_pack",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_input_projection",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "artifact_execution_runtime",
+    "artifact_transport",
+    "frontend_view",
+    "pipeline_runtime",
+    "signal_admission",
+    "task_mapping",
+    "task_pool"
+  ],
+  "physicalPathReview": [
+    {
+      "claimantClassifications": [
+        "KEEP_CORE",
+        "KEEP_SUPPORT"
+      ],
+      "claimingModuleIds": [
+        "frontend_view",
+        "release_governance"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "config/v23_registry_runtime.json"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_SUPPORT"
+      ],
+      "claimingModuleIds": [
+        "release_governance"
+      ],
+      "classification": "KEEP_SUPPORT",
+      "path": "release/release-policy.json"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_SUPPORT"
+      ],
+      "claimingModuleIds": [
+        "release_governance"
+      ],
+      "classification": "KEEP_SUPPORT",
+      "path": "scripts/deploy_release.sh"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_SUPPORT"
+      ],
+      "claimingModuleIds": [
+        "release_governance"
+      ],
+      "classification": "KEEP_SUPPORT",
+      "path": "scripts/start_server.sh"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "frontend_view"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_SUPPORT"
+      ],
+      "claimingModuleIds": [
+        "release_governance"
+      ],
+      "classification": "KEEP_SUPPORT",
+      "path": "src/deployment/deploy_release_core_v22516.sh"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent2_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent2_action_draft_core_v225_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent2_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent2_hash_proof_bridge_v22515_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent2_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent2_runtime_v22515_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent3_runtime_v23215_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent3_sop_core_v225_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_input_projection",
+        "agent3_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent3_system_constraint_base_v23214_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_input_projection",
+        "agent3_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent3_system_constraint_v23213_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_input_projection",
+        "agent3_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent3_system_constraint_v23214_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_input_projection",
+        "agent3_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent3_system_constraint_v23215_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_input_projection",
+        "agent1_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_input_contract_v2258_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_input_projection"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_input_contract_v225_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_input_projection"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_input_transport_v2258_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_input_projection"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_input_transport_v225_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent2_input_projection"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_input_transport_v230_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "action_pack"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_pipeline_item_worker_v2010_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent2_runtime",
+        "agent3_runtime",
+        "task_mapping"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_runtime_contract_v225_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_runtime_hard_interface_v22514_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_runtime",
+        "agent2_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_runtime_hard_interface_v22515_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_runtime_hard_interface_v2257_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_token_runtime_hash_exact_v2259_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_token_runtime_v2259_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/agent_token_runtime_v225_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "signal_admission"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/artifact_signal_admission_v225_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "artifact_transport"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/artifact_transport_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "frontend_view"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/frontend_view_artifact_v2259_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_input_projection"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/hard_interface_bridge_v2301_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_runtime",
+        "agent2_runtime",
+        "artifact_execution_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/hash_directed_artifact_runtime_v2259_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "task_pool"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/lifecycle_task_v183_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent3_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/pipeline_agent3_sop_v225_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "task_mapping",
+        "task_pool"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/pipeline_artifact_contract_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "pipeline_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/pipeline_item_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "task_mapping",
+        "task_pool"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/pipeline_task_mapping_v225_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "frontend_view"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/public_task_dto_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/real_product_judgment_agent_v2259_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_SUPPORT"
+      ],
+      "claimingModuleIds": [
+        "release_governance"
+      ],
+      "classification": "KEEP_SUPPORT",
+      "path": "src/services/registry_runtime_receipt_v23_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_SUPPORT"
+      ],
+      "claimingModuleIds": [
+        "release_governance"
+      ],
+      "classification": "KEEP_SUPPORT",
+      "path": "src/services/release_identity_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/station_agent_worker_v22515_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "agent1_runtime"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/station_agent_worker_v2259_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "task_pool"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/task_pool_admission_core_v20_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "task_pool"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "src/services/task_snapshot_station_service.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_SUPPORT"
+      ],
+      "claimingModuleIds": [
+        "registry_compiler"
+      ],
+      "classification": "KEEP_SUPPORT",
+      "path": "tools/registry_compiler/compile_registry.py"
+    },
+    {
+      "claimantClassifications": [
+        "ISOLATE"
+      ],
+      "claimingModuleIds": [
+        "action_node_transport",
+        "execution_resource_orchestrator",
+        "node_authorization",
+        "operating_plan_compiler",
+        "stage_frontend_projection",
+        "stage_lifecycle"
+      ],
+      "classification": "ISOLATE",
+      "path": "tools/registry_compiler/v24_identity_catalog.py"
+    },
+    {
+      "claimantClassifications": [
+        "ISOLATE"
+      ],
+      "claimingModuleIds": [
+        "task_blueprint_compiler"
+      ],
+      "classification": "ISOLATE",
+      "path": "tools/registry_compiler/v24_task_blueprint_compiler.py"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "frontend_view"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "web_demo/bootstrap.js"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "frontend_view"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "web_demo/core/router.js"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "frontend_view"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "web_demo/core/task-read-model-v2082.js"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "frontend_view"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "web_demo/index.html"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "frontend_view"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "web_demo/loading-ui.css"
+    },
+    {
+      "claimantClassifications": [
+        "KEEP_CORE"
+      ],
+      "claimingModuleIds": [
+        "frontend_view"
+      ],
+      "classification": "KEEP_CORE",
+      "path": "web_demo/modules/task-report/page.js"
+    }
+  ],
+  "request": {
+    "approval": {
+      "approvedAt": null,
+      "approvedBy": null,
+      "state": "REVIEW_PENDING"
+    },
+    "baseline": {
+      "motherSourceCommit": "f5186451c80631fea550da17d481f5e8793215e5",
+      "registryCompilerTreeSha": "658c88d3d6387d0e6c1c18f9834d9fb3c308dc42",
+      "registryTreeSha": "3cefcdea30086124a70999d942c5f552afd613fd",
+      "repositoryCommit": "342f47af088e2e8538bf6034006756c216511c41",
+      "zDependencyCommit": "c924e646673a41857cca5e39650e022f9ce8c0a5"
+    },
+    "classificationPolicy": {
+      "activePath": "KEEP_CORE",
+      "registeredOnly": "ISOLATE",
+      "unresolvedActive": "REVIEW_REQUIRED",
+      "upstreamDependency": "KEEP_SUPPORT",
+      "zeroReferenceTombstone": "REMOVE_CANDIDATE"
+    },
+    "constraints": {
+      "allowBusinessRuntimeMutation": false,
+      "allowDatabaseMutation": false,
+      "allowMainMutation": false,
+      "allowPhysicalDeletion": false,
+      "allowProviderCalls": false,
+      "preserveDemoMode": true,
+      "preserveFrontend": true,
+      "preserveRealMode": true,
+      "preserveReleaseGovernance": true
+    },
+    "entryModuleIds": [
+      "signal_admission",
+      "artifact_transport"
+    ],
+    "mode": "report_only",
+    "requiredInterfaceIds": [
+      "system.version.get",
+      "stations.list.get",
+      "stations.run.post",
+      "view.head.get",
+      "view.artifact.get",
+      "view.refresh.post"
+    ],
+    "requiredModuleIds": [
+      "release_governance",
+      "agent1_input_projection",
+      "agent1_runtime",
+      "agent2_runtime",
+      "agent3_input_projection",
+      "agent3_runtime",
+      "task_mapping",
+      "task_pool",
+      "frontend_view"
+    ],
+    "requiredStationIds": [
+      "product_signal_admission_station",
+      "product_judgment_agent_station",
+      "action_parameter_enrichment_station",
+      "action_plan_judgment_agent_station",
+      "task_mapping_agent_station",
+      "task_pool_admission_station",
+      "frontend_read_model_station"
+    ],
+    "schema": "contest.selection_request.v1",
+    "supportModuleIds": [
+      "release_governance",
+      "registry_compiler"
+    ],
+    "target": "contest_single_chain",
+    "terminalModuleIds": [
+      "frontend_view"
+    ],
+    "version": "1.0.0"
+  },
+  "reverseClosureHash": "sha256:c9ac48c1f434df2bd60401c84a7381f69bb9fcc7bac5ac0c23c4923d60925efd",
+  "safeKeepModuleIds": [
+    "action_pack",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_input_projection",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "artifact_execution_runtime",
+    "artifact_transport",
+    "frontend_view",
+    "pipeline_runtime",
+    "registry_compiler",
+    "release_governance",
+    "signal_admission",
+    "task_mapping",
+    "task_pool"
+  ],
+  "schema": "contest.selection_manifest.v1",
+  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "supportModuleIds": [
+    "registry_compiler",
+    "release_governance"
+  ],
+  "tombstoneReview": [
+    {
+      "classification": "REVIEW_REQUIRED",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "note": "Semantic review required before retirement.",
+      "replacementFieldId": "agent1.locked_action_family",
+      "repositoryHitCount": 37,
+      "status": "CANDIDATE"
+    },
+    {
+      "classification": "REVIEW_REQUIRED",
+      "legacyPath": "payload.creativeTestPlan",
+      "note": "Migration-only compatibility candidate.",
+      "replacementFieldId": "agent2.creative_draft",
+      "repositoryHitCount": 24,
+      "status": "CANDIDATE"
+    },
+    {
+      "classification": "REVIEW_REQUIRED",
+      "legacyPath": "payload.testPackages",
+      "note": "Migration-only compatibility candidate.",
+      "replacementFieldId": "agent2.creative_draft",
+      "repositoryHitCount": 5,
+      "status": "CANDIDATE"
+    },
+    {
+      "classification": "REVIEW_REQUIRED",
+      "legacyPath": "payload.imageDirections",
+      "note": "Migration-only compatibility candidate.",
+      "replacementFieldId": "agent2.creative_draft",
+      "repositoryHitCount": 1,
+      "status": "CANDIDATE"
+    }
+  ]
+}

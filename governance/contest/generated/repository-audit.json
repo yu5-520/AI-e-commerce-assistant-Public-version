@@ -1,0 +1,4881 @@
+{
+  "businessRuntimeMutated": false,
+  "deploymentBlocked": false,
+  "mode": "report_only",
+  "moduleAudits": {
+    "action_node_transport": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [],
+      "declaredButNotObservedInRunnerFile": [
+        "agent2.action_node_draft",
+        "agent2.action_node_execution_proof",
+        "agent3.action_node_execution_proof",
+        "agent3.action_node_sop",
+        "entity.action_node_id",
+        "entity.plan_id",
+        "execution.action_node_contract_ref",
+        "execution.agent2_node_draft_ref",
+        "execution.agent3_node_sop_ref",
+        "execution.operating_plan_ir_ref",
+        "execution.plan_graph_ref",
+        "execution.stage_lifecycle_snapshot_ref",
+        "execution.task_execution_blueprint_ref",
+        "plan.action_node_contract"
+      ],
+      "declaredFields": [
+        "agent2.action_node_draft",
+        "agent2.action_node_execution_proof",
+        "agent3.action_node_execution_proof",
+        "agent3.action_node_sop",
+        "entity.action_node_id",
+        "entity.plan_id",
+        "execution.action_node_contract_ref",
+        "execution.agent2_node_draft_ref",
+        "execution.agent3_node_sop_ref",
+        "execution.operating_plan_ir_ref",
+        "execution.plan_graph_ref",
+        "execution.stage_lifecycle_snapshot_ref",
+        "execution.task_execution_blueprint_ref",
+        "plan.action_node_contract"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "action_node_transport",
+      "runner": "tools.registry_compiler.v24_identity_catalog:action_node_transport_identity",
+      "runnerFileExists": true,
+      "runnerPath": "tools/registry_compiler/v24_identity_catalog.py",
+      "runnerSymbolExists": true
+    },
+    "action_pack": {
+      "actualButUndeclaredFields": [
+        "entity.data_version",
+        "entity.package_id",
+        "entity.signal_id"
+      ],
+      "actualRegisteredFields": [
+        "agent1.operating_judgment",
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "action_pack.matrix_dispatch",
+        "action_pack.parameter_pack",
+        "agent1.execution_lock",
+        "agent1.locked_action_family"
+      ],
+      "declaredFields": [
+        "action_pack.matrix_dispatch",
+        "action_pack.parameter_pack",
+        "agent1.execution_lock",
+        "agent1.locked_action_family",
+        "agent1.operating_judgment",
+        "entity.product_id",
+        "entity.store_id"
+      ],
+      "dispatchEvidence": [
+        {
+          "line": 233,
+          "matched": [
+            "agent_pipeline_item_worker_v2010_service",
+            "src.services.agent_pipeline_item_worker_v2010_service"
+          ],
+          "path": "src/services/station_adapter_service.py",
+          "text": "from src.services.agent_pipeline_item_worker_v2010_service import ("
+        },
+        {
+          "line": 234,
+          "matched": [
+            "seed_action_pack_from_agent1_items"
+          ],
+          "path": "src/services/station_adapter_service.py",
+          "text": "seed_action_pack_from_agent1_items,"
+        },
+        {
+          "line": 237,
+          "matched": [
+            "seed_action_pack_from_agent1_items"
+          ],
+          "path": "src/services/station_adapter_service.py",
+          "text": "result = seed_action_pack_from_agent1_items("
+        }
+      ],
+      "dispatchEvidenceCount": 3,
+      "moduleId": "action_pack",
+      "runner": "src.services.agent_pipeline_item_worker_v2010_service:seed_action_pack_from_agent1_items",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/agent_pipeline_item_worker_v2010_service.py",
+      "runnerSymbolExists": true
+    },
+    "agent1_input_projection": {
+      "actualButUndeclaredFields": [
+        "entity.tenant_id",
+        "execution.pipeline_item_id",
+        "frontend.module_content_hash"
+      ],
+      "actualRegisteredFields": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id",
+        "entity.tenant_id",
+        "execution.pipeline_item_id",
+        "frontend.module_content_hash"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "execution.input_artifact_ref",
+        "execution.input_content_hash"
+      ],
+      "declaredFields": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id",
+        "execution.input_artifact_ref",
+        "execution.input_content_hash"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "agent1_input_projection",
+      "runner": "src.services.agent_input_transport_v2258_service:ensure_agent1_input_ref",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/agent_input_transport_v2258_service.py",
+      "runnerSymbolExists": true
+    },
+    "agent1_runtime": {
+      "actualButUndeclaredFields": [
+        "entity.tenant_id",
+        "execution.execution_hash",
+        "execution.input_artifact_ref",
+        "execution.output_artifact_ref",
+        "execution.output_content_hash",
+        "execution.pipeline_item_id",
+        "frontend.module_content_hash"
+      ],
+      "actualRegisteredFields": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id",
+        "entity.tenant_id",
+        "execution.execution_hash",
+        "execution.input_artifact_ref",
+        "execution.input_content_hash",
+        "execution.item_execution_id",
+        "execution.output_artifact_ref",
+        "execution.output_content_hash",
+        "execution.pipeline_item_id",
+        "frontend.module_content_hash"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "agent1.decision_ir",
+        "agent1.decision_type",
+        "agent1.execution_lock",
+        "agent1.locked_action_family",
+        "agent1.operating_judgment"
+      ],
+      "declaredFields": [
+        "agent1.decision_ir",
+        "agent1.decision_type",
+        "agent1.execution_lock",
+        "agent1.locked_action_family",
+        "agent1.operating_judgment",
+        "entity.data_version",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id",
+        "execution.input_content_hash",
+        "execution.item_execution_id"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "agent1_runtime",
+      "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/agent_token_runtime_hash_exact_v2259_service.py",
+      "runnerSymbolExists": true
+    },
+    "agent2_input_projection": {
+      "actualButUndeclaredFields": [
+        "agent1.decision_type",
+        "entity.signal_id",
+        "entity.tenant_id",
+        "execution.pipeline_item_id",
+        "frontend.module_content_hash"
+      ],
+      "actualRegisteredFields": [
+        "action_pack.matrix_dispatch",
+        "action_pack.parameter_pack",
+        "agent1.decision_ir",
+        "agent1.decision_type",
+        "agent1.locked_action_family",
+        "agent1.operating_judgment",
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id",
+        "entity.tenant_id",
+        "execution.pipeline_item_id",
+        "frontend.module_content_hash"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "execution.input_artifact_ref",
+        "execution.input_content_hash"
+      ],
+      "declaredFields": [
+        "action_pack.matrix_dispatch",
+        "action_pack.parameter_pack",
+        "agent1.decision_ir",
+        "agent1.locked_action_family",
+        "agent1.operating_judgment",
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.store_id",
+        "execution.input_artifact_ref",
+        "execution.input_content_hash"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "agent2_input_projection",
+      "runner": "src.services.agent_input_transport_v230_service:ensure_agent2_input_ref",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/agent_input_transport_v230_service.py",
+      "runnerSymbolExists": true
+    },
+    "agent2_runtime": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [
+        "entity.data_version"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "action_pack.matrix_dispatch",
+        "action_pack.parameter_pack",
+        "agent1.decision_ir",
+        "agent1.locked_action_family",
+        "agent1.operating_judgment",
+        "agent2.action_draft",
+        "agent2.creative_draft",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.store_id",
+        "execution.input_artifact_ref"
+      ],
+      "declaredFields": [
+        "action_pack.matrix_dispatch",
+        "action_pack.parameter_pack",
+        "agent1.decision_ir",
+        "agent1.locked_action_family",
+        "agent1.operating_judgment",
+        "agent2.action_draft",
+        "agent2.creative_draft",
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.store_id",
+        "execution.input_artifact_ref"
+      ],
+      "dispatchEvidence": [
+        {
+          "line": 122,
+          "matched": [
+            "run_agent2_microbatch_hard"
+          ],
+          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
+          "text": "run_agent2_microbatch_hard = legacy.run_agent2_microbatch_hard"
+        },
+        {
+          "line": 132,
+          "matched": [
+            "run_agent2_microbatch_hard"
+          ],
+          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
+          "text": "\"run_agent2_microbatch_hard\","
+        }
+      ],
+      "dispatchEvidenceCount": 2,
+      "moduleId": "agent2_runtime",
+      "runner": "src.services.agent_runtime_hard_interface_v22515_service:run_agent2_microbatch_hard",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/agent_runtime_hard_interface_v22515_service.py",
+      "runnerSymbolExists": true
+    },
+    "agent3_input_projection": {
+      "actualButUndeclaredFields": [
+        "entity.package_id"
+      ],
+      "actualRegisteredFields": [
+        "agent1.locked_action_family",
+        "agent2.action_draft",
+        "entity.package_id"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "action_pack.parameter_pack",
+        "execution.input_artifact_ref",
+        "execution.input_content_hash"
+      ],
+      "declaredFields": [
+        "action_pack.parameter_pack",
+        "agent1.locked_action_family",
+        "agent2.action_draft",
+        "execution.input_artifact_ref",
+        "execution.input_content_hash"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "agent3_input_projection",
+      "runner": "src.services.agent3_system_constraint_v23215_service:ensure_agent3_sop_input_ref_v23216",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/agent3_system_constraint_v23215_service.py",
+      "runnerSymbolExists": true
+    },
+    "agent3_runtime": {
+      "actualButUndeclaredFields": [
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id"
+      ],
+      "actualRegisteredFields": [
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "action_pack.parameter_pack",
+        "agent1.locked_action_family",
+        "agent2.action_draft",
+        "execution.input_content_hash",
+        "execution.item_execution_id"
+      ],
+      "declaredFields": [
+        "action_pack.parameter_pack",
+        "agent1.locked_action_family",
+        "agent2.action_draft",
+        "execution.input_content_hash",
+        "execution.item_execution_id"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "agent3_runtime",
+      "runner": "src.services.pipeline_agent3_sop_v225_service:run_agent3_sop_microbatch",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/pipeline_agent3_sop_v225_service.py",
+      "runnerSymbolExists": true
+    },
+    "artifact_execution_runtime": {
+      "actualButUndeclaredFields": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.tenant_id",
+        "frontend.module_content_hash"
+      ],
+      "actualRegisteredFields": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.tenant_id",
+        "execution.execution_hash",
+        "execution.input_artifact_ref",
+        "execution.input_content_hash",
+        "execution.item_execution_id",
+        "execution.output_artifact_ref",
+        "execution.output_content_hash",
+        "frontend.module_content_hash"
+      ],
+      "declaredButNotObservedInRunnerFile": [],
+      "declaredFields": [
+        "execution.execution_hash",
+        "execution.input_artifact_ref",
+        "execution.input_content_hash",
+        "execution.item_execution_id",
+        "execution.output_artifact_ref",
+        "execution.output_content_hash"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "artifact_execution_runtime",
+      "runner": "src.services.hash_directed_artifact_runtime_v2259_service:claim_execution",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/hash_directed_artifact_runtime_v2259_service.py",
+      "runnerSymbolExists": true
+    },
+    "artifact_transport": {
+      "actualButUndeclaredFields": [
+        "execution.pipeline_item_id",
+        "frontend.module_content_hash"
+      ],
+      "actualRegisteredFields": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.tenant_id",
+        "execution.pipeline_item_id",
+        "frontend.module_content_hash"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "execution.input_artifact_ref",
+        "execution.input_content_hash"
+      ],
+      "declaredFields": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.tenant_id",
+        "execution.input_artifact_ref",
+        "execution.input_content_hash"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "artifact_transport",
+      "runner": "src.services.artifact_transport_service:store_artifact",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/artifact_transport_service.py",
+      "runnerSymbolExists": true
+    },
+    "execution_resource_orchestrator": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [],
+      "declaredButNotObservedInRunnerFile": [
+        "action_pack.parameter_pack",
+        "entity.action_node_id",
+        "entity.plan_id",
+        "entity.product_id",
+        "entity.store_id",
+        "execution.resource_context",
+        "plan.action_node_contract"
+      ],
+      "declaredFields": [
+        "action_pack.parameter_pack",
+        "entity.action_node_id",
+        "entity.plan_id",
+        "entity.product_id",
+        "entity.store_id",
+        "execution.resource_context",
+        "plan.action_node_contract"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "execution_resource_orchestrator",
+      "runner": "tools.registry_compiler.v24_identity_catalog:execution_resource_orchestrator_identity",
+      "runnerFileExists": true,
+      "runnerPath": "tools/registry_compiler/v24_identity_catalog.py",
+      "runnerSymbolExists": true
+    },
+    "frontend_view": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [
+        "entity.data_version",
+        "frontend.manifest_hash",
+        "frontend.module_content_hash"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "entity.product_id",
+        "entity.store_id",
+        "entity.tenant_id"
+      ],
+      "declaredFields": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.tenant_id",
+        "frontend.manifest_hash",
+        "frontend.module_content_hash"
+      ],
+      "dispatchEvidence": [
+        {
+          "line": 21,
+          "matched": [
+            "frontend_view_artifact_v2259_service",
+            "src.services.frontend_view_artifact_v2259_service"
+          ],
+          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
+          "text": "from src.services.frontend_view_artifact_v2259_service import ("
+        },
+        {
+          "line": 22,
+          "matched": [
+            "materialize_frontend_views_v2259"
+          ],
+          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
+          "text": "materialize_frontend_views_v2259,"
+        },
+        {
+          "line": 25,
+          "matched": [
+            "materialize_frontend_views_v2259"
+          ],
+          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
+          "text": "result[\"hashViewPublication\"] = materialize_frontend_views_v2259("
+        }
+      ],
+      "dispatchEvidenceCount": 3,
+      "moduleId": "frontend_view",
+      "runner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/frontend_view_artifact_v2259_service.py",
+      "runnerSymbolExists": true
+    },
+    "node_authorization": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [],
+      "declaredButNotObservedInRunnerFile": [
+        "entity.action_node_id",
+        "entity.plan_id",
+        "execution.node_authorization",
+        "execution.resource_context",
+        "plan.action_node_contract"
+      ],
+      "declaredFields": [
+        "entity.action_node_id",
+        "entity.plan_id",
+        "execution.node_authorization",
+        "execution.resource_context",
+        "plan.action_node_contract"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "node_authorization",
+      "runner": "tools.registry_compiler.v24_identity_catalog:node_authorization_identity",
+      "runnerFileExists": true,
+      "runnerPath": "tools/registry_compiler/v24_identity_catalog.py",
+      "runnerSymbolExists": true
+    },
+    "operating_plan_compiler": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [],
+      "declaredButNotObservedInRunnerFile": [
+        "agent1.operating_plan_ir",
+        "agent1.plan_dependency_edges",
+        "agent1.primary_action_node",
+        "agent1.supporting_action_nodes",
+        "entity.action_node_id",
+        "entity.data_version",
+        "entity.plan_id",
+        "entity.product_id",
+        "entity.store_id",
+        "plan.action_node_contract",
+        "plan.decision_branches",
+        "plan.dependency_edges"
+      ],
+      "declaredFields": [
+        "agent1.operating_plan_ir",
+        "agent1.plan_dependency_edges",
+        "agent1.primary_action_node",
+        "agent1.supporting_action_nodes",
+        "entity.action_node_id",
+        "entity.data_version",
+        "entity.plan_id",
+        "entity.product_id",
+        "entity.store_id",
+        "plan.action_node_contract",
+        "plan.decision_branches",
+        "plan.dependency_edges"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "operating_plan_compiler",
+      "runner": "tools.registry_compiler.v24_identity_catalog:operating_plan_compiler_identity",
+      "runnerFileExists": true,
+      "runnerPath": "tools/registry_compiler/v24_identity_catalog.py",
+      "runnerSymbolExists": true
+    },
+    "pipeline_runtime": {
+      "actualButUndeclaredFields": [
+        "action_pack.matrix_dispatch",
+        "agent1.operating_judgment",
+        "frontend.module_content_hash"
+      ],
+      "actualRegisteredFields": [
+        "action_pack.matrix_dispatch",
+        "agent1.operating_judgment",
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id",
+        "frontend.module_content_hash"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "execution.input_artifact_ref",
+        "execution.pipeline_item_id"
+      ],
+      "declaredFields": [
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id",
+        "execution.input_artifact_ref",
+        "execution.pipeline_item_id"
+      ],
+      "dispatchEvidence": [
+        {
+          "line": 14,
+          "matched": [
+            "pipeline_item_service",
+            "src.services.pipeline_item_service"
+          ],
+          "path": "src/services/station_adapter_service.py",
+          "text": "from src.services.pipeline_item_service import build_item_envelope"
+        },
+        {
+          "line": 11,
+          "matched": [
+            "pipeline_item_service",
+            "src.services.pipeline_item_service"
+          ],
+          "path": "src/api/routes/stations.py",
+          "text": "from src.services.pipeline_item_service import pipeline_item_summary"
+        },
+        {
+          "line": 63,
+          "matched": [
+            "pipeline_item_service",
+            "src.services.pipeline_item_service"
+          ],
+          "path": "src/api/main.py",
+          "text": "from src.services.pipeline_item_service import ensure_pipeline_item_tables"
+        }
+      ],
+      "dispatchEvidenceCount": 3,
+      "moduleId": "pipeline_runtime",
+      "runner": "src.services.pipeline_item_service:upsert_pipeline_item",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/pipeline_item_service.py",
+      "runnerSymbolExists": true
+    },
+    "registry_compiler": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [],
+      "declaredButNotObservedInRunnerFile": [
+        "registry.module_contract_hash",
+        "registry.root_hash",
+        "registry.schema_contract_hash"
+      ],
+      "declaredFields": [
+        "registry.module_contract_hash",
+        "registry.root_hash",
+        "registry.schema_contract_hash"
+      ],
+      "dispatchEvidence": [
+        {
+          "line": 84,
+          "matched": [
+            "main"
+          ],
+          "path": "src/api/main.py",
+          "text": "def station_mainline() -> dict[str, Any]:"
+        },
+        {
+          "line": 169,
+          "matched": [
+            "main"
+          ],
+          "path": "src/api/main.py",
+          "text": "\"mainline\": ["
+        },
+        {
+          "line": 319,
+          "matched": [
+            "main"
+          ],
+          "path": "src/api/main.py",
+          "text": "\"stationMainline\": station_mainline(),"
+        }
+      ],
+      "dispatchEvidenceCount": 3,
+      "moduleId": "registry_compiler",
+      "runner": "tools.registry_compiler.compile_registry:main",
+      "runnerFileExists": true,
+      "runnerPath": "tools/registry_compiler/compile_registry.py",
+      "runnerSymbolExists": true
+    },
+    "release_governance": {
+      "actualButUndeclaredFields": [
+        "frontend.manifest_hash"
+      ],
+      "actualRegisteredFields": [
+        "frontend.manifest_hash"
+      ],
+      "declaredButNotObservedInRunnerFile": [
+        "registry.module_contract_hash",
+        "registry.root_hash",
+        "registry.schema_contract_hash"
+      ],
+      "declaredFields": [
+        "registry.module_contract_hash",
+        "registry.root_hash",
+        "registry.schema_contract_hash"
+      ],
+      "dispatchEvidence": [
+        {
+          "line": 68,
+          "matched": [
+            "assert_release_identity",
+            "release_identity_service",
+            "src.services.release_identity_service"
+          ],
+          "path": "src/api/main.py",
+          "text": "from src.services.release_identity_service import assert_release_identity, release_identity"
+        },
+        {
+          "line": 440,
+          "matched": [
+            "assert_release_identity"
+          ],
+          "path": "src/api/main.py",
+          "text": "assert_release_identity()"
+        }
+      ],
+      "dispatchEvidenceCount": 2,
+      "moduleId": "release_governance",
+      "runner": "src.services.release_identity_service:assert_release_identity",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/release_identity_service.py",
+      "runnerSymbolExists": true
+    },
+    "signal_admission": {
+      "actualButUndeclaredFields": [
+        "entity.package_id"
+      ],
+      "actualRegisteredFields": [
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id"
+      ],
+      "declaredButNotObservedInRunnerFile": [],
+      "declaredFields": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id"
+      ],
+      "dispatchEvidence": [
+        {
+          "line": 201,
+          "matched": [
+            "artifact_signal_admission_v225_service",
+            "src.services.artifact_signal_admission_v225_service"
+          ],
+          "path": "src/services/station_adapter_service.py",
+          "text": "from src.services.artifact_signal_admission_v225_service import ("
+        },
+        {
+          "line": 202,
+          "matched": [
+            "product_signal_admission_station_v225"
+          ],
+          "path": "src/services/station_adapter_service.py",
+          "text": "product_signal_admission_station_v225,"
+        },
+        {
+          "line": 210,
+          "matched": [
+            "product_signal_admission_station_v225"
+          ],
+          "path": "src/services/station_adapter_service.py",
+          "text": "result = product_signal_admission_station_v225("
+        }
+      ],
+      "dispatchEvidenceCount": 3,
+      "moduleId": "signal_admission",
+      "runner": "src.services.artifact_signal_admission_v225_service:product_signal_admission_station_v225",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/artifact_signal_admission_v225_service.py",
+      "runnerSymbolExists": true
+    },
+    "stage_frontend_projection": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [],
+      "declaredButNotObservedInRunnerFile": [
+        "entity.action_node_id",
+        "entity.parent_task_id",
+        "entity.plan_id",
+        "entity.stage_id",
+        "execution.stage_lifecycle_snapshot_ref",
+        "execution.task_execution_blueprint_ref",
+        "frontend.active_stage_content_hash",
+        "frontend.blueprint_manifest_hash",
+        "frontend.stage_navigation_hash",
+        "plan.current_stage_id",
+        "plan.stage_graph",
+        "task.awaiting_approval_stage_ids",
+        "task.blocked_stage_ids",
+        "task.completed_stage_ids",
+        "task.current_stage_id",
+        "task.node_status_map",
+        "task.stage_status_map"
+      ],
+      "declaredFields": [
+        "entity.action_node_id",
+        "entity.parent_task_id",
+        "entity.plan_id",
+        "entity.stage_id",
+        "execution.stage_lifecycle_snapshot_ref",
+        "execution.task_execution_blueprint_ref",
+        "frontend.active_stage_content_hash",
+        "frontend.blueprint_manifest_hash",
+        "frontend.stage_navigation_hash",
+        "plan.current_stage_id",
+        "plan.stage_graph",
+        "task.awaiting_approval_stage_ids",
+        "task.blocked_stage_ids",
+        "task.completed_stage_ids",
+        "task.current_stage_id",
+        "task.node_status_map",
+        "task.stage_status_map"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "stage_frontend_projection",
+      "runner": "tools.registry_compiler.v24_identity_catalog:stage_frontend_projection_identity",
+      "runnerFileExists": true,
+      "runnerPath": "tools/registry_compiler/v24_identity_catalog.py",
+      "runnerSymbolExists": true
+    },
+    "stage_lifecycle": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [],
+      "declaredButNotObservedInRunnerFile": [
+        "entity.action_node_id",
+        "entity.parent_task_id",
+        "entity.plan_id",
+        "entity.stage_id",
+        "execution.node_authorization",
+        "plan.blueprint_status",
+        "plan.current_stage_id",
+        "plan.decision_branches",
+        "plan.dependency_edges",
+        "plan.stage_graph",
+        "task.awaiting_approval_stage_ids",
+        "task.blocked_stage_ids",
+        "task.completed_stage_ids",
+        "task.current_stage_id",
+        "task.node_status_map",
+        "task.stage_status_map"
+      ],
+      "declaredFields": [
+        "entity.action_node_id",
+        "entity.parent_task_id",
+        "entity.plan_id",
+        "entity.stage_id",
+        "execution.node_authorization",
+        "plan.blueprint_status",
+        "plan.current_stage_id",
+        "plan.decision_branches",
+        "plan.dependency_edges",
+        "plan.stage_graph",
+        "task.awaiting_approval_stage_ids",
+        "task.blocked_stage_ids",
+        "task.completed_stage_ids",
+        "task.current_stage_id",
+        "task.node_status_map",
+        "task.stage_status_map"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "stage_lifecycle",
+      "runner": "tools.registry_compiler.v24_identity_catalog:stage_lifecycle_identity",
+      "runnerFileExists": true,
+      "runnerPath": "tools/registry_compiler/v24_identity_catalog.py",
+      "runnerSymbolExists": true
+    },
+    "task_blueprint_compiler": {
+      "actualButUndeclaredFields": [],
+      "actualRegisteredFields": [],
+      "declaredButNotObservedInRunnerFile": [
+        "agent3.action_node_execution_proof",
+        "agent3.action_node_sop",
+        "entity.action_node_id",
+        "entity.parent_task_id",
+        "entity.plan_id",
+        "entity.stage_id",
+        "execution.agent3_node_sop_ref",
+        "execution.node_authorization",
+        "execution.resource_context",
+        "plan.action_node_contract",
+        "plan.blueprint_status",
+        "plan.decision_branches",
+        "plan.dependency_edges",
+        "plan.stage_graph"
+      ],
+      "declaredFields": [
+        "agent3.action_node_execution_proof",
+        "agent3.action_node_sop",
+        "entity.action_node_id",
+        "entity.parent_task_id",
+        "entity.plan_id",
+        "entity.stage_id",
+        "execution.agent3_node_sop_ref",
+        "execution.node_authorization",
+        "execution.resource_context",
+        "plan.action_node_contract",
+        "plan.blueprint_status",
+        "plan.decision_branches",
+        "plan.dependency_edges",
+        "plan.stage_graph"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "task_blueprint_compiler",
+      "runner": "tools.registry_compiler.v24_task_blueprint_compiler:task_blueprint_compiler_identity",
+      "runnerFileExists": true,
+      "runnerPath": "tools/registry_compiler/v24_task_blueprint_compiler.py",
+      "runnerSymbolExists": true
+    },
+    "task_mapping": {
+      "actualButUndeclaredFields": [
+        "agent1.operating_judgment",
+        "entity.data_version",
+        "entity.package_id",
+        "entity.signal_id"
+      ],
+      "actualRegisteredFields": [
+        "agent1.operating_judgment",
+        "agent2.action_draft",
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id"
+      ],
+      "declaredButNotObservedInRunnerFile": [],
+      "declaredFields": [
+        "agent2.action_draft",
+        "entity.product_id",
+        "entity.store_id"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "task_mapping",
+      "runner": "src.services.pipeline_task_mapping_v225_service:run_task_mapping_microbatch_v225",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/pipeline_task_mapping_v225_service.py",
+      "runnerSymbolExists": true
+    },
+    "task_pool": {
+      "actualButUndeclaredFields": [
+        "agent1.operating_judgment",
+        "agent2.action_draft",
+        "entity.data_version",
+        "entity.package_id",
+        "entity.signal_id"
+      ],
+      "actualRegisteredFields": [
+        "agent1.operating_judgment",
+        "agent2.action_draft",
+        "entity.data_version",
+        "entity.package_id",
+        "entity.product_id",
+        "entity.signal_id",
+        "entity.store_id"
+      ],
+      "declaredButNotObservedInRunnerFile": [],
+      "declaredFields": [
+        "entity.product_id",
+        "entity.store_id"
+      ],
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
+      "moduleId": "task_pool",
+      "runner": "src.services.pipeline_task_mapping_v225_service:run_task_pool_admission_microbatch_v225",
+      "runnerFileExists": true,
+      "runnerPath": "src/services/pipeline_task_mapping_v225_service.py",
+      "runnerSymbolExists": true
+    }
+  },
+  "repositoryScanHash": "sha256:ac96d9a8aa3ab2bd228adcf66264afa7f25eb4597d2be25f2427c84211d87284",
+  "retiredFieldCandidateHits": [
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 400,
+      "operation": "pop",
+      "path": "src/services/action_pack_core_v20_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 187,
+      "operation": "get",
+      "path": "src/services/action_parameter_enrichment_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 320,
+      "operation": "get",
+      "path": "src/services/action_parameter_enrichment_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 575,
+      "operation": "get",
+      "path": "src/services/action_parameter_enrichment_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 597,
+      "operation": "write",
+      "path": "src/services/action_parameter_enrichment_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 598,
+      "operation": "get",
+      "path": "src/services/action_parameter_enrichment_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 100,
+      "operation": "get",
+      "path": "src/services/agent1_dual_channel_contract_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 308,
+      "operation": "get",
+      "path": "src/services/agent2_action_draft_core_v225_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 375,
+      "operation": "get",
+      "path": "src/services/agent2_action_draft_core_v225_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 288,
+      "operation": "get",
+      "path": "src/services/agent2_action_plan_core_v20_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 330,
+      "operation": "get",
+      "path": "src/services/agent2_action_plan_core_v20_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 346,
+      "operation": "dict_key",
+      "path": "src/services/agent2_action_plan_core_v20_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 204,
+      "operation": "get",
+      "path": "src/services/agent_execution_lock_v2255_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 207,
+      "operation": "get",
+      "path": "src/services/agent_execution_lock_v2255_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 462,
+      "operation": "dict_key",
+      "path": "src/services/agent_input_transport_v22514_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 270,
+      "operation": "pop",
+      "path": "src/services/agent_runtime_contract_v2010_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 274,
+      "operation": "dict_key",
+      "path": "src/services/agent_runtime_hard_interface_v2255_legacy_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 222,
+      "operation": "dict_key",
+      "path": "src/services/agent_runtime_hard_interface_v2257_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.testPackages",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "testPackages",
+      "line": 33,
+      "operation": "dict_key",
+      "path": "src/services/creative_llm_enrichment_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.testPackages",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "testPackages",
+      "line": 33,
+      "operation": "get",
+      "path": "src/services/creative_llm_enrichment_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.testPackages",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "testPackages",
+      "line": 59,
+      "operation": "get",
+      "path": "src/services/creative_llm_enrichment_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.imageDirections",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "imageDirections",
+      "line": 111,
+      "operation": "dict_key",
+      "path": "src/services/creative_vertical_agent_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.testPackages",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "testPackages",
+      "line": 113,
+      "operation": "dict_key",
+      "path": "src/services/creative_vertical_agent_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.testPackages",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "testPackages",
+      "line": 126,
+      "operation": "get",
+      "path": "src/services/creative_vertical_agent_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 56,
+      "operation": "get",
+      "path": "src/services/decision_write_guard_v19122_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 71,
+      "operation": "get",
+      "path": "src/services/decision_write_guard_v19122_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 42,
+      "operation": "get",
+      "path": "src/services/judgment_evidence_package_v195_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 48,
+      "operation": "dict_key",
+      "path": "src/services/judgment_evidence_package_v195_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 65,
+      "operation": "write",
+      "path": "src/services/judgment_evidence_package_v195_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 65,
+      "operation": "get",
+      "path": "src/services/judgment_evidence_package_v195_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 88,
+      "operation": "get",
+      "path": "src/services/judgment_evidence_package_v195_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 91,
+      "operation": "get",
+      "path": "src/services/judgment_evidence_package_v195_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 201,
+      "operation": "get",
+      "path": "src/services/pipeline_agent1_microbatch_v20101_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 283,
+      "operation": "get",
+      "path": "src/services/pipeline_item_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 327,
+      "operation": "get",
+      "path": "src/services/real_product_judgment_agent_v196_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 409,
+      "operation": "dict_key",
+      "path": "src/services/real_product_judgment_agent_v196_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 244,
+      "operation": "get",
+      "path": "src/services/real_product_judgment_agent_v2258_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 253,
+      "operation": "write",
+      "path": "src/services/real_product_judgment_agent_v2258_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 144,
+      "operation": "pop",
+      "path": "src/services/route_action_department_matrix_v1915_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 123,
+      "operation": "get",
+      "path": "src/services/task_detail_projection_core_v20_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 163,
+      "operation": "get",
+      "path": "src/services/task_detail_projection_core_v20_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 122,
+      "operation": "get",
+      "path": "src/services/task_mapping_force_v1915_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 142,
+      "operation": "write",
+      "path": "src/services/task_mapping_force_v1915_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 145,
+      "operation": "write",
+      "path": "src/services/task_mapping_force_v1915_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 169,
+      "operation": "write",
+      "path": "src/services/task_mapping_force_v1915_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 271,
+      "operation": "get",
+      "path": "src/services/task_mapping_force_v1915_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 272,
+      "operation": "write",
+      "path": "src/services/task_mapping_force_v1915_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 272,
+      "operation": "get",
+      "path": "src/services/task_mapping_force_v1915_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 302,
+      "operation": "get",
+      "path": "src/services/task_mapping_force_v1915_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 88,
+      "operation": "get",
+      "path": "src/services/task_mapping_force_v197_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 151,
+      "operation": "dict_key",
+      "path": "src/services/task_mapping_force_v197_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 203,
+      "operation": "write",
+      "path": "src/services/task_mapping_force_v197_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 81,
+      "operation": "get",
+      "path": "src/services/task_mapping_force_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 99,
+      "operation": "get",
+      "path": "src/services/task_mapping_force_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 209,
+      "operation": "dict_key",
+      "path": "src/services/task_mapping_force_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 209,
+      "operation": "get",
+      "path": "src/services/task_mapping_force_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 124,
+      "operation": "get",
+      "path": "src/services/task_pool_admission_bridge_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 178,
+      "operation": "get",
+      "path": "src/services/task_pool_admission_bridge_v199_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 265,
+      "operation": "get",
+      "path": "src/services/v19_product_logic_contract_v2014_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.creativeTestPlan",
+        "note": "Migration-only compatibility candidate.",
+        "replacementFieldId": "agent2.creative_draft",
+        "status": "CANDIDATE"
+      },
+      "key": "creativeTestPlan",
+      "line": 267,
+      "operation": "write",
+      "path": "src/services/v19_product_logic_contract_v2014_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 304,
+      "operation": "get",
+      "path": "src/services/v2172_inventory_action_guard_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 354,
+      "operation": "get",
+      "path": "src/services/v2172_inventory_action_guard_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 401,
+      "operation": "get",
+      "path": "src/services/v2172_inventory_action_guard_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 543,
+      "operation": "get",
+      "path": "src/services/v2172_inventory_action_guard_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 779,
+      "operation": "get",
+      "path": "src/services/v2172_inventory_action_guard_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 780,
+      "operation": "get",
+      "path": "src/services/v2172_inventory_action_guard_service.py"
+    },
+    {
+      "candidate": {
+        "legacyPath": "payload.selectedActionFamilyHint",
+        "note": "Semantic review required before retirement.",
+        "replacementFieldId": "agent1.locked_action_family",
+        "status": "CANDIDATE"
+      },
+      "key": "selectedActionFamilyHint",
+      "line": 287,
+      "operation": "get",
+      "path": "src/services/v2173_agent2_policy_shape_recovery_service.py"
+    }
+  ],
+  "runnerDrift": [
+    {
+      "classification": "live_dispatch_evidence_not_found",
+      "moduleId": "agent1_input_projection",
+      "runner": "src.services.agent_input_transport_v2258_service:ensure_agent1_input_ref",
+      "runnerFileExists": true,
+      "runnerSymbolExists": true
+    },
+    {
+      "classification": "live_dispatch_evidence_not_found",
+      "moduleId": "agent1_runtime",
+      "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
+      "runnerFileExists": true,
+      "runnerSymbolExists": true
+    },
+    {
+      "classification": "live_dispatch_evidence_not_found",
+      "moduleId": "agent2_input_projection",
+      "runner": "src.services.agent_input_transport_v230_service:ensure_agent2_input_ref",
+      "runnerFileExists": true,
+      "runnerSymbolExists": true
+    },
+    {
+      "classification": "live_dispatch_evidence_not_found",
+      "moduleId": "agent3_input_projection",
+      "runner": "src.services.agent3_system_constraint_v23215_service:ensure_agent3_sop_input_ref_v23216",
+      "runnerFileExists": true,
+      "runnerSymbolExists": true
+    },
+    {
+      "classification": "live_dispatch_evidence_not_found",
+      "moduleId": "agent3_runtime",
+      "runner": "src.services.pipeline_agent3_sop_v225_service:run_agent3_sop_microbatch",
+      "runnerFileExists": true,
+      "runnerSymbolExists": true
+    },
+    {
+      "classification": "live_dispatch_evidence_not_found",
+      "moduleId": "artifact_execution_runtime",
+      "runner": "src.services.hash_directed_artifact_runtime_v2259_service:claim_execution",
+      "runnerFileExists": true,
+      "runnerSymbolExists": true
+    },
+    {
+      "classification": "live_dispatch_evidence_not_found",
+      "moduleId": "artifact_transport",
+      "runner": "src.services.artifact_transport_service:store_artifact",
+      "runnerFileExists": true,
+      "runnerSymbolExists": true
+    },
+    {
+      "classification": "live_dispatch_evidence_not_found",
+      "moduleId": "task_mapping",
+      "runner": "src.services.pipeline_task_mapping_v225_service:run_task_mapping_microbatch_v225",
+      "runnerFileExists": true,
+      "runnerSymbolExists": true
+    },
+    {
+      "classification": "live_dispatch_evidence_not_found",
+      "moduleId": "task_pool",
+      "runner": "src.services.pipeline_task_mapping_v225_service:run_task_pool_admission_microbatch_v225",
+      "runnerFileExists": true,
+      "runnerSymbolExists": true
+    }
+  ],
+  "schema": "registry.repository_audit.v1",
+  "summary": {
+    "filesWithRegisteredFieldUsage": 234,
+    "registeredModuleCount": 23,
+    "retiredFieldCandidateHitCount": 67,
+    "runnerDriftCount": 9,
+    "sourceFileCount": 395,
+    "unregisteredFieldCandidateCount": 500
+  },
+  "unregisteredFieldCandidates": [
+    {
+      "key": "productVersion",
+      "line": 90,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "contractVersion",
+      "line": 91,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "publicApiVersion",
+      "line": 92,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "threeAgentPipelineVersion",
+      "line": 93,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "stateMachineVersion",
+      "line": 94,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "agent1InputSemanticVersion",
+      "line": 95,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "agent1InputSchema",
+      "line": 96,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 97,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "interfaceDocumentationVersion",
+      "line": 98,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "apiSelfDescriptionVersion",
+      "line": 99,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "stateMachineVersion",
+      "line": 117,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "activeHardInterfaceVersion",
+      "line": 118,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "hashExecutionRuntimeVersion",
+      "line": 119,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "agent1InputSchema",
+      "line": 124,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "batchManifestContract",
+      "line": 127,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "frontendViewManifestContract",
+      "line": 128,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 130,
+      "operation": "get",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "executionLockContract",
+      "line": 163,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "productVersion",
+      "line": 300,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "contractVersion",
+      "line": 301,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "publicApiVersion",
+      "line": 302,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "threeAgentPipelineVersion",
+      "line": 304,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "stateMachineVersion",
+      "line": 305,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "agent1InputSemanticVersion",
+      "line": 306,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "agent1InputSchema",
+      "line": 307,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 308,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "interfaceDocumentationVersion",
+      "line": 309,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "apiSelfDescriptionVersion",
+      "line": 310,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "batchManifestContract",
+      "line": 313,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "frontendViewManifestContract",
+      "line": 314,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "agent2Draft",
+      "line": 322,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "batchManifestContract",
+      "line": 341,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "frontendViewManifestContract",
+      "line": 342,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "operatingEvidenceContract",
+      "line": 355,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "stateMachineVersion",
+      "line": 365,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "hardInterfaceVersion",
+      "line": 366,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "activeHardInterfaceVersion",
+      "line": 367,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 368,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "activeBusinessPipelineVersion",
+      "line": 369,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "agent1InputSemanticVersion",
+      "line": 370,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "agent1InputSchema",
+      "line": 371,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "batchManifestContract",
+      "line": 389,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "frontendViewManifestContract",
+      "line": 390,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "executionLockContract",
+      "line": 405,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "taskDtoVersion",
+      "line": 427,
+      "operation": "dict_key",
+      "path": "src/api/main.py"
+    },
+    {
+      "key": "userId",
+      "line": 77,
+      "operation": "get",
+      "path": "src/api/routes/accounts.py"
+    },
+    {
+      "key": "roleId",
+      "line": 99,
+      "operation": "get",
+      "path": "src/api/routes/accounts.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 132,
+      "operation": "get",
+      "path": "src/api/routes/accounts.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 133,
+      "operation": "get",
+      "path": "src/api/routes/accounts.py"
+    },
+    {
+      "key": "roleId",
+      "line": 110,
+      "operation": "get",
+      "path": "src/api/routes/action_authority.py"
+    },
+    {
+      "key": "assigneeId",
+      "line": 42,
+      "operation": "dict_key",
+      "path": "src/api/routes/approvals.py"
+    },
+    {
+      "key": "assigneeId",
+      "line": 42,
+      "operation": "get",
+      "path": "src/api/routes/approvals.py"
+    },
+    {
+      "key": "artifactId",
+      "line": 23,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "artifactId",
+      "line": 23,
+      "operation": "get",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "artifactType",
+      "line": 24,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "artifactType",
+      "line": 24,
+      "operation": "get",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "schemaVersion",
+      "line": 25,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "schemaVersion",
+      "line": 25,
+      "operation": "get",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "currentStageRef",
+      "line": 86,
+      "operation": "get",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "itemId",
+      "line": 90,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "payloadArtifactRef",
+      "line": 97,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "lastErrorCode",
+      "line": 98,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "lastErrorArtifactRef",
+      "line": 99,
+      "operation": "dict_key",
+      "path": "src/api/routes/artifacts_ops.py"
+    },
+    {
+      "key": "traceId",
+      "line": 46,
+      "operation": "get",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "traceId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "userId",
+      "line": 61,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "eventType",
+      "line": 79,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "traceId",
+      "line": 79,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "userId",
+      "line": 80,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "traceId",
+      "line": 103,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "traceId",
+      "line": 106,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "eventType",
+      "line": 108,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "userId",
+      "line": 111,
+      "operation": "dict_key",
+      "path": "src/api/routes/audit.py"
+    },
+    {
+      "key": "roleId",
+      "line": 50,
+      "operation": "get",
+      "path": "src/api/routes/data_import.py"
+    },
+    {
+      "key": "roleId",
+      "line": 56,
+      "operation": "get",
+      "path": "src/api/routes/data_import.py"
+    },
+    {
+      "key": "taskGenerationStatus",
+      "line": 152,
+      "operation": "dict_key",
+      "path": "src/api/routes/data_import.py"
+    },
+    {
+      "key": "runtimeVersion",
+      "line": 49,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 50,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "contractVersion",
+      "line": 51,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "threeAgentPipelineVersion",
+      "line": 53,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "taskStatus",
+      "line": 74,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 80,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "taskStatus",
+      "line": 82,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "activeActionContract",
+      "line": 86,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "activeActionContract",
+      "line": 89,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "assigneeId",
+      "line": 95,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 96,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "productTrendReadModelVersion",
+      "line": 125,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "pipelineLiveReadModelVersion",
+      "line": 183,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "currentDataVersion",
+      "line": 202,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 208,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "lineStatus",
+      "line": 211,
+      "operation": "get",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "lineStatus",
+      "line": 212,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "taskPoolLifecycleSyncVersion",
+      "line": 297,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "taskDetailSnapshotVersion",
+      "line": 299,
+      "operation": "write",
+      "path": "src/api/routes/frontend_views.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 18,
+      "operation": "get",
+      "path": "src/api/routes/health.py"
+    },
+    {
+      "key": "productVersion",
+      "line": 22,
+      "operation": "dict_key",
+      "path": "src/api/routes/health.py"
+    },
+    {
+      "key": "contractVersion",
+      "line": 23,
+      "operation": "dict_key",
+      "path": "src/api/routes/health.py"
+    },
+    {
+      "key": "releaseStatus",
+      "line": 27,
+      "operation": "dict_key",
+      "path": "src/api/routes/health.py"
+    },
+    {
+      "key": "governanceVersion",
+      "line": 42,
+      "operation": "dict_key",
+      "path": "src/api/routes/health.py"
+    },
+    {
+      "key": "metricCode",
+      "line": 27,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "metricCode",
+      "line": 31,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "bundleId",
+      "line": 40,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "actionType",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "entityId",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "entityType",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "taskType",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "bundleId",
+      "line": 46,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "inventoryStatus",
+      "line": 48,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "readModelVersion",
+      "line": 48,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "bundleId",
+      "line": 62,
+      "operation": "get",
+      "path": "src/api/routes/modules/aftersales.py"
+    },
+    {
+      "key": "actionType",
+      "line": 18,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/competitor.py"
+    },
+    {
+      "key": "entityId",
+      "line": 18,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/competitor.py"
+    },
+    {
+      "key": "entityType",
+      "line": 18,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/competitor.py"
+    },
+    {
+      "key": "taskType",
+      "line": 18,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/competitor.py"
+    },
+    {
+      "key": "metricCode",
+      "line": 29,
+      "operation": "get",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "actionType",
+      "line": 38,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "bundleId",
+      "line": 38,
+      "operation": "get",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "entityId",
+      "line": 38,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "entityType",
+      "line": 38,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "taskType",
+      "line": 38,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "bundleId",
+      "line": 43,
+      "operation": "get",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "inventoryStatus",
+      "line": 44,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "readModelVersion",
+      "line": 44,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "bundleId",
+      "line": 58,
+      "operation": "get",
+      "path": "src/api/routes/modules/inventory.py"
+    },
+    {
+      "key": "roleId",
+      "line": 21,
+      "operation": "get",
+      "path": "src/api/routes/modules/listing.py"
+    },
+    {
+      "key": "actionType",
+      "line": 28,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/listing.py"
+    },
+    {
+      "key": "entityId",
+      "line": 28,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/listing.py"
+    },
+    {
+      "key": "entityType",
+      "line": 28,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/listing.py"
+    },
+    {
+      "key": "taskType",
+      "line": 28,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/listing.py"
+    },
+    {
+      "key": "testPlan",
+      "line": 28,
+      "operation": "read",
+      "path": "src/api/routes/modules/listing.py"
+    },
+    {
+      "key": "testType",
+      "line": 28,
+      "operation": "read",
+      "path": "src/api/routes/modules/listing.py"
+    },
+    {
+      "key": "snapshotVersion",
+      "line": 32,
+      "operation": "write",
+      "path": "src/api/routes/modules/operating_unit.py"
+    },
+    {
+      "key": "pipelineGateVersion",
+      "line": 33,
+      "operation": "write",
+      "path": "src/api/routes/modules/operating_unit.py"
+    },
+    {
+      "key": "roleId",
+      "line": 34,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/operating_unit.py"
+    },
+    {
+      "key": "roleId",
+      "line": 34,
+      "operation": "get",
+      "path": "src/api/routes/modules/operating_unit.py"
+    },
+    {
+      "key": "snapshotVersion",
+      "line": 47,
+      "operation": "write",
+      "path": "src/api/routes/modules/operating_unit.py"
+    },
+    {
+      "key": "pipelineGateVersion",
+      "line": 48,
+      "operation": "write",
+      "path": "src/api/routes/modules/operating_unit.py"
+    },
+    {
+      "key": "roleId",
+      "line": 49,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/operating_unit.py"
+    },
+    {
+      "key": "roleId",
+      "line": 49,
+      "operation": "get",
+      "path": "src/api/routes/modules/operating_unit.py"
+    },
+    {
+      "key": "bundleId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "objectId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "metricCode",
+      "line": 122,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "bundleId",
+      "line": 157,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "objectId",
+      "line": 164,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "objectId",
+      "line": 164,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "archiveId",
+      "line": 165,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "rawProductId",
+      "line": 167,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "skuId",
+      "line": 168,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "skuId",
+      "line": 168,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "spuId",
+      "line": 169,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "spuId",
+      "line": 169,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "erpProductCode",
+      "line": 170,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "erpProductCode",
+      "line": 170,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "productArchiveVersion",
+      "line": 195,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "readModelVersion",
+      "line": 196,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "systemStoreCode",
+      "line": 202,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "systemStoreCode",
+      "line": 202,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "systemSpuCode",
+      "line": 203,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "systemSpuCode",
+      "line": 203,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "systemLinkCode",
+      "line": 204,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "systemLinkCode",
+      "line": 204,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "systemSkuCode",
+      "line": 205,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "systemSkuCode",
+      "line": 205,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "skuId",
+      "line": 209,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "skuId",
+      "line": 209,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "erpProductCode",
+      "line": 210,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "erpProductCode",
+      "line": 210,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "actionType",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "entityId",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "entityType",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "metricCode",
+      "line": 252,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "objectId",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "primarySignalType",
+      "line": 252,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "taskType",
+      "line": 252,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "entityId",
+      "line": 256,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "actionType",
+      "line": 260,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "actionType",
+      "line": 260,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "entityId",
+      "line": 260,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "entityType",
+      "line": 260,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "entityType",
+      "line": 260,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "taskType",
+      "line": 260,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "taskType",
+      "line": 260,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "entityId",
+      "line": 261,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "entityType",
+      "line": 261,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "entityType",
+      "line": 261,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "signalRef",
+      "line": 261,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 261,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "taskSnapshotId",
+      "line": 262,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "archiveId",
+      "line": 279,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "objectId",
+      "line": 279,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "skuId",
+      "line": 279,
+      "operation": "get",
+      "path": "src/api/routes/modules/product.py"
+    },
+    {
+      "key": "objectId",
+      "line": 28,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py"
+    },
+    {
+      "key": "archiveId",
+      "line": 29,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py"
+    },
+    {
+      "key": "rawProductId",
+      "line": 31,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py"
+    },
+    {
+      "key": "skuId",
+      "line": 32,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py"
+    },
+    {
+      "key": "skuId",
+      "line": 34,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py"
+    },
+    {
+      "key": "rawProductId",
+      "line": 63,
+      "operation": "get",
+      "path": "src/api/routes/modules/product_detail_v2256.py"
+    },
+    {
+      "key": "roleId",
+      "line": 29,
+      "operation": "get",
+      "path": "src/api/routes/modules/rag_memory.py"
+    },
+    {
+      "key": "latestDataVersion",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "actionType",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "entityId",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "entityType",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "latestDataVersion",
+      "line": 64,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "sourceDataVersion",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "taskType",
+      "line": 64,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "entityId",
+      "line": 68,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "sourceDataVersion",
+      "line": 69,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "actionType",
+      "line": 70,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "actionType",
+      "line": 70,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "entityId",
+      "line": 70,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "entityType",
+      "line": 70,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "entityType",
+      "line": 70,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "taskType",
+      "line": 70,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "taskType",
+      "line": 70,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "entityId",
+      "line": 71,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "entityType",
+      "line": 71,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "entityType",
+      "line": 71,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "signalRef",
+      "line": 71,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 71,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "taskSnapshotId",
+      "line": 72,
+      "operation": "get",
+      "path": "src/api/routes/modules/report_v5.py"
+    },
+    {
+      "key": "bridgeVersion",
+      "line": 27,
+      "operation": "write",
+      "path": "src/api/routes/modules/todo.py"
+    },
+    {
+      "key": "assigneeId",
+      "line": 72,
+      "operation": "get",
+      "path": "src/api/routes/modules/todo.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 72,
+      "operation": "get",
+      "path": "src/api/routes/modules/todo.py"
+    },
+    {
+      "key": "taskId",
+      "line": 124,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/todo.py"
+    },
+    {
+      "key": "taskId",
+      "line": 129,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/todo.py"
+    },
+    {
+      "key": "bundleId",
+      "line": 22,
+      "operation": "get",
+      "path": "src/api/routes/modules/traffic.py"
+    },
+    {
+      "key": "primarySignalType",
+      "line": 25,
+      "operation": "get",
+      "path": "src/api/routes/modules/traffic.py"
+    },
+    {
+      "key": "readModelVersion",
+      "line": 25,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py"
+    },
+    {
+      "key": "actionType",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py"
+    },
+    {
+      "key": "entityId",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py"
+    },
+    {
+      "key": "entityType",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py"
+    },
+    {
+      "key": "sourceType",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py"
+    },
+    {
+      "key": "taskType",
+      "line": 30,
+      "operation": "dict_key",
+      "path": "src/api/routes/modules/traffic.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 33,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "diagnosticTrainVersion",
+      "line": 34,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 41,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "diagnosticTrainVersion",
+      "line": 42,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 49,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "diagnosticTrainVersion",
+      "line": 50,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 57,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "diagnosticTrainVersion",
+      "line": 58,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 65,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "diagnosticTrainVersion",
+      "line": 66,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 73,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "diagnosticTrainVersion",
+      "line": 74,
+      "operation": "write",
+      "path": "src/api/routes/ops.py"
+    },
+    {
+      "key": "contractVersion",
+      "line": 31,
+      "operation": "write",
+      "path": "src/api/routes/stations.py"
+    },
+    {
+      "key": "interfaceVersion",
+      "line": 32,
+      "operation": "write",
+      "path": "src/api/routes/stations.py"
+    },
+    {
+      "key": "contractVersion",
+      "line": 42,
+      "operation": "dict_key",
+      "path": "src/api/routes/stations.py"
+    },
+    {
+      "key": "interfaceVersion",
+      "line": 43,
+      "operation": "dict_key",
+      "path": "src/api/routes/stations.py"
+    },
+    {
+      "key": "stationId",
+      "line": 131,
+      "operation": "dict_key",
+      "path": "src/api/routes/stations.py"
+    },
+    {
+      "key": "userId",
+      "line": 146,
+      "operation": "setdefault",
+      "path": "src/api/routes/stations.py"
+    },
+    {
+      "key": "userId",
+      "line": 164,
+      "operation": "setdefault",
+      "path": "src/api/routes/stations.py"
+    },
+    {
+      "key": "userId",
+      "line": 50,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "roleId",
+      "line": 51,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "roleId",
+      "line": 51,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "interfaceDocumentationVersion",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 61,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 62,
+      "operation": "read",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 66,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 67,
+      "operation": "read",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "publicApiVersion",
+      "line": 73,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "stateMachineVersion",
+      "line": 74,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "agent1InputSemanticVersion",
+      "line": 75,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "agent1InputSchema",
+      "line": 76,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 77,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "interfaceDocumentationVersion",
+      "line": 78,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "apiSelfDescriptionVersion",
+      "line": 79,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "batchManifestContract",
+      "line": 86,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "frontendViewManifestContract",
+      "line": 87,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 111,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "processId",
+      "line": 119,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 138,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 140,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 141,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "productVersion",
+      "line": 153,
+      "operation": "write",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "lastSelectedDataVersion",
+      "line": 169,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 199,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 203,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "releaseHash",
+      "line": 204,
+      "operation": "get",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "agent2Draft",
+      "line": 232,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "productVersion",
+      "line": 305,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "threeAgentPipelineVersion",
+      "line": 307,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "stateMachineVersion",
+      "line": 308,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 309,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "interfaceDocumentationVersion",
+      "line": 310,
+      "operation": "dict_key",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "productVersion",
+      "line": 343,
+      "operation": "write",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "contractVersion",
+      "line": 344,
+      "operation": "write",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "threeAgentPipelineVersion",
+      "line": 346,
+      "operation": "write",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "stateMachineVersion",
+      "line": 347,
+      "operation": "write",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "hashDirectedArtifactRuntimeVersion",
+      "line": 348,
+      "operation": "write",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "interfaceDocumentationVersion",
+      "line": 351,
+      "operation": "write",
+      "path": "src/api/routes/system.py"
+    },
+    {
+      "key": "assigneeId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/api/routes/task_lifecycle_stations.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/api/routes/task_lifecycle_stations.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 23,
+      "operation": "write",
+      "path": "src/api/routes/task_pool.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 30,
+      "operation": "write",
+      "path": "src/api/routes/task_pool.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 38,
+      "operation": "write",
+      "path": "src/api/routes/task_pool.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 46,
+      "operation": "write",
+      "path": "src/api/routes/task_pool.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 23,
+      "operation": "write",
+      "path": "src/api/routes/task_snapshots.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 30,
+      "operation": "write",
+      "path": "src/api/routes/task_snapshots.py"
+    },
+    {
+      "key": "routeVersion",
+      "line": 37,
+      "operation": "write",
+      "path": "src/api/routes/task_snapshots.py"
+    },
+    {
+      "key": "artifactId",
+      "line": 166,
+      "operation": "read",
+      "path": "src/repositories/artifact_repository.py"
+    },
+    {
+      "key": "artifactType",
+      "line": 167,
+      "operation": "read",
+      "path": "src/repositories/artifact_repository.py"
+    },
+    {
+      "key": "schemaVersion",
+      "line": 168,
+      "operation": "read",
+      "path": "src/repositories/artifact_repository.py"
+    },
+    {
+      "key": "artifactId",
+      "line": 185,
+      "operation": "read",
+      "path": "src/repositories/artifact_repository.py"
+    },
+    {
+      "key": "relationType",
+      "line": 219,
+      "operation": "dict_key",
+      "path": "src/repositories/artifact_repository.py"
+    },
+    {
+      "key": "relationType",
+      "line": 235,
+      "operation": "dict_key",
+      "path": "src/repositories/artifact_repository.py"
+    },
+    {
+      "key": "userId",
+      "line": 27,
+      "operation": "get",
+      "path": "src/repositories/scoped_repository.py"
+    },
+    {
+      "key": "orgId",
+      "line": 29,
+      "operation": "get",
+      "path": "src/repositories/scoped_repository.py"
+    },
+    {
+      "key": "roleId",
+      "line": 30,
+      "operation": "get",
+      "path": "src/repositories/scoped_repository.py"
+    },
+    {
+      "key": "assigneeId",
+      "line": 386,
+      "operation": "get",
+      "path": "src/repositories/sqlite_repository.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 386,
+      "operation": "get",
+      "path": "src/repositories/sqlite_repository.py"
+    },
+    {
+      "key": "taskType",
+      "line": 386,
+      "operation": "get",
+      "path": "src/repositories/sqlite_repository.py"
+    },
+    {
+      "key": "workflowStatus",
+      "line": 386,
+      "operation": "get",
+      "path": "src/repositories/sqlite_repository.py"
+    },
+    {
+      "key": "workflowStatus",
+      "line": 446,
+      "operation": "setdefault",
+      "path": "src/repositories/sqlite_repository.py"
+    },
+    {
+      "key": "assigneeId",
+      "line": 447,
+      "operation": "setdefault",
+      "path": "src/repositories/sqlite_repository.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 448,
+      "operation": "setdefault",
+      "path": "src/repositories/sqlite_repository.py"
+    },
+    {
+      "key": "taskId",
+      "line": 31,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "workflowStatus",
+      "line": 33,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "assigneeId",
+      "line": 34,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 35,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "orgId",
+      "line": 37,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "storeGroupId",
+      "line": 38,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "repositoryVersion",
+      "line": 43,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "orgId",
+      "line": 90,
+      "operation": "setdefault",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "orgId",
+      "line": 138,
+      "operation": "dict_key",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "queryPlan",
+      "line": 141,
+      "operation": "dict_key",
+      "path": "src/repositories/task_repository.py"
+    },
+    {
+      "key": "stateMachineVersion",
+      "line": 154,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "agent1ExecutionLock",
+      "line": 155,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "agent1InputSchema",
+      "line": 157,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "agentBatchManifestContract",
+      "line": 164,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "frontendViewManifestContract",
+      "line": 171,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "frontendViewModuleContract",
+      "line": 172,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "frontendCacheContract",
+      "line": 173,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "pipelineArtifactContract",
+      "line": 182,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "agentInputContract",
+      "line": 183,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "stableAgentTokenFacadeContract",
+      "line": 188,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "stableAgentRuntimeFacadeContract",
+      "line": 189,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "operatingEvidenceContract",
+      "line": 193,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "stationTruthContract",
+      "line": 194,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "pipelineLiveContract",
+      "line": 200,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "agent2Draft",
+      "line": 206,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "postStartSchemaHashMustMatchPreparedHash",
+      "line": 212,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "oneExecutionHashOneAcceptedOutputRef",
+      "line": 218,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "providerStatus",
+      "line": 229,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "exactIdentityStatus",
+      "line": 230,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "normalizationStatus",
+      "line": 231,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "sourceValidationStatus",
+      "line": 232,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "decisionContractStatus",
+      "line": 233,
+      "operation": "dict_key",
+      "path": "src/runtime_version.py"
+    },
+    {
+      "key": "managerId",
+      "line": 39,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "ownerId",
+      "line": 39,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "groupId",
+      "line": 41,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "groupId",
+      "line": 42,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "groupId",
+      "line": 43,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "groupId",
+      "line": 44,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 47,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 48,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 49,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 50,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 51,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 52,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatingUnitId",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 55,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatingUnitId",
+      "line": 56,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 56,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 56,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatingUnitId",
+      "line": 57,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 57,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 57,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatingUnitId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "newOperatorId",
+      "line": 81,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "oldOperatorId",
+      "line": 81,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 81,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 81,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "groupId",
+      "line": 86,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatingUnitId",
+      "line": 86,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 86,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 86,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 86,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 86,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 92,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 92,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 96,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "X-Mock-User-Id",
+      "line": 111,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 114,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 120,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "groupId",
+      "line": 123,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 130,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 133,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 135,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 139,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "newOperatorId",
+      "line": 150,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 150,
+      "operation": "write",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 151,
+      "operation": "write",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 151,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "newRoleId",
+      "line": 160,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "oldRoleId",
+      "line": 160,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 160,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 160,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 160,
+      "operation": "write",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "userId",
+      "line": 160,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 167,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "userId",
+      "line": 167,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "groupId",
+      "line": 174,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatingUnitId",
+      "line": 174,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 174,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 174,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 177,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 178,
+      "operation": "write",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 179,
+      "operation": "write",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 179,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "newOperatorId",
+      "line": 181,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "oldOperatorId",
+      "line": 181,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 181,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 181,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 181,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "groupId",
+      "line": 191,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatingUnitId",
+      "line": 191,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 191,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 191,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "groupId",
+      "line": 197,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "newOperatorId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "oldOperatorId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatingUnitId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 197,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 197,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "reviewerId",
+      "line": 197,
+      "operation": "get",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "newOperatorId",
+      "line": 199,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "oldOperatorId",
+      "line": 199,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "oldOperatorId",
+      "line": 199,
+      "operation": "read",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 199,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 205,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "roleId",
+      "line": 205,
+      "operation": "dict_key",
+      "path": "src/services/account_service.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 42,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "assignedOperatorId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 47,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 50,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 54,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "selectedActionFamily",
+      "line": 54,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 54,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 58,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "agent2ActionPlan",
+      "line": 60,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlan",
+      "line": 60,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlan",
+      "line": 60,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlan",
+      "line": 62,
+      "operation": "write",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 65,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlan",
+      "line": 65,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 65,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 85,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlan",
+      "line": 85,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlanVersion",
+      "line": 85,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 85,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "authorizationVersion",
+      "line": 89,
+      "operation": "write",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 91,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "assignedOperatorId",
+      "line": 92,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "authorizationVersion",
+      "line": 92,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlan",
+      "line": 92,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlan",
+      "line": 92,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 92,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlan",
+      "line": 93,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "operationPlan",
+      "line": 93,
+      "operation": "get",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 93,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v214_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 171,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "userId",
+      "line": 171,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "userId",
+      "line": 174,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 175,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 343,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "assignedOperatorId",
+      "line": 353,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 353,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "primaryOperatorId",
+      "line": 357,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 361,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "agent2ActionPlan",
+      "line": 362,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "budgetPlan",
+      "line": 363,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "selectedActionFamily",
+      "line": 382,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 405,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 406,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "selectedActionFamily",
+      "line": 406,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 425,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 428,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 442,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 445,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 463,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 466,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 524,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 527,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 556,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "assignedOperatorId",
+      "line": 562,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 562,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "authorizationVersion",
+      "line": 565,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "authorizationVersion",
+      "line": 573,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "taskPlan",
+      "line": 574,
+      "operation": "dict_key",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "decisionId",
+      "line": 585,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "operatorId",
+      "line": 598,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "actionFamily",
+      "line": 601,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    },
+    {
+      "key": "taskId",
+      "line": 622,
+      "operation": "get",
+      "path": "src/services/action_authority_v21_service.py"
+    }
+  ],
+  "version": "23.0.0-alpha.2"
+}

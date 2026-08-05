@@ -1,0 +1,105 @@
+{
+  "adapterCheck": {
+    "activationConstraint": "ROOT_EQUIVALENCE_REQUIRED_BEFORE_RUNTIME_SWITCH",
+    "activationState": "LOCKED_PENDING_EQUIVALENCE",
+    "adapterVersion": "1.0.0",
+    "allDocumentsMatch": true,
+    "documentChecks": [
+      {
+        "actualContentHash": "sha256:22167de29d4aac9e040cc20a32b3da668811a109271aa2eca2b3402d929b7249",
+        "expectedContentHash": "sha256:22167de29d4aac9e040cc20a32b3da668811a109271aa2eca2b3402d929b7249",
+        "matches": true,
+        "path": "contracts/registry/fields.json"
+      },
+      {
+        "actualContentHash": "sha256:10a30d0007e3118eb42c0152ca7c609357db23aee2372038dc84e034b8c63978",
+        "expectedContentHash": "sha256:10a30d0007e3118eb42c0152ca7c609357db23aee2372038dc84e034b8c63978",
+        "matches": true,
+        "path": "contracts/registry/interfaces.json"
+      },
+      {
+        "actualContentHash": "sha256:03591c395964e95e7d9118918c8c7048f13036075c138ac217d9197363748709",
+        "expectedContentHash": "sha256:03591c395964e95e7d9118918c8c7048f13036075c138ac217d9197363748709",
+        "matches": true,
+        "path": "contracts/registry/migrations.json"
+      },
+      {
+        "actualContentHash": "sha256:f91d49664e7dffc49831664bd4809c41be789f14f28b0f6298eadf71718ba4f7",
+        "expectedContentHash": "sha256:f91d49664e7dffc49831664bd4809c41be789f14f28b0f6298eadf71718ba4f7",
+        "matches": true,
+        "path": "contracts/registry/modules.json"
+      },
+      {
+        "actualContentHash": "sha256:24a26a75c1d22c96cae74944ee42e058b1d61546fb053dc2f716f50b872a2851",
+        "expectedContentHash": "sha256:24a26a75c1d22c96cae74944ee42e058b1d61546fb053dc2f716f50b872a2851",
+        "matches": true,
+        "path": "contracts/registry/ownership.json"
+      },
+      {
+        "actualContentHash": "sha256:350dc1eb501c26b239b1d6c37022b91415c15325dbc3f21c8edfd791bb274511",
+        "expectedContentHash": "sha256:350dc1eb501c26b239b1d6c37022b91415c15325dbc3f21c8edfd791bb274511",
+        "matches": true,
+        "path": "contracts/registry/schemas.json"
+      },
+      {
+        "actualContentHash": "sha256:d2386f7c4c1d1dca77864ffa227f181e70bac981da99133e866507852ef56003",
+        "expectedContentHash": "sha256:d2386f7c4c1d1dca77864ffa227f181e70bac981da99133e866507852ef56003",
+        "matches": true,
+        "path": "contracts/registry/stations.json"
+      },
+      {
+        "actualContentHash": "sha256:aba03d7278746ccaa743403e8c8b6fb880e96188862a11f81ef6f3f78ae4ed62",
+        "expectedContentHash": "sha256:aba03d7278746ccaa743403e8c8b6fb880e96188862a11f81ef6f3f78ae4ed62",
+        "matches": true,
+        "path": "contracts/registry/tombstones.json"
+      }
+    ],
+    "layoutPath": ".z/adapter/registry-layout.json",
+    "manifest": {
+      "gitBlobSha": "71ed657f24c9dea2797c482187e5ef6a0ac7766a",
+      "path": "contracts/registry/registry-manifest.json",
+      "registryRootHash": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0",
+      "version": "23.0.0-alpha.1"
+    },
+    "observedLayeredRoots": {
+      "governanceDocumentDeclaredRoot": "sha256:ff37e43cd374986b1edf1ff735e97d6b19c9635efd2a0167e68f2943444dcdbd",
+      "runtimeProjectionDeclaredRoot": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+      "sourceManifestRoot": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0"
+    }
+  },
+  "businessRuntimeMutated": false,
+  "currentManifestRegistryRootHash": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0",
+  "databaseMutated": false,
+  "externalZCompile": {
+    "error": "RegistryCompileError:REGISTRY_RECORD_LIST_REQUIRED:ownership.json:ownership",
+    "generatedRegistryRootHash": null,
+    "verified": false
+  },
+  "missingRequestedIds": {
+    "entryModuleIds": [],
+    "requiredInterfaceIds": [],
+    "requiredModuleIds": [],
+    "requiredStationIds": [],
+    "supportModuleIds": [],
+    "terminalModuleIds": []
+  },
+  "motherSourceCommit": "f5186451c80631fea550da17d481f5e8793215e5",
+  "observedLayeredRoots": {
+    "governanceDocumentDeclaredRoot": "sha256:ff37e43cd374986b1edf1ff735e97d6b19c9635efd2a0167e68f2943444dcdbd",
+    "runtimeProjectionDeclaredRoot": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+    "sourceManifestRoot": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0"
+  },
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "registryCompilerTreeSha": "658c88d3d6387d0e6c1c18f9834d9fb3c308dc42",
+  "registryTreeSha": "3cefcdea30086124a70999d942c5f552afd613fd",
+  "repositoryCommit": "4dc1b42f369de4bbb976f38168784667bbaa5488",
+  "repositoryTreeSha": "96a2a7d1216c60d66d9ffabf55d0966e46f97749",
+  "rootEquivalent": false,
+  "runtimeProjectionRegistryRootHash": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+  "schema": "contest.registry_snapshot.v1",
+  "state": "BASELINE_LOCKED",
+  "zAdapterTreeSha": "4a0ed1645fac6d09a44c04a7d0fd2eb477584ee2",
+  "zDependencyCommit": "c924e646673a41857cca5e39650e022f9ce8c0a5",
+  "zMetadataTreeSha": "ceb65191be6dde87bb514e41d1c1df7c5ae279d5"
+}
