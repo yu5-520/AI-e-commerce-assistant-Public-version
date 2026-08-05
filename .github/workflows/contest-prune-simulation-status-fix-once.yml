@@ -1,0 +1,278 @@
+name: Fix prune simulation output gate and reseal evidence once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-prune-simulation-status-fix-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-prune-simulation-status-fix-v1
+  cancel-in-progress: false
+
+jobs:
+  fix-and-simulate:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 25
+    env:
+      TARGET_BRANCH: simulation/contest-prune-v1
+      VERIFIED_SOURCE_HEAD: 435d213441c683147aeeacff432e10a179760a77
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      PYTHONPYCACHEPREFIX: /tmp/contest-prune-status-fix-pycache
+      EXPECTED_SIMULATOR_BLOB: ca1f46df5c59ff5b66aa1548236d56d4385c8a3c
+      EXPECTED_SELECTION_HASH: sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_MIGRATION_REVIEW_HASH: sha256:bf240a47717b4ca39a8946b6ba74a9bd4d7eae9596561a45d68168bd55c659bb
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Patch exact status gate, simulate, verify and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          test -d .git
+          test -x "$AUDIT_PYTHON"
+          git cat-file -e "$VERIFIED_SOURCE_HEAD^{commit}"
+
+          COMPLETED=0
+          cleanup() {
+            rm -rf "$PYTHONPYCACHEPREFIX"
+            git worktree prune >/dev/null 2>&1 || true
+            if test "$COMPLETED" != "1"; then
+              git reset --hard "$VERIFIED_SOURCE_HEAD" >/dev/null 2>&1 || true
+              git clean -ffdx >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          git reset --hard "$VERIFIED_SOURCE_HEAD"
+          git clean -ffdx
+          git worktree prune
+          git checkout --detach "$VERIFIED_SOURCE_HEAD"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+
+          test "$(git rev-parse HEAD)" = "$VERIFIED_SOURCE_HEAD"
+          test "$(git hash-object tools/contest_governance/simulate_module_isolation.py)" = "$EXPECTED_SIMULATOR_BLOB"
+          test -z "$(git status --porcelain)"
+
+          "$AUDIT_PYTHON" - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/contest_governance/simulate_module_isolation.py")
+          source = path.read_text(encoding="utf-8")
+
+          anchor = '''def _git(root: Path, *args: str) -> str:\n    completed = subprocess.run(\n        ["git", *args],\n        cwd=root,\n        check=True,\n        capture_output=True,\n        text=True,\n    )\n    return completed.stdout.strip()\n'''
+          replacement = anchor + '''\n\n_SIMULATION_OUTPUT_PATHS = {\n    "governance/contest/generated/module-isolation-simulation.json",\n    "governance/contest/generated/module-isolation-simulation-receipt.json",\n}\n\n\ndef _status_without_declared_outputs(root: Path) -> str:\n    status = _git(root, "status", "--porcelain=v1", "--untracked-files=no")\n    retained: List[str] = []\n    for line in status.splitlines():\n        path_text = line[3:] if len(line) >= 4 else ""\n        if " -> " in path_text:\n            path_text = path_text.split(" -> ", 1)[1]\n        if path_text in _SIMULATION_OUTPUT_PATHS:\n            continue\n        retained.append(line)\n    return "\\n".join(retained)\n'''
+          if source.count(anchor) != 1:
+              raise SystemExit("STATUS_HELPER_ANCHOR_MISMATCH")
+          source = source.replace(anchor, replacement, 1)
+
+          old_initial = 'original_status = _git(root, "status", "--porcelain", "--untracked-files=no")'
+          new_initial = 'original_status = _status_without_declared_outputs(root)'
+          old_final = 'final_status = _git(root, "status", "--porcelain", "--untracked-files=no")'
+          new_final = 'final_status = _status_without_declared_outputs(root)'
+          if source.count(old_initial) != 1 or source.count(old_final) != 1:
+              raise SystemExit("STATUS_CALL_ANCHOR_MISMATCH")
+          source = source.replace(old_initial, new_initial, 1)
+          source = source.replace(old_final, new_final, 1)
+          path.write_text(source, encoding="utf-8")
+          PY
+
+          "$AUDIT_PYTHON" -m py_compile tools/contest_governance/simulate_module_isolation.py
+          git diff --check
+          test "$(git diff --name-only)" = "tools/contest_governance/simulate_module_isolation.py"
+          grep -q '_status_without_declared_outputs' tools/contest_governance/simulate_module_isolation.py
+          echo "SIMULATION_STATUS_GATE_PATCHED=PASS"
+
+          grep -q 'CORE_LEGACY_FIELD_MIGRATION_VERIFIED_PRUNE_SIMULATION_READY' governance/contest/generated/core-field-migration-review.json
+          grep -q "\"migrationReviewHash\": \"$EXPECTED_MIGRATION_REVIEW_HASH\"" governance/contest/generated/core-field-migration-review.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/contest-selection-manifest.json
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/build_isolation_transaction.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/prune-status-fix-transaction.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/simulate_module_isolation.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/prune-status-fix-simulation.json
+
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/prune-status-fix-review.json
+          import hashlib
+          import json
+          from pathlib import Path
+
+          generated = Path("governance/contest/generated")
+
+          def read(name):
+              value = json.loads((generated / name).read_text(encoding="utf-8"))
+              assert isinstance(value, dict), name
+              return value
+
+          def sha(value):
+              raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+              return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+          def write(name, value):
+              (generated / name).write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+
+          transaction = read("module-isolation-transaction.json")
+          transaction_receipt = read("module-isolation-receipt.json")
+          simulation = read("module-isolation-simulation.json")
+          simulation_receipt = read("module-isolation-simulation-receipt.json")
+          migration = read("core-field-migration-review.json")
+
+          expected_selection = "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb"
+          expected_graph = "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00"
+          expected_migration = "sha256:bf240a47717b4ca39a8946b6ba74a9bd4d7eae9596561a45d68168bd55c659bb"
+          expected_modules = [
+              "action_node_transport",
+              "execution_resource_orchestrator",
+              "node_authorization",
+              "operating_plan_compiler",
+              "stage_frontend_projection",
+              "stage_lifecycle",
+              "task_blueprint_compiler",
+          ]
+          expected_paths = [
+              "tools/registry_compiler/v24_identity_catalog.py",
+              "tools/registry_compiler/v24_task_blueprint_compiler.py",
+          ]
+
+          assertions = {
+              "migrationAuthorityLocked": migration["migrationReviewHash"] == expected_migration,
+              "transactionReady": transaction["state"] == "ISOLATION_VERIFIED_SIMULATION_READY",
+              "selectionHashCurrent": transaction["selectionHash"] == expected_selection,
+              "graphHashCurrent": transaction["graphHash"] == expected_graph,
+              "isolateModuleSetExact": transaction["isolateModuleIds"] == expected_modules,
+              "excludePathSetExact": transaction["simulationExcludePaths"] == expected_paths,
+              "noSharedPaths": transaction["preserveSharedPaths"] == [],
+              "simulationVerified": simulation["state"] == "ISOLATION_SIMULATION_VERIFIED_PHYSICAL_CHANGE_NOT_AUTHORIZED",
+              "selectionStableUnderExclusion": simulation["baselineSelectionHash"] == simulation["simulatedSelectionHash"] == expected_selection,
+              "graphStableUnderExclusion": simulation["baselineGraphHash"] == simulation["simulatedGraphHash"] == expected_graph,
+              "classificationsStable": simulation["assertions"]["classificationsStable"] is True,
+              "safeKeepModulesStable": simulation["assertions"]["safeKeepModulesStable"] is True,
+              "keepRunnerEvidenceVerified": simulation["assertions"]["keepRunnerEvidenceVerified"] is True,
+              "noUnexpectedRunnerDrift": simulation["unexpectedRunnerDriftModuleIds"] == [],
+              "expectedIsolateDriftExact": simulation["expectedIsolateRunnerDriftModuleIds"] == expected_modules,
+              "rootCompositionVerified": simulation["assertions"]["rootCompositionVerified"] is True,
+              "excludedPathsOutsideKeepClosure": simulation["assertions"]["excludedPathsOutsideKeepClosure"] is True,
+              "sourceBranchFilesDeletedZero": int(simulation["analysisBranchFilesDeleted"]) == 0,
+              "physicalDeletionNotExecuted": simulation["physicalDeletionExecuted"] is False,
+              "transactionReceiptNoDeletion": transaction_receipt["physicalDeletionExecuted"] is False,
+              "simulationReceiptNoDeletion": simulation_receipt["physicalDeletionExecuted"] is False,
+          }
+          assert all(assertions.values()), assertions
+
+          material = {
+              "schema": "contest.post_migration_prune_simulation_review.v1",
+              "state": "PRUNE_SIMULATION_VERIFIED_PHYSICAL_PRUNE_AWAITS_APPROVAL",
+              "sourceCommit": "435d213441c683147aeeacff432e10a179760a77",
+              "migrationReviewHash": expected_migration,
+              "selectionHash": expected_selection,
+              "graphHash": expected_graph,
+              "isolationTransactionHash": transaction["transactionHash"],
+              "isolationSimulationHash": simulation["simulationHash"],
+              "isolateModuleIds": expected_modules,
+              "simulationExcludePaths": expected_paths,
+              "assertions": assertions,
+              "nextTransaction": {
+                  "type": "PHYSICAL_PRUNE_APPROVAL_REQUIRED",
+                  "authorized": False,
+                  "candidatePaths": expected_paths,
+                  "candidateModuleIds": expected_modules,
+              },
+              "governanceToolFix": {
+                  "path": "tools/contest_governance/simulate_module_isolation.py",
+                  "scope": "ignore_only_declared_simulation_output_files_in_status_integrity_check",
+                  "businessRuntimeAffected": False,
+              },
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "deploymentExecuted": False,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+              "publicReleaseExecuted": False,
+          }
+          review = {**material, "pruneSimulationReviewHash": sha(material)}
+          write("post-migration-prune-simulation-review.json", review)
+
+          receipt_material = {
+              "schema": "contest.post_migration_prune_simulation_receipt.v1",
+              "state": review["state"],
+              "pruneSimulationReviewHash": review["pruneSimulationReviewHash"],
+              "isolationTransactionHash": transaction["transactionHash"],
+              "isolationSimulationHash": simulation["simulationHash"],
+              "states": [
+                  "SIMULATION_STATUS_GATE_FIXED",
+                  "POST_MIGRATION_SELECTION_LOCKED",
+                  "ISOLATE_MODULE_SET_RESEALED",
+                  "DETACHED_WORKTREE_PRUNE_SIMULATED",
+                  "CORE_SUPPORT_RUNNER_GATES_VERIFIED",
+                  "LAYERED_ROOT_COMPOSITION_VERIFIED",
+                  "SOURCE_BRANCH_UNCHANGED",
+                  "PHYSICAL_PRUNE_AWAITS_APPROVAL",
+              ],
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "deploymentExecuted": False,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+              "publicReleaseExecuted": False,
+          }
+          receipt = {**receipt_material, "receiptHash": sha(receipt_material)}
+          write("post-migration-prune-simulation-receipt.json", receipt)
+
+          print(json.dumps({
+              "state": review["state"],
+              "isolationTransactionHash": transaction["transactionHash"],
+              "isolationSimulationHash": simulation["simulationHash"],
+              "pruneSimulationReviewHash": review["pruneSimulationReviewHash"],
+              "receiptHash": receipt["receiptHash"],
+              "assertions": assertions,
+          }, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+          grep -q 'PRUNE_SIMULATION_VERIFIED_PHYSICAL_PRUNE_AWAITS_APPROVAL' governance/contest/generated/post-migration-prune-simulation-review.json
+          grep -q '"authorized": false' governance/contest/generated/post-migration-prune-simulation-review.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/post-migration-prune-simulation-receipt.json
+          git diff --check
+
+          git status --porcelain | sed -E 's/^.. //' | sort -u > /tmp/prune-status-fix-changed-paths
+          while IFS= read -r changed; do
+            case "$changed" in
+              tools/contest_governance/simulate_module_isolation.py) ;;
+              governance/contest/generated/*) ;;
+              *) echo "FORBIDDEN_CHANGE=$changed"; exit 1 ;;
+            esac
+          done < /tmp/prune-status-fix-changed-paths
+          grep -Fxq 'tools/contest_governance/simulate_module_isolation.py' /tmp/prune-status-fix-changed-paths
+          ! grep -q '^src/' /tmp/prune-status-fix-changed-paths
+          ! grep -q '^contracts/registry/' /tmp/prune-status-fix-changed-paths
+          ! grep -q '^release/' /tmp/prune-status-fix-changed-paths
+          echo "SIMULATION_FIX_REPORT_ONLY_BOUNDARY=PASS"
+
+          git add tools/contest_governance/simulate_module_isolation.py governance/contest/generated
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): fix simulation output gate and reseal prune evidence [skip ci]"
+
+          gh auth setup-git
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "PRUNE_SIMULATION_EVIDENCE_PUSH=PASS"
+              COMPLETED=1
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+          test "$COMPLETED" = "1"
