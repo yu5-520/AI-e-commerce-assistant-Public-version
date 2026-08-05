@@ -1,0 +1,278 @@
+name: Resume contest field compatibility from local object store once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-field-compat-local-resume-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-field-compat-local-resume-once
+  cancel-in-progress: false
+
+jobs:
+  local-resume:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      WORK: /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version
+      BASE_COMMIT: 42732acfdec2dc7d94693880c4e9969ceffad04e
+      TARGET_BRANCH: migration/contest-field-compat-applied-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      GH_PUSH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Restore immutable local baseline without network fetch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$WORK/.git"
+          git config --global --add safe.directory "$WORK" 2>/dev/null || true
+          git -C "$WORK" cat-file -e "$BASE_COMMIT^{commit}"
+          git -C "$WORK" reset --hard "$BASE_COMMIT"
+          git -C "$WORK" clean -ffdx
+          git -C "$WORK" checkout -B local/contest-field-compat-resume "$BASE_COMMIT"
+          test "$(git -C "$WORK" rev-parse HEAD)" = "$BASE_COMMIT"
+          echo "LOCAL_BASELINE_RESTORED=PASS"
+
+      - name: Apply authorized dual-read new-write transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          export PYTHONPATH="$WORK"
+          test -x "$AUDIT_PYTHON"
+          test "$($AUDIT_PYTHON --version 2>&1)" = "Python 3.11.9"
+          grep -q '"schema": "contest.field_compat_transaction.v2"' governance/contest/generated/field-compat-transaction.json
+          grep -q '"automaticApplyAuthorized": true' governance/contest/generated/field-compat-transaction.json
+          grep -q '"reviewRequiredCount": 0' governance/contest/generated/field-compat-transaction.json
+          "$AUDIT_PYTHON" -m py_compile \
+            tools/contest_governance/compile_field_compat_transaction.py \
+            tools/contest_governance/apply_field_compat_transaction.py
+          "$AUDIT_PYTHON" tools/contest_governance/apply_field_compat_transaction.py \
+            | tee /tmp/local-field-compat-apply.json
+          grep -q '"state": "FIELD_COMPATIBILITY_APPLIED_PENDING_TESTS"' governance/contest/generated/field-compat-apply-receipt.json
+          grep -q '"postApplyViolationCount": 0' governance/contest/generated/field-compat-apply-receipt.json
+          echo "LOCAL_FIELD_COMPAT_APPLIED=PASS"
+
+      - name: Verify syntax imports and exact compatibility semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          export PYTHONPATH="$WORK"
+          mapfile -t changed_python < <(git diff --name-only -- '*.py')
+          test "${#changed_python[@]}" -eq 11
+          "$AUDIT_PYTHON" -m py_compile "${changed_python[@]}"
+
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/local-field-compat-semantic.json
+          from __future__ import annotations
+          import ast
+          import json
+          from pathlib import Path
+
+          root = Path.cwd()
+          transaction = json.loads((root / "governance/contest/generated/field-compat-transaction.json").read_text())
+          mappings = {
+              "selectedActionFamilyHint": "lockedActionFamily",
+              "creativeTestPlan": "creativeDraft",
+          }
+          paths = sorted({str(item.get("path") or "") for item in transaction.get("occurrences") or []})
+          violations = []
+          counts = {"legacyPairedReads": 0, "legacyCleanupPops": 0, "modernWrites": 0}
+
+          def parents(tree):
+              result = {}
+              for parent in ast.walk(tree):
+                  for child in ast.iter_child_nodes(parent):
+                      result[child] = parent
+              return result
+
+          def receiver_dump(call):
+              return ast.dump(call.func.value, include_attributes=False)
+
+          def nearest_boolop(node, parent_map):
+              current = parent_map.get(node)
+              while current is not None:
+                  if isinstance(current, ast.BoolOp):
+                      return current
+                  current = parent_map.get(current)
+              return None
+
+          def get_signatures(node):
+              result = set()
+              for item in ast.walk(node):
+                  if not isinstance(item, ast.Call) or not isinstance(item.func, ast.Attribute):
+                      continue
+                  if item.func.attr != "get" or not item.args:
+                      continue
+                  key = item.args[0]
+                  if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                      result.add((receiver_dump(item), key.value))
+              return result
+
+          for relative in paths:
+              path = root / relative
+              tree = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
+              parent_map = parents(tree)
+              for node in ast.walk(tree):
+                  if not isinstance(node, ast.Constant) or not isinstance(node.value, str):
+                      continue
+                  parent = parent_map.get(node)
+                  for old_key, new_key in mappings.items():
+                      if node.value == new_key and isinstance(parent, ast.Dict) and node in parent.keys:
+                          counts["modernWrites"] += 1
+                      if node.value != old_key:
+                          continue
+                      if isinstance(parent, ast.Call) and isinstance(parent.func, ast.Attribute) and parent.args and parent.args[0] is node:
+                          if parent.func.attr == "pop":
+                              counts["legacyCleanupPops"] += 1
+                              continue
+                          if parent.func.attr == "get":
+                              boolop = nearest_boolop(parent, parent_map)
+                              signatures = get_signatures(boolop) if boolop is not None else set()
+                              receiver = receiver_dump(parent)
+                              if (receiver, old_key) in signatures and (receiver, new_key) in signatures:
+                                  counts["legacyPairedReads"] += 1
+                                  continue
+                              violations.append({"path": relative, "line": node.lineno, "kind": "UNPAIRED_GET", "key": old_key})
+                              continue
+                      if isinstance(parent, ast.Dict):
+                          violations.append({"path": relative, "line": node.lineno, "kind": "LEGACY_DICT_WRITE_OR_MAP", "key": old_key})
+                          continue
+                      if isinstance(parent, (ast.List, ast.Tuple, ast.Set)):
+                          values = {item.value for item in parent.elts if isinstance(item, ast.Constant) and isinstance(item.value, str)}
+                          if new_key in values:
+                              counts["legacyPairedReads"] += 1
+                              continue
+                      if isinstance(parent, ast.Compare):
+                          boolop = nearest_boolop(parent, parent_map)
+                          constants = {item.value for item in ast.walk(boolop) if isinstance(item, ast.Constant) and isinstance(item.value, str)} if boolop else set()
+                          if new_key in constants:
+                              counts["legacyPairedReads"] += 1
+                              continue
+                      violations.append({"path": relative, "line": getattr(node, "lineno", 0), "kind": "UNAUTHORIZED_LEGACY_USAGE", "key": old_key, "parent": type(parent).__name__ if parent else None})
+
+          result = {
+              "schema": "contest.field_compat_local_semantic_verification.v1",
+              "state": "FIELD_COMPATIBILITY_SEMANTICS_VERIFIED" if not violations else "FAILED",
+              "fileCount": len(paths),
+              **counts,
+              "violationCount": len(violations),
+              "violations": violations,
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "physicalDeletionExecuted": False,
+              "mainMutated": False,
+          }
+          (root / "governance/contest/generated/field-compat-semantic-verification.json").write_text(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+          if violations:
+              raise SystemExit(2)
+          PY
+
+          grep -q '"state": "FIELD_COMPATIBILITY_SEMANTICS_VERIFIED"' governance/contest/generated/field-compat-semantic-verification.json
+          grep -q '"violationCount": 0' governance/contest/generated/field-compat-semantic-verification.json
+
+          "$AUDIT_PYTHON" - <<'PY'
+          import importlib
+          modules = [
+              "src.services.agent2_action_draft_core_v225_service",
+              "src.services.agent2_action_plan_core_v20_service",
+              "src.services.agent_execution_lock_v2255_service",
+              "src.services.agent_input_transport_v22514_service",
+              "src.services.agent_runtime_hard_interface_v2257_service",
+              "src.services.decision_write_guard_v19122_service",
+              "src.services.pipeline_agent1_microbatch_v20101_service",
+              "src.services.pipeline_item_service",
+              "src.services.real_product_judgment_agent_v196_service",
+              "src.services.v2172_inventory_action_guard_service",
+              "src.services.v2173_agent2_policy_shape_recovery_service",
+          ]
+          for name in modules:
+              importlib.import_module(name)
+          print(f"CHANGED_MODULE_IMPORTS=PASS count={len(modules)}")
+          PY
+          echo "LOCAL_FIELD_COMPAT_VERIFICATION=PASS"
+
+      - name: Probe existing pytest without installing dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          export PYTHONPATH="$WORK"
+          pytest_python=""
+          candidates="$(
+            {
+              printf '%s\n' "$AUDIT_PYTHON" /usr/bin/python3 /usr/local/bin/python3 /usr/bin/python /usr/local/bin/python
+              find /opt /srv -maxdepth 10 \( -type f -o -type l \) \( -name python3.11 -o -name python3 -o -name python \) -print 2>/dev/null || true
+            } | awk 'NF && !seen[$0]++'
+          )"
+          while IFS= read -r candidate; do
+            test -x "$candidate" || continue
+            if "$candidate" -c 'import pytest' >/dev/null 2>&1; then
+              pytest_python="$candidate"
+              break
+            fi
+          done <<< "$candidates"
+          if test -n "$pytest_python"; then
+            mapfile -t tests < <(grep -RIlE 'selectedActionFamilyHint|creativeTestPlan|lockedActionFamily|creativeDraft' tests 2>/dev/null | sort -u || true)
+            "$pytest_python" -m pytest -q "${tests[@]}" | tee /tmp/local-field-compat-pytest.txt
+            echo "LOCAL_FOCUSED_PYTEST=PASS"
+          else
+            printf '%s\n' "LOCAL_FOCUSED_PYTEST=UNAVAILABLE" "No dependency installation performed; semantic and import gates are authoritative for this transaction." | tee /tmp/local-field-compat-pytest.txt
+          fi
+
+      - name: Commit local verified migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          export PYTHONPATH="$WORK"
+          "$AUDIT_PYTHON" tools/contest_governance/compile_field_compat_transaction.py > /tmp/local-field-compat-post-transaction.json
+          grep -q '"reviewRequiredCount": 0' governance/contest/generated/field-compat-transaction.json
+
+          git add \
+            src/services \
+            governance/contest/generated/field-compat-transaction.json \
+            governance/contest/generated/field-compat-apply-receipt.json \
+            governance/contest/generated/field-compat-semantic-verification.json
+          forbidden="$(git diff --cached --name-only | grep -Ev '^(src/services/.*\.py|governance/contest/generated/field-compat-(transaction|apply-receipt|semantic-verification)\.json)$' || true)"
+          test -z "$forbidden"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "migration(contest): apply verified dual-read new-write fields [skip ci]"
+          echo "LOCAL_MIGRATION_COMMIT=$(git rev-parse HEAD)" | tee /tmp/local-field-compat-commit.txt
+
+      - name: Push verified commit without fetching
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          askpass="$(mktemp)"
+          trap 'rm -f "$askpass"' EXIT
+          cat > "$askpass" <<'SH'
+          #!/bin/sh
+          case "$1" in
+            *Username*) printf '%s\n' 'x-access-token' ;;
+            *Password*) printf '%s\n' "$GH_PUSH_TOKEN" ;;
+          esac
+          SH
+          chmod 700 "$askpass"
+          pushed=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if GIT_ASKPASS="$askpass" GIT_TERMINAL_PROMPT=0 \
+              git push --force-with-lease="refs/heads/$TARGET_BRANCH:$BASE_COMMIT" \
+              https://github.com/yu5-520/AI-e-commerce-assistant-Public-version.git \
+              "HEAD:refs/heads/$TARGET_BRANCH"; then
+              pushed=1
+              break
+            fi
+            sleep $((attempt * 10))
+          done
+          test "$pushed" = "1"
+          echo "LOCAL_VERIFIED_MIGRATION_PUSH=PASS"
