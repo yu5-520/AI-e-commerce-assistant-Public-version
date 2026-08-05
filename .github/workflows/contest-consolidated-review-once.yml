@@ -1,0 +1,126 @@
+name: Build consolidated contest governance review once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-consolidated-review-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-consolidated-review-once
+  cancel-in-progress: false
+
+jobs:
+  consolidate-review:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Verify complete evidence set
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$AUDIT_PYTHON"
+          test "$($AUDIT_PYTHON --version 2>&1)" = "Python 3.11.9"
+          "$AUDIT_PYTHON" -m py_compile tools/contest_governance/build_consolidated_review.py
+
+          for file in \
+            contest-chain-review.json \
+            contest-selection-manifest.json \
+            registry-snapshot.json \
+            repository-audit.json \
+            unregistered-field-scope-review.json \
+            tombstone-scope-review.json \
+            registry-protocol-adapter-review.json \
+            module-isolation-transaction.json \
+            module-isolation-simulation.json
+          do
+            test -f "governance/contest/generated/$file"
+          done
+
+          grep -q "\"graphHash\": \"$EXPECTED_GRAPH_HASH\"" governance/contest/generated/contest-selection-manifest.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/contest-selection-manifest.json
+          grep -q '"rootEquivalent": true' governance/contest/generated/registry-snapshot.json
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit.json
+          grep -q '"sourceCandidateCount": 500' governance/contest/generated/unregistered-field-scope-review.json
+          grep -q '"sourceReferenceCount": 67' governance/contest/generated/tombstone-scope-review.json
+          grep -q '"zCompilerVerified": true' governance/contest/generated/registry-protocol-adapter-review.json
+          grep -q 'ISOLATION_SIMULATION_VERIFIED_PHYSICAL_CHANGE_NOT_AUTHORIZED' governance/contest/generated/module-isolation-simulation.json
+          echo "CONSOLIDATED_EVIDENCE_SET=PASS"
+
+      - name: Build consolidated human review gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" tools/contest_governance/build_consolidated_review.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/contest-consolidated-review-summary.json
+
+          test -f governance/contest/generated/contest-consolidated-review.json
+          test -f governance/contest/generated/contest-consolidated-review.md
+          test -f governance/contest/generated/contest-consolidated-review-receipt.json
+          grep -q '"state": "REVIEW_READY_FOR_HUMAN_APPROVAL"' governance/contest/generated/contest-consolidated-review.json
+          grep -q '"coreUnregisteredFieldCandidateOccurrenceCount": 172' governance/contest/generated/contest-consolidated-review.json
+          grep -q '"coreTombstoneReferenceOccurrenceCount": 25' governance/contest/generated/contest-consolidated-review.json
+          grep -q '"coreTombstoneKeyCount": 2' governance/contest/generated/contest-consolidated-review.json
+          grep -q 'payload.creativeTestPlan' governance/contest/generated/contest-consolidated-review.json
+          grep -q 'payload.selectedActionFamilyHint' governance/contest/generated/contest-consolidated-review.json
+          grep -q '"physicalDeletionAuthorized": false' governance/contest/generated/contest-consolidated-review.json
+          grep -q '"promotionAuthorized": false' governance/contest/generated/contest-consolidated-review.json
+          grep -q '"publicReleaseAuthorized": false' governance/contest/generated/contest-consolidated-review.json
+          grep -q '"mainMutated": false' governance/contest/generated/contest-consolidated-review-receipt.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/contest-consolidated-review-receipt.json
+          grep -q '"promotionExecuted": false' governance/contest/generated/contest-consolidated-review-receipt.json
+          grep -q '"publicReleaseExecuted": false' governance/contest/generated/contest-consolidated-review-receipt.json
+          echo "CONSOLIDATED_REVIEW=PASS"
+
+      - name: Commit consolidated review
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            governance/contest/generated/contest-consolidated-review.json \
+            governance/contest/generated/contest-consolidated-review.md \
+            governance/contest/generated/contest-consolidated-review-receipt.json
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/contest-consolidated-review(-receipt)?\.(json|md)$' || true)"
+          test -z "$forbidden"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): seal consolidated human review gate [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "CONSOLIDATED_REVIEW_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload consolidated review
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-consolidated-governance-review
+          path: |
+            governance/contest/generated/contest-consolidated-review.json
+            governance/contest/generated/contest-consolidated-review.md
+            governance/contest/generated/contest-consolidated-review-receipt.json
+            /tmp/contest-consolidated-review-summary.json
+          if-no-files-found: error
+          retention-days: 14
