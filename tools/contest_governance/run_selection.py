@@ -434,7 +434,7 @@ def run(root: Path, request_path: Path, output_dir: Path, z_source: Path) -> Dic
     if not root_equivalent:
         findings.append("LAYERED_REGISTRY_ROOTS_NOT_EQUIVALENT")
     if external_compile_error:
-        findings.append("Z_INTERFACE_PRODUCT_TOMBSTONE_PROTOCOL_REVIEW_REQUIRED")
+        findings.append("Z_INTERFACE_PRODUCT_REGISTRY_PROTOCOL_REVIEW_REQUIRED")
     if repository_scan.get("summary", {}).get("runnerDriftCount"):
         findings.append("REGISTERED_RUNNER_DRIFT_REVIEW_REQUIRED")
     if classifications["REVIEW_REQUIRED"]:
