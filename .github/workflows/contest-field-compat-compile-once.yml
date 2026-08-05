@@ -1,0 +1,94 @@
+name: Compile contest field compatibility transaction once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-field-compat-compile-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-field-compat-compile-once
+  cancel-in-progress: false
+
+jobs:
+  compile-field-compat:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: migration/contest-field-compat-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+    steps:
+      - name: Checkout field compatibility branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Verify sealed review authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$AUDIT_PYTHON"
+          test "$($AUDIT_PYTHON --version 2>&1)" = "Python 3.11.9"
+          test -f governance/contest/generated/contest-consolidated-review.json
+          test -f governance/contest/generated/tombstone-scope-review.json
+          grep -q '"state": "REVIEW_READY_FOR_HUMAN_APPROVAL"' governance/contest/generated/contest-consolidated-review.json
+          grep -q '"decision": "MIGRATE_BLOCKING_FIELDS_BEFORE_PHYSICAL_PRUNE"' governance/contest/generated/contest-consolidated-review.json
+          grep -q "\"graphHash\": \"$EXPECTED_GRAPH_HASH\"" governance/contest/generated/contest-consolidated-review.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/contest-consolidated-review.json
+          grep -q 'payload.selectedActionFamilyHint' contracts/registry/tombstones.json
+          grep -q 'agent1.locked_action_family' contracts/registry/tombstones.json
+          grep -q 'payload.creativeTestPlan' contracts/registry/tombstones.json
+          grep -q 'agent2.creative_draft' contracts/registry/tombstones.json
+          echo "FIELD_COMPAT_AUTHORITY=PASS"
+
+      - name: Compile AST-classified compatibility transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" -m py_compile tools/contest_governance/compile_field_compat_transaction.py
+          "$AUDIT_PYTHON" tools/contest_governance/compile_field_compat_transaction.py \
+            | tee /tmp/contest-field-compat-compile-summary.json
+
+          test -f governance/contest/generated/field-compat-transaction.json
+          grep -q '"writePolicy": "NEW_KEY_ONLY"' governance/contest/generated/field-compat-transaction.json
+          grep -q '"readPolicy": "NEW_KEY_THEN_LEGACY_KEY"' governance/contest/generated/field-compat-transaction.json
+          grep -q '"physicalDeletionAuthorized": false' governance/contest/generated/field-compat-transaction.json
+          grep -q '"mainMutationAuthorized": false' governance/contest/generated/field-compat-transaction.json
+          echo "FIELD_COMPAT_TRANSACTION_COMPILED=PASS"
+
+      - name: Commit transaction evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add governance/contest/generated/field-compat-transaction.json
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/field-compat-transaction\.json$' || true)"
+          test -z "$forbidden"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): compile blocking field compatibility transaction [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "FIELD_COMPAT_TRANSACTION_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload transaction evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-field-compat-transaction
+          path: |
+            governance/contest/generated/field-compat-transaction.json
+            /tmp/contest-field-compat-compile-summary.json
+          if-no-files-found: error
+          retention-days: 14
