@@ -1,0 +1,152 @@
+name: Apply contest field compatibility once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-field-compat-apply-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-field-compat-apply-once
+  cancel-in-progress: false
+
+jobs:
+  apply-field-compat:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
+    env:
+      TARGET_BRANCH: migration/contest-field-compat-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+    steps:
+      - name: Checkout compatibility branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Verify authorized transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$AUDIT_PYTHON"
+          test "$($AUDIT_PYTHON --version 2>&1)" = "Python 3.11.9"
+          test -f governance/contest/generated/field-compat-transaction.json
+          grep -q '"schema": "contest.field_compat_transaction.v2"' governance/contest/generated/field-compat-transaction.json
+          grep -q '"automaticApplyAuthorized": true' governance/contest/generated/field-compat-transaction.json
+          grep -q '"reviewRequiredCount": 0' governance/contest/generated/field-compat-transaction.json
+          grep -q '"writePolicy": "NEW_KEY_ONLY"' governance/contest/generated/field-compat-transaction.json
+          grep -q '"readPolicy": "NEW_KEY_THEN_LEGACY_KEY"' governance/contest/generated/field-compat-transaction.json
+          echo "FIELD_COMPAT_APPLY_AUTHORITY=PASS"
+
+      - name: Apply deterministic dual-read new-write migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" -m py_compile \
+            tools/contest_governance/compile_field_compat_transaction.py \
+            tools/contest_governance/apply_field_compat_transaction.py
+          "$AUDIT_PYTHON" tools/contest_governance/apply_field_compat_transaction.py \
+            | tee /tmp/contest-field-compat-apply-summary.json
+
+          test -f governance/contest/generated/field-compat-apply-receipt.json
+          grep -q '"state": "FIELD_COMPATIBILITY_APPLIED_PENDING_TESTS"' governance/contest/generated/field-compat-apply-receipt.json
+          grep -q '"postApplyViolationCount": 0' governance/contest/generated/field-compat-apply-receipt.json
+          grep -q '"mainMutated": false' governance/contest/generated/field-compat-apply-receipt.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/field-compat-apply-receipt.json
+          echo "FIELD_COMPAT_APPLIED=PASS"
+
+      - name: Compile every changed Python file
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t changed_python < <(git diff --name-only -- '*.py')
+          test "${#changed_python[@]}" -gt 0
+          printf '%s\n' "${changed_python[@]}"
+          "$AUDIT_PYTHON" -m py_compile "${changed_python[@]}"
+          echo "CHANGED_PYTHON_COMPILE=PASS"
+
+      - name: Run focused compatibility tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          mapfile -t tests < <(
+            grep -RIlE 'selectedActionFamilyHint|creativeTestPlan|lockedActionFamily|creativeDraft' tests 2>/dev/null \
+              | sort -u \
+              || true
+          )
+          if test "${#tests[@]}" -gt 0; then
+            printf '%s\n' "${tests[@]}"
+            "$AUDIT_PYTHON" -m pytest -q "${tests[@]}" \
+              | tee /tmp/contest-field-compat-tests.txt
+          else
+            echo "NO_FOCUSED_TEST_FILES_FOUND" | tee /tmp/contest-field-compat-tests.txt
+          fi
+          echo "FOCUSED_COMPATIBILITY_TESTS=PASS"
+
+      - name: Recompile transaction after migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" tools/contest_governance/compile_field_compat_transaction.py \
+            | tee /tmp/contest-field-compat-post-compile-summary.json
+          grep -q '"reviewRequiredCount": 0' governance/contest/generated/field-compat-transaction.json
+          grep -q '"automaticApplyAuthorized": true' governance/contest/generated/field-compat-transaction.json
+          echo "POST_APPLY_TRANSACTION_RECOMPILED=PASS"
+
+      - name: Enforce migration path boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            src/services \
+            governance/contest/generated/field-compat-transaction.json \
+            governance/contest/generated/field-compat-apply-receipt.json
+          changed="$(git diff --cached --name-only)"
+          printf '%s\n' "$changed"
+          forbidden="$(
+            printf '%s\n' "$changed" \
+              | grep -Ev '^(src/services/.*\.py|governance/contest/generated/field-compat-(transaction|apply-receipt)\.json)$' \
+              || true
+          )"
+          test -z "$forbidden" || {
+            echo "ERROR: field compatibility boundary violated"
+            printf '%s\n' "$forbidden"
+            exit 1
+          }
+          echo "FIELD_COMPAT_PATH_BOUNDARY=PASS"
+
+      - name: Commit compatibility migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "migration(contest): dual-read new-write blocking fields [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "FIELD_COMPAT_MIGRATION_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload compatibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-field-compat-apply
+          path: |
+            governance/contest/generated/field-compat-transaction.json
+            governance/contest/generated/field-compat-apply-receipt.json
+            /tmp/contest-field-compat-apply-summary.json
+            /tmp/contest-field-compat-post-compile-summary.json
+            /tmp/contest-field-compat-tests.txt
+          if-no-files-found: error
+          retention-days: 14
