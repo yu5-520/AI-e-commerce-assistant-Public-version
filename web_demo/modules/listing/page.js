@@ -1,0 +1,12 @@
+(function () {
+  let notice = "";
+  const s = (value) => AppShell.escape(value ?? "");
+  function taskButton(item) {
+    const task = AppTaskActions.findOpenTask(item);
+    return task ? `<button type="button" data-open-task="${s(task.id)}" class="ghost">查看任务</button><button type="button" data-task-report="${s(task.id)}">任务报告</button>` : `<button type="button" data-candidate-report="listing:${s(item.id)}">查看测试</button>`;
+  }
+  function row(item) {
+    return `<article class="listing-row"><div class="listing-title-cell"><div class="listing-thumb">${s(item.imageLabel)}</div><div class="listing-title-block"><strong>${s(item.title)}</strong><small>${s(item.platform)} · ${s(item.store)} · ${s(item.sourceLabel)}</small><span>${s(item.testPlan)}</span></div></div><div class="listing-metric-strip"><div class="listing-number-cell ${AppShell.statusClass(item.statusLevel)}"><span>测试周期</span><strong>${s(item.due)}</strong><small>${s(item.testType)}</small></div><div class="listing-number-cell"><span>验证指标</span><strong>${s(item.targetMetric)}</strong><small>成功/失败阈值</small></div><div class="listing-number-cell warning"><span>测试风险</span><strong>${s(item.risk)}</strong><small>需人工确认</small></div></div><div class="listing-actions">${taskButton(item)}</div></article>`;
+  }
+  window.ListingPage = { route: "business-listing", title: "上新测试", render() { return `<section class="listing-toolbar"><div><p class="eyebrow">LISTING TEST · V11.1</p><h2>上新测试台</h2><p>上新模块管理同一商品的标题、主图、SKU、卖点测试，也承接竞品信号转化出的新测试机会。</p></div></section>${notice ? AppShell.notice("操作结果", notice) : ""}<section class="page-section listing-list-section"><div class="section-header"><h3>测试项目</h3><span class="status-badge">${AppMockData.listings.length} 个测试</span></div><div class="listing-card-list">${AppMockData.listings.map(row).join("")}</div></section>`; }, mount(ctx) { ctx.delegate("[data-open-task]", "click", (_, node) => AppTaskActions.openTodoTask(node.dataset.openTask)); ctx.delegate("[data-task-report]", "click", (_, node) => AppTaskActions.openTaskReport(node.dataset.taskReport)); ctx.delegate("[data-candidate-report]", "click", (_, node) => { const [module, id] = node.dataset.candidateReport.split(":"); AppTaskActions.openCandidateReport(module, id); }); ctx.addCleanup(AppTaskStore.subscribe(() => AppRouter.schedule("task-store"))); } };
+})();

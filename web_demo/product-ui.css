@@ -1,0 +1,311 @@
+/* V12.1.2 store-scoped product archive cards and fact detail layout. */
+.product-archive-hero,
+.product-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 18px;
+  align-items: center;
+  padding: 24px 26px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 30px;
+  background: #ffffff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.05);
+}
+
+.product-archive-hero.scoped {
+  border-color: rgba(79, 70, 229, 0.16);
+}
+
+.product-archive-hero h2,
+.product-detail-hero h2 {
+  margin: 0;
+  font-size: clamp(34px, 4vw, 52px);
+  line-height: 0.95;
+  letter-spacing: -0.08em;
+}
+
+.product-archive-hero p,
+.product-detail-hero p {
+  display: block !important;
+  margin: 10px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.product-scope-panel {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: #080b12;
+  color: #ffffff;
+}
+
+.product-scope-panel span,
+.product-scope-panel small {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.product-scope-panel strong {
+  font-size: 38px;
+  line-height: 1;
+  letter-spacing: -0.08em;
+}
+
+.product-scope-tags,
+.product-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.product-scope-tags span,
+.product-chip-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.product-card-list {
+  display: grid;
+  gap: 12px;
+}
+
+.product-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.15fr) minmax(480px, 1.8fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.035);
+}
+
+.product-title-cell,
+.product-detail-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.product-thumb {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: #080b12;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.product-thumb.large {
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  font-size: 24px;
+}
+
+.product-title-block {
+  min-width: 0;
+}
+
+.product-title-block strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.product-title-block small {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.product-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(92px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.product-number-cell {
+  min-width: 0;
+  padding: 12px 12px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.product-number-cell span,
+.product-number-cell small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.product-number-cell strong {
+  display: block;
+  margin: 5px 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.product-number-cell.good strong { color: #047857; }
+.product-number-cell.warning strong { color: #b45309; }
+.product-number-cell.danger strong { color: #b91c1c; }
+
+.product-actions,
+.product-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.product-detail-metrics {
+  margin-bottom: 16px;
+}
+
+.product-detail-section p,
+.product-detail-section li {
+  color: #343b49;
+  font-size: 15px;
+  line-height: 1.8;
+  font-weight: 760;
+}
+
+.product-position-grid,
+.product-fact-grid,
+.product-traffic-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.product-position-grid.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.product-position-grid > div,
+.product-fact-grid > div,
+.product-traffic-list > article {
+  min-width: 0;
+  padding: 14px 14px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.product-position-grid span,
+.product-fact-grid span,
+.product-fact-grid small,
+.product-traffic-list span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.product-position-grid strong,
+.product-fact-grid strong,
+.product-traffic-list strong {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.product-fact-section-list {
+  display: grid;
+  gap: 14px;
+}
+
+.product-fact-section {
+  display: grid;
+  gap: 10px;
+}
+
+.product-fact-section h4 {
+  margin: 0;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.product-traffic-list > article {
+  display: grid;
+  gap: 6px;
+}
+
+@media (max-width: 1180px) {
+  .product-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .product-actions {
+    justify-content: flex-start;
+  }
+  .product-position-grid,
+  .product-fact-grid,
+  .product-traffic-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .product-archive-hero,
+  .product-detail-hero {
+    grid-template-columns: 1fr;
+  }
+  .product-metric-strip,
+  .product-position-grid,
+  .product-position-grid.compact,
+  .product-fact-grid,
+  .product-traffic-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

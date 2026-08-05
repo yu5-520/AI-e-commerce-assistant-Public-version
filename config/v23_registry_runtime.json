@@ -1,0 +1,263 @@
+{
+  "agent3SystemConstraintVersion": "23.2.15",
+  "frontendViewRuntimeScopeVersion": "23.2.12",
+  "mode": "selected_fail_closed",
+  "modules": {
+    "agent1_input_projection": {
+      "fieldIds": [
+        "execution.input_artifact_ref",
+        "execution.input_content_hash",
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.signal_id"
+      ],
+      "implementationPaths": [
+        "src/services/agent_input_contract_v2258_service.py",
+        "src/services/agent_input_transport_v2258_service.py",
+        "src/services/hard_interface_bridge_v2301_service.py"
+      ],
+      "runner": "src.services.agent_input_transport_v2258_service:ensure_agent1_input_ref",
+      "schemaIds": [
+        "agent_input.agent1.v3"
+      ]
+    },
+    "agent1_runtime": {
+      "activeBindingProbe": {
+        "expectedOwners": {
+          "activeFacadeOwner": "src.services.agent_runtime_hard_interface_v22515_service",
+          "agent1StageOwner": "src.services.agent_runtime_hard_interface_v2257_service",
+          "inputContractOwner": "src.services.agent_input_contract_v2258_service",
+          "inputResolverOwner": "src.services.agent_input_transport_v2258_service",
+          "inputTransportOwner": "src.services.agent_input_transport_v2258_service",
+          "stationWorkerFacade": "src.services.station_agent_worker_v2259_service",
+          "tokenRuntimeOwner": "src.services.agent_token_runtime_hash_exact_v2259_service"
+        },
+        "grayMode": "static_ast",
+        "module": "src.services.agent_runtime_hard_interface_v22515_service",
+        "productionMode": "dynamic_runtime",
+        "staticEvidence": {
+          "module": "src.services.agent_runtime_hard_interface_v22515_service",
+          "ownerConstant": "_EXPECTED_AGENT1_OWNERS",
+          "probeSymbol": "active_agent1_runtime_binding"
+        },
+        "symbol": "active_agent1_runtime_binding"
+      },
+      "fieldIds": [
+        "execution.item_execution_id",
+        "execution.input_content_hash",
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.signal_id",
+        "agent1.operating_judgment",
+        "agent1.decision_type",
+        "agent1.execution_lock",
+        "agent1.locked_action_family",
+        "agent1.decision_ir"
+      ],
+      "implementationPaths": [
+        "src/services/agent_token_runtime_hash_exact_v2259_service.py",
+        "src/services/real_product_judgment_agent_v2259_service.py",
+        "src/services/agent_input_contract_v2258_service.py",
+        "src/services/hash_directed_artifact_runtime_v2259_service.py",
+        "src/services/agent_runtime_hard_interface_v2257_service.py",
+        "src/services/agent_runtime_hard_interface_v22514_service.py",
+        "src/services/agent_runtime_hard_interface_v22515_service.py",
+        "src/services/station_agent_worker_v22515_service.py",
+        "src/services/station_agent_worker_v2259_service.py"
+      ],
+      "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
+      "schemaIds": [
+        "agent_input.agent1.v3"
+      ]
+    },
+    "agent2_runtime": {
+      "fieldIds": [
+        "execution.input_artifact_ref",
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.package_id",
+        "agent1.operating_judgment",
+        "agent1.decision_ir",
+        "agent1.locked_action_family",
+        "action_pack.matrix_dispatch",
+        "action_pack.parameter_pack",
+        "agent2.action_draft",
+        "agent2.creative_draft"
+      ],
+      "implementationPaths": [
+        "src/services/agent_runtime_hard_interface_v22515_service.py",
+        "src/services/agent2_runtime_v22515_service.py",
+        "src/services/agent_runtime_contract_v225_service.py",
+        "src/services/agent2_action_draft_core_v225_service.py",
+        "src/services/agent2_hash_proof_bridge_v22515_service.py",
+        "src/services/hash_directed_artifact_runtime_v2259_service.py"
+      ],
+      "runner": "src.services.agent_runtime_hard_interface_v22515_service:run_agent2_microbatch_hard",
+      "schemaIds": [
+        "agent_input.agent2.v1"
+      ]
+    },
+    "agent3_input_projection": {
+      "fieldIds": [
+        "execution.input_artifact_ref",
+        "execution.input_content_hash",
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.package_id",
+        "agent1.locked_action_family",
+        "action_pack.parameter_pack",
+        "agent2.action_draft"
+      ],
+      "implementationPaths": [
+        "src/services/agent3_system_constraint_base_v23214_service.py",
+        "src/services/agent3_system_constraint_v23213_service.py",
+        "src/services/agent3_system_constraint_v23214_service.py",
+        "src/services/agent3_system_constraint_v23215_service.py",
+        "src/services/agent_input_contract_v225_service.py",
+        "src/services/agent_input_transport_v225_service.py"
+      ],
+      "runner": "src.services.agent3_system_constraint_v23215_service:ensure_agent3_sop_input_ref_v23216",
+      "schemaIds": [
+        "agent_input.agent3_sop.v1"
+      ]
+    },
+    "agent3_runtime": {
+      "fieldIds": [
+        "execution.item_execution_id",
+        "execution.input_content_hash",
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.package_id",
+        "agent1.locked_action_family",
+        "action_pack.parameter_pack",
+        "agent2.action_draft"
+      ],
+      "implementationPaths": [
+        "src/services/agent3_runtime_v23215_service.py",
+        "src/services/agent3_sop_core_v225_service.py",
+        "src/services/agent3_system_constraint_base_v23214_service.py",
+        "src/services/agent3_system_constraint_v23213_service.py",
+        "src/services/agent3_system_constraint_v23214_service.py",
+        "src/services/agent3_system_constraint_v23215_service.py",
+        "src/services/agent_runtime_contract_v225_service.py",
+        "src/services/agent_token_runtime_v2259_service.py",
+        "src/services/agent_token_runtime_v225_service.py",
+        "src/services/pipeline_agent3_sop_v225_service.py"
+      ],
+      "runner": "src.services.pipeline_agent3_sop_v225_service:run_agent3_sop_microbatch_v225",
+      "schemaIds": [
+        "agent_input.agent3_sop.v1"
+      ]
+    },
+    "frontend_view": {
+      "fieldIds": [
+        "entity.data_version",
+        "entity.tenant_id",
+        "entity.store_id",
+        "entity.product_id",
+        "frontend.module_content_hash",
+        "frontend.manifest_hash"
+      ],
+      "implementationPaths": [
+        "config/v23_registry_runtime.json",
+        "src/api/routes/frontend_views.py",
+        "src/services/frontend_view_artifact_v2259_service.py",
+        "src/services/public_task_dto_service.py",
+        "web_demo/index.html",
+        "web_demo/bootstrap.js",
+        "web_demo/core/router.js",
+        "web_demo/core/task-read-model-v2082.js",
+        "web_demo/modules/task-report/page.js",
+        "web_demo/loading-ui.css"
+      ],
+      "runner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
+      "schemaIds": [
+        "frontend_view.module.v2259",
+        "frontend_view.manifest.v2259"
+      ]
+    },
+    "release_governance": {
+      "fieldIds": [
+        "registry.root_hash",
+        "registry.module_contract_hash",
+        "registry.schema_contract_hash"
+      ],
+      "implementationPaths": [
+        "src/services/release_identity_service.py",
+        "src/services/registry_runtime_receipt_v23_service.py",
+        "scripts/start_server.sh",
+        "scripts/deploy_release.sh",
+        "src/deployment/deploy_release_core_v22516.sh",
+        "release/release-policy.json",
+        "config/v23_registry_runtime.json"
+      ],
+      "runner": "src.services.release_identity_service:assert_release_identity",
+      "schemaIds": []
+    },
+    "task_mapping": {
+      "fieldIds": [
+        "entity.product_id",
+        "entity.store_id",
+        "agent2.action_draft"
+      ],
+      "implementationPaths": [
+        "src/services/agent_runtime_contract_v225_service.py",
+        "src/services/pipeline_task_mapping_v225_service.py",
+        "src/services/pipeline_artifact_contract_service.py"
+      ],
+      "runner": "src.services.pipeline_task_mapping_v225_service:run_task_mapping_microbatch_v225",
+      "schemaIds": []
+    },
+    "task_pool": {
+      "fieldIds": [
+        "entity.product_id",
+        "entity.store_id"
+      ],
+      "implementationPaths": [
+        "src/services/pipeline_task_mapping_v225_service.py",
+        "src/services/task_pool_admission_core_v20_service.py",
+        "src/services/lifecycle_task_v183_service.py",
+        "src/services/task_snapshot_station_service.py",
+        "src/services/pipeline_artifact_contract_service.py"
+      ],
+      "runner": "src.services.pipeline_task_mapping_v225_service:run_task_pool_admission_microbatch_v225",
+      "schemaIds": []
+    }
+  },
+  "registryRootHash": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+  "releaseVersion": "23.0.0",
+  "requiredModules": [
+    "release_governance",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "task_mapping",
+    "task_pool",
+    "frontend_view"
+  ],
+  "rules": {
+    "activeBindingProbeRequired": true,
+    "deploymentMustFailClosed": true,
+    "grayProductionModuleContractsMustMatch": true,
+    "grayProductionReleaseIdentityMustMatch": true,
+    "grayReceiptRequiredForProduction": true,
+    "grayStaticBindingRequired": true,
+    "implementationHashRequired": true,
+    "moduleErrorIsolationRequired": true,
+    "productionDynamicBindingRequired": true,
+    "releaseManifestIdentityRequired": true,
+    "runnerFileRequired": true,
+    "runnerSymbolRequired": true
+  },
+  "schema": "registry.runtime_projection.v1",
+  "taskPoolRegistryAlignmentVersion": "23.2.9",
+  "version": "23.0.0-rc.1",
+  "agent2ProofBridgeVersion": "23.2.16"
+}

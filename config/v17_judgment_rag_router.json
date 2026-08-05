@@ -1,0 +1,71 @@
+{
+  "version": "17.0",
+  "name": "Scenario Judgment RAG Router",
+  "purpose": "给数据分析判断 Agent 提供场景化指标关系协议，只用于更快识别强关联数据关系；不包含权限、动作边界、SOP 或审批规则。",
+  "agentBoundary": {
+    "dataJudgmentAgent": [
+      "识别主波动指标",
+      "识别强关联指标和弱关联背景",
+      "计算 deltaConfidence / trendConfidence / relationConfidence",
+      "生成 scene_data_judgment 包",
+      "输出 candidateSignal 与 candidateReason"
+    ],
+    "taskMappingAgent": [
+      "根据数据判断包生成运营动作",
+      "结合权限 RAG / SOP RAG / 审批规则",
+      "输出 action task / SOP / 证据 / 时限 / 复盘指标"
+    ],
+    "dataJudgmentAgentForbidden": [
+      "actionIntent",
+      "allowedActionScope",
+      "forbiddenActionScope",
+      "approvalRequired",
+      "operationBudget",
+      "sopSteps",
+      "evidenceRequirements"
+    ]
+  },
+  "sceneProtocols": [
+    {
+      "sceneRoute": "inventory_traffic_relation",
+      "triggerMetrics": ["inventory"],
+      "strongLinkedMetrics": ["organicVisitors", "paidVisitors", "visitorCount", "paymentAmount", "gmv", "conversionRate", "roi", "roas", "clickRate"],
+      "weakLinkedMetrics": ["refundRate", "afterSalesRate", "grossMargin"],
+      "candidateSignalType": "business_opportunity",
+      "judgmentRule": "库存大幅下降时优先判断是否为流量/成交承接机会；库存单独下降不生成运营动作候选。"
+    },
+    {
+      "sceneRoute": "refund_commitment_relation",
+      "triggerMetrics": ["refundRate", "afterSalesRate"],
+      "strongLinkedMetrics": ["adSpend", "paidVisitors", "roas", "clickRate", "conversionRate", "paymentAmount", "gmv"],
+      "weakLinkedMetrics": ["inventory", "organicVisitors", "grossMargin"],
+      "candidateSignalType": "service_risk",
+      "judgmentRule": "售后上升优先判断强推、人群、点击转化和承诺偏差；不生成售后核查任务。"
+    },
+    {
+      "sceneRoute": "revenue_conversion_relation",
+      "triggerMetrics": ["paymentAmount", "gmv"],
+      "strongLinkedMetrics": ["organicVisitors", "paidVisitors", "visitorCount", "conversionRate", "clickRate", "inventory", "roi", "roas", "adSpend"],
+      "weakLinkedMetrics": ["refundRate", "afterSalesRate"],
+      "candidateSignalType": "revenue_change",
+      "judgmentRule": "支付/GMV变化优先判断流量入口、转化承接、库存承接和投放效率。"
+    },
+    {
+      "sceneRoute": "ad_efficiency_relation",
+      "triggerMetrics": ["roi", "roas", "adSpend"],
+      "strongLinkedMetrics": ["adSpend", "paymentAmount", "gmv", "conversionRate", "clickRate", "paidVisitors", "roi", "roas"],
+      "weakLinkedMetrics": ["inventory", "refundRate", "afterSalesRate"],
+      "candidateSignalType": "efficiency_drop",
+      "judgmentRule": "投放效率场景优先判断广告消耗、成交、点击转化和付费流量联动。"
+    },
+    {
+      "sceneRoute": "conversion_traffic_relation",
+      "triggerMetrics": ["conversionRate", "clickRate", "organicVisitors", "paidVisitors", "visitorCount"],
+      "strongLinkedMetrics": ["organicVisitors", "paidVisitors", "visitorCount", "clickRate", "conversionRate", "paymentAmount", "roi", "roas"],
+      "weakLinkedMetrics": ["refundRate", "inventory"],
+      "candidateSignalType": "conversion_mismatch",
+      "judgmentRule": "流量/转化场景优先判断流量入口和承接效率，不用所有指标平均。"
+    }
+  ],
+  "rule": "V17 的场景路由只提高数据判断效率和准确度；它不是硬规则任务生成器。"
+}

@@ -1,0 +1,440 @@
+name: V22.4.0 Release Hash Seal
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-hash-seal-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-validation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+
+      - name: Verify pull-request validation identity
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = "pull_request"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          echo "PR validation only: no deployable release Artifact will be generated"
+
+      - name: Set up exact Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+
+      - name: Install exact validation environment
+        run: |
+          python -m pip install -r requirements-dev.lock
+          python scripts/check_dependency_lock.py requirements-dev.lock --strict
+
+      - name: Validate pull-request contracts without sealing
+        env:
+          PYTHONPATH: .
+          ARTIFACT_ROOT: /tmp/ai-ecommerce-pr-validation-artifacts
+          AI_RELEASE_REQUIRED: '0'
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+        run: |
+          set -euo pipefail
+          python -m compileall -q src scripts tests
+          bash -n \
+            scripts/runtime_service_resolver.sh \
+            scripts/runtime_exclusivity_guard.sh \
+            scripts/start_server.sh \
+            scripts/deploy_release.sh \
+            scripts/deploy_github_artifact.sh \
+            scripts/install_release_verifier.sh
+          python scripts/check_python36_bootstrap.py
+          python scripts/check_release_contract.py
+          python -m pytest -q tests/test_v22_4_app_route_smoke.py
+          python -m pytest -q
+          node --check web_demo/modules/report/page.js
+          node --check web_demo/modules/system-status/page.js
+          node --check web_demo/core/api-client.js
+          node --check web_demo/core/router.js
+          node --check web_demo/bootstrap.js
+
+  seal-release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact main source commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Verify formal release origin
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = "push"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_REF_NAME" = "main"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "formalReleaseSourceCommit=$GITHUB_SHA"
+          echo "formalReleaseEvent=$GITHUB_EVENT_NAME"
+          echo "formalReleaseRef=$GITHUB_REF"
+
+      - name: Set up exact Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+          cache: pip
+          cache-dependency-path: |
+            requirements.lock
+            requirements-dev.lock
+
+      - name: Install exact gray-test environment
+        run: |
+          python -m pip install -r requirements-dev.lock
+          python scripts/check_dependency_lock.py requirements-dev.lock --strict
+
+      - name: Build clean production runtime environment
+        run: |
+          rm -rf /tmp/ai-release-runtime-venv
+          python -m venv /tmp/ai-release-runtime-venv
+          /tmp/ai-release-runtime-venv/bin/python -m pip install -r requirements.lock
+          /tmp/ai-release-runtime-venv/bin/python scripts/check_dependency_lock.py requirements.lock --strict \
+            | tee /tmp/production-runtime-verification.json
+          /tmp/ai-release-runtime-venv/bin/python -c 'import sys; assert sys.version_info[:3] == (3, 11, 9), sys.version'
+
+      - name: Compile and validate bootstrap/frontend contracts
+        run: |
+          set -euo pipefail
+          mkdir -p ci-artifacts ci-attestation
+          {
+            python -m compileall -q src scripts tests
+            bash -n scripts/runtime_service_resolver.sh scripts/runtime_exclusivity_guard.sh scripts/start_server.sh scripts/deploy_release.sh scripts/deploy_github_artifact.sh scripts/install_release_verifier.sh
+            python scripts/check_python36_bootstrap.py
+            python scripts/sqlite_backup_rotate.py --help >/dev/null
+            python scripts/release_verifier.py --help >/dev/null
+            node --check web_demo/modules/report/page.js
+            node --check web_demo/modules/system-status/page.js
+            node --check web_demo/core/api-client.js
+            node --check web_demo/core/router.js
+            node --check web_demo/bootstrap.js
+
+            sudo rm -rf /tmp/ai-release-verifier-pin /tmp/ai-release-verifier-rotation-candidate
+            sudo env \
+              AI_RELEASE_VERIFIER_PATH=/tmp/ai-release-verifier-pin/ai-release-verifier \
+              AI_RELEASE_VERIFIER_STATE_DIR=/tmp/ai-release-verifier-pin/state \
+              bash scripts/install_release_verifier.sh
+            PINNED_VERIFIER_HASH="$(sudo cat /tmp/ai-release-verifier-pin/state/release-verifier.sha256)"
+            sudo env \
+              AI_RELEASE_VERIFIER_PATH=/tmp/ai-release-verifier-pin/ai-release-verifier \
+              AI_RELEASE_VERIFIER_STATE_DIR=/tmp/ai-release-verifier-pin/state \
+              bash scripts/install_release_verifier.sh
+            mkdir -p /tmp/ai-release-verifier-rotation-candidate/scripts
+            cp scripts/install_release_verifier.sh scripts/release_verifier.py \
+              /tmp/ai-release-verifier-rotation-candidate/scripts/
+            printf '\n# simulated unauthorized verifier change\n' \
+              >> /tmp/ai-release-verifier-rotation-candidate/scripts/release_verifier.py
+            if sudo env \
+              AI_RELEASE_VERIFIER_PATH=/tmp/ai-release-verifier-pin/ai-release-verifier \
+              AI_RELEASE_VERIFIER_STATE_DIR=/tmp/ai-release-verifier-pin/state \
+              bash /tmp/ai-release-verifier-rotation-candidate/scripts/install_release_verifier.sh; then
+              echo "Ordinary release rotated root verifier trust" >&2
+              exit 1
+            fi
+            test "$PINNED_VERIFIER_HASH" = "$(sudo cat /tmp/ai-release-verifier-pin/state/release-verifier.sha256)"
+            test "$PINNED_VERIFIER_HASH" = "$(sudo sha256sum /tmp/ai-release-verifier-pin/ai-release-verifier | awk '{print $1}')"
+            sudo rm -rf /tmp/ai-release-verifier-pin /tmp/ai-release-verifier-rotation-candidate
+            echo "compile, Python 3.6 bootstrap, root trust pinning and frontend checks passed"
+          } 2>&1 | tee ci-attestation/compile-syntax.log
+          cp ci-attestation/compile-syntax.log ci-artifacts/compile-syntax.log
+
+      - name: Run isolated static and runtime contracts
+        env:
+          PYTHONPATH: .
+          ARTIFACT_ROOT: /tmp/ai-ecommerce-release-ci-artifacts
+          AI_RELEASE_REQUIRED: '0'
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p ci-artifacts ci-attestation
+          python scripts/check_release_contract.py | tee ci-attestation/static-contract.log
+          python -m pytest -q tests/test_v22_4_app_route_smoke.py | tee ci-attestation/app-route-smoke.log
+          python -m pytest -q | tee ci-attestation/pytest.log
+          cp ci-attestation/static-contract.log ci-artifacts/static-contract.log
+          cp ci-attestation/app-route-smoke.log ci-artifacts/app-route-smoke.log
+          cp ci-attestation/pytest.log ci-artifacts/pytest.log
+          cp /tmp/production-runtime-verification.json ci-attestation/production-runtime-verification.json
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path('.').resolve()
+          policy = json.loads((root / 'release/release-policy.json').read_text(encoding='utf-8'))
+          paths = set()
+          for pattern in policy.get('attestedGlobs') or []:
+              paths.update(path for path in root.glob(str(pattern)) if path.is_file())
+          for pattern in policy.get('excludeGlobs') or []:
+              for path in root.glob(str(pattern)):
+                  if path.is_file():
+                      paths.discard(path)
+          lines = []
+          for path in sorted(paths, key=lambda item: item.relative_to(root).as_posix()):
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              lines.append(f'{digest}  {path.relative_to(root).as_posix()}')
+          if not lines:
+              raise SystemExit('attested source set is empty')
+          Path('ci-attestation/attested-files.sha256').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
+          python - <<'PY'
+          import json, os, platform
+          from pathlib import Path
+          Path('ci-attestation/test-attestation.json').write_text(
+              json.dumps({
+                  'schema': 'release.test-attestation.v1',
+                  'sourceCommit': os.environ['GITHUB_SHA'],
+                  'releaseEvent': os.environ['GITHUB_EVENT_NAME'],
+                  'releaseRef': os.environ['GITHUB_REF'],
+                  'releaseBranch': os.environ['GITHUB_REF_NAME'],
+                  'releaseWorkflow': os.environ['GITHUB_WORKFLOW'],
+                  'releaseWorkflowPath': '.github/workflows/release-hash-seal.yml',
+                  'deployableArtifact': True,
+                  'pullRequestMergeArtifact': False,
+                  'grayPythonVersion': platform.python_version(),
+                  'productionPythonVersion': '3.11.9',
+                  'requiredEvidenceFiles': [
+                      'compile-syntax.log',
+                      'static-contract.log',
+                      'app-route-smoke.log',
+                      'pytest.log',
+                      'production-runtime-verification.json',
+                      'attested-files.sha256',
+                      'test-attestation.json',
+                      'pip-freeze.txt',
+                      'python-runtime.json',
+                  ],
+                  'staticCheckerImportedRuntime': False,
+                  'cleanProcessRouteSmokePassed': True,
+                  'dependencyLockVerified': True,
+                  'cleanProductionRuntimeVerified': True,
+                  'python36BootstrapChecked': True,
+                  'rootVerifierPinningChecked': True,
+                  'ordinaryVerifierRotationRejected': True,
+                  'compilePassed': True,
+                  'shellSyntaxPassed': True,
+                  'frontendSyntaxPassed': True,
+                  'staticContractPassed': True,
+                  'pytestPassed': True,
+                  'sqliteBackupLifecycleChecked': True,
+                  'legacyBranchDeployAbsent': True,
+                  'shadowServiceRetirementChecked': True,
+                  'strayRuntimeRetirementChecked': True,
+                  'forbiddenLegacyPathCleanupChecked': True,
+                  'legacyWorkingTreeRetirementChecked': True,
+                  'externalBundleControllerChecked': True,
+                  'attestedSourcesSealed': True,
+                  'testEvidenceSealed': True,
+                  'testLogsSealed': True,
+              }, sort_keys=True, separators=(',', ':')) + '\n',
+              encoding='utf-8',
+          )
+          PY
+
+      - name: Generate and verify immutable release bundle
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          python scripts/generate_release_manifest.py \
+            --source-commit "$GITHUB_SHA" \
+            --dependency-lock requirements.lock \
+            --runtime-python /tmp/ai-release-runtime-venv/bin/python \
+            --test-evidence-dir ci-attestation \
+            --staging-dir release-bundle
+          python scripts/release_verifier.py \
+            --root release-bundle \
+            --manifest release-bundle/release/release-manifest.json \
+            | tee ci-artifacts/release-verification.json
+          /tmp/ai-release-runtime-venv/bin/python release-bundle/scripts/check_dependency_lock.py \
+            release-bundle/requirements.lock --strict \
+            | tee ci-artifacts/dependency-lock-verification.json
+
+          rm -rf sealed-app-smoke-bundle
+          cp -a release-bundle sealed-app-smoke-bundle
+          (
+            cd sealed-app-smoke-bundle
+            AI_RELEASE_ROOT="$PWD" \
+            AI_RELEASE_MANIFEST="$PWD/release/release-manifest.json" \
+            AI_RELEASE_REQUIRED=1 \
+            PYTHONDONTWRITEBYTECODE=1 \
+            PYTHONPATH="$PWD" \
+            ARTIFACT_ROOT=/tmp/ai-ecommerce-sealed-app-smoke \
+            /tmp/ai-release-runtime-venv/bin/python - <<'PY'
+          import json
+          from src.api.main import api_version, app
+
+          paths = sorted((app.openapi().get('paths') or {}).keys())
+          version = api_version()
+          identity = version.get('releaseIdentity') or {}
+          assert '/api/system/release-identity' in paths, paths
+          assert identity.get('verified') is True, identity
+          assert identity.get('evidenceSemanticVerified') is True, identity
+          assert identity.get('runtimeEnvironmentMatch') is True, identity
+          assert identity.get('runtimePythonVersion') == '3.11.9', identity
+          assert identity.get('buildPythonVersion') == '3.11.9', identity
+          assert identity.get('runtimePipFreezeHash') == identity.get('pipFreezeHash'), identity
+          assert identity.get('testRunHash') == identity.get('calculatedTestRunHash'), identity
+          assert identity.get('verifiedFileCount') == identity.get('manifestFileCount'), identity
+          assert identity.get('verifiedAttestedFileCount') == identity.get('attestedFileCount'), identity
+          assert identity.get('verifiedTestEvidenceFileCount') == identity.get('testEvidenceFileCount'), identity
+          assert identity.get('extraRuntimeFileCount') == 0, identity
+          assert identity.get('extraAttestedFileCount') == 0, identity
+          assert identity.get('extraTestEvidenceFileCount') == 0, identity
+          print(json.dumps({
+              'schema': 'release.sealed-app-smoke.v1',
+              'version': version.get('version'),
+              'runtimeMode': version.get('runtimeMode'),
+              'routeCount': len(paths),
+              'releaseHash': identity.get('releaseHash'),
+              'sourceCommit': identity.get('sourceCommit'),
+              'runtimeEnvironmentMatch': identity.get('runtimeEnvironmentMatch'),
+              'evidenceSemanticVerified': identity.get('evidenceSemanticVerified'),
+              'proofSetMatch': True,
+          }, ensure_ascii=False, sort_keys=True))
+          PY
+          ) | tee ci-artifacts/sealed-app-smoke.json
+          python scripts/release_verifier.py \
+            --root sealed-app-smoke-bundle \
+            --manifest sealed-app-smoke-bundle/release/release-manifest.json \
+            | tee ci-artifacts/post-smoke-release-verification.json
+          rm -rf sealed-app-smoke-bundle
+
+          rm -rf tampered-bundle
+          cp -a release-bundle tampered-bundle
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('tampered-bundle')
+          manifest = json.loads((root / 'release/release-manifest.json').read_text(encoding='utf-8'))
+          target = root / manifest['attestedFiles'][0]['path']
+          target.write_bytes(target.read_bytes() + b'\nattested-tamper\n')
+          PY
+          if python scripts/release_verifier.py --root tampered-bundle --manifest tampered-bundle/release/release-manifest.json; then
+            echo "Root verifier accepted tampered attested source" >&2
+            exit 1
+          fi
+
+          rm -rf tampered-bundle
+          cp -a release-bundle tampered-bundle
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('tampered-bundle')
+          manifest = json.loads((root / 'release/release-manifest.json').read_text(encoding='utf-8'))
+          target = root / manifest['testEvidenceFiles'][0]['path']
+          target.write_bytes(target.read_bytes() + b'\ntest-evidence-tamper\n')
+          PY
+          if python scripts/release_verifier.py --root tampered-bundle --manifest tampered-bundle/release/release-manifest.json; then
+            echo "Root verifier accepted tampered test evidence" >&2
+            exit 1
+          fi
+
+          rm -rf tampered-bundle
+          cp -a release-bundle tampered-bundle
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path('tampered-bundle')
+          manifest_path = root / 'release/release-manifest.json'
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          attestation_path = root / 'release/attestation/test-attestation.json'
+          attestation = json.loads(attestation_path.read_text(encoding='utf-8'))
+          attestation['sourceCommit'] = '0' * 40
+          attestation_path.write_text(
+              json.dumps(attestation, sort_keys=True, separators=(',', ':')) + '\n',
+              encoding='utf-8',
+          )
+          for entry in manifest['testEvidenceFiles']:
+              path = root / entry['path']
+              entry['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+              entry['size'] = path.stat().st_size
+          digest = hashlib.sha256()
+          for entry in sorted(manifest['testEvidenceFiles'], key=lambda item: item['path']):
+              digest.update(entry['path'].encode('utf-8'))
+              digest.update(b'\0')
+              digest.update(bytes.fromhex(entry['sha256']))
+          manifest['testRunHash'] = 'sha256:' + digest.hexdigest()
+          canonical_payload = {
+              key: value for key, value in manifest.items()
+              if key not in {'manifestHash', 'releaseHash'}
+          }
+          canonical = json.dumps(
+              canonical_payload,
+              ensure_ascii=False,
+              sort_keys=True,
+              separators=(',', ':'),
+          ).encode('utf-8')
+          manifest['manifestHash'] = 'sha256:' + hashlib.sha256(canonical).hexdigest()
+          manifest['releaseHash'] = 'sha256:' + hashlib.sha256(
+              b'release.manifest.v1\0' + canonical
+          ).hexdigest()
+          manifest_path.write_text(
+              json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+          if python scripts/release_verifier.py --root tampered-bundle --manifest tampered-bundle/release/release-manifest.json; then
+            echo "Root verifier accepted self-consistent cross-commit evidence" >&2
+            exit 1
+          fi
+
+          rm -rf tampered-bundle
+          cp -a release-bundle tampered-bundle
+          printf 'LEGACY = True\n' > tampered-bundle/src/legacy_runtime_overlay.py
+          if python scripts/release_verifier.py --root tampered-bundle --manifest tampered-bundle/release/release-manifest.json; then
+            echo "Root verifier accepted extra legacy runtime file" >&2
+            exit 1
+          fi
+
+          rm -rf tampered-bundle
+          cp -a release-bundle tampered-bundle
+          printf 'LEGACY = True\n' > tampered-bundle/tests/legacy_contract_overlay.py
+          if python scripts/release_verifier.py --root tampered-bundle --manifest tampered-bundle/release/release-manifest.json; then
+            echo "Root verifier accepted extra attested file" >&2
+            exit 1
+          fi
+
+          rm -rf tampered-bundle
+          cp -a release-bundle tampered-bundle
+          printf 'legacy evidence\n' > tampered-bundle/release/attestation/legacy-gray-proof.log
+          if python scripts/release_verifier.py --root tampered-bundle --manifest tampered-bundle/release/release-manifest.json; then
+            echo "Root verifier accepted extra test evidence file" >&2
+            exit 1
+          fi
+          rm -rf tampered-bundle
+
+          RELEASE_HASH="$(python -c 'import json; print(json.load(open("release-bundle/release/release-manifest.json"))["releaseHash"].split(":",1)[1])')"
+          tar -C release-bundle -czf "ci-artifacts/release-${GITHUB_SHA}-${RELEASE_HASH}.tar.gz" .
+          cp release-bundle/release/release-manifest.json ci-artifacts/release-manifest.json
+
+      - name: Upload hash-sealed main release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.sha }}
+          path: ci-artifacts
+          if-no-files-found: error
+          retention-days: 7

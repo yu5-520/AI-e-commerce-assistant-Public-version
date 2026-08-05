@@ -1,0 +1,37 @@
+{
+  "version": "17.2",
+  "name": "First Report Baseline Mode",
+  "purpose": "明确首份报表只建立商品、店铺、指标和 fullProductBundle 基线，不进入变化任务生成。",
+  "baselineDetection": {
+    "condition": "previousSnapshotId is empty and previousDataVersion is empty",
+    "baselineMode": "first_report",
+    "status": "baseline_completed"
+  },
+  "firstReportFlow": [
+    "report_receive_station",
+    "report_schema_station",
+    "report_fact_station",
+    "product_master_station",
+    "product_metric_snapshot_station",
+    "full_product_bundle_station",
+    "bundle_validation_station",
+    "baseline_completed"
+  ],
+  "skippedOnFirstReport": [
+    "metricTrigger",
+    "scene_data_judgment",
+    "task_mapping_agent_station",
+    "task_pool_admission_station"
+  ],
+  "secondReportAndLaterFlow": [
+    "currentSnapshot + previousSnapshot",
+    "changeVsPrevious",
+    "metricTrigger",
+    "scene_data_judgment",
+    "task_mapping_agent_station",
+    "operation_action",
+    "task_pool_admission_station"
+  ],
+  "dataLineMessage": "首份报表已建立基线，等待下一份报表形成变化判断。",
+  "rule": "首份报表任务为0是正确结果，但必须显示为基线完成，而不是任务链路卡住。"
+}

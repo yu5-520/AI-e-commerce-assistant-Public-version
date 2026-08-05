@@ -1,0 +1,3 @@
+# Compatibility entrypoint only.
+# Production and CI must install the exact versions from requirements.lock.
+-r requirements.lock

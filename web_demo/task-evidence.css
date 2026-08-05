@@ -1,0 +1,127 @@
+.task-evidence-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 22px;
+  background: #f8fafc;
+}
+
+.task-evidence-form,
+.task-review-form,
+.task-evidence-history {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+.task-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.task-evidence-grid label,
+.task-review-form label {
+  display: grid;
+  gap: 7px;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.task-evidence-grid label.wide {
+  grid-column: 1 / -1;
+}
+
+.task-evidence-grid input,
+.task-evidence-grid select,
+.task-evidence-grid textarea,
+.task-review-form textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+  padding: 10px 12px;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 850;
+  box-sizing: border-box;
+}
+
+.task-evidence-grid textarea,
+.task-review-form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.task-evidence-checks {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.task-evidence-checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.task-evidence-checks button,
+.task-review-form button {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 15px;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.task-evidence-checks button.primary,
+.task-review-form button.primary {
+  background: #080b12;
+  color: #ffffff;
+  border-color: #080b12;
+}
+
+.task-evidence-history {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.task-evidence-history strong {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.task-evidence-history span {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+@media (max-width: 980px) {
+  .task-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-evidence-history {
+    grid-template-columns: 1fr;
+  }
+}

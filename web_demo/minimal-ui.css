@@ -1,0 +1,453 @@
+/* V10.2 productized UI: compact framing, dominant actions, large task surface. */
+.view .eyebrow,
+.view .card-desc,
+.view .section-header p,
+.view .report-hero p,
+.view .report-detail-hero p,
+.view .unit-hero p,
+.view .product-toolbar p,
+.view .traffic-toolbar p,
+.view .listing-toolbar p,
+.view .manager-hero p,
+.view .manager-hero .eyebrow,
+.view .manager-hero-side span,
+.view .manager-hero-side small,
+.view .manager-card p,
+.view .manager-card small,
+.view .manager-schedule-main small,
+.view .manager-schedule-source span,
+.view .manager-schedule-source small,
+.view .manager-schedule-judgment span,
+.view .report-upload-tip,
+.view .org-scope-note,
+.view .unit-scope-note,
+.view .chain-card p,
+.view .chain-card footer,
+.view .org-node small,
+.view .org-control-card small,
+.view .review-card small,
+.view .product-title-block small,
+.view .product-title-block span,
+.view .traffic-title-block small,
+.view .traffic-title-block span,
+.view .report-hero-side span,
+.view .report-hero-side small,
+.view .unit-hero-side span,
+.view .unit-hero-side small,
+.view .kpi-grid small,
+.view .report-metric-card h3 + span,
+.view .realtime-metric small,
+.view .todo-toolbar p,
+.view .todo-title-block small,
+.view .todo-title-block span,
+.view .todo-task-block small,
+.view .todo-number-cell small,
+.view .dashboard-schedule-copy small,
+.view .dashboard-schedule-time span,
+.view .system-hero p {
+  display: none !important;
+}
+
+.topbar {
+  padding: 14px 32px 12px !important;
+  min-height: 68px;
+}
+
+.topbar .eyebrow {
+  margin-bottom: 3px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.topbar h1 {
+  font-size: clamp(24px, 2.4vw, 34px) !important;
+  letter-spacing: -0.045em !important;
+}
+
+.view {
+  padding: 22px 32px 48px !important;
+}
+
+.view .report-hero,
+.view .unit-hero,
+.view .realtime-hero,
+.view .manager-hero,
+.view .product-toolbar,
+.view .traffic-toolbar,
+.view .todo-toolbar,
+.view .owner-hero,
+.view .system-hero,
+.view .v102-hero {
+  padding: 16px 20px !important;
+  margin-bottom: 12px !important;
+  border-radius: 24px !important;
+}
+
+.view .report-hero h2,
+.view .unit-hero h2,
+.view .realtime-hero h2,
+.view .manager-hero h2,
+.view .todo-toolbar h2,
+.view .owner-hero h2,
+.view .system-hero h2,
+.view .v102-hero h2 {
+  margin: 0;
+  font-size: clamp(28px, 3.8vw, 48px) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.07em !important;
+}
+
+.view .report-hero-side,
+.view .unit-hero-side,
+.view .manager-hero-side,
+.view .owner-hero-side,
+.view .system-hero-side {
+  min-width: 180px;
+  padding: 14px 16px !important;
+  align-content: center;
+  justify-items: start;
+}
+
+.view .report-hero-side strong,
+.view .unit-hero-side strong,
+.view .manager-hero-side strong,
+.view .owner-hero-side strong,
+.view .system-hero-side strong {
+  font-size: 22px !important;
+}
+
+.view .kpi-grid,
+.view .todo-metrics,
+.view .owner-metrics,
+.view .unit-metrics,
+.view .system-metric-grid {
+  gap: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+.view .card,
+.view .page-section,
+.view .report-card,
+.view .product-row,
+.view .traffic-row,
+.view .manager-card,
+.view .manager-schedule-row,
+.view .org-control-card,
+.view .org-node {
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.04);
+}
+
+.view .card,
+.view .kpi-grid .card,
+.view .unit-metric-card,
+.view .system-metric {
+  min-height: 92px;
+  padding: 16px 18px !important;
+}
+
+.view .card h3,
+.view .kpi-grid .card h3,
+.view .unit-metric-card h3,
+.view .system-metric span {
+  margin-bottom: 10px !important;
+  color: #6b7280;
+  font-size: 12px !important;
+  font-weight: 950;
+}
+
+.view .card strong,
+.view .kpi-grid .card strong,
+.view .unit-metric-card strong,
+.view .system-metric strong {
+  font-size: clamp(26px, 3vw, 36px) !important;
+  letter-spacing: -0.06em;
+}
+
+.view .page-section {
+  padding: 20px !important;
+  margin-bottom: 12px !important;
+}
+
+.view .section-header {
+  margin-bottom: 12px !important;
+}
+
+.view .section-header h3 {
+  margin: 0;
+  font-size: 22px !important;
+  letter-spacing: -0.04em;
+}
+
+.view .status-badge,
+.view .mode-badge,
+.view .badge,
+.view .system-pill {
+  padding: 4px 9px !important;
+  font-size: 11px !important;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.view button,
+.view .primary,
+.view .v102-primary-action button {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.view .todo-card,
+.view .dashboard-task-card {
+  padding: 22px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.055);
+}
+
+.view .todo-card-list,
+.view .dashboard-task-list {
+  display: grid;
+  gap: 14px;
+}
+
+.view .todo-title-block strong,
+.view .dashboard-schedule-title-line h3,
+.view .todo-task-block strong {
+  font-size: clamp(20px, 2.2vw, 28px) !important;
+  line-height: 1.12;
+  letter-spacing: -0.055em;
+}
+
+.view .todo-task-block,
+.view .todo-meta-strip,
+.view .task-evidence-panel,
+.view .todo-actions {
+  margin-top: 14px !important;
+}
+
+.view .todo-actions,
+.view .task-actions,
+.view .task-evidence-checks,
+.view .dashboard-linked-actions,
+.view .quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.view .todo-actions button:first-child,
+.view .dashboard-linked-actions button,
+.view .quick-actions button:first-child {
+  min-width: 132px;
+}
+
+.v102-hero,
+.report-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+  gap: 16px;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.05);
+}
+
+.v102-hero strong {
+  display: block;
+  margin-top: 8px;
+  color: #343b49;
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 900;
+}
+
+.v102-primary-action {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 22px;
+  background: #080b12;
+  color: #ffffff;
+}
+
+.v102-primary-action span {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.v102-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255,255,255,0.78);
+  color: #384152;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.v102-status-strip strong {
+  color: #111827;
+}
+
+.report-record-list {
+  display: grid;
+  gap: 10px;
+}
+
+.report-record-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 120px 160px auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.report-record-row strong {
+  font-size: 17px;
+  letter-spacing: -0.035em;
+}
+
+.report-record-row span {
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.permission-muted,
+.permission-result {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #edf0f5;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.migration-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.migration-form label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 950;
+  color: #111827;
+}
+
+.migration-form select,
+.migration-form input {
+  min-height: 44px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 0 12px;
+  background: #fff;
+  font-weight: 900;
+}
+
+.migration-form button {
+  border: 0;
+  border-radius: 999px;
+  background: #080b12;
+  color: #fff;
+  min-height: 44px;
+  padding: 0 18px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.impact-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.impact-grid span,
+.pending-migration b,
+.pending-migration span,
+.pending-migration em {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.pending-migration {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.pending-migration b {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.migration-list {
+  display: grid;
+  gap: 10px;
+}
+
+.migration-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(180px, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.migration-row strong,
+.migration-row span,
+.migration-row em,
+.migration-row b {
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 900;
+  color: #111827;
+}
+
+.migration-row.empty {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 980px) {
+  .migration-form,
+  .migration-row,
+  .v102-hero,
+  .report-record-row {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar,
+  .view {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+}

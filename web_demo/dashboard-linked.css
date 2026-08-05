@@ -1,0 +1,336 @@
+.dashboard-linked-board {
+  margin-bottom: 14px;
+}
+
+.dashboard-linked-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-linked-header > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dashboard-linked-header button,
+.dashboard-linked-actions button {
+  border: 0;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #343b49;
+  padding: 9px 13px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.dashboard-linked-header button,
+.dashboard-linked-actions button:first-child {
+  background: #080b12;
+  color: #ffffff;
+}
+
+.dashboard-linked-actions button.ghost {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: #7a8190;
+}
+
+.dashboard-time-system {
+  display: grid;
+  grid-template-columns: minmax(180px, auto) 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 22px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #ffffff;
+}
+
+.dashboard-time-system strong {
+  display: block;
+  color: #080b12;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.dashboard-time-system span {
+  color: #7a8190;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.dashboard-time-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.dashboard-time-chips span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #343b49;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.dashboard-time-chips strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #080b12;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.dashboard-task-card.dashboard-linked-task,
+.dashboard-task-card.dashboard-schedule-row {
+  display: grid;
+  grid-template-columns: 44px 126px minmax(220px, 1fr) 150px minmax(180px, 0.8fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.dashboard-task-card.dashboard-linked-task > *,
+.dashboard-task-card.dashboard-schedule-row > * {
+  min-width: 0;
+}
+
+.dashboard-schedule-time,
+.dashboard-schedule-source,
+.dashboard-schedule-judgment {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.dashboard-schedule-time span,
+.dashboard-schedule-source span,
+.dashboard-schedule-judgment > span {
+  display: block;
+  margin-bottom: 4px;
+  color: #7a8190;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.dashboard-schedule-time strong,
+.dashboard-schedule-source strong {
+  display: block;
+  overflow: hidden;
+  color: #080b12;
+  font-size: 15px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-schedule-source small {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #7a8190;
+  font-size: 11px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-schedule-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dashboard-linked-thumb {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: #eef2ff;
+  color: #080b12;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.dashboard-schedule-copy {
+  min-width: 0;
+}
+
+.dashboard-schedule-title-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dashboard-schedule-title-line h3 {
+  margin: 0;
+  overflow: hidden;
+  color: #080b12;
+  font-size: 21px;
+  font-weight: 950;
+  letter-spacing: -0.05em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-schedule-title-line span {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.dashboard-schedule-copy > strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #343b49;
+  font-size: 14px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-schedule-copy > small {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #7a8190;
+  font-size: 12px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-judgment-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dashboard-judgment-tags span {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #343b49;
+  font-size: 11px;
+  font-weight: 900;
+  border: 1px solid var(--line);
+}
+
+.dashboard-linked-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 190px;
+}
+
+.dashboard-done-notice,
+.dashboard-empty {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.dashboard-done-notice {
+  margin-bottom: 14px;
+}
+
+.v110-task-bridge-notice {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #f8fafc;
+  color: #343b49;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.v110-task-bridge-notice strong {
+  color: #080b12;
+}
+
+.v110-task-bridge-notice span {
+  color: #64748b;
+}
+
+@media (max-width: 1480px) {
+  .dashboard-task-card.dashboard-linked-task,
+  .dashboard-task-card.dashboard-schedule-row {
+    grid-template-columns: 44px 126px minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .dashboard-schedule-source,
+  .dashboard-schedule-judgment,
+  .dashboard-linked-actions {
+    grid-column: 3 / -1;
+  }
+
+  .dashboard-linked-actions {
+    max-width: none;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 920px) {
+  .dashboard-time-system {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-time-chips {
+    justify-content: flex-start;
+  }
+
+  .dashboard-task-card.dashboard-linked-task,
+  .dashboard-task-card.dashboard-schedule-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-schedule-source,
+  .dashboard-schedule-judgment,
+  .dashboard-linked-actions {
+    grid-column: auto;
+  }
+
+  .dashboard-schedule-main {
+    align-items: flex-start;
+  }
+}

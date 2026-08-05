@@ -1,0 +1,21 @@
+{
+  "version": "17.1",
+  "name": "Metric Trigger Expansion",
+  "purpose": "把 fullProductBundle 从整体判断单位改为 metricTrigger 来源和任务映射证据上下文。",
+  "principles": [
+    "fullProductBundle 不直接喂给数据分析 Agent 做 overall 判断",
+    "系统读取 fullProductBundle.snapshotLayer.fieldSignals 展开主波动指标",
+    "每个主波动指标进入对应的 scene_data_judgment 包",
+    "数据判断只输出数据关系是否成立",
+    "任务映射使用 fullProductBundleEvidence 写 SOP、证据、复盘和用户解释"
+  ],
+  "pipeline": [
+    "full_product_bundle_station",
+    "product_judgment_package_station.metric_trigger_expansion",
+    "task_mapping_agent_station.with_fullProductBundleEvidence",
+    "task_pool_admission_station"
+  ],
+  "dataJudgmentInput": ["metricTrigger", "sceneRoute", "strongLinkedMetricSupport", "weakLinkedMetricBackground", "relationConfidence", "candidateSignal"],
+  "taskMappingInput": ["scene_data_judgment", "fullProductBundleEvidence", "permissionRAG", "sopRAG", "reviewMetrics"],
+  "rule": "判断轻量化，解释重上下文。"
+}

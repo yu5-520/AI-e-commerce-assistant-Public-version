@@ -1,0 +1,58 @@
+/* V21.7.8 task-referenced evidence reuses product snapshot table geometry. */
+.product-snapshot-head.has-usage,
+.product-snapshot-row.has-usage {
+  grid-template-columns: 170px repeat(var(--snapshot-count), minmax(130px, 1fr)) minmax(210px, 1fr);
+  min-width: calc(380px + var(--snapshot-count) * 130px);
+}
+
+.task-metric-usage {
+  min-width: 0;
+  padding: 12px 14px;
+  border-left: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.task-metric-usage strong,
+.task-metric-usage small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-metric-usage strong {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.55;
+  white-space: normal;
+}
+
+.task-metric-usage small {
+  margin-top: 5px;
+  color: #7a8190;
+  font-size: 10px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.task-evidence-section .product-trend-summary > div:last-child strong {
+  color: #3730a3;
+}
+
+.task-evidence-blocked {
+  border-color: rgba(194, 65, 12, 0.16);
+  background: linear-gradient(180deg, #fff, #fff7ed);
+}
+
+.task-evidence-blocked p {
+  margin: 0;
+  color: #9a3412;
+  font-weight: 820;
+  line-height: 1.75;
+}
+
+.task-evidence-blocked strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #7c2d12;
+  font-size: 17px;
+}

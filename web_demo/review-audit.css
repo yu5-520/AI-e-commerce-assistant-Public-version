@@ -1,0 +1,155 @@
+.review-section {
+  overflow: visible;
+}
+
+.review-card-list {
+  display: grid;
+  gap: 14px;
+}
+
+.review-card {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.review-card summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.review-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-card summary > div:first-child {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.review-card summary strong {
+  font-size: 19px;
+  letter-spacing: -0.04em;
+  white-space: normal;
+}
+
+.review-card summary small {
+  grid-column: 2;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.review-summary-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.review-summary-meta span,
+.review-summary-meta b {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.review-summary-meta b {
+  background: #f8fafc;
+  color: #111827;
+}
+
+.review-detail {
+  display: grid;
+  gap: 14px;
+  padding: 0 20px 20px 48px;
+  border-top: 1px solid #edf0f5;
+  background: #fbfcfe;
+}
+
+.review-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.review-pill-row span {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.review-detail-note {
+  padding: 14px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #edf0f5;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.7;
+}
+
+.review-detail-block {
+  padding: 14px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #edf0f5;
+}
+
+.review-detail-block strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.review-detail-block ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #4b5563;
+  line-height: 1.8;
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.review-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .review-card summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .review-summary-meta {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .review-detail {
+    padding-left: 20px;
+  }
+}

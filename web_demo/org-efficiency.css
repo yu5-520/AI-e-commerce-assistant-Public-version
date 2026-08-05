@@ -1,0 +1,153 @@
+.org-section .chain-card p,
+.org-section p {
+  display: block !important;
+}
+
+.org-map {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.org-node {
+  width: min(100%, 520px);
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fff, #f8fafc);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.04);
+}
+
+.org-node.owner { border-color: rgba(37, 99, 235, 0.24); }
+.org-node.manager { border-color: rgba(217, 119, 6, 0.24); }
+
+.org-node strong {
+  display: block;
+  font-size: 22px;
+  letter-spacing: -0.05em;
+  margin-bottom: 8px;
+}
+
+.org-node span {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.org-node small {
+  display: block;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.6;
+}
+
+.org-line {
+  width: 2px;
+  height: 28px;
+  background: #d8dde7;
+}
+
+.org-children {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.org-children .org-node { width: 100%; }
+
+.org-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.assignment-grid {
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+}
+
+.org-control-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.04);
+}
+
+.org-control-card p,
+.org-control-card small,
+.org-scope-note {
+  margin: 0;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.6;
+}
+
+.org-scope-note {
+  margin-bottom: 14px;
+}
+
+.responsibility-card .section-header {
+  align-items: flex-start;
+}
+
+.assignment-current {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #edf0f5;
+}
+
+.assignment-current strong {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.assignment-current span {
+  color: #080b12;
+  font-size: 22px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.permission-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.permission-chip-row button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  background: #f3f4f6;
+  color: #343b49;
+  cursor: pointer;
+}
+
+.permission-chip-row button.active {
+  background: #080b12;
+  color: #ffffff;
+}
+
+@media (max-width: 1040px) {
+  .org-children,
+  .org-control-grid,
+  .assignment-grid {
+    grid-template-columns: 1fr;
+  }
+}

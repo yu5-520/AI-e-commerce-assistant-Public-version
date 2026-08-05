@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "release.manifest.v1",
+  "title": "AI Ecommerce Release Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "productVersion",
+    "runtimeMode",
+    "sourceCommit",
+    "runtimeFiles",
+    "attestedFiles",
+    "testEvidenceFiles",
+    "forbiddenPaths",
+    "allowedEntrypoints",
+    "dependencyLock",
+    "buildEnvironment",
+    "testRunHash",
+    "verificationContract",
+    "manifestHash",
+    "releaseHash"
+  ],
+  "properties": {
+    "schema": {"const": "release.manifest.v1"},
+    "productVersion": {"type": "string", "minLength": 1},
+    "runtimeMode": {"const": "single_release_sealed_runtime"},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "runtimeFiles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/fileHash"}
+    },
+    "attestedFiles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/fileHash"}
+    },
+    "testEvidenceFiles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/fileHash"}
+    },
+    "forbiddenPaths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "allowedEntrypoints": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "dependencyLock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "format"],
+      "properties": {
+        "path": {"const": "requirements.lock"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "format": {"const": "pip-exact-pins-v1"}
+      }
+    },
+    "buildEnvironment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pythonVersion", "pipFreezeHash"],
+      "properties": {
+        "pythonVersion": {"const": "3.11.9"},
+        "pipFreezeHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "testRunHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "manifestHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "releaseHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "verificationContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hashAlgorithm",
+        "canonicalJson",
+        "extraRuntimeFileAllowed",
+        "forbiddenPathAllowed",
+        "dependencyLockRequired",
+        "attestedFilesRequired",
+        "testEvidenceFilesRequired"
+      ],
+      "properties": {
+        "hashAlgorithm": {"const": "sha256"},
+        "canonicalJson": {"const": "utf8_sorted_keys_compact"},
+        "extraRuntimeFileAllowed": {"const": false},
+        "forbiddenPathAllowed": {"const": false},
+        "dependencyLockRequired": {"const": true},
+        "attestedFilesRequired": {"const": true},
+        "testEvidenceFilesRequired": {"const": true}
+      }
+    }
+  },
+  "$defs": {
+    "fileHash": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "size"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

@@ -1,0 +1,112 @@
+.supply-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.chain-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fff, #f8fafc);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.04);
+}
+
+.chain-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.chain-card header div {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chain-card strong {
+  font-size: 22px;
+  letter-spacing: -0.05em;
+}
+
+.chain-card p {
+  display: block !important;
+  margin: 0;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.6;
+}
+
+.chain-card footer {
+  color: #7a8190;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.supply-table-row {
+  display: grid;
+  grid-template-columns: 170px 120px 120px 110px 110px 110px 110px 120px 110px;
+  gap: 12px;
+  align-items: center;
+  min-width: 1100px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.traffic-table-row {
+  display: grid;
+  grid-template-columns: 150px 130px 110px 110px 110px 110px 110px 130px 110px;
+  gap: 12px;
+  align-items: center;
+  min-width: 1080px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.finance-table-row {
+  display: grid;
+  grid-template-columns: 170px 130px 130px 130px 130px 130px 130px 130px;
+  gap: 12px;
+  align-items: center;
+  min-width: 1050px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.supply-table-row.head,
+.traffic-table-row.head,
+.finance-table-row.head {
+  background: #f8fafc;
+  color: #7a8190;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+}
+
+.supply-table-row strong,
+.traffic-table-row strong,
+.finance-table-row strong {
+  font-size: 17px;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.supply-table-row span,
+.traffic-table-row span,
+.finance-table-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+@media (max-width: 1040px) {
+  .supply-grid { grid-template-columns: 1fr; }
+}

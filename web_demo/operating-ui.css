@@ -1,0 +1,106 @@
+/* V11.16 operating page productized store cards. */
+.operating-store-list {
+  display: grid;
+  gap: 12px;
+}
+
+.operating-store-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.15fr) minmax(280px, 1.45fr) 132px;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.04);
+}
+
+.operating-store-card.good { border-color: rgba(5, 150, 105, 0.18); }
+.operating-store-card.warning { border-color: rgba(217, 119, 6, 0.22); }
+
+.operating-store-main {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.operating-store-main strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+.operating-store-main span,
+.operating-store-meta span,
+.operating-store-action span {
+  display: block;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.operating-store-meta {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.operating-store-meta > div {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.store-row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.store-row-tags em {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.store-row-tags.weight em {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.operating-store-action {
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+}
+
+.operating-store-action strong {
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.operating-store-action button {
+  min-height: 38px !important;
+  padding: 0 16px !important;
+}
+
+@media (max-width: 980px) {
+  .operating-store-card { grid-template-columns: 1fr; align-items: start; }
+  .operating-store-action { justify-items: start; }
+}

@@ -1,0 +1,29 @@
+.store-table-row.people-row {
+  grid-template-columns: 150px 110px 90px 90px 90px 90px 90px 76px 76px 110px 92px 220px;
+  min-width: 1340px;
+}
+
+.store-table-row.people-row strong {
+  font-size: 17px;
+}
+
+.platform-card .status-dot.warning,
+.store-table-row .status-dot.warning {
+  background: var(--warning);
+}
+
+.platform-card .status-dot.watch,
+.store-table-row .status-dot.watch {
+  background: var(--blue);
+}
+
+.platform-card .status-dot.good,
+.store-table-row .status-dot.good {
+  background: var(--success);
+}
+
+@media (max-width: 1040px) {
+  .store-table-row.people-row {
+    min-width: 1180px;
+  }
+}

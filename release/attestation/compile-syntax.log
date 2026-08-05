@@ -1,0 +1,9 @@
+{"embeddedCleanupBlockCount": 2, "pythonFeatureVersion": "3.6", "rootVerifier": "scripts/release_verifier.py", "schema": "release.python36-bootstrap-check.v1", "verified": true}
+Installed release verifier: /tmp/ai-release-verifier-pin/ai-release-verifier
+Pinned verifier SHA256: 978f9af28acd3268bf003037e3b307a579daa3a624ff3dcbda3f1a86ca56f3a9
+Bootstrap Python: /opt/hostedtoolcache/Python/3.11.9/x64/bin/python
+Verifier already pinned: /tmp/ai-release-verifier-pin/ai-release-verifier
+Pinned verifier SHA256: 978f9af28acd3268bf003037e3b307a579daa3a624ff3dcbda3f1a86ca56f3a9
+Bootstrap Python: /opt/hostedtoolcache/Python/3.11.9/x64/bin/python
+ERROR: Candidate verifier differs from the pinned verifier; ordinary release deployment cannot rotate root trust
+compile, Python 3.6 bootstrap, root trust pinning and frontend checks passed

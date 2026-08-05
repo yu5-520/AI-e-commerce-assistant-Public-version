@@ -1,0 +1,32 @@
+............................................................             [100%]
+=============================== warnings summary ===============================
+src/api/main.py:438
+  /home/runner/work/AI-e-commerce-assistant/AI-e-commerce-assistant/src/api/main.py:438: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../../../../../opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/fastapi/applications.py:4675
+../../../../../opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/fastapi/applications.py:4675
+  /opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/fastapi/applications.py:4675: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+src/api/main.py:454
+  /home/runner/work/AI-e-commerce-assistant/AI-e-commerce-assistant/src/api/main.py:454: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+60 passed, 4 warnings in 1.94s

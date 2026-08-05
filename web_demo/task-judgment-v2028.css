@@ -1,0 +1,66 @@
+/* V20.28 task judgment semantic hierarchy */
+
+.task-judgment-grid {
+  grid-template-columns: minmax(220px, 0.82fr) minmax(0, 1.38fr);
+}
+
+.task-decision-card.conclusion {
+  min-height: 112px;
+  border-color: rgba(79, 70, 229, 0.16);
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: inset 4px 0 0 #4f46e5;
+}
+
+.task-decision-card.conclusion span {
+  color: #64748b;
+}
+
+.task-decision-card.conclusion strong {
+  align-self: start;
+  max-width: 18em;
+  color: #0f172a;
+  font-size: clamp(19px, 1.8vw, 24px);
+  line-height: 1.35;
+  letter-spacing: -0.035em;
+}
+
+.task-decision-card.basis {
+  background: #f8fafc;
+}
+
+.task-judgment-basis {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-judgment-basis li {
+  position: relative;
+  margin: 0;
+  padding-left: 16px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.7;
+}
+
+.task-judgment-basis li::before {
+  position: absolute;
+  top: 0.78em;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #6366f1;
+  content: "";
+  transform: translateY(-50%);
+}
+
+@media (max-width: 820px) {
+  .task-judgment-grid {
+    grid-template-columns: 1fr;
+  }
+}

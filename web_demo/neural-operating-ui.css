@@ -1,0 +1,259 @@
+/* V21.8.0 shared neural operating UI layer.
+   Existing business modules keep their layouts; this layer adds one quiet rail,
+   lifecycle state and real-event pulse across the whole product. */
+
+:root {
+  --neural-signal: #5b55e7;
+  --neural-signal-soft: rgba(91, 85, 231, 0.1);
+  --neural-success: #3f9d78;
+  --neural-warning: #d4a039;
+  --neural-danger: #d86543;
+  --neural-line: rgba(91, 85, 231, 0.15);
+}
+
+.sidebar .nav {
+  position: relative;
+}
+
+.sidebar .nav::before {
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 18px;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(91, 85, 231, 0.18) 11%, rgba(91, 85, 231, 0.18) 89%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.sidebar .nav a[data-route] {
+  position: relative;
+  padding-left: 38px;
+}
+
+.sidebar .nav a[data-route]::before {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(93, 99, 117, 0.35);
+  border-radius: 50%;
+  background: var(--sidebar-bg, #fff);
+  content: "";
+  transform: translateY(-50%);
+  transition: 180ms ease;
+}
+
+.sidebar .nav a[data-route][data-neural-state="ready"]::before,
+.sidebar .nav a[data-route][data-neural-state="learned"]::before {
+  border-color: rgba(63, 157, 120, 0.64);
+  background: var(--neural-success);
+}
+
+.sidebar .nav a[data-route][data-neural-state="attention"]::before {
+  border-color: rgba(216, 101, 67, 0.72);
+  background: var(--neural-danger);
+  box-shadow: 0 0 0 4px rgba(216, 101, 67, 0.08);
+}
+
+.sidebar .nav a[data-route].active::before,
+.sidebar .nav a[data-route][data-neural-state="active"]::before {
+  width: 9px;
+  height: 9px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: var(--neural-signal);
+  box-shadow: 0 0 0 6px var(--neural-signal-soft);
+}
+
+.sidebar .nav a[data-route][data-neural-count]::after {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  min-width: 18px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(91, 85, 231, 0.08);
+  color: #615bd3;
+  content: attr(data-neural-count);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+  transform: translateY(-50%);
+}
+
+.topbar > div:first-child {
+  min-width: 0;
+}
+
+.neural-route-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 25px;
+  margin-top: 7px;
+  color: #7b8293;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.neural-route-status > i {
+  position: relative;
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--neural-signal);
+  box-shadow: 0 0 0 5px var(--neural-signal-soft);
+}
+
+.neural-route-status > i::after {
+  position: absolute;
+  top: 3px;
+  left: 7px;
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(91, 85, 231, 0.42), transparent);
+  content: "";
+}
+
+.neural-route-status > strong {
+  margin-left: 24px;
+  color: #51586b;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.neural-route-status > span {
+  overflow: hidden;
+  max-width: 360px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neural-route-status[data-tone="attention"] > i {
+  background: var(--neural-danger);
+  box-shadow: 0 0 0 5px rgba(216, 101, 67, 0.09);
+}
+
+.neural-route-status[data-tone="learned"] > i {
+  background: var(--neural-success);
+  box-shadow: 0 0 0 5px rgba(63, 157, 120, 0.09);
+}
+
+.view[data-neural-stage] {
+  position: relative;
+}
+
+.view[data-neural-stage]::before {
+  position: absolute;
+  top: -1px;
+  right: 0;
+  left: 0;
+  z-index: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(91, 85, 231, 0.16), transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.account-growth-summary {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(91, 85, 231, 0.13);
+  background:
+    radial-gradient(circle at 88% 12%, rgba(91, 85, 231, 0.1), transparent 31%),
+    rgba(255, 255, 255, 0.78);
+}
+
+.account-growth-summary .section-header p {
+  margin: 5px 0 0;
+  color: #7c8496;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.account-growth-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.account-growth-head > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.account-growth-head strong {
+  color: #171c2c;
+  font-size: 20px;
+  font-weight: 930;
+}
+
+.account-growth-head span,
+.account-growth-head small {
+  color: #70788c;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.account-growth-track {
+  height: 6px;
+  margin-top: 15px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(29, 35, 52, 0.09);
+}
+
+.account-growth-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4f49df, #8781f4);
+  box-shadow: 0 0 16px rgba(91, 85, 231, 0.22);
+}
+
+.account-growth-note {
+  margin: 10px 0 0;
+  color: #858c9d;
+  font-size: 10px;
+  font-weight: 720;
+  line-height: 1.6;
+}
+
+.app-shell.neural-pulse-active .neural-route-status > i,
+.app-shell.neural-pulse-active .sidebar .nav a.active::before {
+  animation: neural-real-event-pulse 900ms ease-out 1;
+}
+
+@keyframes neural-real-event-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(91, 85, 231, 0.3); }
+  55% { box-shadow: 0 0 0 12px rgba(91, 85, 231, 0.06); }
+  100% { box-shadow: 0 0 0 6px rgba(91, 85, 231, 0.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.neural-pulse-active .neural-route-status > i,
+  .app-shell.neural-pulse-active .sidebar .nav a.active::before {
+    animation: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .neural-route-status > span {
+    max-width: 180px;
+  }
+
+  .sidebar .nav::before {
+    display: none;
+  }
+
+  .account-growth-head {
+    display: grid;
+    gap: 8px;
+  }
+}
