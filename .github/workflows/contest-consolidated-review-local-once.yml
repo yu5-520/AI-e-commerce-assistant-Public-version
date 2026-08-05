@@ -1,0 +1,403 @@
+name: Seal consolidated contest review from local worktree
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-consolidated-review-local-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-consolidated-review-local-once
+  cancel-in-progress: false
+
+jobs:
+  seal-review:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    env:
+      REPO: yu5-520/AI-e-commerce-assistant-Public-version
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      WORK: /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify preserved analysis worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$WORK/.git"
+          test -x "$AUDIT_PYTHON"
+          git config --global --add safe.directory "$WORK" 2>/dev/null || true
+          cd "$WORK"
+          current_branch="$(git branch --show-current)"
+          test "$current_branch" = "$TARGET_BRANCH"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+          for file in \
+            contest-chain-review.json \
+            contest-selection-manifest.json \
+            registry-snapshot.json \
+            repository-audit.json \
+            unregistered-field-scope-review.json \
+            tombstone-scope-review.json \
+            registry-protocol-adapter-review.json \
+            module-isolation-transaction.json \
+            module-isolation-simulation.json
+          do
+            test -f "governance/contest/generated/$file"
+          done
+          echo "PRESERVED_ANALYSIS_WORKTREE=PASS"
+
+      - name: Build consolidated review locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          rm -rf /tmp/contest-consolidated-local
+          mkdir -p /tmp/contest-consolidated-local
+
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/contest-consolidated-local/summary.json
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import subprocess
+          from pathlib import Path
+
+          root = Path.cwd().resolve()
+          generated = root / "governance/contest/generated"
+          output = Path("/tmp/contest-consolidated-local")
+
+          def read(name):
+              value = json.loads((generated / name).read_text(encoding="utf-8"))
+              assert isinstance(value, dict), name
+              return value
+
+          def canonical_hash(value):
+              payload = json.dumps(
+                  value,
+                  ensure_ascii=False,
+                  sort_keys=True,
+                  separators=(",", ":"),
+              ).encode("utf-8")
+              return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+          def write(name, value):
+              (output / name).write_text(
+                  json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+                  encoding="utf-8",
+              )
+
+          chain = read("contest-chain-review.json")
+          selection = read("contest-selection-manifest.json")
+          snapshot = read("registry-snapshot.json")
+          audit = read("repository-audit.json")
+          fields = read("unregistered-field-scope-review.json")
+          tombstones = read("tombstone-scope-review.json")
+          protocol = read("registry-protocol-adapter-review.json")
+          isolation = read("module-isolation-transaction.json")
+          simulation = read("module-isolation-simulation.json")
+
+          classifications = dict(selection.get("classifications") or {})
+          field_summary = dict(fields.get("summary") or {})
+          tombstone_summary = dict(tombstones.get("summary") or {})
+          blockers = [
+              {
+                  "legacyPath": item.get("legacyPath"),
+                  "referenceCount": item.get("referenceCount"),
+                  "classificationCounts": item.get("classificationCounts"),
+                  "recommendation": item.get("recommendation"),
+              }
+              for item in tombstones.get("tombstoneDecisions") or []
+              if isinstance(item, dict) and item.get("contestDeletionBlocked") is True
+          ]
+
+          assertions = {
+              "rootCompositionVerified": snapshot.get("rootEquivalent") is True,
+              "runnerDriftCountZero": int(audit.get("summary", {}).get("runnerDriftCount") or 0) == 0,
+              "protocolAdapterVerified": protocol.get("zCompilerVerified") is True
+              and protocol.get("sourceDocumentHashesVerified") is True,
+              "fieldPartitionComplete": field_summary.get("sourceCandidateCount")
+              == field_summary.get("partitionCandidateCount")
+              == 500,
+              "fieldCoreReviewCountLocked": int(
+                  (field_summary.get("classificationCounts") or {}).get("CORE_REVIEW") or 0
+              ) == 172,
+              "tombstonePartitionComplete": tombstone_summary.get("sourceReferenceCount")
+              == tombstone_summary.get("partitionReferenceCount")
+              == 67,
+              "tombstoneCoreReviewCountLocked": int(
+                  (tombstone_summary.get("classificationCounts") or {}).get("CORE_REVIEW") or 0
+              ) == 25,
+              "tombstoneBlockingKeyCountLocked": len(blockers) == 2,
+              "isolationSimulationVerified": all(
+                  bool(value) for value in (simulation.get("assertions") or {}).values()
+              ),
+              "moduleClassificationStable": len(classifications.get("KEEP_CORE") or []) == 14
+              and len(classifications.get("KEEP_SUPPORT") or []) == 2
+              and len(classifications.get("ISOLATE") or []) == 7
+              and len(classifications.get("REMOVE_CANDIDATE") or []) == 0
+              and len(classifications.get("REVIEW_REQUIRED") or []) == 0,
+          }
+          assert all(assertions.values()), assertions
+          assert sorted(item["legacyPath"] for item in blockers) == [
+              "payload.creativeTestPlan",
+              "payload.selectedActionFamilyHint",
+          ], blockers
+
+          resolved_gates = [
+              {
+                  "gate": "REGISTRY_DOCUMENT_HASHES",
+                  "state": "VERIFIED",
+                  "evidence": snapshot.get("adapterCheck", {}).get("allDocumentsMatch"),
+              },
+              {
+                  "gate": "LAYERED_ROOT_COMPOSITION",
+                  "state": "VERIFIED",
+                  "evidence": snapshot.get("rootEquivalenceContract", {}).get("verified"),
+              },
+              {
+                  "gate": "RUNNER_DISPATCH",
+                  "state": "VERIFIED",
+                  "evidence": {
+                      "registeredModuleCount": audit.get("summary", {}).get("registeredModuleCount"),
+                      "runnerDriftCount": audit.get("summary", {}).get("runnerDriftCount"),
+                  },
+              },
+              {
+                  "gate": "Z_REGISTRY_PROTOCOL_ADAPTER",
+                  "state": "VERIFIED_RUNTIME_SWITCH_NOT_AUTHORIZED",
+                  "evidence": {
+                      "adapterHash": protocol.get("adapterHash"),
+                      "normalizedRegistryRootHash": protocol.get("normalizedRegistryRootHash"),
+                  },
+              },
+              {
+                  "gate": "UNREGISTERED_FIELD_SCOPE_PARTITION",
+                  "state": "VERIFIED",
+                  "evidence": {
+                      "scopeHash": fields.get("scopeHash"),
+                      "sourceCandidateCount": field_summary.get("sourceCandidateCount"),
+                      "partitionCandidateCount": field_summary.get("partitionCandidateCount"),
+                  },
+              },
+              {
+                  "gate": "TOMBSTONE_SCOPE_PARTITION",
+                  "state": "VERIFIED",
+                  "evidence": {
+                      "scopeHash": tombstones.get("scopeHash"),
+                      "sourceReferenceCount": tombstone_summary.get("sourceReferenceCount"),
+                      "partitionReferenceCount": tombstone_summary.get("partitionReferenceCount"),
+                  },
+              },
+              {
+                  "gate": "REGISTERED_ONLY_ISOLATION_SIMULATION",
+                  "state": "VERIFIED_PHYSICAL_CHANGE_NOT_AUTHORIZED",
+                  "evidence": {
+                      "transactionHash": isolation.get("transactionHash"),
+                      "simulationHash": simulation.get("simulationHash"),
+                      "assertions": simulation.get("assertions"),
+                  },
+              },
+          ]
+
+          source_head = subprocess.run(
+              ["git", "rev-parse", "HEAD"],
+              cwd=root,
+              check=True,
+              capture_output=True,
+              text=True,
+          ).stdout.strip()
+
+          material = {
+              "schema": "contest.governance_consolidated_review.v1",
+              "mode": "report_only",
+              "state": "REVIEW_READY_FOR_HUMAN_APPROVAL",
+              "sourceEvidenceCommit": source_head,
+              "graphHash": selection.get("graphHash"),
+              "selectionHash": selection.get("selectionHash"),
+              "moduleClassifications": classifications,
+              "resolvedMachineGates": resolved_gates,
+              "humanReviewRequired": {
+                  "coreUnregisteredFieldCandidateOccurrenceCount": 172,
+                  "coreTombstoneReferenceOccurrenceCount": 25,
+                  "coreTombstoneKeyCount": 2,
+                  "coreTombstoneKeys": blockers,
+                  "decision": "MIGRATE_BLOCKING_FIELDS_BEFORE_PHYSICAL_PRUNE",
+              },
+              "approvedNextTransactionScope": {
+                  "migrateLegacyFieldIds": [item["legacyPath"] for item in blockers],
+                  "logicallyIsolateModuleIds": isolation.get("isolateModuleIds"),
+                  "simulatedExcludePaths": isolation.get("simulationExcludePaths"),
+                  "physicalDeletionAuthorized": False,
+                  "promotionAuthorized": False,
+                  "publicReleaseAuthorized": False,
+              },
+              "assertions": assertions,
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "analysisBranchFilesDeleted": 0,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+              "promotionExecuted": False,
+              "publicReleaseExecuted": False,
+          }
+          review = {**material, "consolidatedReviewHash": canonical_hash(material)}
+          receipt_material = {
+              "schema": "contest.governance_consolidated_review_receipt.v1",
+              "consolidatedReviewHash": review["consolidatedReviewHash"],
+              "graphHash": review["graphHash"],
+              "selectionHash": review["selectionHash"],
+              "state": review["state"],
+              "states": [
+                  "REGISTRY_VERIFIED",
+                  "LINEAGE_GRAPH_VERIFIED",
+                  "RUNNER_GATES_VERIFIED",
+                  "FIELD_SCOPE_PARTITIONED",
+                  "TOMBSTONE_SCOPE_PARTITIONED",
+                  "PROTOCOL_ADAPTER_VERIFIED",
+                  "ISOLATION_SIMULATION_VERIFIED",
+                  "REVIEW_READY_FOR_HUMAN_APPROVAL",
+              ],
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "analysisBranchFilesDeleted": 0,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+              "promotionExecuted": False,
+              "publicReleaseExecuted": False,
+          }
+          receipt = {**receipt_material, "receiptHash": canonical_hash(receipt_material)}
+
+          markdown = f'''# Contest Governance Consolidated Review
+
+- State: `{review["state"]}`
+- Consolidated hash: `{review["consolidatedReviewHash"]}`
+- Graph hash: `{review["graphHash"]}`
+- Selection hash: `{review["selectionHash"]}`
+
+## Module selection
+
+- KEEP_CORE: 14
+- KEEP_SUPPORT: 2
+- ISOLATE: 7
+- REMOVE_CANDIDATE: 0
+- REVIEW_REQUIRED: 0
+
+## Resolved machine gates
+
+- Registry document hashes: verified
+- Layered Registry-root composition: verified
+- Registered Runner drift: 0
+- Z Registry protocol adapter: verified, runtime switch not authorized
+- 500 field candidates: fully partitioned; 172 core-review occurrences
+- 67 Tombstone references: fully partitioned; 25 core-review occurrences
+- REGISTERED_ONLY isolation simulation: verified; physical change not authorized
+
+## Human review required
+
+Two legacy fields must be migrated before physical pruning:
+
+- `payload.creativeTestPlan`
+- `payload.selectedActionFamilyHint`
+
+The 172 core field-candidate occurrences must be classified into registered product fields,
+local DTO keys, metadata, or removal candidates before the pruning transaction is approved.
+
+## Boundary
+
+No business runtime, database, provider, analysis-branch source file, main branch, physical
+deletion, promotion, or public release was executed.
+'''
+
+          write("contest-consolidated-review.json", review)
+          write("contest-consolidated-review-receipt.json", receipt)
+          (output / "contest-consolidated-review.md").write_text(markdown, encoding="utf-8")
+          print(json.dumps({
+              "state": review["state"],
+              "consolidatedReviewHash": review["consolidatedReviewHash"],
+              "receiptHash": receipt["receiptHash"],
+              "humanReviewRequired": review["humanReviewRequired"],
+          }, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+          grep -q '"state": "REVIEW_READY_FOR_HUMAN_APPROVAL"' /tmp/contest-consolidated-local/contest-consolidated-review.json
+          grep -q '"coreUnregisteredFieldCandidateOccurrenceCount": 172' /tmp/contest-consolidated-local/contest-consolidated-review.json
+          grep -q '"coreTombstoneReferenceOccurrenceCount": 25' /tmp/contest-consolidated-local/contest-consolidated-review.json
+          grep -q '"coreTombstoneKeyCount": 2' /tmp/contest-consolidated-local/contest-consolidated-review.json
+          grep -q '"physicalDeletionExecuted": false' /tmp/contest-consolidated-local/contest-consolidated-review-receipt.json
+          echo "CONSOLIDATED_REVIEW_LOCAL_BUILD=PASS"
+
+      - name: Publish consolidated review through Contents API
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          publish_file() {
+            local path="$1"
+            local source="$2"
+            local content sha
+            content="$(base64 -w0 "$source")"
+            sha="$(
+              gh api "repos/$REPO/contents/$path?ref=$TARGET_BRANCH" \
+                --jq '.sha' 2>/dev/null || true
+            )"
+
+            for attempt in 1 2 3 4 5; do
+              args=(
+                --method PUT
+                "repos/$REPO/contents/$path"
+                -f "message=governance(contest): seal consolidated human review gate [skip ci]"
+                -f "content=$content"
+                -f "branch=$TARGET_BRANCH"
+              )
+              if test -n "$sha"; then
+                args+=( -f "sha=$sha" )
+              fi
+              if gh api "${args[@]}" >/tmp/contents-api-response.json; then
+                echo "PUBLISHED=$path"
+                return 0
+              fi
+              sleep $((attempt * 10))
+              sha="$(
+                gh api "repos/$REPO/contents/$path?ref=$TARGET_BRANCH" \
+                  --jq '.sha' 2>/dev/null || true
+              )"
+            done
+            return 1
+          }
+
+          publish_file \
+            governance/contest/generated/contest-consolidated-review.json \
+            /tmp/contest-consolidated-local/contest-consolidated-review.json
+          publish_file \
+            governance/contest/generated/contest-consolidated-review.md \
+            /tmp/contest-consolidated-local/contest-consolidated-review.md
+          publish_file \
+            governance/contest/generated/contest-consolidated-review-receipt.json \
+            /tmp/contest-consolidated-local/contest-consolidated-review-receipt.json
+
+          remote_state="$(
+            gh api \
+              "repos/$REPO/contents/governance/contest/generated/contest-consolidated-review.json?ref=$TARGET_BRANCH" \
+              --jq '.content' \
+              | tr -d '\n' \
+              | base64 -d \
+              | "$AUDIT_PYTHON" -c 'import json,sys; print(json.load(sys.stdin)["state"])'
+          )"
+          test "$remote_state" = "REVIEW_READY_FOR_HUMAN_APPROVAL"
+          echo "CONSOLIDATED_REVIEW_CONTENTS_API=PASS"
+
+      - name: Upload consolidated review
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-consolidated-governance-review-local
+          path: /tmp/contest-consolidated-local
+          if-no-files-found: error
+          retention-days: 14
