@@ -1,0 +1,21 @@
+{
+  "databaseMutated": false,
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "mainMutated": false,
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "receiptHash": "sha256:c62713f4d0502617f1943fdccb5d14e5d6a9a52dc6bc950d547718d8a00b52a6",
+  "registryRootHash": "sha256:f0868111f3ae79c9788af965f941f3820b491c0d53fb22e44dc03090daa48f1d",
+  "revalidationHash": "sha256:dd35644ab0143910282381112544b1e331297c3d748420a80787ed96162269bb",
+  "schema": "contest.field_compat_registry_revalidation_receipt.v1",
+  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "state": "FIELD_MIGRATION_VERIFIED_COMPATIBILITY_WINDOW_ACTIVE",
+  "states": [
+    "MIGRATION_REGISTERED",
+    "TOMBSTONES_COMPATIBILITY_ACTIVE",
+    "REGISTRY_MANIFEST_RESEALED",
+    "LINEAGE_REVERIFIED",
+    "RUNNER_DRIFT_ZERO",
+    "FIELD_MIGRATION_VERIFIED_COMPATIBILITY_WINDOW_ACTIVE"
+  ]
+}
