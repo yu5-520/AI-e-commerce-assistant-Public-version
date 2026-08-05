@@ -77,32 +77,37 @@
       ],
       "dispatchEvidence": [
         {
-          "line": 233,
-          "matched": [
-            "agent_pipeline_item_worker_v2010_service",
-            "src.services.agent_pipeline_item_worker_v2010_service"
-          ],
-          "path": "src/services/station_adapter_service.py",
-          "text": "from src.services.agent_pipeline_item_worker_v2010_service import ("
-        },
-        {
-          "line": 234,
-          "matched": [
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 91,
+          "matchedSymbol": "seed_action_pack_from_agent1_items",
+          "path": "src/services/pipeline_action_microbatch_v205_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.agent_pipeline_item_worker_v2010_service",
+          "registeredModule": "src.services.agent_pipeline_item_worker_v2010_service",
+          "registeredSymbol": "seed_action_pack_from_agent1_items",
+          "symbolAliases": [
             "seed_action_pack_from_agent1_items"
           ],
-          "path": "src/services/station_adapter_service.py",
-          "text": "seed_action_pack_from_agent1_items,"
+          "text": "result = seed_action_pack_from_agent1_items("
         },
         {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
           "line": 237,
-          "matched": [
+          "matchedSymbol": "seed_action_pack_from_agent1_items",
+          "path": "src/services/station_adapter_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.agent_pipeline_item_worker_v2010_service",
+          "registeredModule": "src.services.agent_pipeline_item_worker_v2010_service",
+          "registeredSymbol": "seed_action_pack_from_agent1_items",
+          "symbolAliases": [
             "seed_action_pack_from_agent1_items"
           ],
-          "path": "src/services/station_adapter_service.py",
           "text": "result = seed_action_pack_from_agent1_items("
         }
       ],
-      "dispatchEvidenceCount": 3,
+      "dispatchEvidenceCount": 2,
       "moduleId": "action_pack",
       "runner": "src.services.agent_pipeline_item_worker_v2010_service:seed_action_pack_from_agent1_items",
       "runnerFileExists": true,
@@ -136,8 +141,39 @@
         "execution.input_artifact_ref",
         "execution.input_content_hash"
       ],
-      "dispatchEvidence": [],
-      "dispatchEvidenceCount": 0,
+      "dispatchEvidence": [
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 85,
+          "matchedSymbol": "ensure_agent1_input_ref",
+          "path": "src/services/agent_runtime_hard_interface_v2257_service.py",
+          "providerDepthResolved": true,
+          "providerModule": "src.services.agent_input_transport_v2257_service",
+          "registeredModule": "src.services.agent_input_transport_v2258_service",
+          "registeredSymbol": "ensure_agent1_input_ref",
+          "symbolAliases": [
+            "ensure_agent1_input_ref"
+          ],
+          "text": "input_ref = ensure_agent1_input_ref(item, policy_context=policy)"
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 92,
+          "matchedSymbol": "ensure_agent1_input_ref",
+          "path": "src/services/hard_interface_bridge_v2301_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.agent_input_transport_v2258_service",
+          "registeredModule": "src.services.agent_input_transport_v2258_service",
+          "registeredSymbol": "ensure_agent1_input_ref",
+          "symbolAliases": [
+            "ensure_agent1_input_ref"
+          ],
+          "text": "input_ref = ensure_agent1_input_ref("
+        }
+      ],
+      "dispatchEvidenceCount": 2,
       "moduleId": "agent1_input_projection",
       "runner": "src.services.agent_input_transport_v2258_service:ensure_agent1_input_ref",
       "runnerFileExists": true,
@@ -189,8 +225,24 @@
         "execution.input_content_hash",
         "execution.item_execution_id"
       ],
-      "dispatchEvidence": [],
-      "dispatchEvidenceCount": 0,
+      "dispatchEvidence": [
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 135,
+          "matchedSymbol": "run_agent1_projected_inputs",
+          "path": "src/services/agent_runtime_hard_interface_v2257_service.py",
+          "providerDepthResolved": true,
+          "providerModule": "src.services.agent_token_runtime_v2257_service",
+          "registeredModule": "src.services.agent_token_runtime_hash_exact_v2259_service",
+          "registeredSymbol": "run_agent1_projected_inputs",
+          "symbolAliases": [
+            "run_agent1_projected_inputs"
+          ],
+          "text": "judgments, provider = run_agent1_projected_inputs("
+        }
+      ],
+      "dispatchEvidenceCount": 1,
       "moduleId": "agent1_runtime",
       "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
       "runnerFileExists": true,
@@ -238,8 +290,24 @@
         "execution.input_artifact_ref",
         "execution.input_content_hash"
       ],
-      "dispatchEvidence": [],
-      "dispatchEvidenceCount": 0,
+      "dispatchEvidence": [
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 315,
+          "matchedSymbol": "ensure_agent2_input_ref",
+          "path": "src/services/agent_runtime_hard_interface_v230_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.agent_input_transport_v230_service",
+          "registeredModule": "src.services.agent_input_transport_v230_service",
+          "registeredSymbol": "ensure_agent2_input_ref",
+          "symbolAliases": [
+            "ensure_agent2_input_ref"
+          ],
+          "text": "input_ref = ensure_agent2_input_ref(item)"
+        }
+      ],
+      "dispatchEvidenceCount": 1,
       "moduleId": "agent2_input_projection",
       "runner": "src.services.agent_input_transport_v230_service:ensure_agent2_input_ref",
       "runnerFileExists": true,
@@ -280,23 +348,23 @@
       ],
       "dispatchEvidence": [
         {
-          "line": 122,
-          "matched": [
+          "kind": "registered_alias_target_call",
+          "legacyPath": false,
+          "line": 250,
+          "matchedSymbol": "run_agent2_draft_microbatch_hard",
+          "path": "src/services/agent_runtime_hard_interface_v22515_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.agent_runtime_hard_interface_v22515_service",
+          "registeredModule": "src.services.agent_runtime_hard_interface_v22515_service",
+          "registeredSymbol": "run_agent2_microbatch_hard",
+          "symbolAliases": [
+            "run_agent2_draft_microbatch_hard",
             "run_agent2_microbatch_hard"
           ],
-          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
-          "text": "run_agent2_microbatch_hard = legacy.run_agent2_microbatch_hard"
-        },
-        {
-          "line": 132,
-          "matched": [
-            "run_agent2_microbatch_hard"
-          ],
-          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
-          "text": "\"run_agent2_microbatch_hard\","
+          "text": "stage_result = run_agent2_draft_microbatch_hard("
         }
       ],
-      "dispatchEvidenceCount": 2,
+      "dispatchEvidenceCount": 1,
       "moduleId": "agent2_runtime",
       "runner": "src.services.agent_runtime_hard_interface_v22515_service:run_agent2_microbatch_hard",
       "runnerFileExists": true,
@@ -324,8 +392,24 @@
         "execution.input_artifact_ref",
         "execution.input_content_hash"
       ],
-      "dispatchEvidence": [],
-      "dispatchEvidenceCount": 0,
+      "dispatchEvidence": [
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 436,
+          "matchedSymbol": "ensure_agent3_sop_input_ref_v23216",
+          "path": "src/services/pipeline_agent3_sop_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.agent3_system_constraint_v23215_service",
+          "registeredModule": "src.services.agent3_system_constraint_v23215_service",
+          "registeredSymbol": "ensure_agent3_sop_input_ref_v23216",
+          "symbolAliases": [
+            "ensure_agent3_sop_input_ref_v23216"
+          ],
+          "text": "input_ref = ensure_agent3_sop_input_ref_v23216(item)"
+        }
+      ],
+      "dispatchEvidenceCount": 1,
       "moduleId": "agent3_input_projection",
       "runner": "src.services.agent3_system_constraint_v23215_service:ensure_agent3_sop_input_ref_v23216",
       "runnerFileExists": true,
@@ -361,8 +445,41 @@
         "execution.input_content_hash",
         "execution.item_execution_id"
       ],
-      "dispatchEvidence": [],
-      "dispatchEvidenceCount": 0,
+      "dispatchEvidence": [
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 450,
+          "matchedSymbol": "run_agent3_sop_microbatch_v225",
+          "path": "src/services/agent3_test_task_runner_v23217_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_agent3_sop_v225_service",
+          "registeredModule": "src.services.pipeline_agent3_sop_v225_service",
+          "registeredSymbol": "run_agent3_sop_microbatch",
+          "symbolAliases": [
+            "run_agent3_sop_microbatch",
+            "run_agent3_sop_microbatch_v225"
+          ],
+          "text": "agent3_result = run_agent3_sop_microbatch_v225("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 646,
+          "matchedSymbol": "run_agent3_sop_microbatch_v225",
+          "path": "src/services/agent_runtime_hard_interface_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_agent3_sop_v225_service",
+          "registeredModule": "src.services.pipeline_agent3_sop_v225_service",
+          "registeredSymbol": "run_agent3_sop_microbatch",
+          "symbolAliases": [
+            "run_agent3_sop_microbatch",
+            "run_agent3_sop_microbatch_v225"
+          ],
+          "text": "result = run_agent3_sop_microbatch_v225("
+        }
+      ],
+      "dispatchEvidenceCount": 2,
       "moduleId": "agent3_runtime",
       "runner": "src.services.pipeline_agent3_sop_v225_service:run_agent3_sop_microbatch",
       "runnerFileExists": true,
@@ -399,8 +516,84 @@
         "execution.output_artifact_ref",
         "execution.output_content_hash"
       ],
-      "dispatchEvidence": [],
-      "dispatchEvidenceCount": 0,
+      "dispatchEvidence": [
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 484,
+          "matchedSymbol": "claim_execution",
+          "path": "src/services/agent_token_runtime_hash_exact_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredSymbol": "claim_execution",
+          "symbolAliases": [
+            "claim_execution"
+          ],
+          "text": "claim = claim_execution(descriptor)"
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 422,
+          "matchedSymbol": "claim_execution",
+          "path": "src/services/agent_token_runtime_v22520_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredSymbol": "claim_execution",
+          "symbolAliases": [
+            "claim_execution"
+          ],
+          "text": "claim = claim_execution(descriptor)"
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 372,
+          "matchedSymbol": "claim_execution",
+          "path": "src/services/agent_token_runtime_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredSymbol": "claim_execution",
+          "symbolAliases": [
+            "claim_execution"
+          ],
+          "text": "claim = claim_execution(descriptor)"
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 527,
+          "matchedSymbol": "claim_execution",
+          "path": "src/services/agent_token_runtime_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredSymbol": "claim_execution",
+          "symbolAliases": [
+            "claim_execution"
+          ],
+          "text": "claim = claim_execution(descriptor)"
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 644,
+          "matchedSymbol": "claim_execution",
+          "path": "src/services/agent_token_runtime_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredModule": "src.services.hash_directed_artifact_runtime_v2259_service",
+          "registeredSymbol": "claim_execution",
+          "symbolAliases": [
+            "claim_execution"
+          ],
+          "text": "claim = claim_execution(descriptor)"
+        }
+      ],
+      "dispatchEvidenceCount": 5,
       "moduleId": "artifact_execution_runtime",
       "runner": "src.services.hash_directed_artifact_runtime_v2259_service:claim_execution",
       "runnerFileExists": true,
@@ -432,8 +625,234 @@
         "execution.input_artifact_ref",
         "execution.input_content_hash"
       ],
-      "dispatchEvidence": [],
-      "dispatchEvidenceCount": 0,
+      "dispatchEvidence": [
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 264,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/agent2_hash_proof_bridge_v22515_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 315,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/agent2_hash_proof_bridge_v22515_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 401,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/agent2_hash_proof_bridge_v22515_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 630,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/agent2_hash_proof_bridge_v22515_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "receipt = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 711,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/agent_input_transport_v22514_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 678,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/agent_input_transport_v2258_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 329,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/agent_input_transport_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 520,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/agent_input_transport_v230_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 140,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/agent_token_runtime_hash_exact_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 70,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/artifact_signal_admission_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "signal_artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 226,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/frontend_view_artifact_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 261,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/frontend_view_artifact_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 413,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/hash_directed_artifact_runtime_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 477,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/hash_directed_artifact_runtime_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "artifact = store_artifact("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 530,
+          "matchedSymbol": "store_artifact",
+          "path": "src/services/hash_directed_artifact_runtime_v2259_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_transport_service",
+          "registeredModule": "src.services.artifact_transport_service",
+          "registeredSymbol": "store_artifact",
+          "symbolAliases": [
+            "store_artifact"
+          ],
+          "text": "return store_artifact("
+        }
+      ],
+      "dispatchEvidenceCount": 15,
       "moduleId": "artifact_transport",
       "runner": "src.services.artifact_transport_service:store_artifact",
       "runnerFileExists": true,
@@ -491,32 +910,37 @@
       ],
       "dispatchEvidence": [
         {
-          "line": 21,
-          "matched": [
-            "frontend_view_artifact_v2259_service",
-            "src.services.frontend_view_artifact_v2259_service"
-          ],
-          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
-          "text": "from src.services.frontend_view_artifact_v2259_service import ("
-        },
-        {
-          "line": 22,
-          "matched": [
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 300,
+          "matchedSymbol": "materialize_frontend_views_v2259",
+          "path": "src/api/routes/frontend_views.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.frontend_view_artifact_v2259_service",
+          "registeredModule": "src.services.frontend_view_artifact_v2259_service",
+          "registeredSymbol": "materialize_frontend_views_v2259",
+          "symbolAliases": [
             "materialize_frontend_views_v2259"
           ],
-          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
-          "text": "materialize_frontend_views_v2259,"
+          "text": "result[\"hashView\"] = materialize_frontend_views_v2259("
         },
         {
-          "line": 25,
-          "matched": [
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 437,
+          "matchedSymbol": "materialize_frontend_views_v2259",
+          "path": "src/services/recover_agent1_execution_lock_v22513_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.frontend_view_artifact_v2259_service",
+          "registeredModule": "src.services.frontend_view_artifact_v2259_service",
+          "registeredSymbol": "materialize_frontend_views_v2259",
+          "symbolAliases": [
             "materialize_frontend_views_v2259"
           ],
-          "path": "src/services/agent_runtime_hard_interface_v2255_service.py",
-          "text": "result[\"hashViewPublication\"] = materialize_frontend_views_v2259("
+          "text": "view_result = materialize_frontend_views_v2259("
         }
       ],
-      "dispatchEvidenceCount": 3,
+      "dispatchEvidenceCount": 2,
       "moduleId": "frontend_view",
       "runner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
       "runnerFileExists": true,
@@ -618,34 +1042,292 @@
       ],
       "dispatchEvidence": [
         {
-          "line": 14,
-          "matched": [
-            "pipeline_item_service",
-            "src.services.pipeline_item_service"
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 428,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/agent3_test_task_runner_v23217_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
           ],
-          "path": "src/services/station_adapter_service.py",
-          "text": "from src.services.pipeline_item_service import build_item_envelope"
+          "text": "envelope = upsert_pipeline_item("
         },
         {
-          "line": 11,
-          "matched": [
-            "pipeline_item_service",
-            "src.services.pipeline_item_service"
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 202,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/agent_pipeline_item_worker_v2010_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
           ],
-          "path": "src/api/routes/stations.py",
-          "text": "from src.services.pipeline_item_service import pipeline_item_summary"
+          "text": "envelope = upsert_pipeline_item("
         },
         {
-          "line": 63,
-          "matched": [
-            "pipeline_item_service",
-            "src.services.pipeline_item_service"
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 331,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/agent_pipeline_item_worker_v2010_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
           ],
-          "path": "src/api/main.py",
-          "text": "from src.services.pipeline_item_service import ensure_pipeline_item_tables"
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 444,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/agent_pipeline_item_worker_v2010_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 117,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/artifact_signal_admission_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "stored = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 132,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/observed_signal_repair_v226_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "stored = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 192,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/pipeline_action_microbatch_v205_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 207,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/pipeline_agent1_microbatch_v20101_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 258,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/pipeline_agent1_microbatch_v20101_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 294,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/pipeline_agent1_microbatch_v20101_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 279,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/pipeline_agent3_sop_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 424,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/pipeline_agent3_sop_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 459,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/pipeline_agent3_sop_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 140,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/pipeline_sop_task_pool_v2010_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 101,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/pipeline_task_mapping_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 381,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/product_signal_admission_v197_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 118,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/station_business_artifact_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "stored = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 377,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/station_queue_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "seed = upsert_pipeline_item("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 298,
+          "matchedSymbol": "upsert_pipeline_item",
+          "path": "src/services/v2175_agent2_final_contract_rebuild_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_item_service",
+          "registeredModule": "src.services.pipeline_item_service",
+          "registeredSymbol": "upsert_pipeline_item",
+          "symbolAliases": [
+            "upsert_pipeline_item"
+          ],
+          "text": "envelope = upsert_pipeline_item("
         }
       ],
-      "dispatchEvidenceCount": 3,
+      "dispatchEvidenceCount": 19,
       "moduleId": "pipeline_runtime",
       "runner": "src.services.pipeline_item_service:upsert_pipeline_item",
       "runnerFileExists": true,
@@ -665,33 +1347,8 @@
         "registry.root_hash",
         "registry.schema_contract_hash"
       ],
-      "dispatchEvidence": [
-        {
-          "line": 84,
-          "matched": [
-            "main"
-          ],
-          "path": "src/api/main.py",
-          "text": "def station_mainline() -> dict[str, Any]:"
-        },
-        {
-          "line": 169,
-          "matched": [
-            "main"
-          ],
-          "path": "src/api/main.py",
-          "text": "\"mainline\": ["
-        },
-        {
-          "line": 319,
-          "matched": [
-            "main"
-          ],
-          "path": "src/api/main.py",
-          "text": "\"stationMainline\": station_mainline(),"
-        }
-      ],
-      "dispatchEvidenceCount": 3,
+      "dispatchEvidence": [],
+      "dispatchEvidenceCount": 0,
       "moduleId": "registry_compiler",
       "runner": "tools.registry_compiler.compile_registry:main",
       "runnerFileExists": true,
@@ -717,25 +1374,22 @@
       ],
       "dispatchEvidence": [
         {
-          "line": 68,
-          "matched": [
-            "assert_release_identity",
-            "release_identity_service",
-            "src.services.release_identity_service"
-          ],
-          "path": "src/api/main.py",
-          "text": "from src.services.release_identity_service import assert_release_identity, release_identity"
-        },
-        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
           "line": 440,
-          "matched": [
+          "matchedSymbol": "assert_release_identity",
+          "path": "src/api/main.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.release_identity_service",
+          "registeredModule": "src.services.release_identity_service",
+          "registeredSymbol": "assert_release_identity",
+          "symbolAliases": [
             "assert_release_identity"
           ],
-          "path": "src/api/main.py",
           "text": "assert_release_identity()"
         }
       ],
-      "dispatchEvidenceCount": 2,
+      "dispatchEvidenceCount": 1,
       "moduleId": "release_governance",
       "runner": "src.services.release_identity_service:assert_release_identity",
       "runnerFileExists": true,
@@ -762,32 +1416,22 @@
       ],
       "dispatchEvidence": [
         {
-          "line": 201,
-          "matched": [
-            "artifact_signal_admission_v225_service",
-            "src.services.artifact_signal_admission_v225_service"
-          ],
-          "path": "src/services/station_adapter_service.py",
-          "text": "from src.services.artifact_signal_admission_v225_service import ("
-        },
-        {
-          "line": 202,
-          "matched": [
-            "product_signal_admission_station_v225"
-          ],
-          "path": "src/services/station_adapter_service.py",
-          "text": "product_signal_admission_station_v225,"
-        },
-        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
           "line": 210,
-          "matched": [
+          "matchedSymbol": "product_signal_admission_station_v225",
+          "path": "src/services/station_adapter_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.artifact_signal_admission_v225_service",
+          "registeredModule": "src.services.artifact_signal_admission_v225_service",
+          "registeredSymbol": "product_signal_admission_station_v225",
+          "symbolAliases": [
             "product_signal_admission_station_v225"
           ],
-          "path": "src/services/station_adapter_service.py",
           "text": "result = product_signal_admission_station_v225("
         }
       ],
-      "dispatchEvidenceCount": 3,
+      "dispatchEvidenceCount": 1,
       "moduleId": "signal_admission",
       "runner": "src.services.artifact_signal_admission_v225_service:product_signal_admission_station_v225",
       "runnerFileExists": true,
@@ -955,8 +1599,39 @@
         "entity.product_id",
         "entity.store_id"
       ],
-      "dispatchEvidence": [],
-      "dispatchEvidenceCount": 0,
+      "dispatchEvidence": [
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 466,
+          "matchedSymbol": "run_task_mapping_microbatch_v225",
+          "path": "src/services/agent3_test_task_runner_v23217_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_task_mapping_v225_service",
+          "registeredModule": "src.services.pipeline_task_mapping_v225_service",
+          "registeredSymbol": "run_task_mapping_microbatch_v225",
+          "symbolAliases": [
+            "run_task_mapping_microbatch_v225"
+          ],
+          "text": "mapping_result = run_task_mapping_microbatch_v225("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 640,
+          "matchedSymbol": "run_task_mapping_microbatch_v225",
+          "path": "src/services/agent_runtime_hard_interface_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_task_mapping_v225_service",
+          "registeredModule": "src.services.pipeline_task_mapping_v225_service",
+          "registeredSymbol": "run_task_mapping_microbatch_v225",
+          "symbolAliases": [
+            "run_task_mapping_microbatch_v225"
+          ],
+          "text": "result = run_task_mapping_microbatch_v225("
+        }
+      ],
+      "dispatchEvidenceCount": 2,
       "moduleId": "task_mapping",
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_mapping_microbatch_v225",
       "runnerFileExists": true,
@@ -985,8 +1660,39 @@
         "entity.product_id",
         "entity.store_id"
       ],
-      "dispatchEvidence": [],
-      "dispatchEvidenceCount": 0,
+      "dispatchEvidence": [
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 481,
+          "matchedSymbol": "run_task_pool_admission_microbatch_v225",
+          "path": "src/services/agent3_test_task_runner_v23217_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_task_mapping_v225_service",
+          "registeredModule": "src.services.pipeline_task_mapping_v225_service",
+          "registeredSymbol": "run_task_pool_admission_microbatch_v225",
+          "symbolAliases": [
+            "run_task_pool_admission_microbatch_v225"
+          ],
+          "text": "admission_result = run_task_pool_admission_microbatch_v225("
+        },
+        {
+          "kind": "imported_callable_call",
+          "legacyPath": false,
+          "line": 632,
+          "matchedSymbol": "run_task_pool_admission_microbatch_v225",
+          "path": "src/services/agent_runtime_hard_interface_v225_service.py",
+          "providerDepthResolved": false,
+          "providerModule": "src.services.pipeline_task_mapping_v225_service",
+          "registeredModule": "src.services.pipeline_task_mapping_v225_service",
+          "registeredSymbol": "run_task_pool_admission_microbatch_v225",
+          "symbolAliases": [
+            "run_task_pool_admission_microbatch_v225"
+          ],
+          "text": "result = run_task_pool_admission_microbatch_v225("
+        }
+      ],
+      "dispatchEvidenceCount": 2,
       "moduleId": "task_pool",
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_pool_admission_microbatch_v225",
       "runnerFileExists": true,
@@ -994,7 +1700,7 @@
       "runnerSymbolExists": true
     }
   },
-  "repositoryScanHash": "sha256:ac96d9a8aa3ab2bd228adcf66264afa7f25eb4597d2be25f2427c84211d87284",
+  "repositoryScanHash": "sha256:c85ea6b755280f16a94d7b5aedc3306f26c2dbd6e77611ab712ce210a23a4893",
   "retiredFieldCandidateHits": [
     {
       "candidate": {
@@ -1801,77 +2507,13 @@
       "path": "src/services/v2173_agent2_policy_shape_recovery_service.py"
     }
   ],
-  "runnerDrift": [
-    {
-      "classification": "live_dispatch_evidence_not_found",
-      "moduleId": "agent1_input_projection",
-      "runner": "src.services.agent_input_transport_v2258_service:ensure_agent1_input_ref",
-      "runnerFileExists": true,
-      "runnerSymbolExists": true
-    },
-    {
-      "classification": "live_dispatch_evidence_not_found",
-      "moduleId": "agent1_runtime",
-      "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
-      "runnerFileExists": true,
-      "runnerSymbolExists": true
-    },
-    {
-      "classification": "live_dispatch_evidence_not_found",
-      "moduleId": "agent2_input_projection",
-      "runner": "src.services.agent_input_transport_v230_service:ensure_agent2_input_ref",
-      "runnerFileExists": true,
-      "runnerSymbolExists": true
-    },
-    {
-      "classification": "live_dispatch_evidence_not_found",
-      "moduleId": "agent3_input_projection",
-      "runner": "src.services.agent3_system_constraint_v23215_service:ensure_agent3_sop_input_ref_v23216",
-      "runnerFileExists": true,
-      "runnerSymbolExists": true
-    },
-    {
-      "classification": "live_dispatch_evidence_not_found",
-      "moduleId": "agent3_runtime",
-      "runner": "src.services.pipeline_agent3_sop_v225_service:run_agent3_sop_microbatch",
-      "runnerFileExists": true,
-      "runnerSymbolExists": true
-    },
-    {
-      "classification": "live_dispatch_evidence_not_found",
-      "moduleId": "artifact_execution_runtime",
-      "runner": "src.services.hash_directed_artifact_runtime_v2259_service:claim_execution",
-      "runnerFileExists": true,
-      "runnerSymbolExists": true
-    },
-    {
-      "classification": "live_dispatch_evidence_not_found",
-      "moduleId": "artifact_transport",
-      "runner": "src.services.artifact_transport_service:store_artifact",
-      "runnerFileExists": true,
-      "runnerSymbolExists": true
-    },
-    {
-      "classification": "live_dispatch_evidence_not_found",
-      "moduleId": "task_mapping",
-      "runner": "src.services.pipeline_task_mapping_v225_service:run_task_mapping_microbatch_v225",
-      "runnerFileExists": true,
-      "runnerSymbolExists": true
-    },
-    {
-      "classification": "live_dispatch_evidence_not_found",
-      "moduleId": "task_pool",
-      "runner": "src.services.pipeline_task_mapping_v225_service:run_task_pool_admission_microbatch_v225",
-      "runnerFileExists": true,
-      "runnerSymbolExists": true
-    }
-  ],
+  "runnerDrift": [],
   "schema": "registry.repository_audit.v1",
   "summary": {
     "filesWithRegisteredFieldUsage": 234,
     "registeredModuleCount": 23,
     "retiredFieldCandidateHitCount": 67,
-    "runnerDriftCount": 9,
+    "runnerDriftCount": 0,
     "sourceFileCount": 395,
     "unregisteredFieldCandidateCount": 500
   },
@@ -4877,5 +5519,5 @@
       "path": "src/services/action_authority_v21_service.py"
     }
   ],
-  "version": "23.0.0-alpha.2"
+  "version": "23.0.0-alpha.3"
 }
