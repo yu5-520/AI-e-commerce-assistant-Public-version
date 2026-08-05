@@ -1,0 +1,143 @@
+name: Publish verified logical isolation outputs locally
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-logical-isolation-local-publish-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-logical-isolation-local-publish-once
+  cancel-in-progress: false
+
+jobs:
+  publish-local-outputs:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    env:
+      WORK: /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version
+      TARGET_BRANCH: isolation/contest-registered-only-v1
+      EXPECTED_BASE_COMMIT: 9a3b07f7026a74ab19379a87d0e918513aedf0d1
+      EXPECTED_BASE_TREE: 6558ad84a493d57741ee91564c2650b1556fe5c0
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      GH_API_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify preserved logical isolation outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$WORK" 2>/dev/null || true
+          cd "$WORK"
+          test -f governance/contest/generated/module-isolation-application.json
+          test -f governance/contest/generated/module-isolation-application-receipt.json
+          test -f governance/contest/generated/repository-audit-post-isolation.json
+          grep -q '"state": "LOGICAL_ISOLATION_APPLIED"' governance/contest/generated/module-isolation-application.json
+          grep -q '"isolatedModuleCount": 7' governance/contest/generated/module-isolation-application-receipt.json
+          grep -q '"nextState": "PRUNE_CANDIDATE_COMPILATION_READY"' governance/contest/generated/module-isolation-application.json
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit-post-isolation.json
+          grep -q '"physicalFilesMoved": 0' governance/contest/generated/module-isolation-application.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/module-isolation-application.json
+          echo "PRESERVED_LOGICAL_ISOLATION_OUTPUTS=PASS"
+
+      - name: Publish four outputs through Git Data API
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/logical-isolation-local-publish.json
+          from __future__ import annotations
+          import base64, json, os, subprocess, time, urllib.error, urllib.request
+          from pathlib import Path
+
+          root = Path(os.environ["WORK"])
+          api = "https://api.github.com/repos/yu5-520/AI-e-commerce-assistant-Public-version"
+          token = os.environ["GH_API_TOKEN"]
+          branch = os.environ["TARGET_BRANCH"]
+          expected_base_commit = os.environ["EXPECTED_BASE_COMMIT"]
+          expected_base_tree = os.environ["EXPECTED_BASE_TREE"]
+
+          def git(*args):
+              return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+          def request(method, path, payload=None):
+              body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode()
+              last = None
+              for attempt in range(1, 9):
+                  req = urllib.request.Request(api + path, data=body, method=method, headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {token}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "contest-logical-isolation-local-publisher",
+                      "Content-Type": "application/json",
+                  })
+                  try:
+                      with urllib.request.urlopen(req, timeout=30) as response:
+                          return json.loads(response.read().decode())
+                  except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+                      last = exc
+                      if isinstance(exc, urllib.error.HTTPError) and exc.code < 500 and exc.code not in {408, 409, 429}:
+                          raise RuntimeError(f"API_ERROR:{method}:{path}:{exc.code}:{exc.read().decode(errors='replace')}") from exc
+                      time.sleep(attempt * 5)
+              raise RuntimeError(f"API_RETRIES_EXHAUSTED:{method}:{path}:{last}")
+
+          ref = request("GET", f"/git/ref/heads/{branch}")
+          if ref["object"]["sha"] != expected_base_commit:
+              existing = request("GET", f"/git/commits/{ref['object']['sha']}")
+              if existing["tree"]["sha"] != expected_base_tree:
+                  print(json.dumps({"state": "LOGICAL_ISOLATION_ALREADY_PUBLISHED", "remoteCommit": ref["object"]["sha"]}, sort_keys=True, indent=2))
+                  raise SystemExit(0)
+              raise RuntimeError(f"BRANCH_LEASE_MISMATCH:{ref['object']['sha']}:{expected_base_commit}")
+          remote_base = request("GET", f"/git/commits/{expected_base_commit}")
+          if remote_base["tree"]["sha"] != expected_base_tree:
+              raise RuntimeError("BASE_TREE_MISMATCH")
+
+          output_paths = [
+              "contracts/registry/registry-manifest.json",
+              "governance/contest/generated/module-isolation-application.json",
+              "governance/contest/generated/module-isolation-application-receipt.json",
+              "governance/contest/generated/repository-audit-post-isolation.json",
+          ]
+          entries = []
+          for relative in output_paths:
+              data = (root / relative).read_bytes()
+              blob = request("POST", "/git/blobs", {"content": base64.b64encode(data).decode(), "encoding": "base64"})
+              entries.append({"path": relative, "mode": "100644", "type": "blob", "sha": blob["sha"]})
+          tree = request("POST", "/git/trees", {"base_tree": expected_base_tree, "tree": entries})
+
+          commit = request("POST", "/git/commits", {
+              "message": "governance(contest): apply logical isolation overlay [skip ci]",
+              "tree": tree["sha"],
+              "parents": [expected_base_commit],
+          })
+          request("PATCH", f"/git/refs/heads/{branch}", {"sha": commit["sha"], "force": False})
+          remote = request("GET", f"/git/commits/{commit['sha']}")
+          if remote["tree"]["sha"] != tree["sha"] or [p["sha"] for p in remote["parents"]] != [expected_base_commit]:
+              raise RuntimeError("REMOTE_COMMIT_VALIDATION_FAILED")
+          print(json.dumps({
+              "state": "LOGICAL_ISOLATION_APPLIED",
+              "remoteCommit": commit["sha"],
+              "parentCommit": expected_base_commit,
+              "treeSha": tree["sha"],
+              "fileCount": 4,
+              "isolatedModuleCount": 7,
+              "physicalDeletionExecuted": False,
+              "mainMutated": False,
+          }, sort_keys=True, indent=2))
+          PY
+          grep -Eq '"state": "LOGICAL_ISOLATION_(APPLIED|ALREADY_PUBLISHED)"' /tmp/logical-isolation-local-publish.json
+          echo "LOGICAL_ISOLATION_LOCAL_PUBLISH=PASS"
+
+      - name: Upload publication evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-logical-isolation-local-publish
+          path: |
+            /tmp/logical-isolation-local-publish.json
+            /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/governance/contest/generated/module-isolation-application.json
+            /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/governance/contest/generated/module-isolation-application-receipt.json
+          if-no-files-found: error
+          retention-days: 14
