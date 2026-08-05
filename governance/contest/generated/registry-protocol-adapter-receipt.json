@@ -1,0 +1,18 @@
+{
+  "adapterHash": "sha256:0aa85e368a399f7ab2227b58b23ba90c51aa5ad8352cc20ae3499bf9b1af65ed",
+  "businessRuntimeMutated": false,
+  "databaseMutated": false,
+  "normalizedRegistryRootHash": "sha256:6eeeec1afa3ff5acd14c569f8e2c9f6b39453654ee46ba078d5a8b49b8cbe95f",
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "receiptHash": "sha256:581b2297745f626e779ecc1c777248d54b57a18e11766312a69fb62a31975026",
+  "schema": "contest.registry_protocol_adapter_receipt.v1",
+  "sourceDocumentHashesVerified": true,
+  "states": [
+    "SOURCE_DOCUMENT_HASHES_VERIFIED",
+    "PRODUCT_PROTOCOL_MAPPED_IN_MEMORY",
+    "Z_COMPILER_VERIFIED",
+    "RUNTIME_SWITCH_NOT_AUTHORIZED"
+  ],
+  "zCompilerVerified": true
+}

@@ -1,0 +1,141 @@
+{
+  "adapterHash": "sha256:0aa85e368a399f7ab2227b58b23ba90c51aa5ad8352cc20ae3499bf9b1af65ed",
+  "businessRuntimeMutated": false,
+  "constraints": {
+    "normalizedDocumentsPersistedToRuntime": false,
+    "physicalDeletionAuthorized": false,
+    "runtimeProjectionMutable": false,
+    "runtimeSwitchAuthorized": false,
+    "sourceDocumentsMutable": false,
+    "sourceManifestMutable": false
+  },
+  "databaseMutated": false,
+  "documentReviews": [
+    {
+      "expectedSourceContentHash": "sha256:22167de29d4aac9e040cc20a32b3da668811a109271aa2eca2b3402d929b7249",
+      "mappingMode": "PASSTHROUGH",
+      "normalizedContentHash": "sha256:22167de29d4aac9e040cc20a32b3da668811a109271aa2eca2b3402d929b7249",
+      "path": "fields.json",
+      "recordCount": 63,
+      "sourceCollection": "fields",
+      "sourceContentHash": "sha256:22167de29d4aac9e040cc20a32b3da668811a109271aa2eca2b3402d929b7249",
+      "sourceHashMatches": true,
+      "sourceIdentity": "fieldId",
+      "targetCollection": "fields",
+      "targetIdentity": "fieldId"
+    },
+    {
+      "expectedSourceContentHash": "sha256:350dc1eb501c26b239b1d6c37022b91415c15325dbc3f21c8edfd791bb274511",
+      "mappingMode": "PASSTHROUGH",
+      "normalizedContentHash": "sha256:350dc1eb501c26b239b1d6c37022b91415c15325dbc3f21c8edfd791bb274511",
+      "path": "schemas.json",
+      "recordCount": 18,
+      "sourceCollection": "schemas",
+      "sourceContentHash": "sha256:350dc1eb501c26b239b1d6c37022b91415c15325dbc3f21c8edfd791bb274511",
+      "sourceHashMatches": true,
+      "sourceIdentity": "schemaId",
+      "targetCollection": "schemas",
+      "targetIdentity": "schemaId"
+    },
+    {
+      "expectedSourceContentHash": "sha256:10a30d0007e3118eb42c0152ca7c609357db23aee2372038dc84e034b8c63978",
+      "mappingMode": "PASSTHROUGH",
+      "normalizedContentHash": "sha256:10a30d0007e3118eb42c0152ca7c609357db23aee2372038dc84e034b8c63978",
+      "path": "interfaces.json",
+      "recordCount": 6,
+      "sourceCollection": "interfaces",
+      "sourceContentHash": "sha256:10a30d0007e3118eb42c0152ca7c609357db23aee2372038dc84e034b8c63978",
+      "sourceHashMatches": true,
+      "sourceIdentity": "interfaceId",
+      "targetCollection": "interfaces",
+      "targetIdentity": "interfaceId"
+    },
+    {
+      "expectedSourceContentHash": "sha256:f91d49664e7dffc49831664bd4809c41be789f14f28b0f6298eadf71718ba4f7",
+      "mappingMode": "PASSTHROUGH",
+      "normalizedContentHash": "sha256:f91d49664e7dffc49831664bd4809c41be789f14f28b0f6298eadf71718ba4f7",
+      "path": "modules.json",
+      "recordCount": 23,
+      "sourceCollection": "modules",
+      "sourceContentHash": "sha256:f91d49664e7dffc49831664bd4809c41be789f14f28b0f6298eadf71718ba4f7",
+      "sourceHashMatches": true,
+      "sourceIdentity": "moduleId",
+      "targetCollection": "modules",
+      "targetIdentity": "moduleId"
+    },
+    {
+      "expectedSourceContentHash": "sha256:24a26a75c1d22c96cae74944ee42e058b1d61546fb053dc2f716f50b872a2851",
+      "mappingMode": "COLLECTION_AND_IDENTITY_ADAPTER",
+      "normalizedContentHash": "sha256:ce28285687cdcf667f1b5a26fd59f6cf4e963f2896fe57f3348950ef8bbc32c8",
+      "path": "ownership.json",
+      "recordCount": 13,
+      "sourceCollection": "rules",
+      "sourceContentHash": "sha256:24a26a75c1d22c96cae74944ee42e058b1d61546fb053dc2f716f50b872a2851",
+      "sourceHashMatches": true,
+      "sourceIdentity": "scope",
+      "targetCollection": "ownership",
+      "targetIdentity": "ownershipId"
+    },
+    {
+      "expectedSourceContentHash": "sha256:03591c395964e95e7d9118918c8c7048f13036075c138ac217d9197363748709",
+      "mappingMode": "PASSTHROUGH",
+      "normalizedContentHash": "sha256:03591c395964e95e7d9118918c8c7048f13036075c138ac217d9197363748709",
+      "path": "migrations.json",
+      "recordCount": 2,
+      "sourceCollection": "migrations",
+      "sourceContentHash": "sha256:03591c395964e95e7d9118918c8c7048f13036075c138ac217d9197363748709",
+      "sourceHashMatches": true,
+      "sourceIdentity": "migrationId",
+      "targetCollection": "migrations",
+      "targetIdentity": "migrationId"
+    },
+    {
+      "expectedSourceContentHash": "sha256:d2386f7c4c1d1dca77864ffa227f181e70bac981da99133e866507852ef56003",
+      "mappingMode": "PASSTHROUGH",
+      "normalizedContentHash": "sha256:d2386f7c4c1d1dca77864ffa227f181e70bac981da99133e866507852ef56003",
+      "path": "stations.json",
+      "recordCount": 7,
+      "sourceCollection": "stations",
+      "sourceContentHash": "sha256:d2386f7c4c1d1dca77864ffa227f181e70bac981da99133e866507852ef56003",
+      "sourceHashMatches": true,
+      "sourceIdentity": "stationId",
+      "targetCollection": "stations",
+      "targetIdentity": "stationId"
+    },
+    {
+      "expectedSourceContentHash": "sha256:aba03d7278746ccaa743403e8c8b6fb880e96188862a11f81ef6f3f78ae4ed62",
+      "mappingMode": "COLLECTION_AND_IDENTITY_ADAPTER",
+      "normalizedContentHash": "sha256:6ef1d06b4217c78f36bdf4dcced18f25cde2d988f23c185c0c794ad550a1eaa0",
+      "path": "tombstones.json",
+      "recordCount": 4,
+      "sourceCollection": "candidates",
+      "sourceContentHash": "sha256:aba03d7278746ccaa743403e8c8b6fb880e96188862a11f81ef6f3f78ae4ed62",
+      "sourceHashMatches": true,
+      "sourceIdentity": "legacyPath",
+      "targetCollection": "tombstones",
+      "targetIdentity": "tombstoneId"
+    }
+  ],
+  "mappingContractHash": "sha256:298296a2db60fc35e2ece826c962bc6182f3503a7416f091464c69fe401fdd41",
+  "mode": "report_only",
+  "normalizedDocumentsPersistedToRuntime": false,
+  "normalizedRegistryFileCount": 8,
+  "normalizedRegistryRootHash": "sha256:6eeeec1afa3ff5acd14c569f8e2c9f6b39453654ee46ba078d5a8b49b8cbe95f",
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "schema": "contest.registry_protocol_adapter_review.v1",
+  "sourceAuthority": {
+    "commit": "f5186451c80631fea550da17d481f5e8793215e5",
+    "registryPath": "contracts/registry",
+    "repository": "yu5-520/AI-e-commerce-assistant"
+  },
+  "sourceDocumentHashesVerified": true,
+  "state": "PROTOCOL_ADAPTER_VERIFIED_RUNTIME_SWITCH_NOT_AUTHORIZED",
+  "targetInterface": {
+    "commit": "c924e646673a41857cca5e39650e022f9ce8c0a5",
+    "compilerBlobSha": "7a9546b02fd598548891fd080c98a6553695b796",
+    "repository": "yu5-520/Z-Century",
+    "version": "Z1.0.5"
+  },
+  "zCompilerVerified": true
+}
