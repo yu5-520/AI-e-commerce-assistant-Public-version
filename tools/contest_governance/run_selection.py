@@ -285,6 +285,7 @@ def run(root: Path, request_path: Path, output_dir: Path, z_source: Path) -> Dic
     request = _read_object(request_path)
     runtime_projection = _read_object(root / "config" / "v23_registry_runtime.json")
     adapter_layout = _read_object(root / ".z" / "adapter" / "registry-layout.json")
+    equivalence_contract = _read_object(root / ".z" / "equivalence" / "root-equivalence.json")
     dependency_manifest = _read_object(root / ".z" / "dependency-manifest.json")
 
     external_compile_path = z_source / "tools" / "registry_compiler" / "compile_registry.py"
@@ -305,6 +306,7 @@ def run(root: Path, request_path: Path, output_dir: Path, z_source: Path) -> Dic
 
     from tools.registry_compiler.registry_graph import build_dependency_graph
     from tools.registry_compiler.repository_audit import scan_repository
+    from tools.contest_governance.root_equivalence import evaluate_root_equivalence
 
     modules = _records(documents["modules.json"], "modules", "moduleId")
     interfaces = _records(documents["interfaces.json"], "interfaces", "interfaceId")
@@ -423,8 +425,13 @@ def run(root: Path, request_path: Path, output_dir: Path, z_source: Path) -> Dic
         external_compile_error = f"{type(exc).__name__}:{exc}"
 
     roots = dict(adapter_layout.get("observedLayeredRoots") or {})
-    layered_root_values = sorted(set(str(value) for value in roots.values() if str(value)))
-    root_equivalent = len(layered_root_values) <= 1
+    root_equivalence_check = evaluate_root_equivalence(
+        root,
+        adapter_layout,
+        equivalence_contract,
+        _read_object,
+    )
+    root_equivalent = bool(root_equivalence_check.get("verified"))
 
     findings: List[str] = []
     if not adapter_check.get("allDocumentsMatch"):
@@ -432,7 +439,7 @@ def run(root: Path, request_path: Path, output_dir: Path, z_source: Path) -> Dic
     if missing_total:
         findings.append("SELECTION_REQUEST_UNKNOWN_IDS")
     if not root_equivalent:
-        findings.append("LAYERED_REGISTRY_ROOTS_NOT_EQUIVALENT")
+        findings.append("LAYERED_ROOT_COMPOSITION_NOT_VERIFIED")
     if external_compile_error:
         findings.append("Z_INTERFACE_PRODUCT_REGISTRY_PROTOCOL_REVIEW_REQUIRED")
     if repository_scan.get("summary", {}).get("runnerDriftCount"):
@@ -457,6 +464,7 @@ def run(root: Path, request_path: Path, output_dir: Path, z_source: Path) -> Dic
         "currentManifestRegistryRootHash": current_manifest.get("registryRootHash"),
         "runtimeProjectionRegistryRootHash": runtime_projection.get("registryRootHash"),
         "observedLayeredRoots": roots,
+        "rootEquivalenceContract": root_equivalence_check,
         "rootEquivalent": root_equivalent,
         "externalZCompile": {
             "verified": external_generated is not None,
@@ -509,9 +517,13 @@ def run(root: Path, request_path: Path, output_dir: Path, z_source: Path) -> Dic
         "reviewState": "REVIEW_PENDING",
         "baselineCommit": baseline["repositoryCommit"],
         "registryAdapterState": (
-            "REGISTRY_DOCUMENTS_VERIFIED_ROOT_EQUIVALENCE_PENDING"
-            if adapter_check.get("allDocumentsMatch") and not root_equivalent
-            else "REGISTRY_REVIEW_REQUIRED"
+            "REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED"
+            if adapter_check.get("allDocumentsMatch") and root_equivalent
+            else (
+                "REGISTRY_DOCUMENTS_VERIFIED_ROOT_EQUIVALENCE_PENDING"
+                if adapter_check.get("allDocumentsMatch")
+                else "REGISTRY_REVIEW_REQUIRED"
+            )
         ),
         "graphHash": graph.get("graphHash"),
         "repositoryScanHash": repository_scan.get("repositoryScanHash"),
@@ -539,6 +551,7 @@ def run(root: Path, request_path: Path, output_dir: Path, z_source: Path) -> Dic
             "REVIEW_PENDING",
         ],
         "registryRootEquivalencePending": not root_equivalent,
+        "registryRootEquivalenceMode": root_equivalence_check.get("equivalenceMode"),
         "graphHash": graph.get("graphHash"),
         "repositoryScanHash": repository_scan.get("repositoryScanHash"),
         "selectionHash": selection_hash,
