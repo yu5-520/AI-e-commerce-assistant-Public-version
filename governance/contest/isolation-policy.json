@@ -1,0 +1,51 @@
+{
+  "schema": "contest.logical_isolation_policy.v1",
+  "version": "1.0.0",
+  "state": "LOGICAL_ISOLATION_ACTIVE",
+  "mode": "fail_closed",
+  "sourceRegistryRootHash": "sha256:f0868111f3ae79c9788af965f941f3820b491c0d53fb22e44dc03090daa48f1d",
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "isolatedModuleIds": [
+    "action_node_transport",
+    "execution_resource_orchestrator",
+    "node_authorization",
+    "operating_plan_compiler",
+    "stage_frontend_projection",
+    "stage_lifecycle",
+    "task_blueprint_compiler"
+  ],
+  "enforcement": {
+    "runtimeProjectionEntryAllowed": false,
+    "requiredRuntimeModuleAllowed": false,
+    "activeInterfaceAllowed": false,
+    "activeStationAllowed": false,
+    "activeGraphEdgeAllowed": false,
+    "activeRunnerDispatchAllowed": false,
+    "physicalFileMoveAllowed": false,
+    "physicalDeletionAllowed": false
+  },
+  "physicalPathPolicy": {
+    "preserveUntilPhysicalPruneApproval": [
+      "tools/registry_compiler/v24_identity_catalog.py",
+      "tools/registry_compiler/v24_task_blueprint_compiler.py"
+    ],
+    "simulationExcludeCandidates": [
+      "tools/registry_compiler/v24_identity_catalog.py",
+      "tools/registry_compiler/v24_task_blueprint_compiler.py"
+    ]
+  },
+  "constraints": {
+    "sourceModuleRegistrationPreserved": true,
+    "businessRuntimeMutationAllowed": false,
+    "databaseMutationAllowed": false,
+    "providerCallsAllowed": false,
+    "mainMutationAllowed": false,
+    "promotionAllowed": false,
+    "publicReleaseAllowed": false
+  },
+  "approval": {
+    "logicalIsolation": "APPROVED_BY_CONSOLIDATED_REVIEW",
+    "physicalPrune": "NOT_AUTHORIZED"
+  }
+}
