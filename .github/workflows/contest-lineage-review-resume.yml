@@ -1,0 +1,163 @@
+name: Contest registry lineage review resume
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-lineage-review-resume.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-registry-lineage-review-resume
+  cancel-in-progress: false
+
+jobs:
+  registry-lineage-review:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      MOTHER_COMMIT: f5186451c80631fea550da17d481f5e8793215e5
+      EXPECTED_Z_METADATA_TREE: ceb65191be6dde87bb514e41d1c1df7c5ae279d5
+      EXPECTED_Z_ADAPTER_TREE: 4a0ed1645fac6d09a44c04a7d0fd2eb477584ee2
+      Z_SOURCE_COMMIT: c924e646673a41857cca5e39650e022f9ce8c0a5
+      EXPECTED_Z_COMPILER_BLOB: 7a9546b02fd598548891fd080c98a6553695b796
+      Z_INTERFACE_ROOT: governance/contest/z-interface/Z1.0.5
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Verify mother and pinned Z authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mother="/opt/ai-ecommerce-assistant-deploy/releases/20260626042555_ba081064"
+          git config --global --add safe.directory "$mother" 2>/dev/null || true
+          git -C "$mother" cat-file -e "$MOTHER_COMMIT^{commit}"
+          test "$(git -C "$mother" rev-parse "$MOTHER_COMMIT:.z")" = "$EXPECTED_Z_METADATA_TREE"
+          test "$(git -C "$mother" rev-parse "$MOTHER_COMMIT:tools/z_adapter")" = "$EXPECTED_Z_ADAPTER_TREE"
+
+          interface="$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT/tools/registry_compiler/compile_registry.py"
+          test -f "$interface"
+          test "$(git hash-object "$interface")" = "$EXPECTED_Z_COMPILER_BLOB"
+
+          echo "MOTHER_REPOSITORY=$mother" >> "$GITHUB_ENV"
+          echo "Z_CENTURY_SOURCE_DIR=$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT" >> "$GITHUB_ENV"
+          echo "AUTHORITY_IDENTITIES=PASS"
+
+      - name: Transfer and commit exact product Z adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$(mktemp -d)"
+          trap 'rm -rf "$stage"' EXIT
+
+          git -C "$MOTHER_REPOSITORY" archive "$MOTHER_COMMIT" .z tools/z_adapter \
+            | tar -x -C "$stage"
+
+          rm -rf .z tools/z_adapter
+          cp -a "$stage/.z" .z
+          mkdir -p tools
+          cp -a "$stage/tools/z_adapter" tools/z_adapter
+
+          git add .z tools/z_adapter
+          candidate_tree="$(git write-tree)"
+          test "$(git ls-tree "$candidate_tree" .z | awk '{print $3}')" = "$EXPECTED_Z_METADATA_TREE"
+          test "$(git ls-tree "$candidate_tree" tools/z_adapter | awk '{print $3}')" = "$EXPECTED_Z_ADAPTER_TREE"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --cached --quiet; then
+            echo "PRODUCT_Z_ADAPTER_ALREADY_COMMITTED=YES"
+          else
+            git commit -m "governance(contest): import exact product Z adapter [skip ci]"
+            git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          fi
+
+          test "$(git rev-parse HEAD:.z)" = "$EXPECTED_Z_METADATA_TREE"
+          test "$(git rev-parse HEAD:tools/z_adapter)" = "$EXPECTED_Z_ADAPTER_TREE"
+          echo "PRODUCT_Z_ADAPTER_COMMITTED=PASS"
+
+      - name: Resolve report-only Python 3.11.9
+        shell: bash
+        run: |
+          set -euo pipefail
+          python="/opt/python/3.11.9/bin/python3.11"
+          test -x "$python"
+          test "$($python --version 2>&1)" = "Python 3.11.9"
+          echo "AUDIT_PYTHON=$python" >> "$GITHUB_ENV"
+          echo "REPORT_ONLY_PYTHON=PASS"
+
+      - name: Generate registry lineage selection and review
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+
+          rm -rf governance/contest/generated
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/generated \
+            --z-source "$Z_CENTURY_SOURCE_DIR" \
+            | tee /tmp/contest-lineage-summary.json
+
+          for file in \
+            registry-snapshot.json \
+            hash-lineage-graph.json \
+            repository-audit.json \
+            forward-closure.json \
+            reverse-closure.json \
+            contest-selection-manifest.json \
+            contest-chain-review.json \
+            contest-chain-review.md \
+            execution-receipt.json
+          do
+            test -f "governance/contest/generated/$file"
+          done
+
+          grep -q '"reviewState": "REVIEW_PENDING"' governance/contest/generated/contest-chain-review.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/execution-receipt.json
+          grep -q '"databaseMutated": false' governance/contest/generated/execution-receipt.json
+          grep -q '"providerCallsExecuted": 0' governance/contest/generated/execution-receipt.json
+          echo "REGISTRY_LINEAGE_SELECTION_REVIEW=PASS"
+
+      - name: Enforce report-only boundary and commit review
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add governance/contest/generated
+          changed="$(git diff --cached --name-only)"
+          printf '%s\n' "$changed"
+
+          forbidden="$(printf '%s\n' "$changed" | grep -Ev '^governance/contest/generated/' || true)"
+          test -z "$forbidden" || {
+            echo "ERROR: report-only boundary violated"
+            printf '%s\n' "$forbidden"
+            exit 1
+          }
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): generate registry lineage selection review [skip ci]"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          echo "REVIEW_EVIDENCE_COMMITTED=PASS"
+
+      - name: Upload review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-registry-lineage-review-resume
+          path: |
+            governance/contest/generated
+            /tmp/contest-lineage-summary.json
+          if-no-files-found: ignore
+          retention-days: 14
