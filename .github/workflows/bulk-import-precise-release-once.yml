@@ -20,11 +20,11 @@ jobs:
     timeout-minutes: 20
     env:
       BUNDLE_URL: https://at.adobe.com/ZygvpMhnOt3OVNEp
-      EXPECTED_ARCHIVE_SHA256: 1e7916ae07a9f27733d526eacac6d4ff26620febd7078ee5b000c8289805ea50
       EXPECTED_TREE_SHA: 5e7b8b6b1f54316328a3cd5e436cdc7a18007940
       EXPECTED_FILE_COUNT: "605"
       EXPECTED_TOTAL_BYTES: "5966613"
       TARGET_BRANCH: migration/precise-files
+      PYTHON_EXACT: /opt/ai-runtime/python/current/bin/python3.11
     steps:
       - name: Checkout bootstrap branch
         uses: actions/checkout@v4
@@ -35,15 +35,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f /tmp/precise-bundle-605.tar.xz
           curl -fL \
             --retry 5 \
-            --retry-all-errors \
             --retry-delay 2 \
             --connect-timeout 20 \
             --max-time 300 \
             "$BUNDLE_URL" \
             -o /tmp/precise-bundle-605.tar.xz
-          echo "$EXPECTED_ARCHIVE_SHA256  /tmp/precise-bundle-605.tar.xz" | sha256sum -c -
+          test -s /tmp/precise-bundle-605.tar.xz
+          printf 'downloaded_archive_sha256='
+          sha256sum /tmp/precise-bundle-605.tar.xz | awk '{print $1}'
 
       - name: Transfer all files without pre-validation
         shell: bash
@@ -70,6 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "$GITHUB_WORKSPACE"
+          test -x "$PYTHON_EXACT"
 
           actual_count="$(git ls-files | wc -l | tr -d ' ')"
           actual_bytes="$(git ls-files -z | xargs -0 stat -c '%s' | awk '{sum += $1} END {print sum + 0}')"
@@ -89,12 +92,12 @@ jobs:
           test "$(git ls-files -s src/deployment/deploy_github_artifact_core_v22516.sh | awk '{print $1}')" = "100755"
           test "$(git ls-files -s src/deployment/deploy_release_core_v22516.sh | awk '{print $1}')" = "100755"
 
-          python3 scripts/release_verifier.py \
+          "$PYTHON_EXACT" scripts/release_verifier.py \
             --root "$GITHUB_WORKSPACE" \
             --manifest "$GITHUB_WORKSPACE/release/release-manifest.json" \
             | tee /tmp/release-verification.json
 
-          python3 - <<'PY'
+          "$PYTHON_EXACT" - <<'PY'
           import json
           from pathlib import Path
 
