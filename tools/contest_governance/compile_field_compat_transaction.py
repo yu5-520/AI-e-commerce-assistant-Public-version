@@ -5,7 +5,7 @@ import ast
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, MutableMapping, Set
+from typing import Any, Dict, List, MutableMapping, Set
 
 MAPPINGS = {
     "selectedActionFamilyHint": {
@@ -42,13 +42,21 @@ def _parent_map(tree: ast.AST) -> Dict[ast.AST, ast.AST]:
 
 
 def _kind(node: ast.Constant, parent: ast.AST | None) -> str:
-    if isinstance(parent, ast.Call) and isinstance(parent.func, ast.Attribute) and parent.func.attr == "get":
+    if isinstance(parent, ast.Call) and isinstance(parent.func, ast.Attribute):
         if parent.args and parent.args[0] is node:
-            return "READ_GET"
+            if parent.func.attr == "get":
+                return "READ_GET"
+            if parent.func.attr == "pop":
+                return "LEGACY_KEY_CLEANUP_POP"
+            if parent.func.attr == "setdefault":
+                return "WRITE_SETDEFAULT"
     if isinstance(parent, ast.Subscript) and parent.slice is node:
         return "WRITE_SUBSCRIPT" if isinstance(parent.ctx, ast.Store) else "READ_SUBSCRIPT"
-    if isinstance(parent, ast.Dict) and node in parent.keys:
-        return "WRITE_DICT_LITERAL"
+    if isinstance(parent, ast.Dict):
+        if node in parent.keys:
+            return "WRITE_DICT_LITERAL"
+        if node in parent.values:
+            return "KEY_NAME_MAPPING_VALUE"
     if isinstance(parent, (ast.Compare, ast.List, ast.Tuple, ast.Set)):
         return "KEY_MEMBERSHIP_OR_COMPARE"
     return "REVIEW_REQUIRED"
@@ -57,12 +65,13 @@ def _kind(node: ast.Constant, parent: ast.AST | None) -> str:
 def compile_transaction(root: Path) -> Dict[str, Any]:
     tombstone = _read(root / "governance/contest/generated/tombstone-scope-review.json")
     references = tombstone.get("references") or []
+    blocking_paths = {value["legacyPath"] for value in MAPPINGS.values()}
     core_paths: Set[str] = {
         str(item.get("path") or "")
         for item in references
         if isinstance(item, dict)
         and item.get("classification") in {"CORE_REVIEW", "SUPPORT_REVIEW"}
-        and str(item.get("legacyPath") or "") in {v["legacyPath"] for v in MAPPINGS.values()}
+        and str(item.get("legacyPath") or "") in blocking_paths
     }
 
     occurrences: List[Dict[str, Any]] = []
@@ -93,8 +102,9 @@ def compile_transaction(root: Path) -> Dict[str, Any]:
                 "lineText": lines[node.lineno - 1].strip() if node.lineno else "",
             })
 
+    review_required = int(counts.get("REVIEW_REQUIRED", 0))
     material = {
-        "schema": "contest.field_compat_transaction.v1",
+        "schema": "contest.field_compat_transaction.v2",
         "mode": "report_only",
         "sourceReviewHash": tombstone.get("scopeHash"),
         "mappings": MAPPINGS,
@@ -102,9 +112,11 @@ def compile_transaction(root: Path) -> Dict[str, Any]:
         "occurrenceCount": len(occurrences),
         "classificationCounts": dict(sorted(counts.items())),
         "occurrences": sorted(occurrences, key=lambda x: (x["path"], x["line"], x["column"])),
-        "automaticApplyAuthorized": counts.get("REVIEW_REQUIRED", 0) == 0,
+        "automaticApplyAuthorized": review_required == 0,
+        "reviewRequiredCount": review_required,
         "writePolicy": "NEW_KEY_ONLY",
         "readPolicy": "NEW_KEY_THEN_LEGACY_KEY",
+        "cleanupPolicy": "LEGACY_POP_RETAINED_DURING_COMPATIBILITY_WINDOW",
         "physicalDeletionAuthorized": False,
         "mainMutationAuthorized": False,
     }
@@ -120,6 +132,7 @@ def main() -> int:
         "transactionHash": result["transactionHash"],
         "occurrenceCount": result["occurrenceCount"],
         "classificationCounts": result["classificationCounts"],
+        "reviewRequiredCount": result["reviewRequiredCount"],
         "automaticApplyAuthorized": result["automaticApplyAuthorized"],
     }, ensure_ascii=False, sort_keys=True, indent=2))
     return 0
