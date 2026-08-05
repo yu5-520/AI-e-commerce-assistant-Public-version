@@ -1,0 +1,170 @@
+name: Resume approved contest core field migration once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-core-field-migration-resume-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-core-field-migration-v1
+  cancel-in-progress: false
+
+jobs:
+  migrate-core-fields:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
+    env:
+      TARGET_BRANCH: transaction/contest-core-field-migration-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      PYTHONPYCACHEPREFIX: /tmp/contest-core-field-pycache
+      EXPECTED_EXECUTOR_BLOB: 83788e2738f22387087efcf2d96fe7628aafeebe
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+    steps:
+      - name: Checkout approved transaction branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Execute and verify approved migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$PYTHONPYCACHEPREFIX"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+
+          test -x "$AUDIT_PYTHON"
+          test "$($AUDIT_PYTHON --version 2>&1)" = "Python 3.11.9"
+          test "$(git hash-object tools/contest_governance/migrate_core_tombstone_fields.py)" = "$EXPECTED_EXECUTOR_BLOB"
+          test -z "$(git status --porcelain)"
+          grep -q '"state": "REVIEW_READY_FOR_HUMAN_APPROVAL"' governance/contest/generated/contest-consolidated-review.json
+          grep -q 'sha256:f1efe99fa15eca67e9c2c306f635f2431a34890832a7eefd22c33e11723d0e99' governance/contest/generated/contest-consolidated-review.json
+
+          "$AUDIT_PYTHON" -m py_compile \
+            tools/contest_governance/migrate_core_tombstone_fields.py \
+            tools/contest_governance/run_selection.py \
+            tools/contest_governance/scope_unregistered_fields.py \
+            tools/contest_governance/scope_tombstone_references.py
+          test -z "$(git status --porcelain)"
+          echo "AUTHORITY_AND_EXTERNAL_PYCACHE=PASS"
+
+          "$AUDIT_PYTHON" tools/contest_governance/migrate_core_tombstone_fields.py apply \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/core-field-migration-apply.json
+
+          "$AUDIT_PYTHON" - <<'PY'
+          import json, py_compile
+          from pathlib import Path
+          expected = {
+              "src/services/action_pack_core_v20_service.py",
+              "src/services/agent2_action_draft_core_v225_service.py",
+              "src/services/agent2_action_plan_core_v20_service.py",
+              "src/services/agent_execution_lock_v2255_service.py",
+              "src/services/agent_input_transport_v22514_service.py",
+              "src/services/agent_runtime_contract_v2010_service.py",
+              "src/services/agent_runtime_hard_interface_v2257_service.py",
+              "src/services/decision_write_guard_v19122_service.py",
+              "src/services/pipeline_agent1_microbatch_v20101_service.py",
+              "src/services/pipeline_item_service.py",
+              "src/services/real_product_judgment_agent_v196_service.py",
+              "src/services/route_action_department_matrix_v1915_service.py",
+              "src/services/v2172_inventory_action_guard_service.py",
+              "src/services/v2173_agent2_policy_shape_recovery_service.py",
+          }
+          plan = json.loads(Path("governance/contest/generated/core-field-migration-plan.json").read_text(encoding="utf-8"))
+          actual = {str(item["path"]) for item in plan["files"]}
+          assert actual == expected, {"missing": sorted(expected-actual), "extra": sorted(actual-expected)}
+          assert plan["sourceFileCount"] == 14
+          assert plan["migratedReferenceCount"] == 25
+          assert plan["expectedOutsideReferenceCountPreserved"] == 42
+          for path in sorted(actual):
+              py_compile.compile(path, doraise=True)
+          Path("/tmp/allowed-source-paths").write_text("\n".join(sorted(actual)) + "\n", encoding="utf-8")
+          print("EXACT_14_SOURCE_SET=PASS")
+          PY
+
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/generated \
+            --z-source "$GITHUB_WORKSPACE/governance/contest/z-interface/Z1.0.5" \
+            | tee /tmp/core-field-migration-selection.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/scope_unregistered_fields.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/core-field-migration-unregistered.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/scope_tombstone_references.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/core-field-migration-tombstones.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/migrate_core_tombstone_fields.py verify \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/core-field-migration-verify.json
+
+          grep -q "\"graphHash\": \"$EXPECTED_GRAPH_HASH\"" governance/contest/generated/contest-selection-manifest.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/contest-selection-manifest.json
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit.json
+          grep -q '"sourceReferenceCount": 42' governance/contest/generated/tombstone-scope-review.json
+          grep -q '"partitionReferenceCount": 42' governance/contest/generated/tombstone-scope-review.json
+          grep -q '"CORE_REVIEW": 0' governance/contest/generated/tombstone-scope-review.json
+          grep -q '"SUPPORT_REVIEW": 0' governance/contest/generated/tombstone-scope-review.json
+          grep -q '"OUTSIDE_CONTEST_SCOPE": 42' governance/contest/generated/tombstone-scope-review.json
+          grep -q '"contestDeletionBlockedKeyCount": 0' governance/contest/generated/tombstone-scope-review.json
+          grep -q 'CORE_LEGACY_FIELD_MIGRATION_VERIFIED_PRUNE_SIMULATION_READY' governance/contest/generated/core-field-migration-review.json
+          grep -q '"mainMutated": false' governance/contest/generated/core-field-migration-receipt.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/core-field-migration-receipt.json
+          git diff --check
+          echo "MIGRATION_AND_RECOMPILE=PASS"
+
+          git status --porcelain | sed -E 's/^.. //' | sort -u > /tmp/changed-paths
+          while IFS= read -r path; do
+            case "$path" in
+              governance/contest/generated/*) ;;
+              *) grep -Fxq "$path" /tmp/allowed-source-paths || { echo "FORBIDDEN_CHANGE=$path"; exit 1; } ;;
+            esac
+          done < /tmp/changed-paths
+          actual_sources="$(grep '^src/' /tmp/changed-paths || true)"
+          diff -u /tmp/allowed-source-paths <(printf '%s\n' "$actual_sources" | sed '/^$/d' | sort -u)
+          ! grep -q '^contracts/registry/' /tmp/changed-paths
+          ! grep -q '^release/' /tmp/changed-paths
+          ! grep -q '^src/deployment/' /tmp/changed-paths
+          echo "TRANSACTION_BOUNDARY=PASS"
+
+          git add governance/contest/generated
+          xargs -r git add < /tmp/allowed-source-paths
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "migration(contest): replace core legacy fields with registered keys [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "CORE_FIELD_MIGRATION_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload migration evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-core-field-migration-v1
+          path: |
+            governance/contest/generated/core-field-migration-plan.json
+            governance/contest/generated/core-field-migration-review.json
+            governance/contest/generated/core-field-migration-receipt.json
+            governance/contest/generated/tombstone-scope-review.json
+            /tmp/core-field-migration-apply.json
+            /tmp/core-field-migration-verify.json
+          if-no-files-found: error
+          retention-days: 14
