@@ -219,7 +219,7 @@ def run_agent1_microbatch_hard(
                     "decisionType": "observe",
                     "decisionHint": "observe_only",
                     "selectedOperatingRoute": "observe",
-                    "selectedActionFamilyHint": None,
+                    "lockedActionFamily": None,
                     "actionFamily": None,
                     "route": "observe",
                     "executionLock": {**lock, "locked": False},

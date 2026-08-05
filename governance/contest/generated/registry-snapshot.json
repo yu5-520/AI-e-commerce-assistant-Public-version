@@ -93,8 +93,8 @@
   "providerCallsExecuted": 0,
   "registryCompilerTreeSha": "00e8116d9db88f4d2b3f1d8b877d6e96a0207f34",
   "registryTreeSha": "3cefcdea30086124a70999d942c5f552afd613fd",
-  "repositoryCommit": "02a77a92a48338d42c928df40009acab7f740310",
-  "repositoryTreeSha": "596cc36486dbaef582242803c05123937368df50",
+  "repositoryCommit": "5fceb7c48083815448c2831629c6cbeafac8ad4f",
+  "repositoryTreeSha": "5520d87a9087b4070d303b89b11c0074fad5f109",
   "rootEquivalenceContract": {
     "activationState": "EQUIVALENCE_VERIFIED_RUNTIME_SWITCH_NOT_AUTHORIZED",
     "equivalenceMode": "LAYERED_ROOT_COMPOSITION",

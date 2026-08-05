@@ -4,7 +4,7 @@
     "approvedBy": null,
     "state": "REVIEW_PENDING"
   },
-  "baselineCommit": "02a77a92a48338d42c928df40009acab7f740310",
+  "baselineCommit": "5fceb7c48083815448c2831629c6cbeafac8ad4f",
   "businessRuntimeMutated": false,
   "databaseMutated": false,
   "findings": [
@@ -1464,11 +1464,11 @@
   ],
   "providerCallsExecuted": 0,
   "registryAdapterState": "REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED",
-  "repositoryScanHash": "sha256:c85ea6b755280f16a94d7b5aedc3306f26c2dbd6e77611ab712ce210a23a4893",
-  "reviewHash": "sha256:a23b7aec5f69f8db0f81e787e19174ecbf6a4a2b75efd81a52f8ef6ba84e4115",
+  "repositoryScanHash": "sha256:a5f5665bd1576348393dbfba292bcb22de904cf67fdb48cccbaf17384c232f29",
+  "reviewHash": "sha256:2d3c3b1086756dd94e7e00c246941ad2e9c4e4aa31ceba705c4461aaddc99be6",
   "reviewState": "REVIEW_PENDING",
   "schema": "contest.chain_review.v1",
-  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "selectionHash": "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb",
   "summary": {
     "ISOLATE": 7,
     "KEEP_CORE": 14,
@@ -1482,7 +1482,7 @@
       "legacyPath": "payload.selectedActionFamilyHint",
       "note": "Semantic review required before retirement.",
       "replacementFieldId": "agent1.locked_action_family",
-      "repositoryHitCount": 37,
+      "repositoryHitCount": 18,
       "status": "CANDIDATE"
     },
     {
@@ -1490,7 +1490,7 @@
       "legacyPath": "payload.creativeTestPlan",
       "note": "Migration-only compatibility candidate.",
       "replacementFieldId": "agent2.creative_draft",
-      "repositoryHitCount": 24,
+      "repositoryHitCount": 18,
       "status": "CANDIDATE"
     },
     {

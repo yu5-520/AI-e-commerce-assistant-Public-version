@@ -301,7 +301,7 @@ def _observation_judgment(
 ) -> Dict[str, Any]:
     value = copy.deepcopy(judgment)
     original_family = _text(
-        value.get("selectedActionFamilyHint")
+        value.get("lockedActionFamily")
         or _dict(value.get("actionFamilyLock")).get("selectedActionFamily")
     )
     original_route = _text(value.get("selectedOperatingRoute"))
@@ -351,7 +351,7 @@ def _observation_judgment(
 def guard_agent1_judgment(judgment: Dict[str, Any]) -> Dict[str, Any]:
     value = copy.deepcopy(judgment)
     family = _lower(
-        value.get("selectedActionFamilyHint")
+        value.get("lockedActionFamily")
         or _dict(value.get("actionFamilyLock")).get("selectedActionFamily")
     )
     if _baseline_only(value) and family:
@@ -398,7 +398,7 @@ def _package_family(package: Dict[str, Any]) -> str:
     agent1 = _dict(package.get("agent1OperatingJudgment"))
     return _lower(
         package.get("actionFamily")
-        or package.get("selectedActionFamilyHint")
+        or package.get("lockedActionFamily")
         or matrix.get("selectedActionFamily")
         or agent1.get("selectedActionFamily")
     )
@@ -540,7 +540,7 @@ def classify_inventory_failure(payload: Dict[str, Any], action_family: str | Non
     selector = _lower(execution.get("targetSelector"))
     missing = _failure_missing(payload)
     combined = " ".join([*missing, _text(payload.get("reason")), _text(plan.get("conflictReason"))]).lower()
-    family = _lower(action_family or payload.get("actionFamily") or payload.get("selectedActionFamilyHint"))
+    family = _lower(action_family or payload.get("actionFamily") or payload.get("lockedActionFamily"))
     inventory_route = bool(
         "inventory_coordination_ticket" in selector
         or "inventory_cannot_directly_cut_operator_traffic" in combined
@@ -776,8 +776,8 @@ def install_v2172_inventory_action_guard() -> None:
         changed = sum(
             1
             for before, after in zip(judgments, guarded)
-            if before.get("selectedActionFamilyHint")
-            and not after.get("selectedActionFamilyHint")
+            if before.get("lockedActionFamily")
+            and not after.get("lockedActionFamily")
         )
         provider = {
             **provider,

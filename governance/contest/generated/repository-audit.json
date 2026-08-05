@@ -1014,11 +1014,13 @@
     "pipeline_runtime": {
       "actualButUndeclaredFields": [
         "action_pack.matrix_dispatch",
+        "agent1.locked_action_family",
         "agent1.operating_judgment",
         "frontend.module_content_hash"
       ],
       "actualRegisteredFields": [
         "action_pack.matrix_dispatch",
+        "agent1.locked_action_family",
         "agent1.operating_judgment",
         "entity.data_version",
         "entity.package_id",
@@ -1700,20 +1702,8 @@
       "runnerSymbolExists": true
     }
   },
-  "repositoryScanHash": "sha256:c85ea6b755280f16a94d7b5aedc3306f26c2dbd6e77611ab712ce210a23a4893",
+  "repositoryScanHash": "sha256:a5f5665bd1576348393dbfba292bcb22de904cf67fdb48cccbaf17384c232f29",
   "retiredFieldCandidateHits": [
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 400,
-      "operation": "pop",
-      "path": "src/services/action_pack_core_v20_service.py"
-    },
     {
       "candidate": {
         "legacyPath": "payload.selectedActionFamilyHint",
@@ -1788,114 +1778,6 @@
     },
     {
       "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "key": "creativeTestPlan",
-      "line": 308,
-      "operation": "get",
-      "path": "src/services/agent2_action_draft_core_v225_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "key": "creativeTestPlan",
-      "line": 375,
-      "operation": "get",
-      "path": "src/services/agent2_action_draft_core_v225_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "key": "creativeTestPlan",
-      "line": 288,
-      "operation": "get",
-      "path": "src/services/agent2_action_plan_core_v20_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "key": "creativeTestPlan",
-      "line": 330,
-      "operation": "get",
-      "path": "src/services/agent2_action_plan_core_v20_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "key": "creativeTestPlan",
-      "line": 346,
-      "operation": "dict_key",
-      "path": "src/services/agent2_action_plan_core_v20_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 204,
-      "operation": "get",
-      "path": "src/services/agent_execution_lock_v2255_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 207,
-      "operation": "get",
-      "path": "src/services/agent_execution_lock_v2255_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 462,
-      "operation": "dict_key",
-      "path": "src/services/agent_input_transport_v22514_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 270,
-      "operation": "pop",
-      "path": "src/services/agent_runtime_contract_v2010_service.py"
-    },
-    {
-      "candidate": {
         "legacyPath": "payload.selectedActionFamilyHint",
         "note": "Semantic review required before retirement.",
         "replacementFieldId": "agent1.locked_action_family",
@@ -1905,18 +1787,6 @@
       "line": 274,
       "operation": "dict_key",
       "path": "src/services/agent_runtime_hard_interface_v2255_legacy_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 222,
-      "operation": "dict_key",
-      "path": "src/services/agent_runtime_hard_interface_v2257_service.py"
     },
     {
       "candidate": {
@@ -1998,30 +1868,6 @@
         "status": "CANDIDATE"
       },
       "key": "selectedActionFamilyHint",
-      "line": 56,
-      "operation": "get",
-      "path": "src/services/decision_write_guard_v19122_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "key": "creativeTestPlan",
-      "line": 71,
-      "operation": "get",
-      "path": "src/services/decision_write_guard_v19122_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
       "line": 42,
       "operation": "get",
       "path": "src/services/judgment_evidence_package_v195_service.py"
@@ -2094,54 +1940,6 @@
         "status": "CANDIDATE"
       },
       "key": "selectedActionFamilyHint",
-      "line": 201,
-      "operation": "get",
-      "path": "src/services/pipeline_agent1_microbatch_v20101_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 283,
-      "operation": "get",
-      "path": "src/services/pipeline_item_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 327,
-      "operation": "get",
-      "path": "src/services/real_product_judgment_agent_v196_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 409,
-      "operation": "dict_key",
-      "path": "src/services/real_product_judgment_agent_v196_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
       "line": 244,
       "operation": "get",
       "path": "src/services/real_product_judgment_agent_v2258_service.py"
@@ -2157,18 +1955,6 @@
       "line": 253,
       "operation": "write",
       "path": "src/services/real_product_judgment_agent_v2258_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 144,
-      "operation": "pop",
-      "path": "src/services/route_action_department_matrix_v1915_service.py"
     },
     {
       "candidate": {
@@ -2421,90 +2207,6 @@
       "line": 267,
       "operation": "write",
       "path": "src/services/v19_product_logic_contract_v2014_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 304,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 354,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 401,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 543,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 779,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 780,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py"
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "key": "selectedActionFamilyHint",
-      "line": 287,
-      "operation": "get",
-      "path": "src/services/v2173_agent2_policy_shape_recovery_service.py"
     }
   ],
   "runnerDrift": [],
@@ -2512,7 +2214,7 @@
   "summary": {
     "filesWithRegisteredFieldUsage": 234,
     "registeredModuleCount": 23,
-    "retiredFieldCandidateHitCount": 67,
+    "retiredFieldCandidateHitCount": 42,
     "runnerDriftCount": 0,
     "sourceFileCount": 395,
     "unregisteredFieldCandidateCount": 500

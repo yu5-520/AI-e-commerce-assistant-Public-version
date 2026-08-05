@@ -198,7 +198,7 @@ def _finish_item(
         store_id=item.get("store_id") or payload.get("storeId"),
         signal_id=item.get("signal_id") or payload.get("signalId"),
         package_id=item.get("package_id") or payload.get("packageId"),
-        action_family=item.get("action_family") or payload.get("actionFamily") or payload.get("selectedActionFamilyHint"),
+        action_family=item.get("action_family") or payload.get("actionFamily") or payload.get("lockedActionFamily"),
         route=item.get("route") or payload.get("route") or payload.get("selectedOperatingRoute"),
         input_ref=item.get("input_ref") or f"pipeline_item:{item.get('item_id')}",
         output_ref=output_ref,

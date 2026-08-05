@@ -267,7 +267,7 @@ def normalize_agent1_completed_contract(
             "outputContract": "V22.agent1_completed",
         },
     )
-    payload.pop("selectedActionFamilyHint", None)
+    payload.pop("lockedActionFamily", None)
     if decision_type == "observe":
         payload.update(
             observationOnly=True,

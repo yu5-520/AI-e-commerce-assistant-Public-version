@@ -397,7 +397,7 @@ def enrich_package_with_action_parameters(package: Dict[str, Any]) -> Dict[str, 
         dynamicRagStatus=rag_snapshot.get("status"),
         capabilityCompilerVersion=VERSION,
     )
-    item.pop("selectedActionFamilyHint", None)
+    item.pop("lockedActionFamily", None)
     return item
 
 

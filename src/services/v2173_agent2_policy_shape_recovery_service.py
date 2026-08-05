@@ -284,7 +284,7 @@ def _failure_missing(payload: Dict[str, Any]) -> List[str]:
 
 
 def classify_policy_shape_failure(payload: Dict[str, Any], action_family: str | None = None) -> Dict[str, Any]:
-    family = _lower(action_family or payload.get("actionFamily") or payload.get("selectedActionFamilyHint"))
+    family = _lower(action_family or payload.get("actionFamily") or payload.get("lockedActionFamily"))
     policy = _policy(payload)
     policy_family = _lower(policy.get("actionFamily"))
     target = _lower(policy.get("targetObject"))

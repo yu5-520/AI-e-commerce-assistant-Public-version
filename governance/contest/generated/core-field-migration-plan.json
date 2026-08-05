@@ -1,0 +1,601 @@
+{
+  "approvalEvidence": {
+    "consolidatedReviewHash": "sha256:f1efe99fa15eca67e9c2c306f635f2431a34890832a7eefd22c33e11723d0e99",
+    "sealedReferenceCount": 25,
+    "supplementalAstReferenceCount": 4,
+    "userInstruction": "continue_execute"
+  },
+  "businessRuntimeMutated": false,
+  "completeAstCounts": {
+    "payload.creativeTestPlan": 10,
+    "payload.selectedActionFamilyHint": 19
+  },
+  "databaseMutated": false,
+  "deploymentExecuted": false,
+  "expectedOutsideReferenceCountPreserved": 42,
+  "files": [
+    {
+      "afterContentHash": "sha256:32795cb312d2d9c3836daffd18952dcb4274c3c1027f367127e840f12d90e88d",
+      "beforeContentHash": "sha256:20a9ace03e7ef99b4854d466790e1229544dcf676965e9002bbd72547221daaa",
+      "path": "src/services/action_pack_core_v20_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 1,
+          "completeAstOccurrences": [
+            {
+              "column": 13,
+              "line": 400,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            400
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "pop": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:95f5439bd4aad417ff9c699e26a0d80416d3872fdcd4730b9f805ea57e53d7a2",
+      "beforeContentHash": "sha256:84c6a9a398d7f7492f5c8948356d30191b332f4a88285e411ad176e71c222165",
+      "path": "src/services/agent2_action_draft_core_v225_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 2,
+          "completeAstOccurrences": [
+            {
+              "column": 83,
+              "line": 308,
+              "parentNode": "Call"
+            },
+            {
+              "column": 83,
+              "line": 375,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "creativeTestPlan",
+          "legacyPath": "payload.creativeTestPlan",
+          "replacementFieldId": "agent2.creative_draft",
+          "replacementKey": "creativeDraft",
+          "sealedLines": [
+            308,
+            375
+          ],
+          "sealedOccurrenceCount": 2,
+          "sealedOperations": {
+            "get": 2
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:accf4660403b21c74dd7329081dc5e4d7d18b16e7535a92dcbe875ebe0472998",
+      "beforeContentHash": "sha256:c3fd5d99f33b6105705ac0e7b925205c5226554f686bbb52743649c272e282ee",
+      "path": "src/services/agent2_action_plan_core_v20_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 5,
+          "completeAstOccurrences": [
+            {
+              "column": 4,
+              "line": 54,
+              "parentNode": "Set"
+            },
+            {
+              "column": 24,
+              "line": 61,
+              "parentNode": "Dict"
+            },
+            {
+              "column": 69,
+              "line": 288,
+              "parentNode": "Call"
+            },
+            {
+              "column": 53,
+              "line": 330,
+              "parentNode": "Call"
+            },
+            {
+              "column": 8,
+              "line": 346,
+              "parentNode": "Dict"
+            }
+          ],
+          "legacyKey": "creativeTestPlan",
+          "legacyPath": "payload.creativeTestPlan",
+          "replacementFieldId": "agent2.creative_draft",
+          "replacementKey": "creativeDraft",
+          "sealedLines": [
+            288,
+            330,
+            346
+          ],
+          "sealedOccurrenceCount": 3,
+          "sealedOperations": {
+            "dict_key": 1,
+            "get": 2
+          },
+          "supplementalAstOccurrences": [
+            {
+              "column": 4,
+              "line": 54,
+              "parentNode": "Set"
+            },
+            {
+              "column": 24,
+              "line": 61,
+              "parentNode": "Dict"
+            }
+          ],
+          "supplementalOccurrenceCount": 2
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:c2443be796429d1c6905bb96630b4d909690c7519b7e9719a38da93e7670b782",
+      "beforeContentHash": "sha256:b0513e54b29d820f1c1eb7891995c4010b6c1fcc35bf9fb36d3a14798933bc53",
+      "path": "src/services/agent_execution_lock_v2255_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 2,
+          "completeAstOccurrences": [
+            {
+              "column": 19,
+              "line": 204,
+              "parentNode": "Call"
+            },
+            {
+              "column": 21,
+              "line": 207,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            204,
+            207
+          ],
+          "sealedOccurrenceCount": 2,
+          "sealedOperations": {
+            "get": 2
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:aa32d0ccc7be8d5a6f9a9e1e22cb14bf513e8072b4a2b373a4c7492c87e2de21",
+      "beforeContentHash": "sha256:3e2d0e8c206ff0369776a2813b6f65e1a007e9b0b1877b0c9eb1c4c107a0ba10",
+      "path": "src/services/agent_input_transport_v22514_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 1,
+          "completeAstOccurrences": [
+            {
+              "column": 8,
+              "line": 462,
+              "parentNode": "Dict"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            462
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "dict_key": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:f7df324a0b89d7a845e2fa3a3aa7e2bb3bf6e6a5d971a1b62220f1895cf39a14",
+      "beforeContentHash": "sha256:7f880e21a8174951925f92bfc51551164597cc34a0ded7b72c40f7c1de04ad0c",
+      "path": "src/services/agent_runtime_contract_v2010_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 1,
+          "completeAstOccurrences": [
+            {
+              "column": 16,
+              "line": 270,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            270
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "pop": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:9f220abb76f81e90b4d84806ccf5a208fc2d06a43d81d36a832775c9a618259f",
+      "beforeContentHash": "sha256:5d59072749cb558fc7537eb8d77dd7dc2cbd1d16ff2b01e4fe4f88a4cb16fa92",
+      "path": "src/services/agent_runtime_hard_interface_v2257_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 1,
+          "completeAstOccurrences": [
+            {
+              "column": 20,
+              "line": 222,
+              "parentNode": "Dict"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            222
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "dict_key": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:ddc597f7255aa747f46e1d6b636ecad7e2ab695075d59b7822d7f105b2b53ea0",
+      "beforeContentHash": "sha256:677e854ea2167ee8298727a261077ab71666878bd70ee6d9d67b862c5c000f1d",
+      "path": "src/services/decision_write_guard_v19122_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 3,
+          "completeAstOccurrences": [
+            {
+              "column": 27,
+              "line": 71,
+              "parentNode": "Call"
+            },
+            {
+              "column": 60,
+              "line": 71,
+              "parentNode": "Call"
+            },
+            {
+              "column": 11,
+              "line": 105,
+              "parentNode": "Compare"
+            }
+          ],
+          "legacyKey": "creativeTestPlan",
+          "legacyPath": "payload.creativeTestPlan",
+          "replacementFieldId": "agent2.creative_draft",
+          "replacementKey": "creativeDraft",
+          "sealedLines": [
+            71
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "get": 1
+          },
+          "supplementalAstOccurrences": [
+            {
+              "column": 27,
+              "line": 71,
+              "parentNode": "Call"
+            },
+            {
+              "column": 11,
+              "line": 105,
+              "parentNode": "Compare"
+            }
+          ],
+          "supplementalOccurrenceCount": 2
+        },
+        {
+          "completeAstOccurrenceCount": 1,
+          "completeAstOccurrences": [
+            {
+              "column": 63,
+              "line": 56,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            56
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "get": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:7adec74bc5b8b7dc953932548bcea74c70169c95ed7534b441e75d619bbd4f6a",
+      "beforeContentHash": "sha256:66bdbff883e5491c180252d0544514dc479a4f76dba260266cf5e7915696c9d3",
+      "path": "src/services/pipeline_agent1_microbatch_v20101_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 1,
+          "completeAstOccurrences": [
+            {
+              "column": 94,
+              "line": 201,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            201
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "get": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:296d6a742e99ab73771d12d16dcb55a72a3e2645b2c3cf386f21dd0ecd5bfd50",
+      "beforeContentHash": "sha256:fb7474f1403676e0e79fa91366c3456702c9deafef63fa4636972335abdd317e",
+      "path": "src/services/pipeline_item_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 1,
+          "completeAstOccurrences": [
+            {
+              "column": 75,
+              "line": 283,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            283
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "get": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:b4ea1dc73a3c990b64fb5c4496efd0c055e696a717287c1911364e96dc565d6d",
+      "beforeContentHash": "sha256:fb1e800f5059b1f6e0feb66701ee90200f001e4d815b55dfe4202349ce8ec96e",
+      "path": "src/services/real_product_judgment_agent_v196_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 2,
+          "completeAstOccurrences": [
+            {
+              "column": 31,
+              "line": 327,
+              "parentNode": "Call"
+            },
+            {
+              "column": 16,
+              "line": 409,
+              "parentNode": "Dict"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            327,
+            409
+          ],
+          "sealedOccurrenceCount": 2,
+          "sealedOperations": {
+            "dict_key": 1,
+            "get": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:13b9b8383944680002cdcd9c2baa71adceb1466d822be50f31df0162817958a5",
+      "beforeContentHash": "sha256:ff6e14189c379bf93d089fdf3c774f77f111f9ee6309863e7ec450f65c067150",
+      "path": "src/services/route_action_department_matrix_v1915_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 1,
+          "completeAstOccurrences": [
+            {
+              "column": 13,
+              "line": 144,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            144
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "pop": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:79ec28bf1be817cf3a4d6b7997a2da9e60f07a3bfd71686fe0058304e1be5c0d",
+      "beforeContentHash": "sha256:5f6684e847407d4fc16ab73cc77252c8d1e9f23ca715bf248620b1af3243d635",
+      "path": "src/services/v2172_inventory_action_guard_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 6,
+          "completeAstOccurrences": [
+            {
+              "column": 18,
+              "line": 304,
+              "parentNode": "Call"
+            },
+            {
+              "column": 18,
+              "line": 354,
+              "parentNode": "Call"
+            },
+            {
+              "column": 23,
+              "line": 401,
+              "parentNode": "Call"
+            },
+            {
+              "column": 80,
+              "line": 543,
+              "parentNode": "Call"
+            },
+            {
+              "column": 26,
+              "line": 779,
+              "parentNode": "Call"
+            },
+            {
+              "column": 30,
+              "line": 780,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            304,
+            354,
+            401,
+            543,
+            779,
+            780
+          ],
+          "sealedOccurrenceCount": 6,
+          "sealedOperations": {
+            "get": 6
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    },
+    {
+      "afterContentHash": "sha256:6d29f06a7aed9790cafaeaafa97f4d8874e87c81f1d8595a266ddc4c2ae8749a",
+      "beforeContentHash": "sha256:a613f8d4fd2c1f633e589025de508f7f53db1fdd966ce6f3f1c802cc712efe89",
+      "path": "src/services/v2173_agent2_policy_shape_recovery_service.py",
+      "replacements": [
+        {
+          "completeAstOccurrenceCount": 1,
+          "completeAstOccurrences": [
+            {
+              "column": 80,
+              "line": 287,
+              "parentNode": "Call"
+            }
+          ],
+          "legacyKey": "selectedActionFamilyHint",
+          "legacyPath": "payload.selectedActionFamilyHint",
+          "replacementFieldId": "agent1.locked_action_family",
+          "replacementKey": "lockedActionFamily",
+          "sealedLines": [
+            287
+          ],
+          "sealedOccurrenceCount": 1,
+          "sealedOperations": {
+            "get": 1
+          },
+          "supplementalAstOccurrences": [],
+          "supplementalOccurrenceCount": 0
+        }
+      ]
+    }
+  ],
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "mainMutated": false,
+  "mappings": {
+    "payload.creativeTestPlan": {
+      "canonicalPath": "agent2ActionDraft.creativeDraft",
+      "completeAstCount": 10,
+      "fieldId": "agent2.creative_draft",
+      "new": "creativeDraft",
+      "old": "creativeTestPlan",
+      "sealedCount": 6
+    },
+    "payload.selectedActionFamilyHint": {
+      "canonicalPath": "lockedActionFamily",
+      "completeAstCount": 19,
+      "fieldId": "agent1.locked_action_family",
+      "new": "lockedActionFamily",
+      "old": "selectedActionFamilyHint",
+      "sealedCount": 19
+    }
+  },
+  "migratedReferenceCount": 29,
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "publicReleaseExecuted": false,
+  "schema": "contest.core_field_migration_plan.v2",
+  "sealedReferenceCount": 25,
+  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "sourceCodeModified": true,
+  "sourceFileCount": 14,
+  "state": "EXACT_CORE_FIELD_MIGRATION_APPLIED_PENDING_RECOMPILE",
+  "supplementalAstCounts": {
+    "payload.creativeTestPlan": 4,
+    "payload.selectedActionFamilyHint": 0
+  },
+  "supplementalAstReferenceCount": 4,
+  "transactionHash": "sha256:d0c5010be124b05fc293412b50183e775181ee29670263d6bc6702458e9b9bc2"
+}

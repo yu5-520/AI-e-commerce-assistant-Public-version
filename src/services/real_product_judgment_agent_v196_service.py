@@ -324,7 +324,7 @@ def _normalize_judgments(
         decision_type = _text(raw.get("decisionType")).lower()
         if not decision_type:
             decision_type = "observe" if hint in OBSERVE_HINTS else "act"
-        family = _text(raw.get("selectedActionFamilyHint")) or None
+        family = _text(raw.get("lockedActionFamily")) or None
         route = _text(raw.get("selectedOperatingRoute"))
         if decision_type == "observe":
             hint = "observe_only"
@@ -406,7 +406,7 @@ def _normalize_judgments(
                 "confidence": _confidence(raw.get("confidence")),
                 "finding": finding or reason,
                 "selectedOperatingRoute": route,
-                "selectedActionFamilyHint": family,
+                "lockedActionFamily": family,
                 "businessHypothesis": judgment["businessHypothesis"],
                 "agent1OperatingJudgment": judgment,
                 "agent1DecisionIR": decision_ir,

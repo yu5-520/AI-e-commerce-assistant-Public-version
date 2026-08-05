@@ -53,7 +53,7 @@ def _package(decision: Dict[str, Any]) -> Dict[str, Any]:
 def _family(decision: Dict[str, Any]) -> str:
     plan = _plan(decision)
     package = _package(decision)
-    return str(plan.get("selectedActionFamily") or package.get("selectedActionFamilyHint") or "").strip()
+    return str(plan.get("selectedActionFamily") or package.get("lockedActionFamily") or "").strip()
 
 
 def _pack_status(decision: Dict[str, Any]) -> str:
@@ -68,7 +68,7 @@ def _pack_status(decision: Dict[str, Any]) -> str:
 def _creative_plan(decision: Dict[str, Any]) -> Dict[str, Any]:
     plan = _plan(decision)
     package = _package(decision)
-    for value in [plan.get("creativeTestPlan"), package.get("creativeTestPlan"), package.get("agentCreativePack")]:
+    for value in [plan.get("creativeDraft"), package.get("creativeDraft"), package.get("agentCreativePack")]:
         if isinstance(value, dict):
             return value
     return {}
@@ -102,7 +102,7 @@ def _is_creative_missing_task(decision: Dict[str, Any]) -> bool:
         task_type == "data_evidence_task"
         or plan.get("creativePlanMissing")
         or status in _ALLOWED_MISSING_STATUS
-        or "creativeTestPlan" in reason
+        or "creativeDraft" in reason
         or "创意测试方案缺失" in reason
     )
 

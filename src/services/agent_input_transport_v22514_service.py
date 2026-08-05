@@ -459,7 +459,7 @@ def _minimal_judgment(source: Dict[str, Any], lock: Dict[str, Any], evidence_sli
         "decisionType": source.get("decisionType") or judgment.get("decisionType") or lock.get("decisionType"),
         "decisionSummary": judgment.get("decisionSummary") or source.get("decisionSummary") or source.get("finding"),
         "selectedOperatingRoute": lock.get("selectedOperatingRoute"),
-        "selectedActionFamilyHint": lock.get("selectedActionFamily"),
+        "lockedActionFamily": lock.get("selectedActionFamily"),
         "primaryProblemNode": lock.get("primaryProblemNode"),
         "primaryAction": lock.get("primaryAction"),
         "primaryExecutionTarget": lock.get("primaryExecutionTarget"),

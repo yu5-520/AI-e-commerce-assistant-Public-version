@@ -6115,10 +6115,10 @@
       "tools/registry_compiler/compile_registry.py"
     ]
   },
-  "repositoryScanHash": "sha256:c85ea6b755280f16a94d7b5aedc3306f26c2dbd6e77611ab712ce210a23a4893",
+  "repositoryScanHash": "sha256:a5f5665bd1576348393dbfba292bcb22de904cf67fdb48cccbaf17384c232f29",
   "schema": "contest.unregistered_field_scope_review.v1",
-  "scopeHash": "sha256:c2b581e523ec730a454903f0f3b155ad5fc0845f3f9a1b919e37ab5f4c675d84",
-  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "scopeHash": "sha256:b7248fa7bc0190e60aa0a78b7add28d5d41e026b03b1ac7f20e7a034d8bd9162",
+  "selectionHash": "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb",
   "summary": {
     "classificationCounts": {
       "CORE_REVIEW": 172,

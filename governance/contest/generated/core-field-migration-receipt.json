@@ -1,0 +1,27 @@
+{
+  "businessRuntimeMutated": false,
+  "databaseMutated": false,
+  "deploymentExecuted": false,
+  "mainMutated": false,
+  "migrationReviewHash": "sha256:bf240a47717b4ca39a8946b6ba74a9bd4d7eae9596561a45d68168bd55c659bb",
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "publicReleaseExecuted": false,
+  "receiptHash": "sha256:256190411607d1d56f44a327d52b9386d8c9702087cf704213caa5cbd98ac99d",
+  "schema": "contest.core_field_migration_receipt.v3",
+  "selectionTransitionReviewHash": "sha256:ff881859b825211e9fff46834f931bde678d1a81f0e450897da81baeb22dcba4",
+  "sourceCodeModified": true,
+  "state": "CORE_LEGACY_FIELD_MIGRATION_VERIFIED_PRUNE_SIMULATION_READY",
+  "states": [
+    "HUMAN_CONTINUE_APPROVAL_RECORDED",
+    "SEALED_REFERENCE_SET_LOCKED",
+    "AST_SUPPLEMENTAL_EVIDENCE_LOCKED",
+    "EXACT_29_LITERAL_IDENTITIES_MIGRATED",
+    "SELECTION_HASH_TRANSITION_VERIFIED",
+    "REGISTRY_AND_LINEAGE_RECOMPILED",
+    "RUNNER_GATE_VERIFIED",
+    "OUTSIDE_COMPATIBILITY_REFERENCES_PRESERVED",
+    "PRUNE_SIMULATION_READY"
+  ],
+  "transactionHash": "sha256:d0c5010be124b05fc293412b50183e775181ee29670263d6bc6702458e9b9bc2"
+}

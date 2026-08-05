@@ -305,7 +305,7 @@ def _normalize_status(raw: Dict[str, Any]) -> str:
 
 
 def _normalize_creative(raw: Dict[str, Any]) -> Dict[str, Any]:
-    source = _dict(raw.get("familyPayload") or raw.get("creativeDraft") or raw.get("creativeTestPlan"))
+    source = _dict(raw.get("familyPayload") or raw.get("creativeDraft") or raw.get("creativeDraft"))
     groups = []
     for item in _arr(source.get("directions") or source.get("groups"))[:5]:
         if not isinstance(item, dict):
@@ -372,7 +372,7 @@ def _normalize_family_draft(raw: Dict[str, Any], family: str, lock: Dict[str, An
 
 
 def _title_image_contract_missing(raw: Dict[str, Any], normalized: Dict[str, Any]) -> List[str]:
-    source = _dict(raw.get("familyPayload") or raw.get("creativeDraft") or raw.get("creativeTestPlan"))
+    source = _dict(raw.get("familyPayload") or raw.get("creativeDraft") or raw.get("creativeDraft"))
     missing: List[str] = []
     if not source:
         return ["agent2_title_image_creative_draft_missing"]

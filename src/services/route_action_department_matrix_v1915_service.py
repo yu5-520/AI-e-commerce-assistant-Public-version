@@ -141,7 +141,7 @@ def attach_matrix_dispatch(package: Dict[str, Any]) -> Dict[str, Any]:
         matrixDispatch=dispatch,
         matrixDispatchVersion=MATRIX_DISPATCH_VERSION,
     )
-    item.pop("selectedActionFamilyHint", None)
+    item.pop("lockedActionFamily", None)
     return item
 
 

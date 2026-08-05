@@ -146,76 +146,6 @@
   "mode": "report_only",
   "pathCounts": [
     {
-      "classification": "CORE_REVIEW",
-      "count": 1,
-      "path": "src/services/action_pack_core_v20_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 2,
-      "path": "src/services/agent2_action_draft_core_v225_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 3,
-      "path": "src/services/agent2_action_plan_core_v20_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 2,
-      "path": "src/services/agent_execution_lock_v2255_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 1,
-      "path": "src/services/agent_input_transport_v22514_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 1,
-      "path": "src/services/agent_runtime_contract_v2010_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 1,
-      "path": "src/services/agent_runtime_hard_interface_v2257_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 2,
-      "path": "src/services/decision_write_guard_v19122_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 1,
-      "path": "src/services/pipeline_agent1_microbatch_v20101_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 1,
-      "path": "src/services/pipeline_item_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 2,
-      "path": "src/services/real_product_judgment_agent_v196_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 1,
-      "path": "src/services/route_action_department_matrix_v1915_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 6,
-      "path": "src/services/v2172_inventory_action_guard_service.py"
-    },
-    {
-      "classification": "CORE_REVIEW",
-      "count": 1,
-      "path": "src/services/v2173_agent2_policy_shape_recovery_service.py"
-    },
-    {
       "classification": "OUTSIDE_CONTEST_SCOPE",
       "count": 5,
       "path": "src/services/action_parameter_enrichment_v199_service.py"
@@ -284,27 +214,6 @@
   "physicalDeletionExecuted": false,
   "providerCallsExecuted": 0,
   "references": [
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 400,
-      "operation": "pop",
-      "path": "src/services/action_pack_core_v20_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/agent_pipeline_item_worker_v2010_service.py"
-      }
-    },
     {
       "candidate": {
         "legacyPath": "payload.selectedActionFamilyHint",
@@ -409,195 +318,6 @@
     },
     {
       "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "creativeTestPlan",
-      "legacyPath": "payload.creativeTestPlan",
-      "line": 308,
-      "operation": "get",
-      "path": "src/services/agent2_action_draft_core_v225_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "creativeTestPlan",
-      "legacyPath": "payload.creativeTestPlan",
-      "line": 375,
-      "operation": "get",
-      "path": "src/services/agent2_action_draft_core_v225_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "creativeTestPlan",
-      "legacyPath": "payload.creativeTestPlan",
-      "line": 288,
-      "operation": "get",
-      "path": "src/services/agent2_action_plan_core_v20_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "creativeTestPlan",
-      "legacyPath": "payload.creativeTestPlan",
-      "line": 330,
-      "operation": "get",
-      "path": "src/services/agent2_action_plan_core_v20_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "creativeTestPlan",
-      "legacyPath": "payload.creativeTestPlan",
-      "line": 346,
-      "operation": "dict_key",
-      "path": "src/services/agent2_action_plan_core_v20_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/task_pool_admission_core_v20_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 204,
-      "operation": "get",
-      "path": "src/services/agent_execution_lock_v2255_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/agent2_action_draft_core_v225_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 207,
-      "operation": "get",
-      "path": "src/services/agent_execution_lock_v2255_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/agent2_action_draft_core_v225_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 462,
-      "operation": "dict_key",
-      "path": "src/services/agent_input_transport_v22514_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/agent2_runtime_v22515_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 270,
-      "operation": "pop",
-      "path": "src/services/agent_runtime_contract_v2010_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/agent_pipeline_item_worker_v2010_service.py"
-      }
-    },
-    {
-      "candidate": {
         "legacyPath": "payload.selectedActionFamilyHint",
         "note": "Semantic review required before retirement.",
         "replacementFieldId": "agent1.locked_action_family",
@@ -612,27 +332,6 @@
       "path": "src/services/agent_runtime_hard_interface_v2255_legacy_service.py",
       "registeredScopes": [],
       "scopeOrigins": {}
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 222,
-      "operation": "dict_key",
-      "path": "src/services/agent_runtime_hard_interface_v2257_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
-      }
     },
     {
       "candidate": {
@@ -743,48 +442,6 @@
         "replacementFieldId": "agent1.locked_action_family",
         "status": "CANDIDATE"
       },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 56,
-      "operation": "get",
-      "path": "src/services/decision_write_guard_v19122_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/__init__.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.creativeTestPlan",
-        "note": "Migration-only compatibility candidate.",
-        "replacementFieldId": "agent2.creative_draft",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "creativeTestPlan",
-      "legacyPath": "payload.creativeTestPlan",
-      "line": 71,
-      "operation": "get",
-      "path": "src/services/decision_write_guard_v19122_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/__init__.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
       "classification": "OUTSIDE_CONTEST_SCOPE",
       "contestReviewRequired": false,
       "key": "selectedActionFamilyHint",
@@ -887,90 +544,6 @@
         "replacementFieldId": "agent1.locked_action_family",
         "status": "CANDIDATE"
       },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 201,
-      "operation": "get",
-      "path": "src/services/pipeline_agent1_microbatch_v20101_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/agent_runtime_hard_interface_v2257_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 283,
-      "operation": "get",
-      "path": "src/services/pipeline_item_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "REGISTERED_PHYSICAL_PATH"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 327,
-      "operation": "get",
-      "path": "src/services/real_product_judgment_agent_v196_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/pipeline_agent1_microbatch_v20101_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 409,
-      "operation": "dict_key",
-      "path": "src/services/real_product_judgment_agent_v196_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/pipeline_agent1_microbatch_v20101_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
       "classification": "OUTSIDE_CONTEST_SCOPE",
       "contestReviewRequired": false,
       "key": "selectedActionFamilyHint",
@@ -997,27 +570,6 @@
       "path": "src/services/real_product_judgment_agent_v2258_service.py",
       "registeredScopes": [],
       "scopeOrigins": {}
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 144,
-      "operation": "pop",
-      "path": "src/services/route_action_department_matrix_v1915_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/agent_pipeline_item_worker_v2010_service.py"
-      }
     },
     {
       "candidate": {
@@ -1375,153 +927,6 @@
       "path": "src/services/v19_product_logic_contract_v2014_service.py",
       "registeredScopes": [],
       "scopeOrigins": {}
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 304,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/v2174_budget_governance_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 354,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/v2174_budget_governance_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 401,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/v2174_budget_governance_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 543,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/v2174_budget_governance_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 779,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/v2174_budget_governance_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 780,
-      "operation": "get",
-      "path": "src/services/v2172_inventory_action_guard_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/v2174_budget_governance_service.py"
-      }
-    },
-    {
-      "candidate": {
-        "legacyPath": "payload.selectedActionFamilyHint",
-        "note": "Semantic review required before retirement.",
-        "replacementFieldId": "agent1.locked_action_family",
-        "status": "CANDIDATE"
-      },
-      "classification": "CORE_REVIEW",
-      "contestReviewRequired": true,
-      "key": "selectedActionFamilyHint",
-      "legacyPath": "payload.selectedActionFamilyHint",
-      "line": 287,
-      "operation": "get",
-      "path": "src/services/v2173_agent2_policy_shape_recovery_service.py",
-      "registeredScopes": [
-        "KEEP_CORE"
-      ],
-      "scopeOrigins": {
-        "KEEP_CORE": "IMPORT_CLOSURE:src/services/v2174_budget_governance_service.py"
-      }
     }
   ],
   "registeredSeeds": {
@@ -1587,38 +992,38 @@
       "tools/registry_compiler/compile_registry.py"
     ]
   },
-  "repositoryScanHash": "sha256:c85ea6b755280f16a94d7b5aedc3306f26c2dbd6e77611ab712ce210a23a4893",
+  "repositoryScanHash": "sha256:a5f5665bd1576348393dbfba292bcb22de904cf67fdb48cccbaf17384c232f29",
   "schema": "contest.tombstone_scope_review.v1",
-  "scopeHash": "sha256:8c41c9805544cf12deb05ab1205ec06143d4c409ee2a0582f83a02fccbe58f16",
-  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "scopeHash": "sha256:46621754374608c7f2ff97b2c19f102339bea1a65ddc289e975279cd7f1f1f74",
+  "selectionHash": "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb",
   "summary": {
     "classificationCounts": {
-      "CORE_REVIEW": 25,
+      "CORE_REVIEW": 0,
       "ISOLATE_DEFER": 0,
       "OUTSIDE_CONTEST_SCOPE": 42,
       "SUPPORT_REVIEW": 0
     },
     "closurePathCount": 126,
-    "contestDeletionBlockedKeyCount": 2,
-    "contestReviewReferenceCount": 25,
-    "partitionReferenceCount": 67,
+    "contestDeletionBlockedKeyCount": 0,
+    "contestReviewReferenceCount": 0,
+    "partitionReferenceCount": 42,
     "registeredPathSeedCount": 55,
-    "sourceReferenceCount": 67,
+    "sourceReferenceCount": 42,
     "tombstoneKeyCount": 4
   },
   "tombstoneDecisions": [
     {
       "classificationCounts": {
-        "CORE_REVIEW": 6,
+        "CORE_REVIEW": 0,
         "ISOLATE_DEFER": 0,
         "OUTSIDE_CONTEST_SCOPE": 18,
         "SUPPORT_REVIEW": 0
       },
-      "contestDeletionBlocked": true,
+      "contestDeletionBlocked": false,
       "legacyPath": "payload.creativeTestPlan",
-      "pathCount": 10,
-      "recommendation": "KEEP_IN_CONTEST_AND_MIGRATE",
-      "referenceCount": 24
+      "pathCount": 7,
+      "recommendation": "OUTSIDE_CONTEST_SCOPE_NOT_BLOCKING",
+      "referenceCount": 18
     },
     {
       "classificationCounts": {
@@ -1635,16 +1040,16 @@
     },
     {
       "classificationCounts": {
-        "CORE_REVIEW": 19,
+        "CORE_REVIEW": 0,
         "ISOLATE_DEFER": 0,
         "OUTSIDE_CONTEST_SCOPE": 18,
         "SUPPORT_REVIEW": 0
       },
-      "contestDeletionBlocked": true,
+      "contestDeletionBlocked": false,
       "legacyPath": "payload.selectedActionFamilyHint",
-      "pathCount": 21,
-      "recommendation": "KEEP_IN_CONTEST_AND_MIGRATE",
-      "referenceCount": 37
+      "pathCount": 9,
+      "recommendation": "OUTSIDE_CONTEST_SCOPE_NOT_BLOCKING",
+      "referenceCount": 18
     },
     {
       "classificationCounts": {
