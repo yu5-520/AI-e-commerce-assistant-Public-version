@@ -1,0 +1,97 @@
+{
+  "schema": "contest.registry_protocol_map.v1",
+  "version": "1.0.0",
+  "mode": "report_only",
+  "sourceAuthority": {
+    "repository": "yu5-520/AI-e-commerce-assistant",
+    "commit": "f5186451c80631fea550da17d481f5e8793215e5",
+    "registryPath": "contracts/registry"
+  },
+  "targetInterface": {
+    "repository": "yu5-520/Z-Century",
+    "commit": "c924e646673a41857cca5e39650e022f9ce8c0a5",
+    "version": "Z1.0.5",
+    "compilerBlobSha": "7a9546b02fd598548891fd080c98a6553695b796"
+  },
+  "documents": [
+    {
+      "path": "fields.json",
+      "sourceCollection": "fields",
+      "targetCollection": "fields",
+      "sourceIdentity": "fieldId",
+      "targetIdentity": "fieldId",
+      "mappingMode": "PASSTHROUGH"
+    },
+    {
+      "path": "schemas.json",
+      "sourceCollection": "schemas",
+      "targetCollection": "schemas",
+      "sourceIdentity": "schemaId",
+      "targetIdentity": "schemaId",
+      "mappingMode": "PASSTHROUGH"
+    },
+    {
+      "path": "interfaces.json",
+      "sourceCollection": "interfaces",
+      "targetCollection": "interfaces",
+      "sourceIdentity": "interfaceId",
+      "targetIdentity": "interfaceId",
+      "mappingMode": "PASSTHROUGH"
+    },
+    {
+      "path": "modules.json",
+      "sourceCollection": "modules",
+      "targetCollection": "modules",
+      "sourceIdentity": "moduleId",
+      "targetIdentity": "moduleId",
+      "mappingMode": "PASSTHROUGH"
+    },
+    {
+      "path": "ownership.json",
+      "sourceCollection": "rules",
+      "targetCollection": "ownership",
+      "sourceIdentity": "scope",
+      "targetIdentity": "ownershipId",
+      "identityPrefix": "ownership.",
+      "mappingMode": "COLLECTION_AND_IDENTITY_ADAPTER"
+    },
+    {
+      "path": "migrations.json",
+      "sourceCollection": "migrations",
+      "targetCollection": "migrations",
+      "sourceIdentity": "migrationId",
+      "targetIdentity": "migrationId",
+      "mappingMode": "PASSTHROUGH"
+    },
+    {
+      "path": "stations.json",
+      "sourceCollection": "stations",
+      "targetCollection": "stations",
+      "sourceIdentity": "stationId",
+      "targetIdentity": "stationId",
+      "mappingMode": "PASSTHROUGH"
+    },
+    {
+      "path": "tombstones.json",
+      "sourceCollection": "candidates",
+      "targetCollection": "tombstones",
+      "sourceIdentity": "legacyPath",
+      "targetIdentity": "tombstoneId",
+      "identityPrefix": "tombstone.",
+      "mappingMode": "COLLECTION_AND_IDENTITY_ADAPTER"
+    }
+  ],
+  "constraints": {
+    "sourceDocumentsMutable": false,
+    "sourceManifestMutable": false,
+    "runtimeProjectionMutable": false,
+    "normalizedDocumentsPersistedToRuntime": false,
+    "physicalDeletionAuthorized": false,
+    "runtimeSwitchAuthorized": false
+  },
+  "approval": {
+    "state": "REVIEW_PENDING",
+    "approvedBy": null,
+    "approvedAt": null
+  }
+}
