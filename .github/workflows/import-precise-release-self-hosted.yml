@@ -24,18 +24,30 @@ jobs:
           fetch-depth: 1
           clean: true
 
+      - name: Resolve isolated ECS bundle input
+        id: bundle
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          BUNDLE=/opt/actions-runner-public/input/release-bundle.tar.gz
+          test -f "$BUNDLE"
+          test ! -L "$BUNDLE"
+          echo "path=$BUNDLE" >> "$GITHUB_OUTPUT"
+          echo "BUNDLE_PATH=$BUNDLE"
+          ls -lh "$BUNDLE"
+
       - name: Import verified parent release through Git Data API
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          BUNDLE_PATH: ${{ steps.bundle.outputs.path }}
         run: |
           set -Eeuo pipefail
           PY=/opt/ai-runtime/python/current/bin/python3.11
           test -x "$PY"
           test "$($PY -c 'import platform; print(platform.python_version())')" = "3.11.9"
-          test -f migration/release-bundle.tar.gz
           "$PY" scripts/import_precise_release_via_api.py \
-            --bundle migration/release-bundle.tar.gz \
+            --bundle "$BUNDLE_PATH" \
             --repo "$GITHUB_REPOSITORY" \
             --ref main \
             --parent-commit "$GITHUB_SHA" \
