@@ -1,0 +1,138 @@
+name: Diagnose Selection transition from verified local worktree once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-selection-transition-local-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contest-selection-transition-local-once
+  cancel-in-progress: false
+
+jobs:
+  diagnose-local-transition:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    env:
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      PYTHONPYCACHEPREFIX: /tmp/contest-selection-transition-local-pycache
+      VERIFIED_TRANSACTION_HEAD: 5fceb7c48083815448c2831629c6cbeafac8ad4f
+      EXPECTED_EXECUTOR_BLOB: 6a4e6f70394ec8e1662c88032d8bbc9dcc7435a9
+      EXPECTED_SELECTION_BEFORE: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+      EXPECTED_SELECTION_AFTER: sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+    steps:
+      - name: Run from verified local transaction object
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          test -d .git
+          git cat-file -e "$VERIFIED_TRANSACTION_HEAD^{commit}"
+
+          cleanup() {
+            git reset --hard "$VERIFIED_TRANSACTION_HEAD" >/dev/null 2>&1 || true
+            git clean -ffdx >/dev/null 2>&1 || true
+            rm -rf "$PYTHONPYCACHEPREFIX"
+          }
+          trap cleanup EXIT
+          cleanup
+          git checkout --detach "$VERIFIED_TRANSACTION_HEAD"
+
+          test "$(git rev-parse HEAD)" = "$VERIFIED_TRANSACTION_HEAD"
+          test "$(git hash-object tools/contest_governance/migrate_core_tombstone_fields.py)" = "$EXPECTED_EXECUTOR_BLOB"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+
+          cp governance/contest/generated/contest-selection-manifest.json /tmp/selection-before.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_BEFORE\"" /tmp/selection-before.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/migrate_core_tombstone_fields.py apply \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            > /tmp/selection-local-apply.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/generated \
+            --z-source "$GITHUB_WORKSPACE/governance/contest/z-interface/Z1.0.5" \
+            > /tmp/selection-local-run.json
+
+          cp governance/contest/generated/contest-selection-manifest.json /tmp/selection-after.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_AFTER\"" /tmp/selection-after.json
+
+          "$AUDIT_PYTHON" - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          before = json.loads(Path("/tmp/selection-before.json").read_text(encoding="utf-8"))
+          after = json.loads(Path("/tmp/selection-after.json").read_text(encoding="utf-8"))
+
+          def canonical_hash(value):
+              raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+              return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+          stable_before = {k: v for k, v in before.items() if k not in {"selectionHash", "tombstoneReview"}}
+          stable_after = {k: v for k, v in after.items() if k not in {"selectionHash", "tombstoneReview"}}
+          assert stable_before == stable_after
+
+          def index(document):
+              return {
+                  str(item["legacyPath"]): {
+                      "repositoryHitCount": int(item["repositoryHitCount"]),
+                      "classification": item["classification"],
+                      "replacementFieldId": item["replacementFieldId"],
+                      "status": item["status"],
+                  }
+                  for item in document["tombstoneReview"]
+              }
+
+          old = index(before)
+          new = index(after)
+          expected = {
+              "payload.creativeTestPlan": (24, 18),
+              "payload.selectedActionFamilyHint": (37, 18),
+              "payload.imageDirections": (1, 1),
+              "payload.testPackages": (5, 5),
+          }
+          assert set(old) == set(new) == set(expected)
+          transitions = []
+          for legacy, (old_count, new_count) in sorted(expected.items()):
+              assert old[legacy]["repositoryHitCount"] == old_count
+              assert new[legacy]["repositoryHitCount"] == new_count
+              assert old[legacy]["classification"] == new[legacy]["classification"] == "REVIEW_REQUIRED"
+              assert old[legacy]["replacementFieldId"] == new[legacy]["replacementFieldId"]
+              assert old[legacy]["status"] == new[legacy]["status"]
+              transitions.append({
+                  "legacyPath": legacy,
+                  "repositoryHitCountBefore": old_count,
+                  "repositoryHitCountAfter": new_count,
+              })
+
+          result = {
+              "schema": "contest.selection_hash_transition_diagnostic.v1",
+              "state": "APPROVED_EVIDENCE_DELTA_ONLY",
+              "selectionHashBefore": before["selectionHash"],
+              "selectionHashAfter": after["selectionHash"],
+              "graphHash": before["graphHash"],
+              "stableSelectionMaterialHashBefore": canonical_hash(stable_before),
+              "stableSelectionMaterialHashAfter": canonical_hash(stable_after),
+              "stableSelectionMaterialEqual": stable_before == stable_after,
+              "classificationSetsStable": before["classifications"] == after["classifications"],
+              "forwardClosureHashStable": before["forwardClosureHash"] == after["forwardClosureHash"],
+              "reverseClosureHashStable": before["reverseClosureHash"] == after["reverseClosureHash"],
+              "physicalPathReviewStable": before["physicalPathReview"] == after["physicalPathReview"],
+              "tombstoneTransitions": transitions,
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "physicalDeletionExecuted": False,
+          }
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+          print("SELECTION_TRANSITION_LOCAL_DIAGNOSTIC=PASS")
+          PY
