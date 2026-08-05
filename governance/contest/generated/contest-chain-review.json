@@ -4,7 +4,7 @@
     "approvedBy": null,
     "state": "REVIEW_PENDING"
   },
-  "baselineCommit": "605f0d4cc2494d1ca3912899f21555532ffce366",
+  "baselineCommit": "02a77a92a48338d42c928df40009acab7f740310",
   "businessRuntimeMutated": false,
   "databaseMutated": false,
   "findings": [
@@ -1465,7 +1465,7 @@
   "providerCallsExecuted": 0,
   "registryAdapterState": "REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED",
   "repositoryScanHash": "sha256:c85ea6b755280f16a94d7b5aedc3306f26c2dbd6e77611ab712ce210a23a4893",
-  "reviewHash": "sha256:ad198bb5711a556a50eefc174e403e10ab35a549cc9c346341666234587474b2",
+  "reviewHash": "sha256:a23b7aec5f69f8db0f81e787e19174ecbf6a4a2b75efd81a52f8ef6ba84e4115",
   "reviewState": "REVIEW_PENDING",
   "schema": "contest.chain_review.v1",
   "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",

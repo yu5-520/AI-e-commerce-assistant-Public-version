@@ -1,7 +1,7 @@
 # Contest Chain Review
 
 - Review state: `REVIEW_PENDING`
-- Baseline commit: `605f0d4cc2494d1ca3912899f21555532ffce366`
+- Baseline commit: `02a77a92a48338d42c928df40009acab7f740310`
 - Graph hash: `sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00`
 - Selection hash: `sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e`
 - Registry adapter state: `REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED`
