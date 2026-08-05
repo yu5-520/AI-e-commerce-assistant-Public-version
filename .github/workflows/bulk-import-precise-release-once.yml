@@ -1,0 +1,108 @@
+name: Bulk import precise release once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/bulk-import-precise-release-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bulk-import-precise-release-once
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BUNDLE_URL: https://at.adobe.com/ZygvpMhnOt3OVNEp
+      EXPECTED_ARCHIVE_SHA256: 1e7916ae07a9f27733d526eacac6d4ff26620febd7078ee5b000c8289805ea50
+      EXPECTED_TREE_SHA: 5e7b8b6b1f54316328a3cd5e436cdc7a18007940
+      EXPECTED_FILE_COUNT: "605"
+      EXPECTED_TOTAL_BYTES: "5966613"
+      TARGET_BRANCH: migration/precise-files
+    steps:
+      - name: Checkout bootstrap branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download sealed bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 2 \
+            --connect-timeout 20 \
+            --max-time 300 \
+            "$BUNDLE_URL" \
+            -o /tmp/precise-bundle-605.tar.xz
+          echo "$EXPECTED_ARCHIVE_SHA256  /tmp/precise-bundle-605.tar.xz" | sha256sum -c -
+
+      - name: Transfer all files without pre-validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          tar -xJf /tmp/precise-bundle-605.tar.xz -C "$work"
+
+          cd "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan precise-import-root
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$work"/. .
+          chmod +x \
+            src/deployment/deploy_github_artifact_core_v22516.sh \
+            src/deployment/deploy_release_core_v22516.sh
+          git add -A
+          git commit -m "migration: import precise release f5186451 as one root commit [skip ci]"
+          git push --force origin "HEAD:refs/heads/$TARGET_BRANCH"
+
+      - name: Post-transfer full validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+
+          actual_count="$(git ls-files | wc -l | tr -d ' ')"
+          actual_bytes="$(git ls-files -z | xargs -0 stat -c '%s' | awk '{sum += $1} END {print sum + 0}')"
+          actual_tree="$(git rev-parse 'HEAD^{tree}')"
+          parent_count="$(git rev-list --parents -n 1 HEAD | awk '{print NF-1}')"
+
+          printf 'file_count=%s\n' "$actual_count"
+          printf 'total_bytes=%s\n' "$actual_bytes"
+          printf 'tree_sha=%s\n' "$actual_tree"
+          printf 'parent_count=%s\n' "$parent_count"
+
+          test "$actual_count" = "$EXPECTED_FILE_COUNT"
+          test "$actual_bytes" = "$EXPECTED_TOTAL_BYTES"
+          test "$actual_tree" = "$EXPECTED_TREE_SHA"
+          test "$parent_count" = "0"
+
+          test "$(git ls-files -s src/deployment/deploy_github_artifact_core_v22516.sh | awk '{print $1}')" = "100755"
+          test "$(git ls-files -s src/deployment/deploy_release_core_v22516.sh | awk '{print $1}')" = "100755"
+
+          python3 scripts/release_verifier.py \
+            --root "$GITHUB_WORKSPACE" \
+            --manifest "$GITHUB_WORKSPACE/release/release-manifest.json" \
+            | tee /tmp/release-verification.json
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path('/tmp/release-verification.json').read_text(encoding='utf-8'))
+          assert data['verified'] is True, data
+          assert data['status'] == 'verified', data
+          assert data['sourceCommit'] == 'f5186451c80631fea550da17d481f5e8793215e5', data
+          assert data['releaseHash'] == 'sha256:593b94a045c0532738ff2da0ed18ccd44179d425fac08cd8542203a644bc4d26', data
+          assert data['manifestHash'] == 'sha256:b019ceb2c1fff35e7ebb34ca5ebab4d13011e8eab95b32ff0e2bdb76a66cc6f3', data
+          print('POST_TRANSFER_VALIDATION=PASS')
+          PY
