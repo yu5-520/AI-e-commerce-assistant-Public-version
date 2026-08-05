@@ -1,0 +1,20 @@
+{
+  "businessRuntimeMutated": false,
+  "contestDeletionBlockedKeyCount": 2,
+  "contestReviewReferenceCount": 25,
+  "databaseMutated": false,
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "receiptHash": "sha256:a90bfa1d0d55a0df571877babd1d7485014ca2f42bdb67c06f037ff2dea90c4b",
+  "repositoryScanHash": "sha256:c85ea6b755280f16a94d7b5aedc3306f26c2dbd6e77611ab712ce210a23a4893",
+  "schema": "contest.tombstone_scope_receipt.v1",
+  "scopeHash": "sha256:8c41c9805544cf12deb05ab1205ec06143d4c409ee2a0582f83a02fccbe58f16",
+  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "sourceReferenceCount": 67,
+  "states": [
+    "REGISTERED_PATHS_SEEDED",
+    "IMPORT_CLOSURE_BUILT",
+    "TOMBSTONE_REFERENCES_PARTITIONED",
+    "TOMBSTONE_REVIEW_SCOPE_LOCKED"
+  ]
+}
