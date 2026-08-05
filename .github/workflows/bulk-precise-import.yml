@@ -1,0 +1,106 @@
+name: Bulk Precise Release Import
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/bulk-precise-import.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bulk-precise-release-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ARCHIVE_URL: https://at.adobe.com/vhJXvNHQOIE8hlWL
+      ARCHIVE_SHA256: 1e7916ae07a9f27733d526eacac6d4ff26620febd7078ee5b000c8289805ea50
+      EXPECTED_FILE_COUNT: '605'
+      EXPECTED_TOTAL_BYTES: '5966613'
+      EXPECTED_ROOT_TREE: 5e7b8b6b1f54316328a3cd5e436cdc7a18007940
+      SOURCE_COMMIT: f5186451c80631fea550da17d481f5e8793215e5
+      PARENT_RELEASE_HASH: sha256:593b94a045c0532738ff2da0ed18ccd44179d425fac08cd8542203a644bc4d26
+      CANDIDATE_BRANCH: migration/precise-bulk-candidate
+    steps:
+      - name: Download sealed precise bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/precise-bundle-605.tar.xz"
+          curl -fL --retry 5 --retry-all-errors --retry-delay 2 \
+            --connect-timeout 20 --max-time 180 \
+            -H 'Accept: application/octet-stream' \
+            "$ARCHIVE_URL" -o "$ARCHIVE"
+          echo "$ARCHIVE_SHA256  $ARCHIVE" | sha256sum -c -
+          file "$ARCHIVE"
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+
+      - name: Extract without pre-verification blocking transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/precise-stage"
+          mkdir -p "$STAGE"
+          tar -xJf "$ARCHIVE" -C "$STAGE"
+          echo "STAGE=$STAGE" >> "$GITHUB_ENV"
+
+      - name: Post-transfer package verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE_COUNT=$(find "$STAGE" -type f -printf '.' | wc -c)
+          TOTAL_BYTES=$(find "$STAGE" -type f -printf '%s\n' | awk '{s+=$1} END {print s+0}')
+          echo "file_count=$FILE_COUNT"
+          echo "total_bytes=$TOTAL_BYTES"
+          test "$FILE_COUNT" = "$EXPECTED_FILE_COUNT"
+          test "$TOTAL_BYTES" = "$EXPECTED_TOTAL_BYTES"
+          test -x "$STAGE/src/deployment/deploy_github_artifact_core_v22516.sh"
+          test -x "$STAGE/src/deployment/deploy_release_core_v22516.sh"
+          python3 "$STAGE/scripts/release_verifier.py" --root "$STAGE"
+
+      - name: Build one root commit and verify complete Git tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$STAGE"
+          git init -q -b precise-import
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config core.filemode true
+          git add -A
+          INDEX_COUNT=$(git ls-files | wc -l)
+          ROOT_TREE=$(git write-tree)
+          echo "index_count=$INDEX_COUNT"
+          echo "root_tree=$ROOT_TREE"
+          test "$INDEX_COUNT" = "$EXPECTED_FILE_COUNT"
+          test "$ROOT_TREE" = "$EXPECTED_ROOT_TREE"
+          git commit -q -m "migration: import precise release ${SOURCE_COMMIT}"
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "candidate_commit=$COMMIT_SHA"
+          echo "candidate_tree=$(git rev-parse HEAD^{tree})"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin "HEAD:refs/heads/${CANDIDATE_BRANCH}"
+
+      - name: Final candidate audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$STAGE"
+          REMOTE_COMMIT=$(git ls-remote origin "refs/heads/${CANDIDATE_BRANCH}" | awk '{print $1}')
+          test -n "$REMOTE_COMMIT"
+          git fetch -q --depth=1 origin "refs/heads/${CANDIDATE_BRANCH}"
+          REMOTE_TREE=$(git rev-parse FETCH_HEAD^{tree})
+          test "$REMOTE_TREE" = "$EXPECTED_ROOT_TREE"
+          echo "PRECISE_BULK_TRANSFER=PASS"
+          echo "SOURCE_COMMIT=$SOURCE_COMMIT"
+          echo "PARENT_RELEASE_HASH=$PARENT_RELEASE_HASH"
+          echo "CANDIDATE_COMMIT=$REMOTE_COMMIT"
+          echo "CANDIDATE_ROOT_TREE=$REMOTE_TREE"
+          echo "PUBLICATION_ALLOWED=false"
