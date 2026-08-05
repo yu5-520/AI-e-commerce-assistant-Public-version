@@ -1,0 +1,262 @@
+name: Simulate contest REGISTERED_ONLY isolation once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-isolation-simulation-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-isolation-simulation-once
+  cancel-in-progress: false
+
+jobs:
+  simulate-isolation:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 25
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Verify simulation transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$AUDIT_PYTHON"
+          grep -q '"state": "ISOLATION_VERIFIED_SIMULATION_READY"' governance/contest/generated/module-isolation-receipt.json
+          grep -q '"physicalFilesMoved": 0' governance/contest/generated/module-isolation-receipt.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/module-isolation-receipt.json
+          grep -q '"isolateModuleIds"' governance/contest/generated/module-isolation-transaction.json
+          echo "ISOLATION_TRANSACTION=PASS"
+
+      - name: Run detached-worktree exclusion simulation
+        shell: bash
+        run: |
+          set -euo pipefail
+          original_status="$(git status --porcelain)"
+          simulation_root="$(mktemp -d)/worktree"
+          echo "SIMULATION_ROOT=$simulation_root" >> "$GITHUB_ENV"
+
+          git worktree add --detach "$simulation_root" HEAD
+
+          "$AUDIT_PYTHON" - <<'PY' > /tmp/isolation-paths.txt
+          import json
+          from pathlib import Path
+
+          receipt = json.loads(
+              Path("governance/contest/generated/module-isolation-receipt.json")
+              .read_text(encoding="utf-8")
+          )
+          paths = receipt.get("simulationExcludePaths") or []
+          assert paths == [
+              "tools/registry_compiler/v24_identity_catalog.py",
+              "tools/registry_compiler/v24_task_blueprint_compiler.py",
+          ], paths
+          print("\n".join(paths))
+          PY
+
+          while IFS= read -r path; do
+            test -f "$simulation_root/$path"
+            rm -f "$simulation_root/$path"
+          done < /tmp/isolation-paths.txt
+
+          export PYTHONPATH="$simulation_root"
+          "$AUDIT_PYTHON" "$simulation_root/tools/contest_governance/run_selection.py" \
+            --root "$simulation_root" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/simulation-generated \
+            --z-source "$simulation_root/governance/contest/z-interface/Z1.0.5" \
+            | tee /tmp/contest-isolation-simulation-summary.json
+
+          "$AUDIT_PYTHON" - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          workspace = Path.cwd().resolve()
+          simulation = Path(os.environ["SIMULATION_ROOT"]).resolve()
+          generated = workspace / "governance/contest/generated"
+          simulated = simulation / "governance/contest/simulation-generated"
+
+          def read(path: Path):
+              return json.loads(path.read_text(encoding="utf-8"))
+
+          def canonical_hash(value):
+              payload = json.dumps(
+                  value,
+                  ensure_ascii=False,
+                  sort_keys=True,
+                  separators=(",", ":"),
+              ).encode("utf-8")
+              return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+          transaction = read(generated / "module-isolation-transaction.json")
+          baseline_selection = read(generated / "contest-selection-manifest.json")
+          simulated_selection = read(simulated / "contest-selection-manifest.json")
+          simulated_audit = read(simulated / "repository-audit.json")
+          simulated_snapshot = read(simulated / "registry-snapshot.json")
+
+          excluded = list(transaction.get("simulationExcludePaths") or [])
+          excluded_blobs = {}
+          for path in excluded:
+              completed = subprocess.run(
+                  ["git", "rev-parse", f"HEAD:{path}"],
+                  cwd=workspace,
+                  check=True,
+                  capture_output=True,
+                  text=True,
+              )
+              excluded_blobs[path] = completed.stdout.strip()
+
+          baseline_classifications = baseline_selection.get("classifications")
+          simulated_classifications = simulated_selection.get("classifications")
+          baseline_core = baseline_selection.get("safeKeepModuleIds")
+          simulated_core = simulated_selection.get("safeKeepModuleIds")
+
+          core_physical_paths = {
+              str(item.get("path"))
+              for item in baseline_selection.get("physicalPathReview") or []
+              if item.get("classification") in {"KEEP_CORE", "KEEP_SUPPORT"}
+          }
+          overlap = sorted(core_physical_paths.intersection(excluded))
+
+          assertions = {
+              "graphHashStable": simulated_selection.get("graphHash")
+              == baseline_selection.get("graphHash"),
+              "selectionHashStable": simulated_selection.get("selectionHash")
+              == baseline_selection.get("selectionHash"),
+              "classificationsStable": simulated_classifications
+              == baseline_classifications,
+              "safeKeepModulesStable": simulated_core == baseline_core,
+              "runnerDriftCountZero": int(
+                  simulated_audit.get("summary", {}).get("runnerDriftCount") or 0
+              )
+              == 0,
+              "rootCompositionVerified": simulated_snapshot.get("rootEquivalent") is True,
+              "excludedPathsOutsideKeepClosure": overlap == [],
+          }
+          assert all(assertions.values()), assertions
+
+          material = {
+              "schema": "contest.module_isolation_simulation.v1",
+              "mode": "detached_worktree_report_only",
+              "sourceCommit": subprocess.run(
+                  ["git", "rev-parse", "HEAD"],
+                  cwd=workspace,
+                  check=True,
+                  capture_output=True,
+                  text=True,
+              ).stdout.strip(),
+              "transactionHash": transaction.get("transactionHash"),
+              "excludedPaths": excluded,
+              "excludedPathBlobs": excluded_blobs,
+              "baselineGraphHash": baseline_selection.get("graphHash"),
+              "simulatedGraphHash": simulated_selection.get("graphHash"),
+              "baselineSelectionHash": baseline_selection.get("selectionHash"),
+              "simulatedSelectionHash": simulated_selection.get("selectionHash"),
+              "assertions": assertions,
+              "state": "ISOLATION_SIMULATION_VERIFIED_PHYSICAL_CHANGE_NOT_AUTHORIZED",
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "analysisBranchFilesDeleted": 0,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+          }
+          report = {**material, "simulationHash": canonical_hash(material)}
+          receipt_material = {
+              "schema": "contest.module_isolation_simulation_receipt.v1",
+              "simulationHash": report["simulationHash"],
+              "transactionHash": transaction.get("transactionHash"),
+              "graphHash": simulated_selection.get("graphHash"),
+              "selectionHash": simulated_selection.get("selectionHash"),
+              "states": [
+                  "DETACHED_WORKTREE_CREATED",
+                  "ISOLATE_PATHS_EXCLUDED",
+                  "GRAPH_RECOMPUTED",
+                  "SELECTION_RECOMPUTED",
+                  "RUNNER_AND_ROOT_GATES_VERIFIED",
+                  "SIMULATION_VERIFIED",
+              ],
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "analysisBranchFilesDeleted": 0,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+          }
+          receipt = {
+              **receipt_material,
+              "receiptHash": canonical_hash(receipt_material),
+          }
+          generated.mkdir(parents=True, exist_ok=True)
+          (generated / "module-isolation-simulation.json").write_text(
+              json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          (generated / "module-isolation-simulation-receipt.json").write_text(
+              json.dumps(receipt, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({
+              "simulationHash": report["simulationHash"],
+              "receiptHash": receipt["receiptHash"],
+              "assertions": assertions,
+          }, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+          git worktree remove --force "$simulation_root"
+          test "$(git status --porcelain --untracked-files=no)" = "$original_status"
+          grep -q 'ISOLATION_SIMULATION_VERIFIED_PHYSICAL_CHANGE_NOT_AUTHORIZED' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"selectionHashStable": true' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/module-isolation-simulation-receipt.json
+          echo "ISOLATION_SIMULATION=PASS"
+
+      - name: Commit simulation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            governance/contest/generated/module-isolation-simulation.json \
+            governance/contest/generated/module-isolation-simulation-receipt.json
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/module-isolation-simulation(-receipt)?\.json$' || true)"
+          test -z "$forbidden"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): verify REGISTERED_ONLY isolation simulation [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "ISOLATION_SIMULATION_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload simulation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-isolation-simulation
+          path: |
+            governance/contest/generated/module-isolation-simulation.json
+            governance/contest/generated/module-isolation-simulation-receipt.json
+            /tmp/contest-isolation-simulation-summary.json
+          if-no-files-found: error
+          retention-days: 14
