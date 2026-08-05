@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.TARGET_BRANCH }}
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Locate mother and Z Git object stores by immutable identities
         shell: bash
