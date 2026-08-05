@@ -1,15 +1,16 @@
 """Deterministic AST evidence for registered Runner dispatch.
 
 The scanner follows exact Python module identities, public compatibility re-exports,
-and registered-symbol aliases.  It returns call evidence only; imports by themselves do
-not prove that a Runner participates in an active chain.  Historical V22.5.5 and explicit
+and registered-symbol aliases. It returns call evidence only; imports by themselves do
+not prove that a Runner participates in an active chain. Historical V22.5.5 and explicit
 legacy paths are excluded from positive dispatch evidence.
 """
 from __future__ import annotations
 
 import ast
+from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Set, Tuple
 
 
 RUNNER_DISPATCH_EVIDENCE_VERSION = "23.0.0-alpha.3"
@@ -24,22 +25,67 @@ def _module_name(root: Path, path: Path) -> str:
     return ".".join(path.relative_to(root).with_suffix("").parts)
 
 
-def _parse(path: Path) -> Optional[ast.Module]:
+@lru_cache(maxsize=None)
+def _source_text(path_value: str) -> str:
     try:
-        return ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        return Path(path_value).read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
+@lru_cache(maxsize=None)
+def _parse_path(path_value: str) -> Optional[ast.Module]:
+    source = _source_text(path_value)
+    if not source:
+        return None
+    try:
+        return ast.parse(source, filename=path_value)
     except Exception:
         return None
 
 
+def _parse(path: Path) -> Optional[ast.Module]:
+    return _parse_path(str(path.resolve()))
+
+
 def _source_line(path: Path, line_number: int) -> str:
-    try:
-        lines = path.read_text(encoding="utf-8").splitlines()
-    except Exception:
-        return ""
+    lines = _source_text(str(path.resolve())).splitlines()
     index = int(line_number or 0) - 1
     if index < 0 or index >= len(lines):
         return ""
     return " ".join(lines[index].strip().split())[:220]
+
+
+@lru_cache(maxsize=None)
+def _source_files(root_value: str) -> Tuple[Path, ...]:
+    root = Path(root_value)
+    return tuple(
+        sorted(
+            (path.resolve() for path in root.glob("src/**/*.py") if path.is_file()),
+            key=lambda item: item.relative_to(root).as_posix(),
+        )
+    )
+
+
+@lru_cache(maxsize=None)
+def _top_level_import_index(
+    root_value: str,
+) -> Tuple[Tuple[str, str, Tuple[str, ...]], ...]:
+    root = Path(root_value)
+    records: List[Tuple[str, str, Tuple[str, ...]]] = []
+    for path in _source_files(root_value):
+        tree = _parse(path)
+        if tree is None:
+            continue
+        candidate_module = _module_name(root, path)
+        for node in tree.body:
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            provider = str(node.module or "")
+            imported = tuple(sorted(str(alias.name) for alias in node.names))
+            if provider and imported:
+                records.append((candidate_module, provider, imported))
+    return tuple(records)
 
 
 def _registered_symbol_aliases(
@@ -78,32 +124,20 @@ def _provider_modules(
     root: Path,
     module_name: str,
     symbols: Set[str],
-    source_files: Iterable[Path],
 ) -> Set[str]:
     """Follow top-level public imports that preserve the registered callable identity."""
     providers = {str(module_name)}
-    parsed: Dict[Path, Optional[ast.Module]] = {
-        path: _parse(path) for path in source_files
-    }
+    records = _top_level_import_index(str(root.resolve()))
     changed = True
     while changed:
         changed = False
-        for path, tree in parsed.items():
-            if tree is None:
+        for candidate_module, provider, imported in records:
+            if candidate_module in providers or provider not in providers:
                 continue
-            candidate_module = _module_name(root, path)
-            if candidate_module in providers:
-                continue
-            for node in tree.body:
-                if not isinstance(node, ast.ImportFrom):
-                    continue
-                if str(node.module or "") not in providers:
-                    continue
-                imported = {str(alias.name) for alias in node.names}
-                if "*" in imported or bool(imported & symbols):
-                    providers.add(candidate_module)
-                    changed = True
-                    break
+            imported_set = set(imported)
+            if "*" in imported_set or bool(imported_set & symbols):
+                providers.add(candidate_module)
+                changed = True
     return providers
 
 
@@ -121,21 +155,13 @@ def collect_runner_dispatch_evidence(
 ) -> List[Dict[str, Any]]:
     """Return exact non-legacy call evidence for one registered Runner."""
     repository = root.resolve()
-    source_files = sorted(
-        (path for path in repository.glob("src/**/*.py") if path.is_file()),
-        key=lambda item: item.relative_to(repository).as_posix(),
-    )
+    source_files = _source_files(str(repository))
     symbols = _registered_symbol_aliases(
         repository,
         module_name,
         registered_symbol,
     )
-    providers = _provider_modules(
-        repository,
-        module_name,
-        symbols,
-        source_files,
-    )
+    providers = _provider_modules(repository, module_name, symbols)
 
     evidence: List[Dict[str, Any]] = []
     seen: Set[Tuple[str, int, str, str]] = set()
