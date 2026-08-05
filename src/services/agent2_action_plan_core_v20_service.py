@@ -51,14 +51,14 @@ _INVENTORY_CUTOFF_PATTERN = re.compile(
     r"(?:库存|可售天数).{0,24}(?:暂停广告|停止放量|停止投放|断流|关闭计划|暂停所有)"
 )
 _PLAN_FIELDS = {
-    "creativeTestPlan",
+    "creativeDraft", "creativeTestPlan",
     "budgetPlan",
     "activityPlan",
     "conversionRepairPlan",
     "similarProductPlan",
 }
 _FAMILY_PLAN_FIELD = {
-    "title_image_test": "creativeTestPlan",
+    "title_image_test": "creativeDraft",
     "roas_scale": "budgetPlan",
     "roas_guard": "budgetPlan",
     "platform_activity": "activityPlan",
@@ -285,7 +285,7 @@ def _contract_missing(raw: Dict[str, Any], package: Dict[str, Any], family: str)
         json.dumps({"steps": steps, "branches": raw.get("decisionBranches")}, ensure_ascii=False)
     ):
         missing.append("inventory_cannot_directly_cut_operator_traffic")
-    if family == "title_image_test" and _valid_creative_plan(raw.get("creativeTestPlan")) is None:
+    if family == "title_image_test" and _valid_creative_plan((raw.get("creativeDraft") or raw.get("creativeTestPlan"))) is None:
         missing.append("creativeTestPlan.groups_min_2")
     if family in ROAS_FAMILIES:
         missing.extend(missing_action_plan_ir(raw, family))
@@ -327,7 +327,7 @@ def _normalize_plan(raw: Dict[str, Any], package: Dict[str, Any], proof: Dict[st
     except Exception:
         governed_raw = dict(raw)
     governed_raw, discarded = _sanitize_family_fields(governed_raw, family)
-    creative = _valid_creative_plan(governed_raw.get("creativeTestPlan")) if family == "title_image_test" else None
+    creative = _valid_creative_plan((governed_raw.get("creativeDraft") or governed_raw.get("creativeTestPlan"))) if family == "title_image_test" else None
     operation_plan = normalize_action_plan_ir(governed_raw, family)
     normalized = {
         "stage": "agent2_action_plan",
@@ -343,7 +343,7 @@ def _normalize_plan(raw: Dict[str, Any], package: Dict[str, Any], proof: Dict[st
         "differentiationReason": governed_raw.get("differentiationReason"),
         "executionObject": _dict(governed_raw.get("executionObject")),
         "operationPlan": operation_plan,
-        "creativeTestPlan": creative,
+        "creativeDraft": creative,
         "budgetPlan": governed_raw.get("budgetPlan") if family in ROAS_FAMILIES and isinstance(governed_raw.get("budgetPlan"), dict) else None,
         "activityPlan": governed_raw.get("activityPlan") if family in {"platform_activity", "activity_apply"} and isinstance(governed_raw.get("activityPlan"), dict) else None,
         "conversionRepairPlan": governed_raw.get("conversionRepairPlan") if family in {"conversion_repair", "service_repair"} and isinstance(governed_raw.get("conversionRepairPlan"), dict) else None,

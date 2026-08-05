@@ -1,0 +1,284 @@
+{
+  "businessRuntimeMutated": false,
+  "changedFileCount": 11,
+  "databaseMutated": false,
+  "editCount": 26,
+  "fileCount": 14,
+  "files": [
+    {
+      "afterHash": "sha256:20a9ace03e7ef99b4854d466790e1229544dcf676965e9002bbd72547221daaa",
+      "beforeHash": "sha256:20a9ace03e7ef99b4854d466790e1229544dcf676965e9002bbd72547221daaa",
+      "changed": false,
+      "editCount": 0,
+      "edits": [],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/action_pack_core_v20_service.py"
+    },
+    {
+      "afterHash": "sha256:091c312f4cb5383895d5092b351f2f26a2c5c9918a573f45ef895a7ed3340c0b",
+      "beforeHash": "sha256:84c6a9a398d7f7492f5c8948356d30191b332f4a88285e411ad176e71c222165",
+      "changed": true,
+      "editCount": 2,
+      "edits": [
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "dual_read_get",
+          "replacementKey": "creativeDraft"
+        },
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "dual_read_get",
+          "replacementKey": "creativeDraft"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/agent2_action_draft_core_v225_service.py"
+    },
+    {
+      "afterHash": "sha256:69d6266b911a176a31d7c5e1599f23ebd320e7c5296ce97916e17406c2714f36",
+      "beforeHash": "sha256:c3fd5d99f33b6105705ac0e7b925205c5226554f686bbb52743649c272e282ee",
+      "changed": true,
+      "editCount": 5,
+      "edits": [
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "dual_key_collection",
+          "replacementKey": "creativeDraft"
+        },
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "new_key_write",
+          "replacementKey": "creativeDraft"
+        },
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "dual_read_get",
+          "replacementKey": "creativeDraft"
+        },
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "dual_read_get",
+          "replacementKey": "creativeDraft"
+        },
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "new_key_write",
+          "replacementKey": "creativeDraft"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/agent2_action_plan_core_v20_service.py"
+    },
+    {
+      "afterHash": "sha256:b77b073016685bfd984b449890d015c63c68735ceda35c77e511481d713b683a",
+      "beforeHash": "sha256:b0513e54b29d820f1c1eb7891995c4010b6c1fcc35bf9fb36d3a14798933bc53",
+      "changed": true,
+      "editCount": 2,
+      "edits": [
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        },
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/agent_execution_lock_v2255_service.py"
+    },
+    {
+      "afterHash": "sha256:aa32d0ccc7be8d5a6f9a9e1e22cb14bf513e8072b4a2b373a4c7492c87e2de21",
+      "beforeHash": "sha256:3e2d0e8c206ff0369776a2813b6f65e1a007e9b0b1877b0c9eb1c4c107a0ba10",
+      "changed": true,
+      "editCount": 1,
+      "edits": [
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "new_key_write",
+          "replacementKey": "lockedActionFamily"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/agent_input_transport_v22514_service.py"
+    },
+    {
+      "afterHash": "sha256:7f880e21a8174951925f92bfc51551164597cc34a0ded7b72c40f7c1de04ad0c",
+      "beforeHash": "sha256:7f880e21a8174951925f92bfc51551164597cc34a0ded7b72c40f7c1de04ad0c",
+      "changed": false,
+      "editCount": 0,
+      "edits": [],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/agent_runtime_contract_v2010_service.py"
+    },
+    {
+      "afterHash": "sha256:9f220abb76f81e90b4d84806ccf5a208fc2d06a43d81d36a832775c9a618259f",
+      "beforeHash": "sha256:5d59072749cb558fc7537eb8d77dd7dc2cbd1d16ff2b01e4fe4f88a4cb16fa92",
+      "changed": true,
+      "editCount": 1,
+      "edits": [
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "new_key_write",
+          "replacementKey": "lockedActionFamily"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/agent_runtime_hard_interface_v2257_service.py"
+    },
+    {
+      "afterHash": "sha256:a659c39cb3f7487e15c9c060594c916754ac00b4bbd05d1e028ccfeb04328c82",
+      "beforeHash": "sha256:677e854ea2167ee8298727a261077ab71666878bd70ee6d9d67b862c5c000f1d",
+      "changed": true,
+      "editCount": 4,
+      "edits": [
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        },
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "dual_read_get",
+          "replacementKey": "creativeDraft"
+        },
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "dual_read_get",
+          "replacementKey": "creativeDraft"
+        },
+        {
+          "legacyKey": "creativeTestPlan",
+          "operation": "dual_key_compare",
+          "replacementKey": "creativeDraft"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/decision_write_guard_v19122_service.py"
+    },
+    {
+      "afterHash": "sha256:a2d8d636f44f3943d07ebb0ebfa9f301fa9c95fd296be88fbed1a54435d76c4d",
+      "beforeHash": "sha256:66bdbff883e5491c180252d0544514dc479a4f76dba260266cf5e7915696c9d3",
+      "changed": true,
+      "editCount": 1,
+      "edits": [
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/pipeline_agent1_microbatch_v20101_service.py"
+    },
+    {
+      "afterHash": "sha256:c3b217dca9f1065a32388af12eebf35dd6d847f747ee5f33e66453e02b047956",
+      "beforeHash": "sha256:fb7474f1403676e0e79fa91366c3456702c9deafef63fa4636972335abdd317e",
+      "changed": true,
+      "editCount": 1,
+      "edits": [
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/pipeline_item_service.py"
+    },
+    {
+      "afterHash": "sha256:fb18eee72620dbe664970cb7bfed58be6f83b0bd862d0f724bfe8a79487ae675",
+      "beforeHash": "sha256:fb1e800f5059b1f6e0feb66701ee90200f001e4d815b55dfe4202349ce8ec96e",
+      "changed": true,
+      "editCount": 2,
+      "edits": [
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        },
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "new_key_write",
+          "replacementKey": "lockedActionFamily"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/real_product_judgment_agent_v196_service.py"
+    },
+    {
+      "afterHash": "sha256:ff6e14189c379bf93d089fdf3c774f77f111f9ee6309863e7ec450f65c067150",
+      "beforeHash": "sha256:ff6e14189c379bf93d089fdf3c774f77f111f9ee6309863e7ec450f65c067150",
+      "changed": false,
+      "editCount": 0,
+      "edits": [],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/route_action_department_matrix_v1915_service.py"
+    },
+    {
+      "afterHash": "sha256:33588372bcf322b679960f6f9f8d41e18a00b4fe2f62182cd8f9a38144eb5980",
+      "beforeHash": "sha256:5f6684e847407d4fc16ab73cc77252c8d1e9f23ca715bf248620b1af3243d635",
+      "changed": true,
+      "editCount": 6,
+      "edits": [
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        },
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        },
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        },
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        },
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        },
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/v2172_inventory_action_guard_service.py"
+    },
+    {
+      "afterHash": "sha256:8b92c9bff736d5311270f3d6ab802f67097fe5359e9df885c343ea00bf42a0c6",
+      "beforeHash": "sha256:a613f8d4fd2c1f633e589025de508f7f53db1fdd966ce6f3f1c802cc712efe89",
+      "changed": true,
+      "editCount": 1,
+      "edits": [
+        {
+          "legacyKey": "selectedActionFamilyHint",
+          "operation": "dual_read_get",
+          "replacementKey": "lockedActionFamily"
+        }
+      ],
+      "path": "/opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/src/services/v2173_agent2_policy_shape_recovery_service.py"
+    }
+  ],
+  "mainMutated": false,
+  "mappings": {
+    "creativeTestPlan": {
+      "legacyPath": "payload.creativeTestPlan",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    "selectedActionFamilyHint": {
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    }
+  },
+  "physicalDeletionExecuted": false,
+  "postApplyViolationCount": 0,
+  "providerCallsExecuted": 0,
+  "readPolicy": "NEW_KEY_THEN_LEGACY_KEY",
+  "receiptHash": "sha256:2ce085c9db1db70ca5b2f8288ef32588da78704a99888f54d06abff3d33ad608",
+  "schema": "contest.field_compat_apply_receipt.v1",
+  "sourceTransactionHash": "sha256:7dc724cf2f4e8b38c4aa988427b0c5766cd18395b1d66f38981728e709d79f78",
+  "state": "FIELD_COMPATIBILITY_APPLIED_PENDING_TESTS",
+  "writePolicy": "NEW_KEY_ONLY"
+}

@@ -1,0 +1,17 @@
+{
+  "applicationImportGate": "NOT_APPLICABLE_MISSING_OPTIONAL_RUNTIME_DEPENDENCIES",
+  "businessRuntimeMutated": false,
+  "databaseMutated": false,
+  "fileCount": 14,
+  "legacyCleanupPops": 3,
+  "legacyPairedReads": 21,
+  "mainMutated": false,
+  "modernWrites": 13,
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "schema": "contest.field_compat_semantic_verification.v2",
+  "state": "FIELD_COMPATIBILITY_SEMANTICS_VERIFIED",
+  "syntaxCompiledFileCount": 11,
+  "violationCount": 0,
+  "violations": []
+}

@@ -280,7 +280,7 @@ def _payload_identity(payload: Dict[str, Any]) -> Dict[str, Any]:
         "package_id": payload.get("packageId") or payload.get("package_id"),
         "decision_id": payload.get("decisionId") or payload.get("decision_id"),
         "task_id": payload.get("taskId") or payload.get("task_id") or payload.get("id"),
-        "action_family": matrix.get("selectedActionFamily") or payload.get("selectedActionFamilyHint") or payload.get("actionFamily") or agent1.get("selectedActionFamily"),
+        "action_family": matrix.get("selectedActionFamily") or (payload.get("lockedActionFamily") or payload.get("selectedActionFamilyHint")) or payload.get("actionFamily") or agent1.get("selectedActionFamily"),
         "route": matrix.get("routeId") or agent1.get("selectedOperatingRoute") or payload.get("route"),
     }
 
