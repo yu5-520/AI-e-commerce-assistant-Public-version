@@ -1,0 +1,192 @@
+name: Import mother governance once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/import-mother-governance-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-mother-governance-once
+  cancel-in-progress: false
+
+jobs:
+  import-and-audit:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    env:
+      SOURCE_REPOSITORY: /opt/ai-ecommerce-assistant
+      SOURCE_COMMIT: f5186451c80631fea550da17d481f5e8793215e5
+      EXPECTED_REGISTRY_TREE: 3cefcdea30086124a70999d942c5f552afd613fd
+      EXPECTED_COMPILER_TREE: 658c88d3d6387d0e6c1c18f9834d9fb3c308dc42
+      EXPECTED_TOOLS_INIT_BLOB: 1b4b79c25c50a748f1439e7c40338727998f3c25
+      TARGET_BRANCH: migration/contest-governance
+      PYTHON_EXACT: /opt/ai-runtime/python/current/bin/python3.11
+    steps:
+      - name: Checkout governance branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+
+      - name: Verify mother authority without reading mutable worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$PYTHON_EXACT"
+          test -d "$SOURCE_REPOSITORY/.git" || {
+            echo "ERROR: mother git object store not found at $SOURCE_REPOSITORY/.git"
+            exit 1
+          }
+
+          git config --global --add safe.directory "$SOURCE_REPOSITORY"
+          git -C "$SOURCE_REPOSITORY" cat-file -e "$SOURCE_COMMIT^{commit}"
+
+          registry_tree="$(git -C "$SOURCE_REPOSITORY" rev-parse "$SOURCE_COMMIT:contracts/registry")"
+          compiler_tree="$(git -C "$SOURCE_REPOSITORY" rev-parse "$SOURCE_COMMIT:tools/registry_compiler")"
+          tools_init_blob="$(git -C "$SOURCE_REPOSITORY" rev-parse "$SOURCE_COMMIT:tools/__init__.py")"
+
+          printf 'source_commit=%s\n' "$SOURCE_COMMIT"
+          printf 'registry_tree=%s\n' "$registry_tree"
+          printf 'compiler_tree=%s\n' "$compiler_tree"
+          printf 'tools_init_blob=%s\n' "$tools_init_blob"
+
+          test "$registry_tree" = "$EXPECTED_REGISTRY_TREE"
+          test "$compiler_tree" = "$EXPECTED_COMPILER_TREE"
+          test "$tools_init_blob" = "$EXPECTED_TOOLS_INIT_BLOB"
+          echo "MOTHER_GOVERNANCE_AUTHORITY=PASS"
+
+      - name: Transfer governance package first
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$(mktemp -d)"
+          trap 'rm -rf "$stage"' EXIT
+
+          git -C "$SOURCE_REPOSITORY" archive "$SOURCE_COMMIT" \
+            contracts/registry \
+            tools/__init__.py \
+            tools/registry_compiler \
+          | tar -x -C "$stage"
+
+          file_count="$(find "$stage/contracts/registry" "$stage/tools/registry_compiler" -type f | wc -l | tr -d ' ')"
+          file_count="$((file_count + 1))"
+          test "$file_count" = "27"
+
+          rm -rf contracts/registry tools/registry_compiler
+          mkdir -p contracts tools
+          cp -a "$stage/contracts/registry" contracts/
+          cp -a "$stage/tools/registry_compiler" tools/
+          cp -a "$stage/tools/__init__.py" tools/__init__.py
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add contracts/registry tools/__init__.py tools/registry_compiler
+
+          if git diff --cached --quiet; then
+            echo "GOVERNANCE_ALREADY_PRESENT=YES"
+          else
+            git commit -m "migration: import mother product registry and native compiler [skip ci]"
+            git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          fi
+
+          echo "GOVERNANCE_TRANSFERRED_UNVERIFIED=PASS"
+
+      - name: Post-transfer Git object validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          registry_tree="$(git rev-parse HEAD:contracts/registry)"
+          compiler_tree="$(git rev-parse HEAD:tools/registry_compiler)"
+          tools_init_blob="$(git rev-parse HEAD:tools/__init__.py)"
+
+          printf 'target_registry_tree=%s\n' "$registry_tree"
+          printf 'target_compiler_tree=%s\n' "$compiler_tree"
+          printf 'target_tools_init_blob=%s\n' "$tools_init_blob"
+
+          test "$registry_tree" = "$EXPECTED_REGISTRY_TREE"
+          test "$compiler_tree" = "$EXPECTED_COMPILER_TREE"
+          test "$tools_init_blob" = "$EXPECTED_TOOLS_INIT_BLOB"
+
+          source_paths="$(git -C "$SOURCE_REPOSITORY" ls-tree -r --name-only "$SOURCE_COMMIT" -- contracts/registry tools/__init__.py tools/registry_compiler | sort)"
+          target_paths="$(git ls-tree -r --name-only HEAD -- contracts/registry tools/__init__.py tools/registry_compiler | sort)"
+          test "$source_paths" = "$target_paths"
+
+          while IFS= read -r path; do
+            source_blob="$(git -C "$SOURCE_REPOSITORY" rev-parse "$SOURCE_COMMIT:$path")"
+            target_blob="$(git rev-parse "HEAD:$path")"
+            test "$source_blob" = "$target_blob" || {
+              echo "BLOB_MISMATCH=$path source=$source_blob target=$target_blob"
+              exit 1
+            }
+          done <<< "$source_paths"
+
+          echo "GOVERNANCE_BLOB_VALIDATION=PASS"
+
+      - name: Run mother-native report-only registry audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          mkdir -p /tmp/contest-governance-audit
+
+          "$PYTHON_EXACT" -m pytest \
+            tests/test_v23_0_0_alpha2_registry_impact_audit.py \
+            -q \
+            | tee /tmp/contest-governance-audit/pytest.txt
+
+          "$PYTHON_EXACT" - <<'PY' | tee /tmp/contest-governance-audit/native-report.json
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+
+          from tools.registry_compiler.alpha2_audit import run_alpha2_audit
+          from tools.registry_compiler.registry_graph import build_dependency_graph
+          from tools.registry_compiler.repository_audit import scan_repository
+
+          root = Path.cwd()
+          graph = build_dependency_graph(root)
+          scan = scan_repository(root)
+          audit = run_alpha2_audit(root, changed_fields=[])
+
+          result = {
+              "schema": "contest.governance.native-audit.v1",
+              "mode": "report_only",
+              "sourceCommit": "f5186451c80631fea550da17d481f5e8793215e5",
+              "registryRootHash": audit["hashLineage"]["registryRootHash"],
+              "graphHash": graph["graphHash"],
+              "repositoryScanHash": scan["repositoryScanHash"],
+              "auditRootHash": audit["auditRootHash"],
+              "verifiedRegistry": audit["verifiedRegistry"],
+              "businessRuntimeMutated": audit["businessRuntimeMutated"],
+              "databaseMutated": audit["databaseMutated"],
+              "providerCallsExecuted": audit["providerCallsExecuted"],
+              "deploymentBlocked": audit["deploymentBlocked"],
+              "registeredModuleCount": scan["summary"]["registeredModuleCount"],
+              "sourceFileCount": scan["summary"]["sourceFileCount"],
+          }
+
+          assert result["mode"] == "report_only"
+          assert result["verifiedRegistry"] is True
+          assert result["businessRuntimeMutated"] is False
+          assert result["databaseMutated"] is False
+          assert result["providerCallsExecuted"] == 0
+          assert result["deploymentBlocked"] is False
+
+          print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+          PY
+
+          echo "NATIVE_REGISTRY_AUDIT=PASS"
+
+      - name: Upload governance audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-governance-native-audit
+          path: /tmp/contest-governance-audit
+          if-no-files-found: error
+          retention-days: 7
