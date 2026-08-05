@@ -1,0 +1,185 @@
+name: Diagnose approved contest Selection Hash transition once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-selection-transition-diagnose-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contest-core-field-migration-v1
+  cancel-in-progress: false
+
+jobs:
+  diagnose-selection-transition:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: transaction/contest-core-field-migration-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      PYTHONPYCACHEPREFIX: /tmp/contest-selection-transition-pycache
+      EXPECTED_EXECUTOR_BLOB: 6a4e6f70394ec8e1662c88032d8bbc9dcc7435a9
+      EXPECTED_SELECTION_BEFORE: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+      EXPECTED_SELECTION_AFTER: sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+    steps:
+      - name: Checkout transaction branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Build before and after Selection manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$PYTHONPYCACHEPREFIX"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          test "$(git hash-object tools/contest_governance/migrate_core_tombstone_fields.py)" = "$EXPECTED_EXECUTOR_BLOB"
+          cp governance/contest/generated/contest-selection-manifest.json /tmp/selection-before.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_BEFORE\"" /tmp/selection-before.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/migrate_core_tombstone_fields.py apply \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            > /tmp/selection-transition-apply.json
+
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/generated \
+            --z-source "$GITHUB_WORKSPACE/governance/contest/z-interface/Z1.0.5" \
+            > /tmp/selection-transition-run.json
+
+          cp governance/contest/generated/contest-selection-manifest.json /tmp/selection-after.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_AFTER\"" /tmp/selection-after.json
+          echo "SELECTION_MANIFESTS_BUILT=PASS"
+
+      - name: Prove exact approved structural delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/selection-transition-diagnostic.json
+          import hashlib
+          import json
+          from pathlib import Path
+
+          before = json.loads(Path("/tmp/selection-before.json").read_text(encoding="utf-8"))
+          after = json.loads(Path("/tmp/selection-after.json").read_text(encoding="utf-8"))
+
+          expected_before = "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e"
+          expected_after = "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb"
+          expected_graph = "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00"
+
+          assert before["selectionHash"] == expected_before, before["selectionHash"]
+          assert after["selectionHash"] == expected_after, after["selectionHash"]
+          assert before["graphHash"] == after["graphHash"] == expected_graph
+
+          def canonical_hash(value):
+              raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+              return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+          def stable_material(document):
+              return {
+                  key: value
+                  for key, value in document.items()
+                  if key not in {"selectionHash", "tombstoneReview"}
+              }
+
+          stable_before = stable_material(before)
+          stable_after = stable_material(after)
+          assert stable_before == stable_after
+
+          def tombstone_index(document):
+              return {
+                  str(item.get("legacyPath")): {
+                      "repositoryHitCount": int(item.get("repositoryHitCount") or 0),
+                      "classification": item.get("classification"),
+                      "replacementFieldId": item.get("replacementFieldId"),
+                      "status": item.get("status"),
+                  }
+                  for item in document.get("tombstoneReview") or []
+              }
+
+          old = tombstone_index(before)
+          new = tombstone_index(after)
+          expected_transitions = {
+              "payload.creativeTestPlan": [24, 18],
+              "payload.selectedActionFamilyHint": [37, 18],
+              "payload.imageDirections": [1, 1],
+              "payload.testPackages": [5, 5],
+          }
+          assert set(old) == set(new) == set(expected_transitions)
+
+          changes = []
+          for legacy, (old_count, new_count) in sorted(expected_transitions.items()):
+              assert old[legacy]["repositoryHitCount"] == old_count, (legacy, old[legacy])
+              assert new[legacy]["repositoryHitCount"] == new_count, (legacy, new[legacy])
+              assert old[legacy]["classification"] == new[legacy]["classification"] == "REVIEW_REQUIRED"
+              for field in ("replacementFieldId", "status"):
+                  assert old[legacy][field] == new[legacy][field]
+              changes.append({
+                  "legacyPath": legacy,
+                  "repositoryHitCountBefore": old_count,
+                  "repositoryHitCountAfter": new_count,
+                  "classificationStable": True,
+              })
+
+          result = {
+              "schema": "contest.selection_hash_transition_diagnostic.v1",
+              "state": "APPROVED_EVIDENCE_DELTA_ONLY",
+              "selectionHashBefore": before["selectionHash"],
+              "selectionHashAfter": after["selectionHash"],
+              "graphHash": before["graphHash"],
+              "stableSelectionMaterialHashBefore": canonical_hash(stable_before),
+              "stableSelectionMaterialHashAfter": canonical_hash(stable_after),
+              "stableSelectionMaterialEqual": stable_before == stable_after,
+              "classificationSetsStable": before["classifications"] == after["classifications"],
+              "coreModuleIdsStable": before["coreModuleIds"] == after["coreModuleIds"],
+              "supportModuleIdsStable": before["supportModuleIds"] == after["supportModuleIds"],
+              "safeKeepModuleIdsStable": before["safeKeepModuleIds"] == after["safeKeepModuleIds"],
+              "pathCoreModuleIdsStable": before["pathCoreModuleIds"] == after["pathCoreModuleIds"],
+              "forwardClosureHashStable": before["forwardClosureHash"] == after["forwardClosureHash"],
+              "reverseClosureHashStable": before["reverseClosureHash"] == after["reverseClosureHash"],
+              "physicalPathReviewStable": before["physicalPathReview"] == after["physicalPathReview"],
+              "tombstoneTransitions": changes,
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "physicalDeletionExecuted": False,
+          }
+          assert all([
+              result["stableSelectionMaterialEqual"],
+              result["classificationSetsStable"],
+              result["coreModuleIdsStable"],
+              result["supportModuleIdsStable"],
+              result["safeKeepModuleIdsStable"],
+              result["pathCoreModuleIdsStable"],
+              result["forwardClosureHashStable"],
+              result["reverseClosureHashStable"],
+              result["physicalPathReviewStable"],
+          ])
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+          grep -q '"state": "APPROVED_EVIDENCE_DELTA_ONLY"' /tmp/selection-transition-diagnostic.json
+          grep -q '"stableSelectionMaterialEqual": true' /tmp/selection-transition-diagnostic.json
+          grep -q '"classificationSetsStable": true' /tmp/selection-transition-diagnostic.json
+          echo "SELECTION_TRANSITION_EXACT_DELTA=PASS"
+
+      - name: Upload transition diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-selection-transition-diagnostic
+          path: |
+            /tmp/selection-before.json
+            /tmp/selection-after.json
+            /tmp/selection-transition-diagnostic.json
+            /tmp/selection-transition-apply.json
+            /tmp/selection-transition-run.json
+          if-no-files-found: error
+          retention-days: 14
