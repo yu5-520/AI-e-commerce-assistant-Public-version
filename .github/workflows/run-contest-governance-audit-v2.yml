@@ -1,0 +1,135 @@
+name: Run contest governance audit v2
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/run-contest-governance-audit-v2.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: run-contest-governance-audit-v2
+  cancel-in-progress: false
+
+jobs:
+  native-audit:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    env:
+      TARGET_BRANCH: migration/contest-governance
+      EXPECTED_REGISTRY_TREE: 3cefcdea30086124a70999d942c5f552afd613fd
+      EXPECTED_COMPILER_TREE: 658c88d3d6387d0e6c1c18f9834d9fb3c308dc42
+      EXPECTED_TOOLS_INIT_BLOB: 1b4b79c25c50a748f1439e7c40338727998f3c25
+      EXPECTED_SOURCE_COMMIT: f5186451c80631fea550da17d481f5e8793215e5
+    steps:
+      - name: Checkout verified governance branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+
+      - name: Reverify governance Git identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD:contracts/registry)" = "$EXPECTED_REGISTRY_TREE"
+          test "$(git rev-parse HEAD:tools/registry_compiler)" = "$EXPECTED_COMPILER_TREE"
+          test "$(git rev-parse HEAD:tools/__init__.py)" = "$EXPECTED_TOOLS_INIT_BLOB"
+          test "$(git ls-tree -r --name-only HEAD -- contracts/registry tools/__init__.py tools/registry_compiler | wc -l | tr -d ' ')" = "27"
+          echo "GOVERNANCE_IDENTITY_RECHECK=PASS"
+
+      - name: Prepare isolated Python 3.11.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11.9
+          check-latest: false
+          update-environment: true
+
+      - name: Verify isolated Python identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(python --version 2>&1)" = "Python 3.11.9"
+          python - <<'PY'
+          import sys
+          assert sys.version_info[:3] == (3, 11, 9), sys.version
+          print(f"AUDIT_PYTHON={sys.executable}")
+          print("AUDIT_PYTHON_IDENTITY=PASS")
+          PY
+
+      - name: Run mother-native report-only hash-lineage audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="/tmp/contest-governance-audit-v2"
+          mkdir -p "$evidence"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+
+          python - <<'PY' | tee "$evidence/native-report.json"
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+
+          from tools.registry_compiler.alpha2_audit import run_alpha2_audit
+          from tools.registry_compiler.registry_graph import build_dependency_graph
+          from tools.registry_compiler.repository_audit import scan_repository
+
+          root = Path.cwd()
+          graph = build_dependency_graph(root)
+          scan = scan_repository(root)
+          audit = run_alpha2_audit(root, changed_fields=[])
+          runtime_projection = json.loads(
+              (root / "config" / "v23_registry_runtime.json").read_text(encoding="utf-8")
+          )
+
+          registry_root = audit["hashLineage"]["registryRootHash"]
+          runtime_registry_root = runtime_projection["registryRootHash"]
+
+          result = {
+              "schema": "contest.governance.native-audit.v1",
+              "mode": "report_only",
+              "sourceCommit": "f5186451c80631fea550da17d481f5e8793215e5",
+              "registryRootHash": registry_root,
+              "runtimeProjectionRegistryRootHash": runtime_registry_root,
+              "registryRuntimeAligned": registry_root == runtime_registry_root,
+              "graphHash": graph["graphHash"],
+              "repositoryScanHash": scan["repositoryScanHash"],
+              "auditRootHash": audit["auditRootHash"],
+              "verifiedRegistry": audit["verifiedRegistry"],
+              "businessRuntimeMutated": audit["businessRuntimeMutated"],
+              "databaseMutated": audit["databaseMutated"],
+              "providerCallsExecuted": audit["providerCallsExecuted"],
+              "deploymentBlocked": audit["deploymentBlocked"],
+              "registeredModuleCount": scan["summary"]["registeredModuleCount"],
+              "sourceFileCount": scan["summary"]["sourceFileCount"],
+              "requiredRuntimeModules": runtime_projection["requiredModules"],
+          }
+
+          assert result["mode"] == "report_only"
+          assert result["verifiedRegistry"] is True
+          assert result["businessRuntimeMutated"] is False
+          assert result["databaseMutated"] is False
+          assert result["providerCallsExecuted"] == 0
+          assert result["deploymentBlocked"] is False
+
+          print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+          PY
+
+          grep -q '"verifiedRegistry": true' "$evidence/native-report.json"
+          grep -q '"businessRuntimeMutated": false' "$evidence/native-report.json"
+          grep -q '"databaseMutated": false' "$evidence/native-report.json"
+          grep -q '"providerCallsExecuted": 0' "$evidence/native-report.json"
+          echo "NATIVE_REGISTRY_AUDIT=PASS"
+
+      - name: Upload native audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-governance-native-audit-v2
+          path: /tmp/contest-governance-audit-v2
+          if-no-files-found: ignore
+          retention-days: 7
