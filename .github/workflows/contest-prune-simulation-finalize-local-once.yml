@@ -1,0 +1,242 @@
+name: Finalize post-migration contest prune simulation once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-prune-simulation-finalize-local-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-prune-simulation-v1
+  cancel-in-progress: false
+
+jobs:
+  finalize-prune-simulation:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 25
+    env:
+      TARGET_BRANCH: simulation/contest-prune-v1
+      VERIFIED_SOURCE_HEAD: 435d213441c683147aeeacff432e10a179760a77
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      PYTHONPYCACHEPREFIX: /tmp/contest-prune-simulation-pycache
+      EXPECTED_SELECTION_HASH: sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_MIGRATION_REVIEW_HASH: sha256:bf240a47717b4ca39a8946b6ba74a9bd4d7eae9596561a45d68168bd55c659bb
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Rebuild transaction simulate commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          test -d .git
+          test -x "$AUDIT_PYTHON"
+          git cat-file -e "$VERIFIED_SOURCE_HEAD^{commit}"
+
+          COMPLETED=0
+          cleanup() {
+            rm -rf "$PYTHONPYCACHEPREFIX"
+            if test "$COMPLETED" != "1"; then
+              git worktree prune >/dev/null 2>&1 || true
+              git reset --hard "$VERIFIED_SOURCE_HEAD" >/dev/null 2>&1 || true
+              git clean -ffdx >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup EXIT
+
+          git reset --hard "$VERIFIED_SOURCE_HEAD"
+          git clean -ffdx
+          git worktree prune
+          git checkout --detach "$VERIFIED_SOURCE_HEAD"
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+
+          test "$(git rev-parse HEAD)" = "$VERIFIED_SOURCE_HEAD"
+          grep -q 'CORE_LEGACY_FIELD_MIGRATION_VERIFIED_PRUNE_SIMULATION_READY' governance/contest/generated/core-field-migration-review.json
+          grep -q "\"migrationReviewHash\": \"$EXPECTED_MIGRATION_REVIEW_HASH\"" governance/contest/generated/core-field-migration-review.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/contest-selection-manifest.json
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit.json
+          test -z "$(git status --porcelain)"
+          echo "POST_MIGRATION_SIMULATION_AUTHORITY=PASS"
+
+          "$AUDIT_PYTHON" tools/contest_governance/build_isolation_transaction.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/post-migration-isolation-transaction.json
+
+          grep -q '"state": "ISOLATION_VERIFIED_SIMULATION_READY"' governance/contest/generated/module-isolation-transaction.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/module-isolation-transaction.json
+          grep -q "\"graphHash\": \"$EXPECTED_GRAPH_HASH\"" governance/contest/generated/module-isolation-transaction.json
+          grep -q '"moduleCount": 7' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"simulationExcludePathCount": 2' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"preserveSharedPathCount": 0' governance/contest/generated/module-isolation-transaction.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/module-isolation-receipt.json
+          echo "POST_MIGRATION_ISOLATION_TRANSACTION=PASS"
+
+          "$AUDIT_PYTHON" tools/contest_governance/simulate_module_isolation.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/post-migration-prune-simulation.json
+
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/post-migration-prune-simulation-review.json
+          import hashlib
+          import json
+          from pathlib import Path
+
+          generated = Path("governance/contest/generated")
+
+          def read(name):
+              value = json.loads((generated / name).read_text(encoding="utf-8"))
+              assert isinstance(value, dict)
+              return value
+
+          def sha(value):
+              raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+              return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+          def write(name, value):
+              (generated / name).write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+
+          transaction = read("module-isolation-transaction.json")
+          transaction_receipt = read("module-isolation-receipt.json")
+          simulation = read("module-isolation-simulation.json")
+          simulation_receipt = read("module-isolation-simulation-receipt.json")
+          migration = read("core-field-migration-review.json")
+
+          expected_selection = "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb"
+          expected_graph = "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00"
+          expected_migration = "sha256:bf240a47717b4ca39a8946b6ba74a9bd4d7eae9596561a45d68168bd55c659bb"
+          expected_modules = [
+              "action_node_transport",
+              "execution_resource_orchestrator",
+              "node_authorization",
+              "operating_plan_compiler",
+              "stage_frontend_projection",
+              "stage_lifecycle",
+              "task_blueprint_compiler",
+          ]
+          expected_paths = [
+              "tools/registry_compiler/v24_identity_catalog.py",
+              "tools/registry_compiler/v24_task_blueprint_compiler.py",
+          ]
+
+          assertions = {
+              "migrationReviewAuthorityLocked": migration["migrationReviewHash"] == expected_migration,
+              "transactionReady": transaction["state"] == "ISOLATION_VERIFIED_SIMULATION_READY",
+              "selectionHashCurrent": transaction["selectionHash"] == expected_selection,
+              "graphHashCurrent": transaction["graphHash"] == expected_graph,
+              "isolateModuleSetExact": transaction["isolateModuleIds"] == expected_modules,
+              "simulationExcludePathSetExact": transaction["simulationExcludePaths"] == expected_paths,
+              "noSharedPaths": transaction["preserveSharedPaths"] == [],
+              "simulationVerified": simulation["state"] == "ISOLATION_SIMULATION_VERIFIED_PHYSICAL_CHANGE_NOT_AUTHORIZED",
+              "simulationSelectionStable": simulation["baselineSelectionHash"] == simulation["simulatedSelectionHash"] == expected_selection,
+              "simulationGraphStable": simulation["baselineGraphHash"] == simulation["simulatedGraphHash"] == expected_graph,
+              "classificationsStable": simulation["assertions"]["classificationsStable"] is True,
+              "safeKeepModulesStable": simulation["assertions"]["safeKeepModulesStable"] is True,
+              "keepRunnerEvidenceVerified": simulation["assertions"]["keepRunnerEvidenceVerified"] is True,
+              "noUnexpectedRunnerDrift": simulation["unexpectedRunnerDriftModuleIds"] == [],
+              "expectedIsolateDriftExact": simulation["expectedIsolateRunnerDriftModuleIds"] == expected_modules,
+              "rootCompositionVerified": simulation["assertions"]["rootCompositionVerified"] is True,
+              "excludedPathsOutsideKeepClosure": simulation["assertions"]["excludedPathsOutsideKeepClosure"] is True,
+              "sourceBranchFilesDeletedZero": int(simulation["analysisBranchFilesDeleted"]) == 0,
+              "physicalDeletionStillNotAuthorized": simulation["physicalDeletionExecuted"] is False,
+              "transactionReceiptNoMutation": transaction_receipt["physicalDeletionExecuted"] is False,
+              "simulationReceiptNoMutation": simulation_receipt["physicalDeletionExecuted"] is False,
+          }
+          assert all(assertions.values()), assertions
+
+          material = {
+              "schema": "contest.post_migration_prune_simulation_review.v1",
+              "state": "PRUNE_SIMULATION_VERIFIED_PHYSICAL_PRUNE_AWAITS_APPROVAL",
+              "sourceCommit": "435d213441c683147aeeacff432e10a179760a77",
+              "migrationReviewHash": expected_migration,
+              "selectionHash": expected_selection,
+              "graphHash": expected_graph,
+              "isolationTransactionHash": transaction["transactionHash"],
+              "isolationSimulationHash": simulation["simulationHash"],
+              "isolateModuleIds": expected_modules,
+              "simulationExcludePaths": expected_paths,
+              "assertions": assertions,
+              "nextTransaction": {
+                  "type": "PHYSICAL_PRUNE_APPROVAL_REQUIRED",
+                  "authorized": False,
+                  "candidatePaths": expected_paths,
+                  "candidateModuleIds": expected_modules,
+              },
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "deploymentExecuted": False,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+              "publicReleaseExecuted": False,
+          }
+          review = {**material, "pruneSimulationReviewHash": sha(material)}
+          write("post-migration-prune-simulation-review.json", review)
+
+          receipt_material = {
+              "schema": "contest.post_migration_prune_simulation_receipt.v1",
+              "state": review["state"],
+              "pruneSimulationReviewHash": review["pruneSimulationReviewHash"],
+              "isolationTransactionHash": transaction["transactionHash"],
+              "isolationSimulationHash": simulation["simulationHash"],
+              "states": [
+                  "POST_MIGRATION_SELECTION_LOCKED",
+                  "ISOLATE_MODULE_SET_RESEALED",
+                  "DETACHED_WORKTREE_PRUNE_SIMULATED",
+                  "CORE_SUPPORT_RUNNER_GATES_VERIFIED",
+                  "LAYERED_ROOT_COMPOSITION_VERIFIED",
+                  "SOURCE_BRANCH_UNCHANGED",
+                  "PHYSICAL_PRUNE_AWAITS_APPROVAL",
+              ],
+              "businessRuntimeMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+              "deploymentExecuted": False,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+              "publicReleaseExecuted": False,
+          }
+          receipt = {**receipt_material, "receiptHash": sha(receipt_material)}
+          write("post-migration-prune-simulation-receipt.json", receipt)
+
+          print(json.dumps({
+              "state": review["state"],
+              "isolationTransactionHash": transaction["transactionHash"],
+              "isolationSimulationHash": simulation["simulationHash"],
+              "pruneSimulationReviewHash": review["pruneSimulationReviewHash"],
+              "receiptHash": receipt["receiptHash"],
+              "assertions": assertions,
+          }, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+          grep -q 'PRUNE_SIMULATION_VERIFIED_PHYSICAL_PRUNE_AWAITS_APPROVAL' governance/contest/generated/post-migration-prune-simulation-review.json
+          grep -q '"authorized": false' governance/contest/generated/post-migration-prune-simulation-review.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/post-migration-prune-simulation-receipt.json
+          git diff --check
+
+          git status --porcelain | sed -E 's/^.. //' | sort -u > /tmp/prune-simulation-changed-paths
+          test -s /tmp/prune-simulation-changed-paths
+          forbidden="$(grep -Ev '^governance/contest/generated/' /tmp/prune-simulation-changed-paths || true)"
+          test -z "$forbidden"
+          echo "PRUNE_SIMULATION_REPORT_ONLY_BOUNDARY=PASS"
+
+          git add governance/contest/generated
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): reseal post-migration prune simulation [skip ci]"
+
+          gh auth setup-git
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "POST_MIGRATION_PRUNE_SIMULATION_PUSH=PASS"
+              COMPLETED=1
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+          test "$COMPLETED" = "1"
