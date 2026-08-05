@@ -1,0 +1,189 @@
+name: Resume contest logical isolation without checkout
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-logical-isolation-local-resume-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-logical-isolation-local-resume-once
+  cancel-in-progress: false
+
+jobs:
+  local-resume:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 25
+    env:
+      WORK: /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version
+      TARGET_BRANCH: isolation/contest-registered-only-v1
+      FIELD_REGISTRY_TREE: 5eaea1b4ab48305e78393409b513f1e40941021d
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      GH_API_TOKEN: ${{ github.token }}
+    steps:
+      - name: Apply or confirm logical isolation without Git fetch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$WORK" 2>/dev/null || true
+          cd "$WORK"
+          test -x "$AUDIT_PYTHON"
+          export PYTHONPATH="$WORK"
+
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/logical-isolation-local-resume.json
+          from __future__ import annotations
+          import base64, json, os, subprocess, time, urllib.error, urllib.parse, urllib.request
+          from pathlib import Path
+
+          root = Path(os.environ["WORK"])
+          api = "https://api.github.com/repos/yu5-520/AI-e-commerce-assistant-Public-version"
+          token = os.environ["GH_API_TOKEN"]
+          branch = os.environ["TARGET_BRANCH"]
+          field_tree = os.environ["FIELD_REGISTRY_TREE"]
+          python = os.environ["AUDIT_PYTHON"]
+
+          def git(*args: str) -> str:
+              return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+          def request(method: str, path: str, payload=None):
+              body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode()
+              last = None
+              for attempt in range(1, 9):
+                  req = urllib.request.Request(api + path, data=body, method=method, headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {token}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "contest-logical-isolation-local-resume",
+                      "Content-Type": "application/json",
+                  })
+                  try:
+                      with urllib.request.urlopen(req, timeout=30) as response:
+                          return json.loads(response.read().decode())
+                  except urllib.error.HTTPError as exc:
+                      if exc.code == 404:
+                          return None
+                      last = exc
+                      if exc.code < 500 and exc.code not in {408, 409, 429}:
+                          raise RuntimeError(f"API_ERROR:{method}:{path}:{exc.code}:{exc.read().decode(errors='replace')}") from exc
+                  except (urllib.error.URLError, TimeoutError) as exc:
+                      last = exc
+                  time.sleep(attempt * 5)
+              raise RuntimeError(f"API_RETRIES_EXHAUSTED:{method}:{path}:{last}")
+
+          encoded_branch = urllib.parse.quote(branch, safe="")
+          existing_path = urllib.parse.quote("governance/contest/generated/module-isolation-application.json", safe="/")
+          existing = request("GET", f"/contents/{existing_path}?ref={encoded_branch}")
+          if existing and existing.get("content"):
+              document = json.loads(base64.b64decode(existing["content"]).decode())
+              if document.get("state") == "LOGICAL_ISOLATION_APPLIED":
+                  print(json.dumps({
+                      "state": "LOGICAL_ISOLATION_ALREADY_APPLIED",
+                      "remoteCommit": request("GET", f"/git/ref/heads/{branch}")["object"]["sha"],
+                  }, sort_keys=True, indent=2))
+                  raise SystemExit(0)
+
+          target_ref = request("GET", f"/git/ref/heads/{branch}")
+          target_commit = target_ref["object"]["sha"]
+          target_commit_data = request("GET", f"/git/commits/{target_commit}")
+          target_tree = target_commit_data["tree"]["sha"]
+
+          local_base = ""
+          for line in git("log", "--all", "--format=%H %T").splitlines():
+              commit, tree = line.split(maxsplit=1)
+              if tree == field_tree:
+                  local_base = commit
+                  break
+          if not local_base:
+              raise RuntimeError(f"LOCAL_EQUIVALENT_BASE_TREE_NOT_FOUND:{field_tree}")
+
+          subprocess.run(["git", "reset", "--hard", local_base], cwd=root, check=True)
+          subprocess.run(["git", "clean", "-ffdx"], cwd=root, check=True)
+          subprocess.run(["git", "checkout", "-B", "local/contest-isolation-resume", local_base], cwd=root, check=True)
+
+          overlay_paths = [
+              "governance/contest/isolation-policy.json",
+              "contracts/registry/migrations.json",
+              "tools/contest_governance/apply_logical_isolation.py",
+          ]
+          for relative in overlay_paths:
+              encoded_path = urllib.parse.quote(relative, safe="/")
+              item = request("GET", f"/contents/{encoded_path}?ref={encoded_branch}")
+              if not item or not item.get("content"):
+                  raise RuntimeError(f"TARGET_FILE_UNAVAILABLE:{relative}")
+              path = root / relative
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(base64.b64decode(item["content"]))
+          subprocess.run(["git", "add", *overlay_paths], cwd=root, check=True)
+          materialized_tree = git("write-tree")
+          if materialized_tree != target_tree:
+              raise RuntimeError(f"TARGET_TREE_MATERIALIZATION_MISMATCH:{materialized_tree}:{target_tree}")
+
+          subprocess.run([python, "-m", "py_compile", "tools/contest_governance/apply_logical_isolation.py"], cwd=root, check=True)
+          completed = subprocess.run(
+              [python, "tools/contest_governance/apply_logical_isolation.py"],
+              cwd=root, check=True, capture_output=True, text=True,
+          )
+          summary = json.loads(completed.stdout)
+          if summary.get("state") != "LOGICAL_ISOLATION_APPLIED" or summary.get("isolatedModuleCount") != 7:
+              raise RuntimeError(f"ISOLATION_SUMMARY_INVALID:{summary}")
+
+          output_paths = [
+              "contracts/registry/registry-manifest.json",
+              "governance/contest/generated/module-isolation-application.json",
+              "governance/contest/generated/module-isolation-application-receipt.json",
+              "governance/contest/generated/repository-audit-post-isolation.json",
+          ]
+          subprocess.run(["git", "add", *output_paths], cwd=root, check=True)
+          candidate_tree = git("write-tree")
+
+          entries = []
+          for relative in output_paths:
+              data = (root / relative).read_bytes()
+              blob = request("POST", "/git/blobs", {"content": base64.b64encode(data).decode(), "encoding": "base64"})
+              mode_line = git("ls-tree", target_commit, "--", relative)
+              mode = mode_line.split()[0] if mode_line else "100644"
+              entries.append({"path": relative, "mode": mode, "type": "blob", "sha": blob["sha"]})
+          tree = request("POST", "/git/trees", {"base_tree": target_tree, "tree": entries})
+          if tree["sha"] != candidate_tree:
+              raise RuntimeError(f"OUTPUT_TREE_MISMATCH:{tree['sha']}:{candidate_tree}")
+          current = request("GET", f"/git/ref/heads/{branch}")["object"]["sha"]
+          if current != target_commit:
+              raise RuntimeError(f"BRANCH_LEASE_MISMATCH:{current}:{target_commit}")
+          commit = request("POST", "/git/commits", {
+              "message": "governance(contest): apply logical isolation overlay [skip ci]",
+              "tree": tree["sha"],
+              "parents": [target_commit],
+          })
+          request("PATCH", f"/git/refs/heads/{branch}", {"sha": commit["sha"], "force": False})
+          remote = request("GET", f"/git/commits/{commit['sha']}")
+          if remote["tree"]["sha"] != candidate_tree or [p["sha"] for p in remote["parents"]] != [target_commit]:
+              raise RuntimeError("REMOTE_COMMIT_VALIDATION_FAILED")
+          print(json.dumps({
+              "state": "LOGICAL_ISOLATION_APPLIED",
+              "remoteCommit": commit["sha"],
+              "parentCommit": target_commit,
+              "treeSha": candidate_tree,
+              "isolatedModuleCount": 7,
+              "fileCount": 4,
+              "mainMutated": False,
+              "physicalDeletionExecuted": False,
+          }, sort_keys=True, indent=2))
+          PY
+
+          grep -Eq '"state": "LOGICAL_ISOLATION_(APPLIED|ALREADY_APPLIED)"' /tmp/logical-isolation-local-resume.json
+          echo "LOGICAL_ISOLATION_LOCAL_RESUME=PASS"
+
+      - name: Upload local resume evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-logical-isolation-local-resume
+          path: |
+            /tmp/logical-isolation-local-resume.json
+            /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/governance/contest/generated/module-isolation-application.json
+            /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/governance/contest/generated/module-isolation-application-receipt.json
+          if-no-files-found: ignore
+          retention-days: 14
