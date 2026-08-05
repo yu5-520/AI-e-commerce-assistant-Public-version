@@ -1,0 +1,283 @@
+name: Compile contest physical prune candidates once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-prune-candidate-compile-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-prune-candidate-compile-once
+  cancel-in-progress: false
+
+jobs:
+  compile-prune-candidates:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      WORK: /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version
+      TARGET_BRANCH: prune/contest-single-chain-v1
+      EXPECTED_TARGET_COMMIT: c05059f4e65f43b3adc37c16b43cf71f267f0e5e
+      EXPECTED_TARGET_TREE: dbb03dbd80944be503fbb482560501a474bcb301
+      EXPECTED_ISOLATION_TREE: 705a4df3e044f107ec849530cdfd1ea1415a12b8
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      GH_API_TOKEN: ${{ github.token }}
+    steps:
+      - name: Materialize exact prune branch without checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$WORK" 2>/dev/null || true
+          cd "$WORK"
+          test -x "$AUDIT_PYTHON"
+          export PYTHONPATH="$WORK"
+
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/prune-materialization.json
+          from __future__ import annotations
+          import base64, json, os, subprocess, time, urllib.error, urllib.parse, urllib.request
+          from pathlib import Path
+
+          root = Path(os.environ["WORK"])
+          api = "https://api.github.com/repos/yu5-520/AI-e-commerce-assistant-Public-version"
+          token = os.environ["GH_API_TOKEN"]
+          branch = os.environ["TARGET_BRANCH"]
+          expected_commit = os.environ["EXPECTED_TARGET_COMMIT"]
+          expected_tree = os.environ["EXPECTED_TARGET_TREE"]
+          isolation_tree = os.environ["EXPECTED_ISOLATION_TREE"]
+
+          def git(*args: str) -> str:
+              return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+          def request(method: str, path: str, payload=None):
+              body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode()
+              last = None
+              for attempt in range(1, 9):
+                  req = urllib.request.Request(api + path, data=body, method=method, headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {token}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "contest-prune-candidate-materializer",
+                      "Content-Type": "application/json",
+                  })
+                  try:
+                      with urllib.request.urlopen(req, timeout=30) as response:
+                          return json.loads(response.read().decode())
+                  except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+                      last = exc
+                      if isinstance(exc, urllib.error.HTTPError) and exc.code < 500 and exc.code not in {408, 409, 429}:
+                          raise RuntimeError(f"API_ERROR:{method}:{path}:{exc.code}:{exc.read().decode(errors='replace')}") from exc
+                      time.sleep(attempt * 5)
+              raise RuntimeError(f"API_RETRIES_EXHAUSTED:{method}:{path}:{last}")
+
+          ref = request("GET", f"/git/ref/heads/{branch}")
+          if ref["object"]["sha"] != expected_commit:
+              existing = request("GET", f"/git/commits/{ref['object']['sha']}")
+              if existing["tree"]["sha"] != expected_tree:
+                  raise RuntimeError(f"TARGET_BRANCH_DRIFT:{ref['object']['sha']}:{existing['tree']['sha']}")
+          target_commit = request("GET", f"/git/commits/{expected_commit}")
+          if target_commit["tree"]["sha"] != expected_tree:
+              raise RuntimeError("TARGET_TREE_IDENTITY_MISMATCH")
+
+          current_index_tree = git("write-tree")
+          if current_index_tree != isolation_tree:
+              local_base = ""
+              for line in git("log", "--all", "--format=%H %T").splitlines():
+                  commit, tree = line.split(maxsplit=1)
+                  if tree == isolation_tree:
+                      local_base = commit
+                      break
+              if local_base:
+                  subprocess.run(["git", "reset", "--hard", local_base], cwd=root, check=True)
+                  subprocess.run(["git", "clean", "-ffdx"], cwd=root, check=True)
+                  subprocess.run(["git", "checkout", "-B", "local/contest-prune-materialize", local_base], cwd=root, check=True)
+              else:
+                  # Rebuild the exact isolation tree from a locally available field-registry tree
+                  field_tree = "5eaea1b4ab48305e78393409b513f1e40941021d"
+                  field_base = ""
+                  for line in git("log", "--all", "--format=%H %T").splitlines():
+                      commit, tree = line.split(maxsplit=1)
+                      if tree == field_tree:
+                          field_base = commit
+                          break
+                  if not field_base:
+                      raise RuntimeError(f"LOCAL_ISOLATION_OR_FIELD_TREE_NOT_FOUND:{isolation_tree}:{field_tree}")
+                  subprocess.run(["git", "reset", "--hard", field_base], cwd=root, check=True)
+                  subprocess.run(["git", "clean", "-ffdx"], cwd=root, check=True)
+                  subprocess.run(["git", "checkout", "-B", "local/contest-prune-materialize", field_base], cwd=root, check=True)
+                  isolation_ref = urllib.parse.quote("isolation/contest-registered-only-v1", safe="")
+                  isolation_paths = [
+                      "governance/contest/isolation-policy.json",
+                      "contracts/registry/migrations.json",
+                      "tools/contest_governance/apply_logical_isolation.py",
+                      "contracts/registry/registry-manifest.json",
+                      "governance/contest/generated/module-isolation-application.json",
+                      "governance/contest/generated/module-isolation-application-receipt.json",
+                      "governance/contest/generated/repository-audit-post-isolation.json",
+                  ]
+                  for relative in isolation_paths:
+                      encoded_path = urllib.parse.quote(relative, safe="/")
+                      item = request("GET", f"/contents/{encoded_path}?ref={isolation_ref}")
+                      if not item or not item.get("content"):
+                          raise RuntimeError(f"ISOLATION_FILE_UNAVAILABLE:{relative}")
+                      path = root / relative
+                      path.parent.mkdir(parents=True, exist_ok=True)
+                      path.write_bytes(base64.b64decode(item["content"]))
+                  subprocess.run(["git", "add", *isolation_paths], cwd=root, check=True)
+
+          if git("write-tree") != isolation_tree:
+              raise RuntimeError(f"ISOLATION_TREE_MATERIALIZATION_FAILED:{git('write-tree')}:{isolation_tree}")
+
+          prune_ref = urllib.parse.quote(branch, safe="")
+          compiler_path = "tools/contest_governance/compile_prune_candidates.py"
+          encoded_path = urllib.parse.quote(compiler_path, safe="/")
+          item = request("GET", f"/contents/{encoded_path}?ref={prune_ref}")
+          if not item or not item.get("content"):
+              raise RuntimeError("PRUNE_COMPILER_UNAVAILABLE")
+          target = root / compiler_path
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_bytes(base64.b64decode(item["content"]))
+          subprocess.run(["git", "add", compiler_path], cwd=root, check=True)
+
+          materialized = git("write-tree")
+          if materialized != expected_tree:
+              raise RuntimeError(f"PRUNE_TREE_MATERIALIZATION_MISMATCH:{materialized}:{expected_tree}")
+          print(json.dumps({
+              "state": "PRUNE_BRANCH_MATERIALIZED",
+              "targetCommit": expected_commit,
+              "treeSha": materialized,
+          }, sort_keys=True, indent=2))
+          PY
+
+          grep -q '"state": "PRUNE_BRANCH_MATERIALIZED"' /tmp/prune-materialization.json
+          grep -q "\"treeSha\": \"$EXPECTED_TARGET_TREE\"" /tmp/prune-materialization.json
+          echo "PRUNE_BRANCH_MATERIALIZATION=PASS"
+
+      - name: Compile and verify physical prune candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          export PYTHONPATH="$WORK"
+          "$AUDIT_PYTHON" -m py_compile tools/contest_governance/compile_prune_candidates.py
+          "$AUDIT_PYTHON" tools/contest_governance/compile_prune_candidates.py \
+            | tee /tmp/prune-candidate-summary.json
+
+          test -f governance/contest/generated/physical-prune-candidate-manifest.json
+          test -f governance/contest/generated/physical-prune-candidate-receipt.json
+          grep -q '"state": "PRUNE_CANDIDATES_COMPILED_PHYSICAL_DELETE_BLOCKED"' governance/contest/generated/physical-prune-candidate-manifest.json
+          grep -q '"candidateCount": 2' governance/contest/generated/physical-prune-candidate-manifest.json
+          grep -q '"authorizedDeleteCount": 0' governance/contest/generated/physical-prune-candidate-manifest.json
+          grep -q '"blockedCandidateCount": 2' governance/contest/generated/physical-prune-candidate-manifest.json
+          grep -q 'RETIRE_OR_EXTERNALIZE_ISOLATED_REGISTRY_RUNNER_IDENTITIES_BEFORE_PHYSICAL_DELETE' governance/contest/generated/physical-prune-candidate-manifest.json
+          grep -q "\"graphHash\": \"$EXPECTED_GRAPH_HASH\"" governance/contest/generated/physical-prune-candidate-manifest.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/physical-prune-candidate-manifest.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/physical-prune-candidate-receipt.json
+          grep -q '"mainMutated": false' governance/contest/generated/physical-prune-candidate-receipt.json
+          echo "PRUNE_CANDIDATE_COMPILATION=PASS"
+
+      - name: Publish candidate manifest and receipt through Git Data API
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/prune-candidate-api-publish.json
+          from __future__ import annotations
+          import base64, json, os, time, urllib.error, urllib.request
+          from pathlib import Path
+
+          root = Path(os.environ["WORK"])
+          api = "https://api.github.com/repos/yu5-520/AI-e-commerce-assistant-Public-version"
+          token = os.environ["GH_API_TOKEN"]
+          branch = os.environ["TARGET_BRANCH"]
+          base_commit = os.environ["EXPECTED_TARGET_COMMIT"]
+          base_tree = os.environ["EXPECTED_TARGET_TREE"]
+
+          def request(method: str, path: str, payload=None):
+              body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode()
+              last = None
+              for attempt in range(1, 9):
+                  req = urllib.request.Request(api + path, data=body, method=method, headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {token}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "contest-prune-candidate-publisher",
+                      "Content-Type": "application/json",
+                  })
+                  try:
+                      with urllib.request.urlopen(req, timeout=30) as response:
+                          return json.loads(response.read().decode())
+                  except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+                      last = exc
+                      if isinstance(exc, urllib.error.HTTPError) and exc.code < 500 and exc.code not in {408, 409, 429}:
+                          raise RuntimeError(f"API_ERROR:{method}:{path}:{exc.code}:{exc.read().decode(errors='replace')}") from exc
+                      time.sleep(attempt * 5)
+              raise RuntimeError(f"API_RETRIES_EXHAUSTED:{method}:{path}:{last}")
+
+          ref = request("GET", f"/git/ref/heads/{branch}")
+          if ref["object"]["sha"] != base_commit:
+              existing_commit = request("GET", f"/git/commits/{ref['object']['sha']}")
+              existing_tree = existing_commit["tree"]["sha"]
+              # A previous successful attempt is acceptable when the candidate outputs exist.
+              manifest_path = "/contents/governance/contest/generated/physical-prune-candidate-manifest.json?ref=" + branch.replace("/", "%2F")
+              try:
+                  existing_manifest = request("GET", manifest_path)
+              except Exception:
+                  existing_manifest = None
+              if existing_manifest:
+                  print(json.dumps({"state": "PRUNE_CANDIDATES_ALREADY_PUBLISHED", "remoteCommit": ref["object"]["sha"], "treeSha": existing_tree}, sort_keys=True, indent=2))
+                  raise SystemExit(0)
+              raise RuntimeError(f"BRANCH_LEASE_MISMATCH:{ref['object']['sha']}:{base_commit}")
+
+          output_paths = [
+              "governance/contest/generated/physical-prune-candidate-manifest.json",
+              "governance/contest/generated/physical-prune-candidate-receipt.json",
+          ]
+          entries = []
+          for relative in output_paths:
+              data = (root / relative).read_bytes()
+              blob = request("POST", "/git/blobs", {"content": base64.b64encode(data).decode(), "encoding": "base64"})
+              entries.append({"path": relative, "mode": "100644", "type": "blob", "sha": blob["sha"]})
+          tree = request("POST", "/git/trees", {"base_tree": base_tree, "tree": entries})
+          commit = request("POST", "/git/commits", {
+              "message": "governance(contest): compile physical prune candidates [skip ci]",
+              "tree": tree["sha"],
+              "parents": [base_commit],
+          })
+          request("PATCH", f"/git/refs/heads/{branch}", {"sha": commit["sha"], "force": False})
+          remote = request("GET", f"/git/commits/{commit['sha']}")
+          if remote["tree"]["sha"] != tree["sha"] or [parent["sha"] for parent in remote["parents"]] != [base_commit]:
+              raise RuntimeError("REMOTE_COMMIT_VALIDATION_FAILED")
+          print(json.dumps({
+              "state": "PRUNE_CANDIDATES_PUBLISHED_PHYSICAL_DELETE_BLOCKED",
+              "remoteCommit": commit["sha"],
+              "parentCommit": base_commit,
+              "treeSha": tree["sha"],
+              "fileCount": 2,
+              "authorizedDeleteCount": 0,
+              "blockedCandidateCount": 2,
+              "physicalDeletionExecuted": False,
+              "mainMutated": False,
+          }, sort_keys=True, indent=2))
+          PY
+
+          grep -Eq '"state": "PRUNE_CANDIDATES_(PUBLISHED_PHYSICAL_DELETE_BLOCKED|ALREADY_PUBLISHED)"' /tmp/prune-candidate-api-publish.json
+          echo "PRUNE_CANDIDATE_API_PUBLISH=PASS"
+
+      - name: Upload candidate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-physical-prune-candidates
+          path: |
+            /tmp/prune-materialization.json
+            /tmp/prune-candidate-summary.json
+            /tmp/prune-candidate-api-publish.json
+            /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/governance/contest/generated/physical-prune-candidate-manifest.json
+            /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/governance/contest/generated/physical-prune-candidate-receipt.json
+          if-no-files-found: error
+          retention-days: 14
