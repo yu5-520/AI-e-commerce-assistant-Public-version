@@ -1,0 +1,211 @@
+name: Bind layered root verifier and reseal review
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-root-composition-v3-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-root-composition-v3-once
+  cancel-in-progress: false
+
+jobs:
+  bind-and-reseal:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      Z_INTERFACE_ROOT: governance/contest/z-interface/Z1.0.5
+      EXPECTED_Z_COMPILER_BLOB: 7a9546b02fd598548891fd080c98a6553695b796
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Bind layered root verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/contest_governance/run_selection.py")
+          lines = path.read_text(encoding="utf-8").splitlines()
+
+          def locate(text, start=0):
+              for index in range(start, len(lines)):
+                  if lines[index].strip() == text:
+                      return index
+              raise SystemExit(f"PATCH_ANCHOR_MISSING:{text}")
+
+          adapter_index = locate(
+              'adapter_layout = _read_object(root / ".z" / "adapter" / "registry-layout.json")'
+          )
+          if not any("equivalence_contract = _read_object" in line for line in lines):
+              lines.insert(
+                  adapter_index + 1,
+                  '    equivalence_contract = _read_object('
+                  'root / ".z" / "equivalence" / "root-equivalence.json")',
+              )
+
+          audit_import_index = locate(
+              "from tools.registry_compiler.repository_audit import scan_repository"
+          )
+          verifier_import = (
+              "    from tools.contest_governance.root_equivalence "
+              "import evaluate_root_equivalence"
+          )
+          if not any("import evaluate_root_equivalence" in line for line in lines):
+              lines.insert(audit_import_index + 1, verifier_import)
+
+          roots_start = locate(
+              'roots = dict(adapter_layout.get("observedLayeredRoots") or {})'
+          )
+          findings_start = locate("findings: List[str] = []", roots_start + 1)
+          lines[roots_start:findings_start] = [
+              '    roots = dict(adapter_layout.get("observedLayeredRoots") or {})',
+              "    root_equivalence_check = evaluate_root_equivalence(",
+              "        root,",
+              "        adapter_layout,",
+              "        equivalence_contract,",
+              "        _read_object,",
+              "    )",
+              '    root_equivalent = bool(root_equivalence_check.get("verified"))',
+              "",
+          ]
+
+          for index, line in enumerate(lines):
+              if "LAYERED_REGISTRY_ROOTS_NOT_EQUIVALENT" in line:
+                  lines[index] = line.replace(
+                      "LAYERED_REGISTRY_ROOTS_NOT_EQUIVALENT",
+                      "LAYERED_ROOT_COMPOSITION_NOT_VERIFIED",
+                  )
+
+          baseline_index = locate('"observedLayeredRoots": roots,')
+          if not any(
+              line.strip() == '"rootEquivalenceContract": root_equivalence_check,'
+              for line in lines
+          ):
+              lines.insert(
+                  baseline_index + 1,
+                  '        "rootEquivalenceContract": root_equivalence_check,',
+              )
+
+          state_start = locate('"registryAdapterState": (')
+          graph_index = locate('"graphHash": graph.get("graphHash"),', state_start + 1)
+          lines[state_start:graph_index] = [
+              '        "registryAdapterState": (',
+              '            "REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED"',
+              '            if adapter_check.get("allDocumentsMatch") and root_equivalent',
+              "            else (",
+              '                "REGISTRY_DOCUMENTS_VERIFIED_ROOT_EQUIVALENCE_PENDING"',
+              '                if adapter_check.get("allDocumentsMatch")',
+              '                else "REGISTRY_REVIEW_REQUIRED"',
+              "            )",
+              "        ),",
+          ]
+
+          receipt_index = locate(
+              '"registryRootEquivalencePending": not root_equivalent,'
+          )
+          if not any(
+              "registryRootEquivalenceMode" in line for line in lines
+          ):
+              lines.insert(
+                  receipt_index + 1,
+                  '        "registryRootEquivalenceMode": '
+                  'root_equivalence_check.get("equivalenceMode"),',
+              )
+
+          path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print("ROOT_VERIFIER_BOUND=PASS")
+          PY
+
+          "$AUDIT_PYTHON" -m py_compile \
+            tools/contest_governance/root_equivalence.py \
+            tools/contest_governance/run_selection.py
+          grep -q 'evaluate_root_equivalence' tools/contest_governance/run_selection.py
+          grep -q 'REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED' tools/contest_governance/run_selection.py
+
+      - name: Commit verifier binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/contest_governance/run_selection.py
+          git commit -m "governance(contest): bind layered root verifier [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "VERIFIER_BINDING_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Regenerate review evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          interface="$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT/tools/registry_compiler/compile_registry.py"
+          test "$(git hash-object "$interface")" = "$EXPECTED_Z_COMPILER_BLOB"
+
+          rm -rf governance/contest/generated
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/generated \
+            --z-source "$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT" \
+            | tee /tmp/contest-root-composition-v3-summary.json
+
+          grep -q '"rootEquivalent": true' governance/contest/generated/registry-snapshot.json
+          grep -q '"verified": true' governance/contest/generated/registry-snapshot.json
+          grep -q '"layerDeclarationsMatch": true' governance/contest/generated/registry-snapshot.json
+          grep -q '"observedRootsMatchContract": true' governance/contest/generated/registry-snapshot.json
+          grep -q 'REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED' governance/contest/generated/contest-chain-review.json
+          ! grep -q 'LAYERED_REGISTRY_ROOTS_NOT_EQUIVALENT' governance/contest/generated/contest-chain-review.json
+          ! grep -q 'LAYERED_ROOT_COMPOSITION_NOT_VERIFIED' governance/contest/generated/contest-chain-review.json
+          grep -q '"registryRootEquivalencePending": false' governance/contest/generated/execution-receipt.json
+          grep -q '"registryRootEquivalenceMode": "LAYERED_ROOT_COMPOSITION"' governance/contest/generated/execution-receipt.json
+          grep -q '"businessRuntimeMutated": false' governance/contest/generated/execution-receipt.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/execution-receipt.json
+          echo "ROOT_COMPOSITION_VERIFIED=PASS"
+
+      - name: Commit resealed evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add governance/contest/generated
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/' || true)"
+          test -z "$forbidden"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): reseal layered root evidence [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "RESEALED_EVIDENCE_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-root-composition-v3
+          path: |
+            governance/contest/generated
+            /tmp/contest-root-composition-v3-summary.json
+          if-no-files-found: error
+          retention-days: 14
