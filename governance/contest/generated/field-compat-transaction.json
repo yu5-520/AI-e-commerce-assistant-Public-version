@@ -1,0 +1,352 @@
+{
+  "automaticApplyAuthorized": false,
+  "classificationCounts": {
+    "KEY_MEMBERSHIP_OR_COMPARE": 2,
+    "READ_GET": 19,
+    "REVIEW_REQUIRED": 4,
+    "WRITE_DICT_LITERAL": 4
+  },
+  "corePathCount": 14,
+  "mainMutationAuthorized": false,
+  "mappings": {
+    "creativeTestPlan": {
+      "legacyPath": "payload.creativeTestPlan",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    "selectedActionFamilyHint": {
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    }
+  },
+  "mode": "report_only",
+  "occurrenceCount": 29,
+  "occurrences": [
+    {
+      "column": 13,
+      "kind": "REVIEW_REQUIRED",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 400,
+      "lineText": "item.pop(\"selectedActionFamilyHint\", None)",
+      "path": "src/services/action_pack_core_v20_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 83,
+      "kind": "READ_GET",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 308,
+      "lineText": "source = _dict(raw.get(\"familyPayload\") or raw.get(\"creativeDraft\") or raw.get(\"creativeTestPlan\"))",
+      "path": "src/services/agent2_action_draft_core_v225_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 83,
+      "kind": "READ_GET",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 375,
+      "lineText": "source = _dict(raw.get(\"familyPayload\") or raw.get(\"creativeDraft\") or raw.get(\"creativeTestPlan\"))",
+      "path": "src/services/agent2_action_draft_core_v225_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 4,
+      "kind": "KEY_MEMBERSHIP_OR_COMPARE",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 54,
+      "lineText": "\"creativeTestPlan\",",
+      "path": "src/services/agent2_action_plan_core_v20_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 24,
+      "kind": "REVIEW_REQUIRED",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 61,
+      "lineText": "\"title_image_test\": \"creativeTestPlan\",",
+      "path": "src/services/agent2_action_plan_core_v20_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 69,
+      "kind": "READ_GET",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 288,
+      "lineText": "if family == \"title_image_test\" and _valid_creative_plan(raw.get(\"creativeTestPlan\")) is None:",
+      "path": "src/services/agent2_action_plan_core_v20_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 53,
+      "kind": "READ_GET",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 330,
+      "lineText": "creative = _valid_creative_plan(governed_raw.get(\"creativeTestPlan\")) if family == \"title_image_test\" else None",
+      "path": "src/services/agent2_action_plan_core_v20_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 8,
+      "kind": "WRITE_DICT_LITERAL",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 346,
+      "lineText": "\"creativeTestPlan\": creative,",
+      "path": "src/services/agent2_action_plan_core_v20_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 19,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 204,
+      "lineText": "source.get(\"selectedActionFamilyHint\"),",
+      "path": "src/services/agent_execution_lock_v2255_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 21,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 207,
+      "lineText": "judgment.get(\"selectedActionFamilyHint\"),",
+      "path": "src/services/agent_execution_lock_v2255_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 8,
+      "kind": "WRITE_DICT_LITERAL",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 462,
+      "lineText": "\"selectedActionFamilyHint\": lock.get(\"selectedActionFamily\"),",
+      "path": "src/services/agent_input_transport_v22514_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 16,
+      "kind": "REVIEW_REQUIRED",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 270,
+      "lineText": "payload.pop(\"selectedActionFamilyHint\", None)",
+      "path": "src/services/agent_runtime_contract_v2010_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 20,
+      "kind": "WRITE_DICT_LITERAL",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 222,
+      "lineText": "\"selectedActionFamilyHint\": None,",
+      "path": "src/services/agent_runtime_hard_interface_v2257_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 63,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 56,
+      "lineText": "return str(plan.get(\"selectedActionFamily\") or package.get(\"selectedActionFamilyHint\") or \"\").strip()",
+      "path": "src/services/decision_write_guard_v19122_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 27,
+      "kind": "READ_GET",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 71,
+      "lineText": "for value in [plan.get(\"creativeTestPlan\"), package.get(\"creativeTestPlan\"), package.get(\"agentCreativePack\")]:",
+      "path": "src/services/decision_write_guard_v19122_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 60,
+      "kind": "READ_GET",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 71,
+      "lineText": "for value in [plan.get(\"creativeTestPlan\"), package.get(\"creativeTestPlan\"), package.get(\"agentCreativePack\")]:",
+      "path": "src/services/decision_write_guard_v19122_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 11,
+      "kind": "KEY_MEMBERSHIP_OR_COMPARE",
+      "legacyKey": "creativeTestPlan",
+      "legacyPath": "payload.creativeTestPlan",
+      "line": 105,
+      "lineText": "or \"creativeTestPlan\" in reason",
+      "path": "src/services/decision_write_guard_v19122_service.py",
+      "replacementFieldId": "agent2.creative_draft",
+      "replacementKey": "creativeDraft"
+    },
+    {
+      "column": 94,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 201,
+      "lineText": "action_family=item.get(\"action_family\") or payload.get(\"actionFamily\") or payload.get(\"selectedActionFamilyHint\"),",
+      "path": "src/services/pipeline_agent1_microbatch_v20101_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 75,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 283,
+      "lineText": "\"action_family\": matrix.get(\"selectedActionFamily\") or payload.get(\"selectedActionFamilyHint\") or payload.get(\"actionFamily\") or agent1.get(\"selectedActionFamily\"),",
+      "path": "src/services/pipeline_item_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 31,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 327,
+      "lineText": "family = _text(raw.get(\"selectedActionFamilyHint\")) or None",
+      "path": "src/services/real_product_judgment_agent_v196_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 16,
+      "kind": "WRITE_DICT_LITERAL",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 409,
+      "lineText": "\"selectedActionFamilyHint\": family,",
+      "path": "src/services/real_product_judgment_agent_v196_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 13,
+      "kind": "REVIEW_REQUIRED",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 144,
+      "lineText": "item.pop(\"selectedActionFamilyHint\", None)",
+      "path": "src/services/route_action_department_matrix_v1915_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 18,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 304,
+      "lineText": "value.get(\"selectedActionFamilyHint\")",
+      "path": "src/services/v2172_inventory_action_guard_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 18,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 354,
+      "lineText": "value.get(\"selectedActionFamilyHint\")",
+      "path": "src/services/v2172_inventory_action_guard_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 23,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 401,
+      "lineText": "or package.get(\"selectedActionFamilyHint\")",
+      "path": "src/services/v2172_inventory_action_guard_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 80,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 543,
+      "lineText": "family = _lower(action_family or payload.get(\"actionFamily\") or payload.get(\"selectedActionFamilyHint\"))",
+      "path": "src/services/v2172_inventory_action_guard_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 26,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 779,
+      "lineText": "if before.get(\"selectedActionFamilyHint\")",
+      "path": "src/services/v2172_inventory_action_guard_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 30,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 780,
+      "lineText": "and not after.get(\"selectedActionFamilyHint\")",
+      "path": "src/services/v2172_inventory_action_guard_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    },
+    {
+      "column": 80,
+      "kind": "READ_GET",
+      "legacyKey": "selectedActionFamilyHint",
+      "legacyPath": "payload.selectedActionFamilyHint",
+      "line": 287,
+      "lineText": "family = _lower(action_family or payload.get(\"actionFamily\") or payload.get(\"selectedActionFamilyHint\"))",
+      "path": "src/services/v2173_agent2_policy_shape_recovery_service.py",
+      "replacementFieldId": "agent1.locked_action_family",
+      "replacementKey": "lockedActionFamily"
+    }
+  ],
+  "physicalDeletionAuthorized": false,
+  "readPolicy": "NEW_KEY_THEN_LEGACY_KEY",
+  "schema": "contest.field_compat_transaction.v1",
+  "sourceReviewHash": "sha256:8c41c9805544cf12deb05ab1205ec06143d4c409ee2a0582f83a02fccbe58f16",
+  "transactionHash": "sha256:b625d6fa2356f9c0021dc9a092c2f3eb6f1e40133070e226e82a4a0f703f95d7",
+  "writePolicy": "NEW_KEY_ONLY"
+}
