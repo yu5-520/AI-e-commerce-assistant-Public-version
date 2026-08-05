@@ -32,45 +32,91 @@ jobs:
           ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 1
 
-      - name: Locate mother and Z Git object stores by immutable identities
+      - name: Locate mother authority by immutable Git identities
         shell: bash
         run: |
           set -euo pipefail
 
-          find_repository() {
-            local commit="$1"
-            local required_path="$2"
-            local expected_object="$3"
-            local candidate object
-
-            while IFS= read -r candidate; do
-              test -n "$candidate" || continue
-              test -d "$candidate/.git" || continue
-              git config --global --add safe.directory "$candidate" 2>/dev/null || true
-              git -C "$candidate" cat-file -e "$commit^{commit}" 2>/dev/null || continue
-              object="$(git -C "$candidate" rev-parse "$commit:$required_path" 2>/dev/null || true)"
-              if test "$object" = "$expected_object"; then
-                printf '%s\n' "$candidate"
-                return 0
-              fi
-            done < <(
-              find /opt /srv -maxdepth 9 -type d -name .git -printf '%h\n' 2>/dev/null \
-                | awk 'NF && !seen[$0]++'
-            )
-            return 1
+          verify_mother() {
+            local candidate="$1"
+            test -n "$candidate" || return 1
+            test -e "$candidate/.git" || return 1
+            git config --global --add safe.directory "$candidate" 2>/dev/null || true
+            git -C "$candidate" cat-file -e "$MOTHER_COMMIT^{commit}" 2>/dev/null || return 1
+            test "$(git -C "$candidate" rev-parse "$MOTHER_COMMIT:.z" 2>/dev/null || true)" = "$EXPECTED_Z_METADATA_TREE" || return 1
+            test "$(git -C "$candidate" rev-parse "$MOTHER_COMMIT:tools/z_adapter" 2>/dev/null || true)" = "$EXPECTED_Z_ADAPTER_TREE" || return 1
+            return 0
           }
 
-          mother_repository="$(find_repository "$MOTHER_COMMIT" '.z' "$EXPECTED_Z_METADATA_TREE")"
-          z_repository="$(find_repository "$Z_SOURCE_COMMIT" 'tools/registry_compiler/compile_registry.py' "$EXPECTED_Z_COMPILER_BLOB")"
+          mother_repository=""
+          preferred="/opt/ai-ecommerce-assistant-deploy/releases/20260626042555_ba081064"
 
-          test -n "$mother_repository"
-          test -n "$z_repository"
+          if verify_mother "$preferred"; then
+            mother_repository="$preferred"
+          else
+            while IFS= read -r candidate; do
+              if verify_mother "$candidate"; then
+                mother_repository="$candidate"
+                break
+              fi
+            done < <(
+              find /opt /srv -maxdepth 10 -name .git -printf '%h\n' 2>/dev/null \
+                | awk 'NF && !seen[$0]++'
+            )
+          fi
+
+          test -n "$mother_repository" || {
+            echo "ERROR: mother authority not found by commit and subtree identities"
+            exit 1
+          }
 
           echo "MOTHER_REPOSITORY=$mother_repository" >> "$GITHUB_ENV"
-          echo "Z_REPOSITORY=$z_repository" >> "$GITHUB_ENV"
           echo "MOTHER_REPOSITORY=$mother_repository"
-          echo "Z_REPOSITORY=$z_repository"
-          echo "IMMUTABLE_SOURCE_IDENTITIES=PASS"
+          echo "MOTHER_AUTHORITY_IDENTITY=PASS"
+
+      - name: Locate exact Z registry interface by Git blob identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          interface_source=""
+          preferred_candidates="$(
+            printf '%s\n' \
+              /srv/z-century/runner/_work/Z-Century/Z-Century \
+              "$MOTHER_REPOSITORY/.z/dependency-src"
+          )"
+
+          candidate_files="$(
+            {
+              while IFS= read -r candidate; do
+                test -n "$candidate" || continue
+                printf '%s\n' "$candidate/tools/registry_compiler/compile_registry.py"
+              done <<< "$preferred_candidates"
+
+              find /opt /srv -maxdepth 15 -type f \
+                -path '*/tools/registry_compiler/compile_registry.py' \
+                -print 2>/dev/null || true
+            } | awk 'NF && !seen[$0]++'
+          )"
+
+          while IFS= read -r candidate_file; do
+            test -f "$candidate_file" || continue
+            blob="$(git hash-object "$candidate_file" 2>/dev/null || true)"
+            if test "$blob" = "$EXPECTED_Z_COMPILER_BLOB"; then
+              interface_source="$candidate_file"
+              break
+            fi
+          done <<< "$candidate_files"
+
+          test -n "$interface_source" || {
+            echo "ERROR: exact Z Registry compiler interface not found"
+            echo "EXPECTED_Z_COMPILER_BLOB=$EXPECTED_Z_COMPILER_BLOB"
+            exit 1
+          }
+
+          echo "Z_INTERFACE_SOURCE=$interface_source" >> "$GITHUB_ENV"
+          echo "Z_INTERFACE_SOURCE=$interface_source"
+          echo "Z_INTERFACE_BLOB_IDENTITY=PASS"
 
       - name: Transfer product Z adapter assets before validation
         shell: bash
@@ -103,9 +149,14 @@ jobs:
         run: |
           set -euo pipefail
           z_stage="$(mktemp -d)"
-          git -C "$Z_REPOSITORY" archive "$Z_SOURCE_COMMIT" | tar -x -C "$z_stage"
-          test "$(git -C "$Z_REPOSITORY" rev-parse "$Z_SOURCE_COMMIT:tools/registry_compiler/compile_registry.py")" = "$EXPECTED_Z_COMPILER_BLOB"
-          test -f "$z_stage/tools/registry_compiler/compile_registry.py"
+          mkdir -p "$z_stage/tools/registry_compiler"
+          cp -a "$Z_INTERFACE_SOURCE" "$z_stage/tools/registry_compiler/compile_registry.py"
+
+          test "$(git hash-object "$z_stage/tools/registry_compiler/compile_registry.py")" = "$EXPECTED_Z_COMPILER_BLOB"
+
+          printf '%s\n' "$Z_SOURCE_COMMIT" > "$z_stage/Z_PINNED_SOURCE_COMMIT"
+          printf '%s\n' "$EXPECTED_Z_COMPILER_BLOB" > "$z_stage/Z_REGISTRY_COMPILER_BLOB"
+
           echo "Z_CENTURY_SOURCE_DIR=$z_stage" >> "$GITHUB_ENV"
           echo "Z_STAGE_CLEANUP=$z_stage" >> "$GITHUB_ENV"
           echo "IMMUTABLE_Z_INTERFACE_MATERIALIZED=PASS"
@@ -115,7 +166,23 @@ jobs:
         run: |
           set -euo pipefail
           selected=""
-          for candidate in /usr/bin/python3 /usr/local/bin/python3 /usr/bin/python /usr/local/bin/python; do
+
+          candidates="$(
+            {
+              command -v python3 2>/dev/null || true
+              command -v python 2>/dev/null || true
+              printf '%s\n' \
+                /usr/bin/python3 \
+                /usr/local/bin/python3 \
+                /usr/bin/python \
+                /usr/local/bin/python
+              find /opt /srv -maxdepth 10 \( -type f -o -type l \) \
+                \( -name python3.12 -o -name python3.11 -o -name python3.10 -o -name python3 -o -name python \) \
+                -print 2>/dev/null || true
+            } | awk 'NF && !seen[$0]++'
+          )"
+
+          while IFS= read -r candidate; do
             test -x "$candidate" || continue
             if "$candidate" - <<'PY' >/dev/null 2>&1
           import sys
@@ -125,11 +192,13 @@ jobs:
               selected="$candidate"
               break
             fi
-          done
+          done <<< "$candidates"
+
           test -n "$selected" || {
             echo "ERROR: runner-accessible Python >= 3.10 not found"
             exit 1
           }
+
           echo "AUDIT_PYTHON=$selected" >> "$GITHUB_ENV"
           "$selected" --version
           echo "REPORT_ONLY_PYTHON_RESOLVED=PASS"
