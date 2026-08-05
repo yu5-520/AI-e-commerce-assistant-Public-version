@@ -1,0 +1,75 @@
+{
+  "schema": "contest.selection_request.v1",
+  "version": "1.0.0",
+  "mode": "report_only",
+  "target": "contest_single_chain",
+  "baseline": {
+    "repositoryCommit": "342f47af088e2e8538bf6034006756c216511c41",
+    "motherSourceCommit": "f5186451c80631fea550da17d481f5e8793215e5",
+    "registryTreeSha": "3cefcdea30086124a70999d942c5f552afd613fd",
+    "registryCompilerTreeSha": "658c88d3d6387d0e6c1c18f9834d9fb3c308dc42",
+    "zDependencyCommit": "c924e646673a41857cca5e39650e022f9ce8c0a5"
+  },
+  "entryModuleIds": [
+    "signal_admission",
+    "artifact_transport"
+  ],
+  "terminalModuleIds": [
+    "frontend_view"
+  ],
+  "requiredModuleIds": [
+    "release_governance",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "task_mapping",
+    "task_pool",
+    "frontend_view"
+  ],
+  "supportModuleIds": [
+    "release_governance",
+    "registry_compiler"
+  ],
+  "requiredInterfaceIds": [
+    "system.version.get",
+    "stations.list.get",
+    "stations.run.post",
+    "view.head.get",
+    "view.artifact.get",
+    "view.refresh.post"
+  ],
+  "requiredStationIds": [
+    "product_signal_admission_station",
+    "product_judgment_agent_station",
+    "action_parameter_enrichment_station",
+    "action_plan_judgment_agent_station",
+    "task_mapping_agent_station",
+    "task_pool_admission_station",
+    "frontend_read_model_station"
+  ],
+  "classificationPolicy": {
+    "activePath": "KEEP_CORE",
+    "upstreamDependency": "KEEP_SUPPORT",
+    "registeredOnly": "ISOLATE",
+    "unresolvedActive": "REVIEW_REQUIRED",
+    "zeroReferenceTombstone": "REMOVE_CANDIDATE"
+  },
+  "constraints": {
+    "preserveDemoMode": true,
+    "preserveRealMode": true,
+    "preserveFrontend": true,
+    "preserveReleaseGovernance": true,
+    "allowBusinessRuntimeMutation": false,
+    "allowDatabaseMutation": false,
+    "allowProviderCalls": false,
+    "allowPhysicalDeletion": false,
+    "allowMainMutation": false
+  },
+  "approval": {
+    "state": "REVIEW_PENDING",
+    "approvedBy": null,
+    "approvedAt": null
+  }
+}
