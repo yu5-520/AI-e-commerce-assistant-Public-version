@@ -12,8 +12,9 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Sequence, Set, Tuple
 
 from .compile_registry import load_registry_documents, sha256_value
+from .runner_dispatch_evidence import collect_runner_dispatch_evidence
 
-REPOSITORY_AUDIT_VERSION = "23.0.0-alpha.2"
+REPOSITORY_AUDIT_VERSION = "23.0.0-alpha.3"
 _DEFAULT_DISPATCH_PATHS = (
     "src/services/station_adapter_service.py",
     "src/services/station_agent_worker_v2259_service.py",
@@ -156,34 +157,17 @@ def _defined_symbols(path: Path) -> Set[str]:
     return result
 
 
-def _dispatch_evidence(root: Path, module_name: str, symbol: str) -> List[Dict[str, Any]]:
-    evidence: List[Dict[str, Any]] = []
-    module_tail = module_name.split(".")[-1]
-    needles = [item for item in (symbol, module_name, module_tail) if item]
-    if not needles:
-        return evidence
-    for relative in _DEFAULT_DISPATCH_PATHS:
-        path = root / relative
-        if not path.is_file():
-            continue
-        try:
-            lines = path.read_text(encoding="utf-8").splitlines()
-        except Exception:
-            continue
-        for line_number, line in enumerate(lines, 1):
-            matched = [needle for needle in needles if needle in line]
-            if matched:
-                evidence.append(
-                    {
-                        "path": relative,
-                        "line": line_number,
-                        "matched": sorted(set(matched)),
-                        "text": " ".join(line.strip().split())[:220],
-                    }
-                )
-                if len(evidence) >= 20:
-                    return evidence
-    return evidence
+def _dispatch_evidence(
+    root: Path,
+    module_name: str,
+    symbol: str,
+) -> List[Dict[str, Any]]:
+    return collect_runner_dispatch_evidence(
+        root,
+        module_name,
+        symbol,
+        limit=20,
+    )
 
 
 def scan_repository(root: Path | None = None) -> Dict[str, Any]:
