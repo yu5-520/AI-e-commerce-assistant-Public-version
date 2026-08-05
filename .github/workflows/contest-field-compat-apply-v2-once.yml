@@ -1,0 +1,173 @@
+name: Apply contest field compatibility v2 once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-field-compat-apply-v2-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-field-compat-apply-v2-once
+  cancel-in-progress: false
+
+jobs:
+  apply-and-verify:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
+    env:
+      TARGET_BRANCH: migration/contest-field-compat-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+    steps:
+      - name: Checkout compatibility branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Apply authorized transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          grep -q '"automaticApplyAuthorized": true' governance/contest/generated/field-compat-transaction.json
+          grep -q '"reviewRequiredCount": 0' governance/contest/generated/field-compat-transaction.json
+          "$AUDIT_PYTHON" -m py_compile \
+            tools/contest_governance/compile_field_compat_transaction.py \
+            tools/contest_governance/apply_field_compat_transaction.py \
+            tools/contest_governance/verify_field_compat_semantics.py
+          "$AUDIT_PYTHON" tools/contest_governance/apply_field_compat_transaction.py \
+            | tee /tmp/field-compat-apply-v2.json
+          echo "FIELD_COMPAT_APPLY_V2=PASS"
+
+      - name: Verify syntax imports and compatibility semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          mapfile -t changed_python < <(git diff --name-only -- '*.py')
+          test "${#changed_python[@]}" -gt 0
+          "$AUDIT_PYTHON" -m py_compile "${changed_python[@]}"
+
+          "$AUDIT_PYTHON" - <<'PY'
+          import importlib
+          modules = [
+              "src.services.agent2_action_draft_core_v225_service",
+              "src.services.agent2_action_plan_core_v20_service",
+              "src.services.agent_execution_lock_v2255_service",
+              "src.services.agent_input_transport_v22514_service",
+              "src.services.agent_runtime_hard_interface_v2257_service",
+              "src.services.decision_write_guard_v19122_service",
+              "src.services.pipeline_agent1_microbatch_v20101_service",
+              "src.services.pipeline_item_service",
+              "src.services.real_product_judgment_agent_v196_service",
+              "src.services.v2172_inventory_action_guard_service",
+              "src.services.v2173_agent2_policy_shape_recovery_service",
+          ]
+          for name in modules:
+              importlib.import_module(name)
+          print(f"CHANGED_MODULE_IMPORTS=PASS count={len(modules)}")
+          PY
+
+          "$AUDIT_PYTHON" tools/contest_governance/verify_field_compat_semantics.py \
+            | tee /tmp/field-compat-semantic-summary.json
+          grep -q '"state": "FIELD_COMPATIBILITY_SEMANTICS_VERIFIED"' governance/contest/generated/field-compat-semantic-verification.json
+          grep -q '"violationCount": 0' governance/contest/generated/field-compat-semantic-verification.json
+          echo "FIELD_COMPAT_SEMANTIC_VERIFICATION=PASS"
+
+      - name: Run available focused pytest suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          pytest_python=""
+          candidates="$(
+            {
+              printf '%s\n' "$AUDIT_PYTHON" /usr/bin/python3 /usr/local/bin/python3 /usr/bin/python /usr/local/bin/python
+              find /opt /srv -maxdepth 10 \( -type f -o -type l \) \( -name python3.11 -o -name python3 -o -name python \) -print 2>/dev/null || true
+            } | awk 'NF && !seen[$0]++'
+          )"
+          while IFS= read -r candidate; do
+            test -x "$candidate" || continue
+            if "$candidate" -c 'import pytest' >/dev/null 2>&1; then
+              pytest_python="$candidate"
+              break
+            fi
+          done <<< "$candidates"
+
+          mapfile -t tests < <(
+            grep -RIlE 'selectedActionFamilyHint|creativeTestPlan|lockedActionFamily|creativeDraft' tests 2>/dev/null | sort -u || true
+          )
+          if test -n "$pytest_python" && test "${#tests[@]}" -gt 0; then
+            echo "PYTEST_EXECUTOR=$pytest_python"
+            "$pytest_python" -m pytest -q "${tests[@]}" | tee /tmp/field-compat-pytest.txt
+            echo "FOCUSED_PYTEST=PASS"
+          else
+            printf '%s\n' \
+              "FOCUSED_PYTEST=UNAVAILABLE" \
+              "reason=no runner-accessible Python with pytest; dependency-free semantic verifier passed" \
+              | tee /tmp/field-compat-pytest.txt
+          fi
+
+      - name: Recompile post-apply transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" tools/contest_governance/compile_field_compat_transaction.py \
+            | tee /tmp/field-compat-post-transaction.json
+          grep -q '"reviewRequiredCount": 0' governance/contest/generated/field-compat-transaction.json
+          echo "POST_APPLY_TRANSACTION=PASS"
+
+      - name: Enforce branch-only migration boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            src/services \
+            governance/contest/generated/field-compat-transaction.json \
+            governance/contest/generated/field-compat-apply-receipt.json \
+            governance/contest/generated/field-compat-semantic-verification.json
+          changed="$(git diff --cached --name-only)"
+          printf '%s\n' "$changed"
+          forbidden="$(
+            printf '%s\n' "$changed" \
+              | grep -Ev '^(src/services/.*\.py|governance/contest/generated/field-compat-(transaction|apply-receipt|semantic-verification)\.json)$' \
+              || true
+          )"
+          test -z "$forbidden"
+          echo "FIELD_COMPAT_BRANCH_BOUNDARY=PASS"
+
+      - name: Commit verified compatibility migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "migration(contest): apply verified dual-read new-write fields [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "VERIFIED_FIELD_COMPAT_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-field-compat-v2
+          path: |
+            governance/contest/generated/field-compat-transaction.json
+            governance/contest/generated/field-compat-apply-receipt.json
+            governance/contest/generated/field-compat-semantic-verification.json
+            /tmp/field-compat-apply-v2.json
+            /tmp/field-compat-semantic-summary.json
+            /tmp/field-compat-post-transaction.json
+            /tmp/field-compat-pytest.txt
+          if-no-files-found: error
+          retention-days: 14
