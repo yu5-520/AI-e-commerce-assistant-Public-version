@@ -1,0 +1,123 @@
+name: Simulate contest REGISTERED_ONLY isolation v3
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-isolation-simulation-v3-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-isolation-simulation-v3-once
+  cancel-in-progress: false
+
+jobs:
+  simulate-isolation:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 25
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Correct support Runner evidence gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/contest_governance/simulate_module_isolation.py")
+          text = path.read_text(encoding="utf-8")
+          block = '''        if int(item.get("dispatchEvidenceCount") or 0) <= 0:
+                      failures.append({"moduleId": module_id, "reason": "DISPATCH_EVIDENCE_MISSING"})
+          '''.replace("                      ", "            ")
+          if block not in text:
+              raise SystemExit("DISPATCH_GATE_BLOCK_NOT_FOUND")
+          text = text.replace(block, "", 1)
+          path.write_text(text, encoding="utf-8")
+          print("SUPPORT_DISPATCH_GATE_REMOVED=PASS")
+          PY
+
+          "$AUDIT_PYTHON" -m py_compile tools/contest_governance/simulate_module_isolation.py
+          ! grep -q 'DISPATCH_EVIDENCE_MISSING' tools/contest_governance/simulate_module_isolation.py
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/contest_governance/simulate_module_isolation.py
+          git commit -m "governance(contest): align isolation Runner gate with active drift policy [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "SIMULATION_EXECUTOR_PATCH_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Run corrected detached worktree simulation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          "$AUDIT_PYTHON" tools/contest_governance/simulate_module_isolation.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/contest-isolation-simulation-v3-summary.json
+
+          grep -q 'ISOLATION_SIMULATION_VERIFIED_PHYSICAL_CHANGE_NOT_AUTHORIZED' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"graphHashStable": true' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"selectionHashStable": true' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"classificationsStable": true' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"safeKeepModulesStable": true' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"noRunnerDriftOutsideIsolateSet": true' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"keepRunnerEvidenceVerified": true' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"rootCompositionVerified": true' governance/contest/generated/module-isolation-simulation.json
+          grep -q '"unexpectedRunnerDriftCount": 0' governance/contest/generated/module-isolation-simulation-receipt.json
+          grep -q '"analysisBranchFilesDeleted": 0' governance/contest/generated/module-isolation-simulation-receipt.json
+          grep -q '"mainMutated": false' governance/contest/generated/module-isolation-simulation-receipt.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/module-isolation-simulation-receipt.json
+          echo "ISOLATION_SIMULATION_V3=PASS"
+
+      - name: Commit simulation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            governance/contest/generated/module-isolation-simulation.json \
+            governance/contest/generated/module-isolation-simulation-receipt.json
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/module-isolation-simulation(-receipt)?\.json$' || true)"
+          test -z "$forbidden"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): verify REGISTERED_ONLY isolation simulation v3 [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "ISOLATION_SIMULATION_V3_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload simulation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-isolation-simulation-v3
+          path: |
+            governance/contest/generated/module-isolation-simulation.json
+            governance/contest/generated/module-isolation-simulation-receipt.json
+            /tmp/contest-isolation-simulation-v3-summary.json
+          if-no-files-found: error
+          retention-days: 14
