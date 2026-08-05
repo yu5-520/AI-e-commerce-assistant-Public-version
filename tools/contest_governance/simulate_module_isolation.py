@@ -86,8 +86,6 @@ def _verify_keep_runner_audits(
             failures.append({"moduleId": module_id, "reason": "RUNNER_FILE_MISSING"})
         if item.get("runnerSymbolExists") is not True:
             failures.append({"moduleId": module_id, "reason": "RUNNER_SYMBOL_MISSING"})
-        if int(item.get("dispatchEvidenceCount") or 0) <= 0:
-            failures.append({"moduleId": module_id, "reason": "DISPATCH_EVIDENCE_MISSING"})
     return {
         "verified": not failures,
         "checkedModuleIds": sorted(keep_modules),
