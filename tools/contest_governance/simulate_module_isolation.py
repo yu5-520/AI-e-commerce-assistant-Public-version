@@ -55,6 +55,25 @@ def _git(root: Path, *args: str) -> str:
     return completed.stdout.strip()
 
 
+_SIMULATION_OUTPUT_PATHS = {
+    "governance/contest/generated/module-isolation-simulation.json",
+    "governance/contest/generated/module-isolation-simulation-receipt.json",
+}
+
+
+def _status_without_declared_outputs(root: Path) -> str:
+    status = _git(root, "status", "--porcelain=v1", "--untracked-files=no")
+    retained: List[str] = []
+    for line in status.splitlines():
+        path_text = line[3:] if len(line) >= 4 else ""
+        if " -> " in path_text:
+            path_text = path_text.split(" -> ", 1)[1]
+        if path_text in _SIMULATION_OUTPUT_PATHS:
+            continue
+        retained.append(line)
+    return "\n".join(retained)
+
+
 def _module_ids(selection: Mapping[str, Any], classification: str) -> Set[str]:
     return {
         str(value)
@@ -131,7 +150,7 @@ def run(root: Path, generated_dir: Path) -> Dict[str, Any]:
         path: _git(root, "rev-parse", f"HEAD:{path}") for path in excluded_paths
     }
     source_commit = _git(root, "rev-parse", "HEAD")
-    original_status = _git(root, "status", "--porcelain", "--untracked-files=no")
+    original_status = _status_without_declared_outputs(root)
 
     temporary_parent = Path(tempfile.mkdtemp(prefix="contest-isolation-"))
     simulation_root = temporary_parent / "worktree"
@@ -289,7 +308,7 @@ def run(root: Path, generated_dir: Path) -> Dict[str, Any]:
             text=True,
         )
         shutil.rmtree(temporary_parent, ignore_errors=True)
-        final_status = _git(root, "status", "--porcelain", "--untracked-files=no")
+        final_status = _status_without_declared_outputs(root)
         if final_status != original_status:
             raise RuntimeError(
                 f"SOURCE_WORKTREE_STATUS_CHANGED:{original_status!r}:{final_status!r}"

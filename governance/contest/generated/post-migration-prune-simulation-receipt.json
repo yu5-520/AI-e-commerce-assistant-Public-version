@@ -1,0 +1,25 @@
+{
+  "businessRuntimeMutated": false,
+  "databaseMutated": false,
+  "deploymentExecuted": false,
+  "isolationSimulationHash": "sha256:ae48c705e949976eb3d289349a998440f4e11f91f5089152f5cbda225e996a05",
+  "isolationTransactionHash": "sha256:24048d63aa7726304285343f5e090c7d302c988fecaa9ae527dc213d9b685bcc",
+  "mainMutated": false,
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "pruneSimulationReviewHash": "sha256:5816f1c2f6c7ae7e1a65886f7553aefa498134c19fd2ebed9e54bd70ddcb640c",
+  "publicReleaseExecuted": false,
+  "receiptHash": "sha256:78b86f0005d14efddb0deed556843a9487addea0cd62f77cf67cb7c707f37881",
+  "schema": "contest.post_migration_prune_simulation_receipt.v1",
+  "state": "PRUNE_SIMULATION_VERIFIED_PHYSICAL_PRUNE_AWAITS_APPROVAL",
+  "states": [
+    "SIMULATION_STATUS_GATE_FIXED",
+    "POST_MIGRATION_SELECTION_LOCKED",
+    "ISOLATE_MODULE_SET_RESEALED",
+    "DETACHED_WORKTREE_PRUNE_SIMULATED",
+    "CORE_SUPPORT_RUNNER_GATES_VERIFIED",
+    "LAYERED_ROOT_COMPOSITION_VERIFIED",
+    "SOURCE_BRANCH_UNCHANGED",
+    "PHYSICAL_PRUNE_AWAITS_APPROVAL"
+  ]
+}

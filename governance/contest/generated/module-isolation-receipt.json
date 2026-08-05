@@ -1,16 +1,16 @@
 {
   "businessRuntimeMutated": false,
   "databaseMutated": false,
-  "fieldScopeHash": "sha256:c2b581e523ec730a454903f0f3b155ad5fc0845f3f9a1b919e37ab5f4c675d84",
+  "fieldScopeHash": "sha256:b7248fa7bc0190e60aa0a78b7add28d5d41e026b03b1ac7f20e7a034d8bd9162",
   "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
   "mainMutated": false,
   "physicalDeletionExecuted": false,
   "physicalFilesMoved": 0,
   "preserveSharedPaths": [],
   "providerCallsExecuted": 0,
-  "receiptHash": "sha256:b01d97067a1702815580d5e8dee88583394cd539fcf4d71d9a5268205e3c3dd0",
+  "receiptHash": "sha256:8cb59e915e09567a0d13343ce13d380ad5a979dec6375c313e79f096ce54574b",
   "schema": "contest.module_isolation_receipt.v1",
-  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
+  "selectionHash": "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb",
   "simulationExcludePaths": [
     "tools/registry_compiler/v24_identity_catalog.py",
     "tools/registry_compiler/v24_task_blueprint_compiler.py"
@@ -24,5 +24,5 @@
     "PHYSICAL_PATH_POLICY_COMPILED",
     "SIMULATION_READY"
   ],
-  "transactionHash": "sha256:dacdb65cf2604a3adeef743dadf6db2c142319a72bc104cb848df55d85a5ef50"
+  "transactionHash": "sha256:24048d63aa7726304285343f5e090c7d302c988fecaa9ae527dc213d9b685bcc"
 }

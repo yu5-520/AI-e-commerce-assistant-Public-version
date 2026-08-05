@@ -1,0 +1,76 @@
+{
+  "assertions": {
+    "classificationsStable": true,
+    "excludePathSetExact": true,
+    "excludedPathsOutsideKeepClosure": true,
+    "expectedIsolateDriftExact": true,
+    "graphHashCurrent": true,
+    "graphStableUnderExclusion": true,
+    "isolateModuleSetExact": true,
+    "keepRunnerEvidenceVerified": true,
+    "migrationAuthorityLocked": true,
+    "noSharedPaths": true,
+    "noUnexpectedRunnerDrift": true,
+    "physicalDeletionNotExecuted": true,
+    "rootCompositionVerified": true,
+    "safeKeepModulesStable": true,
+    "selectionHashCurrent": true,
+    "selectionStableUnderExclusion": true,
+    "simulationReceiptNoDeletion": true,
+    "simulationVerified": true,
+    "sourceBranchFilesDeletedZero": true,
+    "transactionReady": true,
+    "transactionReceiptNoDeletion": true
+  },
+  "businessRuntimeMutated": false,
+  "databaseMutated": false,
+  "deploymentExecuted": false,
+  "governanceToolFix": {
+    "businessRuntimeAffected": false,
+    "path": "tools/contest_governance/simulate_module_isolation.py",
+    "scope": "ignore_only_declared_simulation_output_files_in_status_integrity_check"
+  },
+  "graphHash": "sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00",
+  "isolateModuleIds": [
+    "action_node_transport",
+    "execution_resource_orchestrator",
+    "node_authorization",
+    "operating_plan_compiler",
+    "stage_frontend_projection",
+    "stage_lifecycle",
+    "task_blueprint_compiler"
+  ],
+  "isolationSimulationHash": "sha256:ae48c705e949976eb3d289349a998440f4e11f91f5089152f5cbda225e996a05",
+  "isolationTransactionHash": "sha256:24048d63aa7726304285343f5e090c7d302c988fecaa9ae527dc213d9b685bcc",
+  "mainMutated": false,
+  "migrationReviewHash": "sha256:bf240a47717b4ca39a8946b6ba74a9bd4d7eae9596561a45d68168bd55c659bb",
+  "nextTransaction": {
+    "authorized": false,
+    "candidateModuleIds": [
+      "action_node_transport",
+      "execution_resource_orchestrator",
+      "node_authorization",
+      "operating_plan_compiler",
+      "stage_frontend_projection",
+      "stage_lifecycle",
+      "task_blueprint_compiler"
+    ],
+    "candidatePaths": [
+      "tools/registry_compiler/v24_identity_catalog.py",
+      "tools/registry_compiler/v24_task_blueprint_compiler.py"
+    ],
+    "type": "PHYSICAL_PRUNE_APPROVAL_REQUIRED"
+  },
+  "physicalDeletionExecuted": false,
+  "providerCallsExecuted": 0,
+  "pruneSimulationReviewHash": "sha256:5816f1c2f6c7ae7e1a65886f7553aefa498134c19fd2ebed9e54bd70ddcb640c",
+  "publicReleaseExecuted": false,
+  "schema": "contest.post_migration_prune_simulation_review.v1",
+  "selectionHash": "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb",
+  "simulationExcludePaths": [
+    "tools/registry_compiler/v24_identity_catalog.py",
+    "tools/registry_compiler/v24_task_blueprint_compiler.py"
+  ],
+  "sourceCommit": "435d213441c683147aeeacff432e10a179760a77",
+  "state": "PRUNE_SIMULATION_VERIFIED_PHYSICAL_PRUNE_AWAITS_APPROVAL"
+}

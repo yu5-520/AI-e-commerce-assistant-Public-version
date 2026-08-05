@@ -6,10 +6,10 @@
   "mainMutated": false,
   "physicalDeletionExecuted": false,
   "providerCallsExecuted": 0,
-  "receiptHash": "sha256:4f2eec325300cca2c049d9571c55a13f2324727af9caa46be4bf30c0b6b700f0",
+  "receiptHash": "sha256:6e0712065c2a5308b4097f0b594c9c96dc2874c3c9fc650056583ca0ac49cdc7",
   "schema": "contest.module_isolation_simulation_receipt.v2",
-  "selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e",
-  "simulationHash": "sha256:aa744a2227dc5dcb5bff7b01626add8561ff839f575f3cca1b4a563255db3656",
+  "selectionHash": "sha256:c24f7797a66849f61226fd0debf7d24e1b4295df28004a6f705ec338dbab8beb",
+  "simulationHash": "sha256:ae48c705e949976eb3d289349a998440f4e11f91f5089152f5cbda225e996a05",
   "states": [
     "DETACHED_WORKTREE_CREATED",
     "ISOLATE_PATHS_EXCLUDED",
@@ -19,6 +19,6 @@
     "LAYERED_ROOT_COMPOSITION_VERIFIED",
     "SIMULATION_VERIFIED"
   ],
-  "transactionHash": "sha256:dacdb65cf2604a3adeef743dadf6db2c142319a72bc104cb848df55d85a5ef50",
+  "transactionHash": "sha256:24048d63aa7726304285343f5e090c7d302c988fecaa9ae527dc213d9b685bcc",
   "unexpectedRunnerDriftCount": 0
 }
