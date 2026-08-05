@@ -1,11 +1,13 @@
 {
-  "automaticApplyAuthorized": false,
+  "automaticApplyAuthorized": true,
   "classificationCounts": {
     "KEY_MEMBERSHIP_OR_COMPARE": 2,
+    "KEY_NAME_MAPPING_VALUE": 1,
+    "LEGACY_KEY_CLEANUP_POP": 3,
     "READ_GET": 19,
-    "REVIEW_REQUIRED": 4,
     "WRITE_DICT_LITERAL": 4
   },
+  "cleanupPolicy": "LEGACY_POP_RETAINED_DURING_COMPATIBILITY_WINDOW",
   "corePathCount": 14,
   "mainMutationAuthorized": false,
   "mappings": {
@@ -25,7 +27,7 @@
   "occurrences": [
     {
       "column": 13,
-      "kind": "REVIEW_REQUIRED",
+      "kind": "LEGACY_KEY_CLEANUP_POP",
       "legacyKey": "selectedActionFamilyHint",
       "legacyPath": "payload.selectedActionFamilyHint",
       "line": 400,
@@ -69,7 +71,7 @@
     },
     {
       "column": 24,
-      "kind": "REVIEW_REQUIRED",
+      "kind": "KEY_NAME_MAPPING_VALUE",
       "legacyKey": "creativeTestPlan",
       "legacyPath": "payload.creativeTestPlan",
       "line": 61,
@@ -146,7 +148,7 @@
     },
     {
       "column": 16,
-      "kind": "REVIEW_REQUIRED",
+      "kind": "LEGACY_KEY_CLEANUP_POP",
       "legacyKey": "selectedActionFamilyHint",
       "legacyPath": "payload.selectedActionFamilyHint",
       "line": 270,
@@ -256,7 +258,7 @@
     },
     {
       "column": 13,
-      "kind": "REVIEW_REQUIRED",
+      "kind": "LEGACY_KEY_CLEANUP_POP",
       "legacyKey": "selectedActionFamilyHint",
       "legacyPath": "payload.selectedActionFamilyHint",
       "line": 144,
@@ -345,8 +347,9 @@
   ],
   "physicalDeletionAuthorized": false,
   "readPolicy": "NEW_KEY_THEN_LEGACY_KEY",
-  "schema": "contest.field_compat_transaction.v1",
+  "reviewRequiredCount": 0,
+  "schema": "contest.field_compat_transaction.v2",
   "sourceReviewHash": "sha256:8c41c9805544cf12deb05ab1205ec06143d4c409ee2a0582f83a02fccbe58f16",
-  "transactionHash": "sha256:b625d6fa2356f9c0021dc9a092c2f3eb6f1e40133070e226e82a4a0f703f95d7",
+  "transactionHash": "sha256:7dc724cf2f4e8b38c4aa988427b0c5766cd18395b1d66f38981728e709d79f78",
   "writePolicy": "NEW_KEY_ONLY"
 }
