@@ -1,0 +1,101 @@
+name: Correct and reseal contest lineage review
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-lineage-review-correct.yml
+
+permissions:
+  contents: write
+
+jobs:
+  correct-and-reseal:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 15
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      EXPECTED_Z_COMPILER_BLOB: 7a9546b02fd598548891fd080c98a6553695b796
+      Z_INTERFACE_ROOT: governance/contest/z-interface/Z1.0.5
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Correct protocol finding label
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="tools/contest_governance/run_selection.py"
+          grep -q 'Z_INTERFACE_PRODUCT_TOMBSTONE_PROTOCOL_REVIEW_REQUIRED' "$file"
+          sed -i \
+            's/Z_INTERFACE_PRODUCT_TOMBSTONE_PROTOCOL_REVIEW_REQUIRED/Z_INTERFACE_PRODUCT_REGISTRY_PROTOCOL_REVIEW_REQUIRED/g' \
+            "$file"
+          grep -q 'Z_INTERFACE_PRODUCT_REGISTRY_PROTOCOL_REVIEW_REQUIRED' "$file"
+
+          git add "$file"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): correct Z protocol review finding [skip ci]"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          echo "PROTOCOL_FINDING_CORRECTED=PASS"
+
+      - name: Reverify execution identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$AUDIT_PYTHON"
+          test "$($AUDIT_PYTHON --version 2>&1)" = "Python 3.11.9"
+          interface="$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT/tools/registry_compiler/compile_registry.py"
+          test "$(git hash-object "$interface")" = "$EXPECTED_Z_COMPILER_BLOB"
+          test -d .z
+          test -d tools/z_adapter
+          echo "RESEAL_IDENTITIES=PASS"
+
+      - name: Regenerate complete review evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          rm -rf governance/contest/generated
+
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/generated \
+            --z-source "$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT" \
+            | tee /tmp/contest-lineage-resealed-summary.json
+
+          grep -q 'Z_INTERFACE_PRODUCT_REGISTRY_PROTOCOL_REVIEW_REQUIRED' governance/contest/generated/contest-chain-review.json
+          ! grep -q 'Z_INTERFACE_PRODUCT_TOMBSTONE_PROTOCOL_REVIEW_REQUIRED' governance/contest/generated/contest-chain-review.json
+          grep -q '"reviewState": "REVIEW_PENDING"' governance/contest/generated/contest-chain-review.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/execution-receipt.json
+          echo "REVIEW_EVIDENCE_REGENERATED=PASS"
+
+      - name: Commit resealed review
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add governance/contest/generated
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/' || true)"
+          test -z "$forbidden"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): reseal lineage review evidence [skip ci]"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          echo "RESEALED_REVIEW_COMMITTED=PASS"
+
+      - name: Upload resealed review
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-registry-lineage-review-resealed
+          path: |
+            governance/contest/generated
+            /tmp/contest-lineage-resealed-summary.json
+          if-no-files-found: error
+          retention-days: 14
