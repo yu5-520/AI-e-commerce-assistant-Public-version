@@ -1,0 +1,129 @@
+name: Scope unregistered fields to contest closure once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-field-scope-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-field-scope-once
+  cancel-in-progress: false
+
+jobs:
+  scope-fields:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      EXPECTED_GRAPH_HASH: sha256:95cc643fcf7b468bf86e1dbbfd65fe29fc40392849aa2b752a07413226902d00
+      EXPECTED_SELECTION_HASH: sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Verify sealed lineage evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" -m py_compile tools/contest_governance/scope_unregistered_fields.py
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/repository-audit.json
+          grep -q '"rootEquivalent": true' governance/contest/generated/registry-snapshot.json
+          grep -q "\"graphHash\": \"$EXPECTED_GRAPH_HASH\"" governance/contest/generated/contest-chain-review.json
+          grep -q "\"selectionHash\": \"$EXPECTED_SELECTION_HASH\"" governance/contest/generated/contest-chain-review.json
+          echo "SEALED_LINEAGE_EVIDENCE=PASS"
+
+      - name: Build registry-seeded import closure and field partition
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" tools/contest_governance/scope_unregistered_fields.py \
+            --root "$GITHUB_WORKSPACE" \
+            --generated governance/contest/generated \
+            | tee /tmp/contest-field-scope-summary.json
+
+          test -f governance/contest/generated/unregistered-field-scope-review.json
+          test -f governance/contest/generated/unregistered-field-scope-review.md
+          test -f governance/contest/generated/field-scope-receipt.json
+
+          grep -q '"sourceCandidateCount": 500' governance/contest/generated/unregistered-field-scope-review.json
+          grep -q '"partitionCandidateCount": 500' governance/contest/generated/unregistered-field-scope-review.json
+          grep -q '"selectionHash": "sha256:d6d19db916506c22542bbf68e01871330eae0efd110d9abd9a9d05d82e071c7e"' governance/contest/generated/unregistered-field-scope-review.json
+          grep -q '"businessRuntimeMutated": false' governance/contest/generated/field-scope-receipt.json
+          grep -q '"databaseMutated": false' governance/contest/generated/field-scope-receipt.json
+          grep -q '"providerCallsExecuted": 0' governance/contest/generated/field-scope-receipt.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/field-scope-receipt.json
+          echo "FIELD_SCOPE_PARTITION=PASS"
+
+      - name: Print decision summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/contest-field-scope-decision.json
+          import json
+          from pathlib import Path
+
+          review = json.loads(
+              Path("governance/contest/generated/unregistered-field-scope-review.json")
+              .read_text(encoding="utf-8")
+          )
+          result = {
+              "schema": "contest.field_scope_decision_summary.v1",
+              "scopeHash": review.get("scopeHash"),
+              "summary": review.get("summary"),
+              "reviewPathCounts": [
+                  item
+                  for item in review.get("pathCounts") or []
+                  if item.get("classification")
+                  in {"CORE_REVIEW", "SUPPORT_REVIEW", "ISOLATE_DEFER"}
+              ],
+              "businessRuntimeMutated": False,
+              "physicalDeletionExecuted": False,
+          }
+          print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+      - name: Commit scoped field evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            governance/contest/generated/unregistered-field-scope-review.json \
+            governance/contest/generated/unregistered-field-scope-review.md \
+            governance/contest/generated/field-scope-receipt.json
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/' || true)"
+          test -z "$forbidden"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): scope unregistered fields to selected closure [skip ci]"
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "FIELD_SCOPE_EVIDENCE_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload scoped field evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-field-scope-evidence
+          path: |
+            governance/contest/generated/unregistered-field-scope-review.json
+            governance/contest/generated/unregistered-field-scope-review.md
+            governance/contest/generated/field-scope-receipt.json
+            /tmp/contest-field-scope-summary.json
+            /tmp/contest-field-scope-decision.json
+          if-no-files-found: error
+          retention-days: 14
