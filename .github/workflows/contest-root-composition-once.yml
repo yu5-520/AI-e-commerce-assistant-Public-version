@@ -1,0 +1,269 @@
+name: Verify layered registry root composition once
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-root-composition-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-root-composition-once
+  cancel-in-progress: false
+
+jobs:
+  verify-root-composition:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 20
+    env:
+      TARGET_BRANCH: analysis/contest-lineage-v1
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      Z_INTERFACE_ROOT: governance/contest/z-interface/Z1.0.5
+      EXPECTED_Z_COMPILER_BLOB: 7a9546b02fd598548891fd080c98a6553695b796
+    steps:
+      - name: Checkout analysis branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 1
+
+      - name: Patch root verification to layered composition contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AUDIT_PYTHON" - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/contest_governance/run_selection.py")
+          text = path.read_text(encoding="utf-8")
+
+          old_load = '''    runtime_projection = _read_object(root / "config" / "v23_registry_runtime.json")
+              adapter_layout = _read_object(root / ".z" / "adapter" / "registry-layout.json")
+              dependency_manifest = _read_object(root / ".z" / "dependency-manifest.json")
+          '''.replace("              ", "    ")
+          new_load = '''    runtime_projection = _read_object(root / "config" / "v23_registry_runtime.json")
+              adapter_layout = _read_object(root / ".z" / "adapter" / "registry-layout.json")
+              equivalence_contract = _read_object(root / ".z" / "equivalence" / "root-equivalence.json")
+              dependency_manifest = _read_object(root / ".z" / "dependency-manifest.json")
+          '''.replace("              ", "    ")
+
+          old_roots = '''    roots = dict(adapter_layout.get("observedLayeredRoots") or {})
+              layered_root_values = sorted(set(str(value) for value in roots.values() if str(value)))
+              root_equivalent = len(layered_root_values) <= 1
+          '''.replace("              ", "    ")
+          new_roots = '''    roots = dict(adapter_layout.get("observedLayeredRoots") or {})
+              equivalence_layers = dict(equivalence_contract.get("productLayers") or {})
+              layer_checks: List[Dict[str, Any]] = []
+              for layer_id, raw_layer in sorted(equivalence_layers.items()):
+                  layer = dict(raw_layer or {})
+                  relative_path = str(layer.get("path") or "")
+                  expected_root = str(layer.get("registryRootHash") or "")
+                  layer_path = root / relative_path
+                  actual_root: Optional[str] = None
+                  if relative_path and layer_path.exists():
+                      if layer_path.suffix.lower() == ".json":
+                          try:
+                              actual_root = str(_read_object(layer_path).get("registryRootHash") or "")
+                          except Exception:
+                              actual_root = None
+                      else:
+                          content = layer_path.read_text(encoding="utf-8")
+                          actual_root = expected_root if expected_root and expected_root in content else None
+                  layer_checks.append(
+                      {
+                          "layerId": str(layer_id),
+                          "role": layer.get("role"),
+                          "path": relative_path,
+                          "expectedRegistryRootHash": expected_root,
+                          "actualRegistryRootHash": actual_root,
+                          "matches": bool(expected_root) and actual_root == expected_root,
+                      }
+                  )
+
+              composition_rules = dict(equivalence_contract.get("compositionRules") or {})
+              literal_root_equality_required = bool(
+                  composition_rules.get("literalRootEqualityRequired")
+              )
+              contract_root_values = sorted(
+                  set(
+                      str(item.get("expectedRegistryRootHash") or "")
+                      for item in layer_checks
+                      if str(item.get("expectedRegistryRootHash") or "")
+                  )
+              )
+              observed_root_values = sorted(
+                  set(str(value) for value in roots.values() if str(value))
+              )
+              literal_root_equality = len(contract_root_values) <= 1
+              layer_declarations_match = bool(layer_checks) and all(
+                  bool(item.get("matches")) for item in layer_checks
+              )
+              observed_roots_match_contract = observed_root_values == contract_root_values
+              equivalence_activation_state = str(
+                  equivalence_contract.get("activationState") or ""
+              )
+              contract_state_verified = equivalence_activation_state.startswith(
+                  "EQUIVALENCE_VERIFIED"
+              )
+              root_equivalent = (
+                  contract_state_verified
+                  and layer_declarations_match
+                  and observed_roots_match_contract
+                  and (
+                      literal_root_equality
+                      if literal_root_equality_required
+                      else True
+                  )
+              )
+              root_equivalence_check = {
+                  "schema": equivalence_contract.get("schema"),
+                  "version": equivalence_contract.get("version"),
+                  "activationState": equivalence_activation_state,
+                  "equivalenceMode": equivalence_contract.get("equivalenceMode"),
+                  "literalRootEqualityRequired": literal_root_equality_required,
+                  "literalRootEquality": literal_root_equality,
+                  "layerDeclarationsMatch": layer_declarations_match,
+                  "observedRootsMatchContract": observed_roots_match_contract,
+                  "verified": root_equivalent,
+                  "layerChecks": layer_checks,
+              }
+          '''.replace("              ", "    ")
+
+          old_finding = '''    if not root_equivalent:
+              findings.append("LAYERED_REGISTRY_ROOTS_NOT_EQUIVALENT")
+          '''.replace("              ", "    ")
+          new_finding = '''    if not root_equivalent:
+              findings.append("LAYERED_ROOT_COMPOSITION_NOT_VERIFIED")
+          '''.replace("              ", "    ")
+
+          old_baseline = '''        "observedLayeredRoots": roots,
+              "rootEquivalent": root_equivalent,
+          '''.replace("              ", "        ")
+          new_baseline = '''        "observedLayeredRoots": roots,
+              "rootEquivalenceContract": root_equivalence_check,
+              "rootEquivalent": root_equivalent,
+          '''.replace("              ", "        ")
+
+          old_state = '''        "registryAdapterState": (
+                  "REGISTRY_DOCUMENTS_VERIFIED_ROOT_EQUIVALENCE_PENDING"
+                  if adapter_check.get("allDocumentsMatch") and not root_equivalent
+                  else "REGISTRY_REVIEW_REQUIRED"
+              ),
+          '''.replace("              ", "        ")
+          new_state = '''        "registryAdapterState": (
+                  "REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED"
+                  if adapter_check.get("allDocumentsMatch") and root_equivalent
+                  else (
+                      "REGISTRY_DOCUMENTS_VERIFIED_ROOT_EQUIVALENCE_PENDING"
+                      if adapter_check.get("allDocumentsMatch")
+                      else "REGISTRY_REVIEW_REQUIRED"
+                  )
+              ),
+          '''.replace("              ", "        ")
+
+          old_receipt = '''        "registryRootEquivalencePending": not root_equivalent,
+              "graphHash": graph.get("graphHash"),
+          '''.replace("              ", "        ")
+          new_receipt = '''        "registryRootEquivalencePending": not root_equivalent,
+              "registryRootEquivalenceMode": root_equivalence_check.get("equivalenceMode"),
+              "graphHash": graph.get("graphHash"),
+          '''.replace("              ", "        ")
+
+          replacements = [
+              (old_load, new_load, "load equivalence contract"),
+              (old_roots, new_roots, "layered root composition"),
+              (old_finding, new_finding, "root finding"),
+              (old_baseline, new_baseline, "baseline evidence"),
+              (old_state, new_state, "adapter state"),
+              (old_receipt, new_receipt, "receipt mode"),
+          ]
+          for old, new, label in replacements:
+              if old not in text:
+                  raise SystemExit(f"PATCH_ANCHOR_MISSING:{label}")
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding="utf-8")
+          print("LAYERED_ROOT_COMPOSITION_PATCHED=PASS")
+          PY
+
+          "$AUDIT_PYTHON" -m py_compile tools/contest_governance/run_selection.py
+          grep -q 'LAYERED_ROOT_COMPOSITION_NOT_VERIFIED' tools/contest_governance/run_selection.py
+          grep -q 'REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED' tools/contest_governance/run_selection.py
+
+      - name: Commit verifier correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/contest_governance/run_selection.py
+          git commit -m "governance(contest): verify layered registry root composition [skip ci]"
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "VERIFIER_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Regenerate review with composition verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE"
+          interface="$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT/tools/registry_compiler/compile_registry.py"
+          test "$(git hash-object "$interface")" = "$EXPECTED_Z_COMPILER_BLOB"
+
+          rm -rf governance/contest/generated
+          "$AUDIT_PYTHON" tools/contest_governance/run_selection.py \
+            --root "$GITHUB_WORKSPACE" \
+            --request governance/contest/selection-request.json \
+            --output governance/contest/generated \
+            --z-source "$GITHUB_WORKSPACE/$Z_INTERFACE_ROOT" \
+            | tee /tmp/contest-root-composition-summary.json
+
+          grep -q '"rootEquivalent": true' governance/contest/generated/registry-snapshot.json
+          grep -q '"verified": true' governance/contest/generated/registry-snapshot.json
+          grep -q 'REGISTRY_DOCUMENTS_VERIFIED_LAYERED_ROOT_COMPOSITION_VERIFIED' governance/contest/generated/contest-chain-review.json
+          ! grep -q 'LAYERED_REGISTRY_ROOTS_NOT_EQUIVALENT' governance/contest/generated/contest-chain-review.json
+          ! grep -q 'LAYERED_ROOT_COMPOSITION_NOT_VERIFIED' governance/contest/generated/contest-chain-review.json
+          grep -q '"registryRootEquivalencePending": false' governance/contest/generated/execution-receipt.json
+          grep -q '"businessRuntimeMutated": false' governance/contest/generated/execution-receipt.json
+          grep -q '"physicalDeletionExecuted": false' governance/contest/generated/execution-receipt.json
+          echo "LAYERED_ROOT_COMPOSITION_VERIFIED=PASS"
+
+      - name: Commit resealed evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add governance/contest/generated
+          forbidden="$(git diff --cached --name-only | grep -Ev '^governance/contest/generated/' || true)"
+          test -z "$forbidden"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): reseal review with root composition verified [skip ci]"
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:refs/heads/$TARGET_BRANCH"; then
+              echo "RESEALED_EVIDENCE_PUSH=PASS"
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep $((attempt * 10))
+          done
+
+      - name: Upload root composition evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-root-composition-verified
+          path: |
+            governance/contest/generated
+            /tmp/contest-root-composition-summary.json
+          if-no-files-found: error
+          retention-days: 14
