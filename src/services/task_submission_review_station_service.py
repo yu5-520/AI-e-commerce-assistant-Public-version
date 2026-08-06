@@ -23,7 +23,7 @@ def submit_task(task_id: str, body: Dict[str, Any] | None = None, *, submitter_i
     transition = transition_lifecycle_task(
         task_id,
         "submit",
-        actor_user_id=submitter_id or body.get("submitterId") or evidence_task.get("assigneeId") or "U003",
+        actor_user_id="competition_operator",
         payload={"note": body.get("summary") or body.get("note") or "运营提交执行材料。", "stationId": "task_submission_station"},
     )
     return {
@@ -47,7 +47,7 @@ def review_task(task_id: str, body: Dict[str, Any] | None = None, *, reviewer_id
     transition = transition_lifecycle_task(
         task_id,
         action,
-        actor_user_id=reviewer_id or body.get("reviewerId") or reviewed.get("reviewerId") or "U002",
+        actor_user_id="competition_operator",
         payload={"note": body.get("note") or body.get("comment") or ("复核退回。" if action == "review_return" else "复核通过。"), "stationId": "task_review_station"},
     )
     return {
@@ -58,7 +58,7 @@ def review_task(task_id: str, body: Dict[str, Any] | None = None, *, reviewer_id
         "decision": decision,
         "reviewedTask": reviewed,
         "transition": transition,
-        "rule": "复核站记录复核证据，再通过统一生命周期状态机推进到退回或自动复盘周期。",
+        "rule": "比赛版只记录运营复核结果；企业部门审批与复核账号暂未开放。", "enterpriseDepartmentReview": "not_enabled_in_competition",
     }
 
 
