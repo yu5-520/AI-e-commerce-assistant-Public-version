@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any, Dict, Iterable, List
 
-from src.services.account_service import current_user
+from src.services.competition_operator_context_service import current_user
 
 OPERATOR_GROWTH_PROJECTION_VERSION = "21.8.0"
 
