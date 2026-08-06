@@ -1,0 +1,103 @@
+{
+  "schema": "competition.runtime_scope.v1",
+  "version": "2026.08.06.1",
+  "description": "比赛公开版唯一稳定运行链路。运行文件由统一注册表、生产入口实际导入闭包和前端引用闭包共同确定。",
+  "registryProjectionPath": "config/v23_registry_runtime.json",
+  "productionEntrypoints": [
+    "src.api.main:app"
+  ],
+  "requiredRegistryModules": [
+    "release_governance",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "task_mapping",
+    "task_pool",
+    "frontend_view"
+  ],
+  "businessStageOrder": [
+    "release_governance",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "task_mapping",
+    "task_pool",
+    "frontend_view"
+  ],
+  "seedFiles": [
+    "src/api/main.py",
+    "src/runtime_version.py",
+    "requirements.lock",
+    "VERSION.md",
+    "config/v23_registry_runtime.json",
+    "release/release-policy.json",
+    "release/release-manifest.schema.json",
+    "release/release-manifest.json",
+    "scripts/start_server.sh",
+    "scripts/deploy_release.sh",
+    "scripts/deploy_github_artifact.sh",
+    "scripts/runtime_service_resolver.sh",
+    "scripts/runtime_exclusivity_guard.sh",
+    "scripts/release_verifier.py",
+    "scripts/install_release_verifier.sh",
+    "scripts/generate_release_manifest.py",
+    "scripts/check_dependency_lock.py",
+    "scripts/check_release_contract.py",
+    "scripts/sqlite_backup_rotate.py"
+  ],
+  "seedGlobs": [
+    "config/*.json",
+    "contracts/**/*.json",
+    "release/attestation/*.json",
+    "web_demo/**/*"
+  ],
+  "staticRoots": [
+    "web_demo/index.html",
+    "web_demo/bootstrap.js"
+  ],
+  "allowedPrefixes": [
+    "src/",
+    "config/",
+    "contracts/",
+    "web_demo/",
+    "scripts/",
+    "release/",
+    "requirements.lock",
+    "VERSION.md"
+  ],
+  "forbiddenPrefixes": [
+    ".z/",
+    ".github/",
+    "tools/",
+    "migration/",
+    "contest/",
+    "governance/",
+    "receipts/",
+    "history/",
+    "tests/"
+  ],
+  "forbiddenFileNames": [
+    ".env",
+    ".env.production",
+    ".env.local"
+  ],
+  "entrypointSearchPrefixes": [
+    "src/"
+  ],
+  "failOnShadowEntrypoints": true,
+  "selectionRules": {
+    "filenameSimilarityMaySelectRuntime": false,
+    "registryImplementationPathsAreRequired": true,
+    "runnerModuleAndSymbolMustExist": true,
+    "pythonImportClosureIsRequired": true,
+    "frontendReferenceClosureIsRequired": true,
+    "privateBoundaryCrossingFails": true,
+    "shadowFastApiEntrypointFails": true,
+    "sameInputMustResolveByExecutionHash": true,
+    "mappingLlmAllowed": false
+  }
+}
