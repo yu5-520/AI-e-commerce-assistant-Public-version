@@ -11,7 +11,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Query, Request
 
-from src.services.account_service import current_user, user_id_from_headers
+from src.services.competition_operator_context_service import current_user, user_id_from_headers
 from src.services.operating_unit_snapshot_service import OPERATING_UNIT_SNAPSHOT_VERSION, get_operating_unit_snapshot, materialize_operating_unit_snapshot
 from src.services.pipeline_gate_service import PIPELINE_GATE_VERSION, stage_summary
 
