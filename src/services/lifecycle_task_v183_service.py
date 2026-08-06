@@ -14,12 +14,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 from uuid import uuid4
 
-from src.services.account_service import (
-    assignment_for_store,
-    default_operator,
-    default_reviewer,
-    store_raw,
-    user_display,
+from src.services.competition_operator_context_service import (
+    COMPETITION_OPERATOR_ID,
+    COMPETITION_OPERATOR_ROLE,
+    competition_store,
+    operator_display,
 )
 
 LIFECYCLE_TASK_VERSION = "20.28"
@@ -182,41 +181,33 @@ def _first_store_id(snapshot: Dict[str, Any], plan: Dict[str, Any]) -> str | Non
 
 
 def _ownership_for_snapshot(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    """Bind every public task to the server-owned competition operator.
+
+    Approval and department-role expansion remain enterprise-only capabilities.
+    The competition runtime records that boundary but never fabricates owner,
+    manager, reviewer or client-selectable identities.
+    """
     plan = _dict(snapshot.get("taskPlan"))
-    store_id = _first_store_id(snapshot, plan)
-    assignment = assignment_for_store(store_id) if store_id else None
-    reviewer = (
-        plan.get("reviewerId")
-        or (assignment or {}).get("reviewerId")
-        or (default_reviewer() or {}).get("id")
-    )
-    operator = (
-        plan.get("assignedOperatorId")
-        or (assignment or {}).get("primaryOperatorId")
-        or (default_operator(plan.get("riskDomain") or plan.get("taskType")) or {}).get("id")
-    )
-    need_manager = bool(
+    store_id = _first_store_id(snapshot, plan) or "COMP-STORE-1"
+    store_ids = [str(item) for item in _as_list(plan.get("storeIds")) if item]
+    if not store_ids:
+        store_ids = [store_id]
+    enterprise_approval_required = bool(
         snapshot.get("needManagerReview")
         or snapshot.get("decision") == "manager_review_required"
         or plan.get("approvalRequired")
     )
-    store_ids = plan.get("storeIds") or ([store_id] if store_id else []) or [
-        "S001",
-        "S002",
-        "S003",
-        "S004",
-    ]
-    visible_users = list(
-        dict.fromkeys([user for user in [operator, reviewer, "U001"] if user])
-    )
     return {
-        "assignedOperatorId": None if need_manager else operator,
-        "reviewerId": reviewer,
-        "ownerUserId": "U001",
-        "visibleUserIds": visible_users,
-        "visibleRoleIds": ["owner", "manager", "operator"],
+        "assignedOperatorId": COMPETITION_OPERATOR_ID,
+        "reviewerId": None,
+        "ownerUserId": None,
+        "visibleUserIds": [COMPETITION_OPERATOR_ID],
+        "visibleRoleIds": [COMPETITION_OPERATOR_ROLE],
         "visibleStoreIds": store_ids,
         "storeIds": store_ids,
+        "runtimeActorMode": "fixed_competition_operator",
+        "enterpriseApprovalRequired": enterprise_approval_required,
+        "organizationGovernance": "enterprise_only_not_enabled",
     }
 
 
@@ -479,15 +470,15 @@ def create_lifecycle_task_from_snapshot(
     forecast = _forecast(snapshot, plan)
     ownership = _ownership_for_snapshot(snapshot)
     store_id = (ownership.get("storeIds") or [None])[0]
-    store = store_raw(store_id) if store_id else None
+    store = competition_store(store_id)
     product = _product_identity(snapshot, plan)
     product_card = _product_action_card(snapshot, plan, dynamic_changes)
-    need_manager = bool(
+    enterprise_approval_required = bool(
         snapshot.get("decision") == "manager_review_required"
         or plan.get("approvalRequired")
     )
-    task_layer = "manager_dispatch" if need_manager else "operator_execution"
-    status = "待拆分" if task_layer == "manager_dispatch" else "待接收"
+    task_layer = "operator_execution"
+    status = "待接收"
     task_id = make_task_id()
     created_at = now_iso()
     title = _sanitize(
@@ -650,34 +641,32 @@ def create_lifecycle_task_from_snapshot(
         "reviewerId": ownership.get("reviewerId"),
         "visibleUserIds": ownership.get("visibleUserIds") or [],
         "visibleRoleIds": ownership.get("visibleRoleIds")
-        or ["owner", "manager", "operator"],
-        "assigneeName": (
-            user_display(ownership.get("assignedOperatorId"), "未派发")
-            if task_layer == "operator_execution"
-            else "未派发"
+        or [COMPETITION_OPERATOR_ROLE],
+        "enterpriseApprovalRequired": enterprise_approval_required,
+        "enterpriseApprovalStatus": (
+            "not_enabled_in_competition"
+            if enterprise_approval_required
+            else "not_required"
         ),
-        "reviewerName": user_display(ownership.get("reviewerId"), "未设置复核人"),
-        "assignedById": created_by,
-        "assignedByName": (
-            user_display(created_by, "系统预警") if created_by else "系统预警"
+        "assigneeName": operator_display(
+            ownership.get("assignedOperatorId"), "赛事运营工作台"
         ),
+        "reviewerName": "企业组织协同版暂未开放",
+        "assignedById": None,
+        "assignedByName": "系统经营链路",
         "createdByRole": "system",
         "createdAt": created_at,
         "updatedAt": created_at,
         "manualOrder": deadline_minutes,
         "parentTaskId": None,
         "childTaskIds": [],
-        "recapTarget": "日报" if task_layer == "operator_execution" else "周报",
+        "recapTarget": "日报",
         "dedupeKey": build_lifecycle_dedupe_key(snapshot),
         "sourceTrail": [
             "V20.28双Agent语义合同",
             "Agent2差异化执行方案",
             "SOP结构化生命周期入口",
         ],
-        "availableActions": (
-            ["report", "source", "accept", "submit"]
-            if task_layer == "operator_execution"
-            else ["report", "source", "assign", "review"]
-        ),
+        "availableActions": ["report", "source", "accept", "submit"],
     }
     return task
