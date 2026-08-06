@@ -18,7 +18,7 @@ from sqlite3 import OperationalError
 from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect, loads
-from src.services.account_service import current_user, list_stores, visible_store_ids_for_user
+from src.services.competition_operator_context_service import COMPETITION_OPERATOR_ID, competition_stores
 from src.services.backend_isolation_service import DEFAULT_ORG_ID, DEFAULT_TENANT_ID, row_scope_status, strict_data_scope_enabled
 from src.services.import_row_store_service import load_import_rows
 from src.services.metric_catalog_service import (
@@ -32,7 +32,7 @@ from src.services.metric_catalog_service import (
     system_codes,
 )
 from src.services.module_data_service import REPORT_GROUPS
-from src.services.permission_stamp_service import permission_stamp_allows, row_permission_stamp
+from src.services.permission_stamp_service import row_permission_stamp
 
 PROJECTION_VERSION = "16.4"
 DATASET_LABELS = {"products": "商品报表", "inventory": "库存报表", "orders": "订单报表", "refunds": "退款报表", "customers": "客户报表"}
@@ -84,7 +84,7 @@ def _as_float(value: Any, default: float | None = None) -> float | None:
 
 def _store_index() -> Dict[str, Dict[str, Any]]:
     mapping: Dict[str, Dict[str, Any]] = {}
-    for store in list_stores():
+    for store in competition_stores():
         mapping[store["id"]] = store
         mapping[store["name"]] = store
         mapping[f"{store.get('platform')} · {store.get('name')}"] = store
@@ -111,10 +111,6 @@ def _store_name(store_id: str | None) -> str:
 def _store_platform(store_id: str | None, fallback: str = "导入数据") -> str:
     store = _store_index().get(store_id or "")
     return store.get("platform") if store else fallback
-
-
-def _visible_store_ids(user_id: str | None) -> set[str]:
-    return set(visible_store_ids_for_user(user_id)) if user_id else set()
 
 
 def _snapshot_payloads() -> List[Dict[str, Any]]:
@@ -166,6 +162,12 @@ def _scope_decision(row: Dict[str, Any], store_id: str | None = None) -> Dict[st
 
 
 def _row_visible(row: Dict[str, Any], user_id: str | None) -> bool:
+    """Project rows inside the fixed competition workspace.
+
+    ``user_id`` is retained only for call compatibility and is never trusted as
+    client identity. The public runtime has no application account system.
+    """
+    _ = user_id
     store_id = row.get("storeId") or row.get("store_id") or _resolve_store_id(row)
     if store_id:
         row.setdefault("storeId", store_id)
@@ -176,17 +178,9 @@ def _row_visible(row: Dict[str, Any], user_id: str | None) -> bool:
             row["scopeMissing"] = decision.get("missing", [])
             row["scopeErrors"] = decision.get("errors", [])
             return False
-    if not user_id:
-        return True
-    role = current_user(user_id).get("roleId")
-    if role in {"owner", "manager", "finance"}:
-        return True
-    if permission_stamp_allows(row, user_id, role):
-        row["permissionStampAccepted"] = True
-        return True
-    if not store_id:
-        return True
-    return store_id in _visible_store_ids(user_id)
+    row["runtimeActorId"] = COMPETITION_OPERATOR_ID
+    row["workspaceId"] = DEFAULT_TENANT_ID
+    return True
 
 
 def dataset_rows(dataset_name: str | None = None, user_id: str | None = None) -> List[Dict[str, Any]]:
