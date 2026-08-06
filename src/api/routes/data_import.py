@@ -14,7 +14,7 @@ from typing import Any, Dict, Iterable, List
 
 from fastapi import APIRouter, Body, File, Form, HTTPException, Query, Request, UploadFile
 
-from src.services.account_service import current_user, user_id_from_headers
+from src.services.competition_operator_context_service import current_user, user_id_from_headers
 from src.services.data_gap_event_service import data_gap_summary, ingest_data_gaps_from_import
 from src.services.data_import_service import DATASET_CONFIGS, import_mock_data, list_import_records, list_import_sources, read_csv, validate_all_imports
 from src.services.data_source_connection_service import build_source_sync_summary, get_data_source_connection, list_data_source_connections
