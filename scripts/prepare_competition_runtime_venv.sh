@@ -111,4 +111,38 @@ print(json.dumps({
 }, sort_keys=True))
 PY
 
+# The self-hosted runner executes JavaScript actions with its bundled Node runtime,
+# but that binary is not necessarily exported to shell-step PATH. Resolve the same
+# trusted runner-owned executable and expose only its directory to later steps.
+NODE_BIN=""
+for candidate in \
+  /opt/actions-runner-public/externals/node24/bin/node \
+  /opt/actions-runner-public/externals/node20/bin/node \
+  /opt/actions-runner-public/externals/node16/bin/node \
+  /usr/local/bin/node \
+  /usr/bin/node; do
+  if [ -x "$candidate" ]; then
+    NODE_BIN="$candidate"
+    break
+  fi
+done
+if [ -z "$NODE_BIN" ]; then
+  NODE_BIN="$(
+    find /opt/actions-runner-public /opt /usr/local \
+      -maxdepth 7 -type f -name node -perm -u+x -print 2>/dev/null \
+      | head -n 1 \
+      || true
+  )"
+fi
+if [ -n "$NODE_BIN" ] && [ -x "$NODE_BIN" ]; then
+  NODE_DIR="$(dirname "$NODE_BIN")"
+  if [ -n "${GITHUB_PATH:-}" ]; then
+    printf '%s\n' "$NODE_DIR" >> "$GITHUB_PATH"
+  fi
+  "$NODE_BIN" --version > "$EVIDENCE_DIR/node-version.txt"
+  printf '%s\n' "$NODE_BIN" > "$EVIDENCE_DIR/node-executable.txt"
+else
+  echo "Runner-owned Node executable was not found; later JavaScript syntax checks may fail." >&2
+fi
+
 printf '%s\n' "$VENV_PYTHON"

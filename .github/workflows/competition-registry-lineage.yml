@@ -30,43 +30,45 @@ jobs:
     timeout-minutes: 15
     env:
       COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-      COMPETITION_SOURCE_REF: ${{ github.head_ref || github.ref_name }}
     steps:
-      - name: Materialize exact source commit with retries
+      - name: Materialize exact source commit archive
         env:
           GH_READ_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          if [ ! -d .git ]; then
-            git init .
-          fi
-          git remote remove origin >/dev/null 2>&1 || true
-          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_READ_TOKEN" | base64 | tr -d '\n')"
-          FETCHED=0
-          for attempt in $(seq 1 12); do
-            echo "Fetch attempt ${attempt}/12 for ${COMPETITION_SOURCE_REF}@${COMPETITION_SOURCE_COMMIT}"
-            if git \
-              -c http.version=HTTP/1.1 \
-              -c http.lowSpeedLimit=1 \
-              -c http.lowSpeedTime=120 \
-              -c http.https://github.com/.extraheader="$AUTH_HEADER" \
-              fetch --force --no-tags --prune --depth=1 origin \
-              "+refs/heads/${COMPETITION_SOURCE_REF}:refs/remotes/origin/${COMPETITION_SOURCE_REF}"; then
-              if git cat-file -e "${COMPETITION_SOURCE_COMMIT}^{commit}" 2>/dev/null; then
-                FETCHED=1
-                break
-              fi
+          ARCHIVE="${RUNNER_TEMP}/competition-lineage-source-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/competition-lineage-source-${COMPETITION_SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          DOWNLOADED=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download attempt ${attempt}/8"
+            if curl \
+              --fail \
+              --location \
+              --silent \
+              --show-error \
+              --connect-timeout 20 \
+              --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${COMPETITION_SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              DOWNLOADED=1
+              break
             fi
+            rm -f "$ARCHIVE"
             sleep $((attempt * 5))
           done
-          unset AUTH_HEADER
-          test "$FETCHED" = "1"
-          git checkout --detach --force "$COMPETITION_SOURCE_COMMIT"
-          git reset --hard "$COMPETITION_SOURCE_COMMIT"
-          git clean -ffdx
-          test "$(git rev-parse HEAD)" = "$COMPETITION_SOURCE_COMMIT"
+          test "$DOWNLOADED" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/compile_competition_lineage.py"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
+          test "$(cat "$GITHUB_WORKSPACE/.competition-source-commit")" = "$COMPETITION_SOURCE_COMMIT"
           echo "competitionSourceCommit=$COMPETITION_SOURCE_COMMIT"
 
       - name: Resolve ECS Python 3.10+
