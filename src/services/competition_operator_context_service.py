@@ -41,6 +41,11 @@ def competition_operator() -> Dict[str, Any]:
     return deepcopy(_FIXED_OPERATOR)
 
 
+def default_operator(_: Any | None = None) -> Dict[str, Any]:
+    """Return the only server-owned task operator in the competition runtime."""
+    return competition_operator()
+
+
 def competition_stores() -> List[Dict[str, Any]]:
     return deepcopy(_COMPETITION_STORES)
 
@@ -55,3 +60,15 @@ def competition_operator_context() -> Dict[str, Any]:
         "tenantIsolationClaimed": False,
         "identityOwner": "server_fixed_competition_context",
     }
+
+
+__all__ = [
+    "COMPETITION_OPERATOR_CONTEXT_VERSION",
+    "COMPETITION_OPERATOR_ID",
+    "COMPETITION_OPERATOR_ROLE",
+    "COMPETITION_WORKSPACE_ID",
+    "competition_operator",
+    "default_operator",
+    "competition_stores",
+    "competition_operator_context",
+]
