@@ -1,16 +1,29 @@
 (function () {
-  const ACCOUNT_KEY = "ai_ecommerce_v442_current_user_id";
-  const API_CLIENT_VERSION = "22.5.5";
+  const API_CLIENT_VERSION = "22.5.5-competition-operator";
+  const FIXED_OPERATOR = Object.freeze({
+    id: "competition_operator",
+    actorId: "competition_operator",
+    displayName: "赛事运营工作台",
+    roleId: "operator",
+    role: "operator",
+    roleName: "运营",
+    workspaceId: "competition_demo",
+    serverInjected: true,
+  });
+  const FIXED_OPERATOR_PERMISSIONS = Object.freeze([
+    "view_managed_stores",
+    "view_own_tasks",
+    "handle_tasks",
+    "submit_tasks",
+    "view_only",
+  ]);
   const status = { source: "unknown", failures: [], lastImportSync: null, lastError: null };
   const memoryCache = new Map();
   const revalidateInFlight = new Map();
-  let account = null;
 
-  function getCurrentUserId() { return localStorage.getItem(ACCOUNT_KEY) || "U001"; }
-  function setCurrentUserId(userId) { localStorage.setItem(ACCOUNT_KEY, userId || "U001"); }
-  function currentUser() { return account?.currentUser || null; }
-  function currentPermissions() { return currentUser()?.permissions || []; }
-  function can(permission) { return currentPermissions().includes(permission); }
+  function currentUser() { return FIXED_OPERATOR; }
+  function currentPermissions() { return [...FIXED_OPERATOR_PERMISSIONS]; }
+  function can(permission) { return FIXED_OPERATOR_PERMISSIONS.includes(permission); }
   function failureSummary() { if (!status.failures.length) return "所有模块接口请求正常。"; return status.failures.slice(-5).map((item) => `${item.path}: ${item.message}`).join("\n"); }
   function setServerHealthy(path = "") { status.source = "server"; status.lastError = null; window.dispatchEvent(new CustomEvent("api-client-status", { detail: { source: status.source, path } })); }
   function isAbortError(error) { return error?.name === "AbortError" || /route_cleanup|route_replaced|external_abort|route_request_aborted/.test(String(error?.message || error || "")); }
@@ -18,7 +31,7 @@
   function buildQuery(params = {}) { const query = new URLSearchParams(); Object.entries(params || {}).forEach(([key, value]) => { if (value !== undefined && value !== null && value !== "") query.set(key, value); }); return query.toString() ? `?${query.toString()}` : ""; }
   async function parseError(response) { let detail = ""; try { const payload = await response.json(); detail = payload?.detail || payload?.message || ""; } catch (error) { detail = ""; } return detail || `${response.status} ${response.statusText}`; }
 
-  function cacheKey(path) { return `${API_CLIENT_VERSION}::${getCurrentUserId()}::${path}`; }
+  function cacheKey(path) { return `${API_CLIENT_VERSION}::competition_operator::${path}`; }
   function clearApiCaches() {
     memoryCache.clear();
     revalidateInFlight.clear();
@@ -47,7 +60,7 @@
     else externalSignal?.addEventListener?.("abort", forwardAbort, { once: true });
     const timer = controller ? setTimeout(() => { timedOut = true; controller.abort("request_timeout"); }, timeoutMs) : null;
     try {
-      const response = await fetch(path, { method, signal: controller?.signal || externalSignal || undefined, headers: { Accept: "application/json", "Content-Type": "application/json", "X-Mock-User-Id": getCurrentUserId() }, body: options.body ? JSON.stringify(options.body) : undefined });
+      const response = await fetch(path, { method, signal: controller?.signal || externalSignal || undefined, headers: { Accept: "application/json", "Content-Type": "application/json" }, body: options.body ? JSON.stringify(options.body) : undefined });
       if (!response.ok) throw new Error(await parseError(response));
       const payload = await response.json();
       setServerHealthy(path);
@@ -91,22 +104,20 @@
   async function uploadRequest(path, file, fields = {}) {
     try {
       const form = new FormData(); form.append("file", file); Object.entries(fields || {}).forEach(([key, value]) => form.append(key, value));
-      const response = await fetch(path, { method: "POST", headers: { Accept: "application/json", "X-Mock-User-Id": getCurrentUserId() }, body: form });
+      const response = await fetch(path, { method: "POST", headers: { Accept: "application/json" }, body: form });
       if (!response.ok) throw new Error(await parseError(response));
       setServerHealthy(path); return await response.json();
     } catch (error) { recordFailure(path, error); throw error; }
   }
 
-  async function loadAccount() { account = await optionalRequest("/api/accounts", account || { currentUser: { id: getCurrentUserId(), roleId: "operator", roleName: "运营" }, users: [] }, { timeoutMs: 2500, freshForMs: 15000, maxStaleAgeMs: 300000 }); return account; }
-  async function applyAccountMutation(path, body) { const result = await request(path, null, { method: "POST", body }); account = result?.account || (await loadAccount()); window.dispatchEvent(new CustomEvent("mock-account-change", { detail: { account } })); return result; }
-  function clearViewState() { ["manager_task_state_v241", "manager_task_sort_v241", "manager_selected_task_v241", "owner_review_state", "owner_dashboard_state"].forEach((key) => localStorage.removeItem(key)); }
+  function clearViewState() { ["task_detail_state", "task_submit_state"].forEach((key) => localStorage.removeItem(key)); }
   function clearClientRuntime() { clearViewState(); clearApiCaches(); if (window.AppMockData) { window.AppMockData.products = []; window.AppMockData.competitors = []; window.AppMockData.listings = []; window.AppMockData.traffic = []; window.AppMockData.reportGroups = []; window.AppMockData.reportDetails = {}; window.AppMockData.recentAlerts = []; } status.lastImportSync = null; window.AppTaskStore?.hydrate?.([], [], [], {}); }
   function dataVersionFromImport(result = {}) { return result?.dataVersion || result?.syncState?.latestDataVersion || result?.operatingUnitSnapshotSync?.syncState?.latestDataVersion || result?.pipelineSync?.dataVersions?.[0] || result?.results?.find?.((item) => item?.dataVersion)?.dataVersion || ""; }
   function rememberImportSync(result) { status.lastImportSync = result?.taskGeneration || result?.pipelineSync || result?.importDiagnostics || null; window.dispatchEvent(new CustomEvent("v148-import-queued", { detail: { result, sync: status.lastImportSync } })); return result; }
   function productFormatters() { return { money(value) { return value === null || value === undefined || value === "" || value === "—" || value === "未识别" ? "未识别" : String(value).startsWith("¥") ? String(value) : `¥${value}`; }, percent(value) { return value === null || value === undefined || value === "" || value === "—" || value === "未识别" ? "未识别" : String(value).includes("%") ? String(value) : `${value}%`; } }; }
 
   const api = {
-    status, failureSummary, getCurrentUserId, setCurrentUserId, currentUser, currentPermissions, can, productFormatters, clearApiCaches, version: API_CLIENT_VERSION,
+    status, failureSummary, currentUser, currentPermissions, can, productFormatters, clearApiCaches, fixedOperator: FIXED_OPERATOR, version: API_CLIENT_VERSION,
     dashboard: () => request("/api/modules/dashboard"),
     dashboardView: () => optionalRequest("/api/view/dashboard", { ready: false }, { timeoutMs: 3500, maxStaleAgeMs: 30000 }),
     operatingUnit: (params = {}) => optionalRequest(`/api/modules/operating-unit${buildQuery(params)}`, { items: [], ready: false }, { timeoutMs: 3500, maxStaleAgeMs: 30000 }),
@@ -122,13 +133,6 @@
     generateTasksStation: (dataVersion, body = {}) => api.post(`/api/pipeline/data-versions/${encodeURIComponent(dataVersion)}/tasks/generate`, null, body),
     snapshotTaskHandoff: (dataVersion, body = {}) => api.post("/api/station-handoffs/snapshot-task", null, { dataVersion, ...body }),
     stationHandoffs: (dataVersion = "") => optionalRequest(`/api/station-handoffs${dataVersion ? `?dataVersion=${encodeURIComponent(dataVersion)}` : ""}`, { items: [] }, { timeoutMs: 2500, maxStaleAgeMs: 15000 }),
-    accounts: loadAccount,
-    me: () => request("/api/accounts/me"),
-    switchAccount: async (userId) => { const previousUserId = getCurrentUserId(); const switched = await request("/api/accounts/switch", null, { method: "POST", body: { userId } }); const nextUserId = switched?.currentUser?.id || userId || previousUserId; setCurrentUserId(nextUserId); clearApiCaches(); account = switched?.account || (await loadAccount()); await api.refreshTaskState().catch(() => null); window.dispatchEvent(new CustomEvent("mock-account-change", { detail: { account } })); return account; },
-    updateUserRole: (userId, roleId) => applyAccountMutation(`/api/accounts/users/${encodeURIComponent(userId)}/role`, { roleId }),
-    updateUserStores: (userId, storeIds) => applyAccountMutation(`/api/accounts/users/${encodeURIComponent(userId)}/stores`, { storeIds }),
-    updateStoreAssignment: (storeId, primaryOperatorId, reviewerId = "U002") => applyAccountMutation(`/api/accounts/store-assignments/${encodeURIComponent(storeId)}`, { primaryOperatorId, reviewerId }),
-    updateRolePermissions: (roleId, permissions) => applyAccountMutation(`/api/accounts/roles/${encodeURIComponent(roleId)}/permissions`, { permissions }),
     product: (params = {}) => optionalRequest(`/api/modules/product${buildQuery(params)}`, { products: [], items: [] }, { timeoutMs: 3500, maxStaleAgeMs: 30000 }),
     competitor: () => optionalRequest("/api/modules/competitor", { items: [] }, { timeoutMs: 3500 }),
     listing: () => optionalRequest("/api/modules/listing", { items: [] }, { timeoutMs: 3500 }),

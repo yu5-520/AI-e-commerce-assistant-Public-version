@@ -5,7 +5,7 @@
   const inFlight = new Map();
 
   function userId() {
-    return window.AppApi?.getCurrentUserId?.() || localStorage.getItem("ai_ecommerce_v442_current_user_id") || "U001";
+    return "competition_operator";
   }
 
   function storageKey(hash) {
@@ -49,7 +49,7 @@
       const response = await fetch(path, {
         method: "GET",
         signal: controller?.signal,
-        headers: { Accept: "application/json", "X-Mock-User-Id": userId() },
+        headers: { Accept: "application/json" },
       });
       if (!response.ok) {
         let detail = `${response.status} ${response.statusText}`;

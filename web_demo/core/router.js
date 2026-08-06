@@ -2,9 +2,7 @@
   const routes = new Map();
   const lazyRoutes = new Map();
   const loadingScripts = new Map();
-  const aliases = new Map([
-    ["risk-center", "store-overview"], ["executive-cockpit", "store-overview"], ["people-overview", "task-command"],
-  ]);
+  const aliases = new Map();
   let current = null;
   let scheduled = false;
   let renderToken = 0;

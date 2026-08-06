@@ -45,7 +45,7 @@
 
   pruneLegacyDetailCaches();
 
-  function currentUserId() { return window.AppApi?.getCurrentUserId?.() || localStorage.getItem("ai_ecommerce_v442_current_user_id") || "U001"; }
+  function currentUserId() { return "competition_operator"; }
   function isAbortError(error) { return error?.name === "AbortError" || /route_request_aborted|route_cleanup|route_replaced|external_abort|no_active_detail_consumer/.test(String(error?.message || error || "")); }
   function abortError(message = "request_aborted") { try { return new DOMException(message, "AbortError"); } catch (error) { const out = new Error(message); out.name = "AbortError"; return out; } }
   function markHealthy(path) { const status = window.AppApi?.status; if (status) { status.source = "server"; status.lastError = null; } window.dispatchEvent(new CustomEvent("api-client-status", { detail: { source: "server", path } })); }
@@ -66,7 +66,7 @@
       const response = await fetch(path, {
         method: options.method || "GET",
         signal: controller?.signal || externalSignal || undefined,
-        headers: { Accept: "application/json", "Content-Type": "application/json", "X-Mock-User-Id": currentUserId() },
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
         body: options.body ? JSON.stringify(options.body) : undefined,
         cache: detailRequest ? "no-store" : "default",
       });

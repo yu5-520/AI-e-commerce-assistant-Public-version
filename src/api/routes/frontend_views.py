@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from src.repositories.sqlite_repository import connect, loads
 from src.runtime_version import THREE_AGENT_PIPELINE_VERSION, VERSION
@@ -37,6 +37,7 @@ from src.services.task_pool_lifecycle_sync_v2020_service import sync_task_pool_e
 from src.services.task_read_model_v2082_service import pipeline_diagnostics
 
 router = APIRouter(prefix="/api/view", tags=["frontend-read-model"])
+COMPETITION_OPERATOR_ID = "competition_operator"
 
 
 def _align(result: Dict[str, Any], route_rule: str) -> Dict[str, Any]:
@@ -252,12 +253,11 @@ def store_view() -> Dict[str, Any]:
 def hash_view_head(
     view_key: str,
     dataVersion: str | None = None,
-    x_mock_user_id: str = Header(default="U001", alias="X-Mock-User-Id"),
 ) -> Dict[str, Any]:
     try:
         return get_frontend_view_head_v2259(
             view_key=view_key or DEFAULT_VIEW_KEY,
-            user_id=x_mock_user_id or "U001",
+            user_id=COMPETITION_OPERATOR_ID,
             data_version=dataVersion,
             materialize_if_missing=True,
         )
@@ -269,13 +269,12 @@ def hash_view_head(
 def hash_view_artifact(
     artifact_ref: str,
     viewKey: str = DEFAULT_VIEW_KEY,
-    x_mock_user_id: str = Header(default="U001", alias="X-Mock-User-Id"),
 ) -> Dict[str, Any]:
     try:
         return read_frontend_view_artifact_v2259(
             artifact_ref,
             view_key=viewKey or DEFAULT_VIEW_KEY,
-            user_id=x_mock_user_id or "U001",
+            user_id=COMPETITION_OPERATOR_ID,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -288,7 +287,6 @@ def hash_view_artifact(
 @router.post("/refresh")
 def refresh_view(
     dataVersion: str | None = None,
-    x_mock_user_id: str = Header(default="U001", alias="X-Mock-User-Id"),
 ) -> Dict[str, Any]:
     sync = sync_task_pool_entries_to_task_status(data_version=dataVersion)
     snapshots = backfill_task_detail_snapshots(data_version=dataVersion)
@@ -300,7 +298,7 @@ def refresh_view(
     result["hashView"] = materialize_frontend_views_v2259(
         data_version=dataVersion,
         view_key=DEFAULT_VIEW_KEY,
-        user_id=x_mock_user_id or "U001",
+        user_id=COMPETITION_OPERATOR_ID,
     )
     return _align(
         result,

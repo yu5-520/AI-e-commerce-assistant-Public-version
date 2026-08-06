@@ -1,21 +1,13 @@
 {
-  "schema": "competition.runtime_scope.v1",
-  "version": "2026.08.06.2",
-  "description": "比赛公开版唯一稳定运行链路。运行文件由统一注册表、生产入口实际导入闭包和前端引用闭包共同确定。Python 包初始化器属于真实导入语义，必须进入运行闭包并参与依赖追踪。",
-  "registryProjectionPath": "config/v23_registry_runtime.json",
-  "productionEntrypoints": [
-    "src.api.main:app"
-  ],
-  "requiredRegistryModules": [
-    "release_governance",
-    "agent1_input_projection",
-    "agent1_runtime",
-    "agent2_runtime",
-    "agent3_input_projection",
-    "agent3_runtime",
-    "task_mapping",
-    "task_pool",
-    "frontend_view"
+  "allowedPrefixes": [
+    "src/",
+    "config/",
+    "contracts/",
+    "web_demo/",
+    "scripts/",
+    "release/",
+    "requirements.lock",
+    "VERSION.md"
   ],
   "businessStageOrder": [
     "release_governance",
@@ -28,6 +20,74 @@
     "task_pool",
     "frontend_view"
   ],
+  "description": "比赛公开版固定运营工作台。运行文件由业务注册表、外部接口注册表、生产入口导入闭包和前端引用闭包共同确定；未注册接口、账号系统和企业组织治理文件默认拒绝。",
+  "entrypointSearchPrefixes": [
+    "src/"
+  ],
+  "externalInterfaceRegistryPath": "config/external_interface_registry.json",
+  "failOnShadowEntrypoints": true,
+  "forbiddenFileNames": [
+    ".env",
+    ".env.production",
+    ".env.local"
+  ],
+  "forbiddenPrefixes": [
+    ".z/",
+    ".github/",
+    "tools/",
+    "migration/",
+    "contest/",
+    "governance/",
+    "receipts/",
+    "history/",
+    "tests/"
+  ],
+  "forbiddenRuntimeContent": [
+    "X-Mock-User-Id",
+    "ai_ecommerce_v442_current_user_id",
+    "admin123",
+    "/api/accounts/switch",
+    "role-console"
+  ],
+  "forbiddenRuntimePaths": [
+    "src/api/routes/accounts.py",
+    "src/api/routes/action_authority.py",
+    "src/api/routes/approvals.py",
+    "src/services/account_service.py",
+    "web_demo/modules/account/",
+    "web_demo/modules/manager/",
+    "web_demo/modules/executive/",
+    "web_demo/account-center.css",
+    "web_demo/account-ui.css",
+    "web_demo/v21-authority-ui.css",
+    "web_demo/core/v21-authority-ui.js"
+  ],
+  "networkCallMarkers": [
+    "urllib.request.urlopen",
+    "urllib.request.Request",
+    "requests.request",
+    "requests.post",
+    "httpx.Client",
+    "httpx.AsyncClient",
+    "aiohttp.ClientSession"
+  ],
+  "productBoundaryPath": "config/competition_product_boundary.json",
+  "productionEntrypoints": [
+    "src.api.main:app"
+  ],
+  "registryProjectionPath": "config/v23_registry_runtime.json",
+  "requiredRegistryModules": [
+    "release_governance",
+    "agent1_input_projection",
+    "agent1_runtime",
+    "agent2_runtime",
+    "agent3_input_projection",
+    "agent3_runtime",
+    "task_mapping",
+    "task_pool",
+    "frontend_view"
+  ],
+  "schema": "competition.runtime_scope.v1",
   "seedFiles": [
     "src/__init__.py",
     "src/api/__init__.py",
@@ -55,53 +115,29 @@
   "seedGlobs": [
     "config/*.json",
     "contracts/**/*.json",
-    "release/attestation/*.json",
-    "web_demo/**/*"
+    "release/attestation/*.json"
   ],
-  "staticRoots": [
-    "web_demo/index.html",
-    "web_demo/bootstrap.js"
-  ],
-  "allowedPrefixes": [
-    "src/",
-    "config/",
-    "contracts/",
-    "web_demo/",
-    "scripts/",
-    "release/",
-    "requirements.lock",
-    "VERSION.md"
-  ],
-  "forbiddenPrefixes": [
-    ".z/",
-    ".github/",
-    "tools/",
-    "migration/",
-    "contest/",
-    "governance/",
-    "receipts/",
-    "history/",
-    "tests/"
-  ],
-  "forbiddenFileNames": [
-    ".env",
-    ".env.production",
-    ".env.local"
-  ],
-  "entrypointSearchPrefixes": [
-    "src/"
-  ],
-  "failOnShadowEntrypoints": true,
   "selectionRules": {
+    "applicationAccountSystemAllowed": false,
+    "applicationLoginAllowed": false,
+    "clientIdentityOverrideAllowed": false,
+    "disabledInterfaceMayEnterRuntimeLineage": false,
+    "enabledInterfaceRequiresHashLineage": true,
     "filenameSimilarityMaySelectRuntime": false,
-    "registryImplementationPathsAreRequired": true,
-    "runnerModuleAndSymbolMustExist": true,
+    "frontendReferenceClosureIsRequired": true,
+    "frontendWholeDirectorySeedAllowed": false,
+    "mappingLlmAllowed": false,
+    "privateBoundaryCrossingFails": true,
     "pythonImportClosureIsRequired": true,
     "pythonPackageInitializersAreRuntimeRequired": true,
-    "frontendReferenceClosureIsRequired": true,
-    "privateBoundaryCrossingFails": true,
-    "shadowFastApiEntrypointFails": true,
+    "registryImplementationPathsAreRequired": true,
+    "runnerModuleAndSymbolMustExist": true,
     "sameInputMustResolveByExecutionHash": true,
-    "mappingLlmAllowed": false
-  }
+    "shadowFastApiEntrypointFails": true,
+    "unregisteredNetworkCallAllowed": false
+  },
+  "staticRoots": [
+    "web_demo/index.html"
+  ],
+  "version": "2026.08.06.3"
 }
