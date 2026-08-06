@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Body, Query, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.task_pool_station_service import enter_task_pool_from_snapshot, list_task_pool_entries, sync_ready_task_snapshots, task_pool_summary
 
 router = APIRouter(prefix="/api/task-pool", tags=["task-pool"])
