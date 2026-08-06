@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 from uuid import uuid4
 
 from src.repositories.sqlite_repository import connect, dumps, loads
-from src.services.account_service import user_display
+from src.services.competition_operator_context_service import user_display
 from src.services.import_row_store_service import ensure_import_row_table
 from src.services.module_task_service import DONE_STATUS, find_task, update_task
 from src.services.report_alert_service import ACTIVE_ALERT_STATUSES, ensure_v3_tables, list_alert_events, now_iso
