@@ -15,14 +15,8 @@ from src.services.competition_operator_context_service import current_user
 
 OPERATOR_GROWTH_PROJECTION_VERSION = "21.8.0"
 
-_PROFILE_METADATA: Dict[str, Dict[str, str]] = {
-    "U001": {"displayName": "老板", "positionTitle": "企业经营负责人", "employmentStartDate": "2024-01-01"},
-    "U002": {"displayName": "店群总管", "positionTitle": "经营总管", "employmentStartDate": "2024-07-01"},
-    "U003": {"displayName": "小羽", "positionTitle": "中级运营", "employmentStartDate": "2025-06-27"},
-    "U004": {"displayName": "小岚", "positionTitle": "中级运营", "employmentStartDate": "2025-09-01"},
-    "U005": {"displayName": "数据财务", "positionTitle": "经营数据专员", "employmentStartDate": "2025-01-15"},
-    "U006": {"displayName": "观察者", "positionTitle": "经营观察员", "employmentStartDate": "2026-01-01"},
-}
+_PROFILE_METADATA: Dict[str, Dict[str, str]] = {"competition_operator": {"displayName": "赛事运营工作台", "positionTitle": "运营", "employmentStartDate": "2026-08-01"}}
+
 
 _LEVELS: List[Dict[str, Any]] = [
     {"level": 1, "name": "经营入门", "threshold": 0},
@@ -79,14 +73,6 @@ def _task_belongs_to_user(task: Dict[str, Any], user: Dict[str, Any], metadata: 
     if identities & direct:
         return True
 
-    role = _text(user.get("roleId"))
-    if role == "manager":
-        review = {
-            _text(task.get("reviewerId")),
-            _text(task.get("reviewerUserId")),
-            _text(task.get("reviewerName")),
-        } - {""}
-        return bool(identities & review)
     return False
 
 
