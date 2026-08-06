@@ -32,44 +32,51 @@ concurrency:
 
 jobs:
   fixed-three-report-e2e:
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     timeout-minutes: 45
     env:
       COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
+      COMPETITION_E2E_BASE: /opt/actions-runner-public/competition-e2e/ai-ecommerce-assistant-public
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
-      - name: Checkout exact source commit
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.COMPETITION_SOURCE_COMMIT }}
-          fetch-depth: 1
-          clean: true
-
-      - name: Verify exact checkout identity
+      - name: Materialize exact source commit archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$COMPETITION_SOURCE_COMMIT"
+          ARCHIVE="${RUNNER_TEMP}/competition-source-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/competition-source-${COMPETITION_SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          curl \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            --retry 8 \
+            --retry-all-errors \
+            --connect-timeout 20 \
+            --max-time 300 \
+            -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${COMPETITION_SOURCE_COMMIT}" \
+            -o "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/run_competition_three_report_e2e.py"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
+          test "$(cat "$GITHUB_WORKSPACE/.competition-source-commit")" = "$COMPETITION_SOURCE_COMMIT"
 
-      - name: Set up exact Python 3.11.9
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11.9'
-          cache: pip
-          cache-dependency-path: requirements.lock
-
-      - name: Install exact locked application environment
+      - name: Verify exact tool Python and scripts
         run: |
           set -euo pipefail
-          test "$(python -c 'import platform; print(platform.python_version())')" = "3.11.9"
-          python -m pip install --disable-pip-version-check --prefer-binary -r requirements.lock
-          python scripts/check_dependency_lock.py requirements.lock --strict \
-            | tee dependency-verification.json
-          printf 'COMPETITION_TOOL_PYTHON=%s\n' "$(command -v python)" >> "$GITHUB_ENV"
-          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$(command -v python)" >> "$GITHUB_ENV"
-
-      - name: Verify scripts and fixed scenario
-        run: |
-          set -euo pipefail
+          [ -x "$COMPETITION_TOOL_PYTHON" ]
+          test "$($COMPETITION_TOOL_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          chmod +x scripts/prepare_competition_runtime_venv.sh
           "$COMPETITION_TOOL_PYTHON" -m py_compile \
             scripts/compile_competition_lineage.py \
             scripts/build_competition_runtime_package.py \
@@ -77,8 +84,7 @@ jobs:
             scripts/deploy_competition_candidate.py \
             scripts/competition_contract_fixture_provider.py \
             scripts/run_competition_three_report_e2e.py
-          "$COMPETITION_TOOL_PYTHON" -m json.tool \
-            fixtures/competition/three_report_scenario.json >/dev/null
+          "$COMPETITION_TOOL_PYTHON" -m json.tool fixtures/competition/three_report_scenario.json >/dev/null
 
       - name: Compile registry and exact hash lineage
         run: |
@@ -109,6 +115,22 @@ jobs:
             --output dist/competition-runtime/competition-runtime-verification.json \
             2>&1 | tee dist/competition-three-report-e2e/package-verification-summary.log
 
+      - name: Prepare cached exact Python 3.11.9 application environment
+        run: |
+          set -euo pipefail
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_TOOL_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" \
+              "$GITHUB_WORKSPACE/dist/competition-three-report-e2e" \
+              | tee dist/competition-three-report-e2e/runtime-environment-summary.log \
+              | tail -n 1
+          )"
+          [ -x "$RUNTIME_PYTHON" ]
+          test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+
       - name: Run fixed three-report full business chain
         run: |
           set -euo pipefail
@@ -117,7 +139,7 @@ jobs:
             "$ARCHIVE" \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --scenario fixtures/competition/three_report_scenario.json \
-            --candidate-base "$RUNNER_TEMP/competition-e2e/ai-ecommerce-assistant-public" \
+            --candidate-base "$COMPETITION_E2E_BASE" \
             --runtime-python "$COMPETITION_RUNTIME_PYTHON" \
             --tool-python "$COMPETITION_TOOL_PYTHON" \
             --app-port 39280 \
@@ -173,6 +195,5 @@ jobs:
             dist/competition-lineage/evidence-manifest.json
             dist/competition-lineage/verification-report.json
             fixtures/competition/three_report_scenario.json
-            dependency-verification.json
           if-no-files-found: warn
           retention-days: 14
