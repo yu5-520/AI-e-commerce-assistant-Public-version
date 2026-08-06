@@ -4,7 +4,7 @@
   async function loadRelease() {
     const response = await fetch("/api/architecture/v7/release-governance", {
       method: "GET",
-      headers: { Accept: "application/json", "X-Mock-User-Id": AppApi.getCurrentUserId() },
+      headers: { Accept: "application/json"},
     });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response.json();
