@@ -42,20 +42,29 @@ jobs:
           EXTRACTED="${RUNNER_TEMP}/competition-source-${COMPETITION_SOURCE_COMMIT}"
           rm -rf "$ARCHIVE" "$EXTRACTED"
           mkdir -p "$EXTRACTED"
-          curl \
-            --fail \
-            --location \
-            --silent \
-            --show-error \
-            --retry 8 \
-            --retry-all-errors \
-            --connect-timeout 20 \
-            --max-time 300 \
-            -H "Authorization: Bearer ${GH_READ_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${COMPETITION_SOURCE_COMMIT}" \
-            -o "$ARCHIVE"
+          DOWNLOADED=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download attempt ${attempt}/8"
+            if curl \
+              --fail \
+              --location \
+              --silent \
+              --show-error \
+              --connect-timeout 20 \
+              --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${COMPETITION_SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              DOWNLOADED=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$DOWNLOADED" = "1"
+          test -s "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
           test -f "$EXTRACTED/scripts/compile_competition_lineage.py"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
