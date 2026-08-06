@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Compatibility entry for the deterministic competition fixture provider.
 
-The base fixture already generates the business content for Agent1/2/3. The active
-V22.5.9 Agent1 contract additionally requires both the exact transport identity
-(``itemExecutionId + inputContentHash``) and a complete evidence-backed execution
-lock for every ``act`` result. This entry adds those contract fields without
-changing the product runtime or pretending to be a real model-quality proof.
+The base fixture generates deterministic business content for Agent1/2/3. The active
+runtime adds strict transport contracts that a structural fixture must echo exactly:
+
+- Agent1: ``itemExecutionId + inputContentHash`` and the evidence-backed execution lock;
+- Agent2: ``itemExecutionId + inputContentHash`` for every returned plan.
+
+These additions prove transport and pipeline contracts only. They are not presented as
+real Bailian/Qwen model-quality evidence.
 """
 from __future__ import annotations
 
@@ -67,7 +70,9 @@ def _act_lock_fields(judgment: dict[str, Any], source: dict[str, Any]) -> None:
 
 def _agent1_exact(payload: dict[str, Any]) -> dict[str, Any]:
     result = base._agent1(payload)
-    products = [item for item in base._list(payload.get("products")) if isinstance(item, dict)]
+    products = [
+        item for item in base._list(payload.get("products")) if isinstance(item, dict)
+    ]
     by_correlation = {
         _text(item.get("correlationId")): item
         for item in products
@@ -78,7 +83,9 @@ def _agent1_exact(payload: dict[str, Any]) -> dict[str, Any]:
         for item in products
         if _text(item.get("storeId")) and _text(item.get("productId"))
     }
-    judgments = result.get("judgments") if isinstance(result.get("judgments"), list) else []
+    judgments = (
+        result.get("judgments") if isinstance(result.get("judgments"), list) else []
+    )
     for judgment in judgments:
         if not isinstance(judgment, dict):
             continue
@@ -103,10 +110,40 @@ def _agent1_exact(payload: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _agent2_exact(payload: dict[str, Any]) -> dict[str, Any]:
+    result = base._agent2(payload)
+    packages = [
+        item for item in base._list(payload.get("packages")) if isinstance(item, dict)
+    ]
+    by_package = {
+        _text(item.get("packageId")): item
+        for item in packages
+        if _text(item.get("packageId"))
+    }
+    plans = result.get("plans") if isinstance(result.get("plans"), list) else []
+    for plan in plans:
+        if not isinstance(plan, dict):
+            continue
+        source = by_package.get(_text(plan.get("packageId")))
+        if source is None:
+            continue
+        plan["itemExecutionId"] = source.get("itemExecutionId")
+        plan["inputContentHash"] = source.get("inputContentHash")
+        plan["packageId"] = source.get("packageId")
+        plan["productId"] = source.get("productId")
+        plan["storeId"] = source.get("storeId")
+    return result
+
+
 def response_payload(request_body: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     payload = base._last_user_payload(request_body)
     if isinstance(payload.get("products"), list):
         return "product_judgment_agent", _agent1_exact(payload)
+    if (
+        isinstance(payload.get("packages"), list)
+        and payload.get("exactOutputIdentity") == "itemExecutionId+inputContentHash"
+    ):
+        return "action_plan_judgment_agent", _agent2_exact(payload)
     return _ORIGINAL_RESPONSE_PAYLOAD(request_body)
 
 
