@@ -1,0 +1,203 @@
+name: Competition ECS Candidate Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'web_demo/**'
+      - 'config/**'
+      - 'contracts/**'
+      - 'scripts/**'
+      - 'release/**'
+      - 'requirements.lock'
+      - 'VERSION.md'
+      - '.github/workflows/competition-ecs-candidate-smoke.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-ecs-candidate-smoke-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-and-smoke-candidate:
+    runs-on: self-hosted
+    timeout-minutes: 35
+    env:
+      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_REF: ${{ github.head_ref || github.ref_name }}
+      COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
+      COMPETITION_CANDIDATE_BASE: /opt/actions-runner-public/competition-candidates/ai-ecommerce-assistant-public
+      COMPETITION_PRODUCTION_ROOT: /opt/ai-ecommerce-assistant
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
+    steps:
+      - name: Materialize exact source commit with retries
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if [ ! -d .git ]; then
+            git init .
+          fi
+          git remote remove origin >/dev/null 2>&1 || true
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_READ_TOKEN" | base64 | tr -d '\n')"
+          FETCHED=0
+          for attempt in $(seq 1 12); do
+            echo "Fetch attempt ${attempt}/12 for ${COMPETITION_SOURCE_REF}@${COMPETITION_SOURCE_COMMIT}"
+            if git \
+              -c http.version=HTTP/1.1 \
+              -c http.lowSpeedLimit=1 \
+              -c http.lowSpeedTime=120 \
+              -c http.https://github.com/.extraheader="$AUTH_HEADER" \
+              fetch --force --no-tags --prune --depth=1 origin \
+              "+refs/heads/${COMPETITION_SOURCE_REF}:refs/remotes/origin/${COMPETITION_SOURCE_REF}"; then
+              if git cat-file -e "${COMPETITION_SOURCE_COMMIT}^{commit}" 2>/dev/null; then
+                FETCHED=1
+                break
+              fi
+            fi
+            sleep $((attempt * 5))
+          done
+          unset AUTH_HEADER
+          test "$FETCHED" = "1"
+          git checkout --detach --force "$COMPETITION_SOURCE_COMMIT"
+          git reset --hard "$COMPETITION_SOURCE_COMMIT"
+          git clean -ffdx
+          test "$(git rev-parse HEAD)" = "$COMPETITION_SOURCE_COMMIT"
+
+      - name: Verify exact tool Python
+        run: |
+          set -euo pipefail
+          [ -x "$COMPETITION_TOOL_PYTHON" ]
+          test "$($COMPETITION_TOOL_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+
+      - name: Compile lineage, package and candidate tools
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          rm -rf dist/competition-lineage dist/competition-runtime dist/competition-candidate
+          mkdir -p dist/competition-candidate
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          "$COMPETITION_TOOL_PYTHON" -m py_compile \
+            scripts/compile_competition_lineage.py \
+            scripts/build_competition_runtime_package.py \
+            scripts/verify_competition_runtime_package.py \
+            scripts/deploy_competition_candidate.py \
+            scripts/deploy_competition_candidate_runner.py
+
+      - name: Compile exact registry and hash lineage
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" scripts/compile_competition_lineage.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output-dir dist/competition-lineage \
+            2>&1 | tee dist/competition-candidate/lineage-summary.log
+
+      - name: Build and verify precise runtime package
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" scripts/build_competition_runtime_package.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --lineage-dir dist/competition-lineage \
+            --output-dir dist/competition-runtime \
+            --archive-name "competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            2>&1 | tee dist/competition-candidate/package-build-summary.log
+          ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          "$COMPETITION_TOOL_PYTHON" scripts/verify_competition_runtime_package.py \
+            "$ARCHIVE" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output dist/competition-runtime/competition-runtime-verification.json \
+            2>&1 | tee dist/competition-candidate/package-verification-summary.log
+
+      - name: Prepare cached exact Python 3.11.9 application environment
+        run: |
+          set -euo pipefail
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_TOOL_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" \
+              "$GITHUB_WORKSPACE/dist/competition-candidate" \
+              | tee dist/competition-candidate/runtime-environment-summary.log \
+              | tail -n 1
+          )"
+          [ -x "$RUNTIME_PYTHON" ]
+          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+
+      - name: Deploy production-disjoint ECS candidate and smoke HTTP
+        run: |
+          set -euo pipefail
+          ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          "$COMPETITION_TOOL_PYTHON" scripts/deploy_competition_candidate_runner.py \
+            "$ARCHIVE" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --candidate-base "$COMPETITION_CANDIDATE_BASE" \
+            --production-root "$COMPETITION_PRODUCTION_ROOT" \
+            --runtime-python "$COMPETITION_RUNTIME_PYTHON" \
+            --port 39080 \
+            --startup-timeout 120 \
+            --attestation dist/competition-candidate/candidate-attestation.json \
+            2>&1 | tee dist/competition-candidate/candidate-smoke-summary.log
+
+      - name: Verify candidate attestation contract
+        if: success()
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads(
+              Path('dist/competition-candidate/candidate-attestation.json').read_text(encoding='utf-8')
+          )
+          assert report.get('schema') == 'competition.ecs_candidate_smoke.v1', report
+          assert report.get('verified') is True, report.get('errors')
+          assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
+          assert report.get('productionBoundaryDisjoint') is True, report
+          assert report.get('productionCurrentObservationUnchanged') is True, report
+          assert report.get('productionCurrentUnchanged') is True, report
+          assert report.get('productionServiceRestarted') is False, report
+          assert report.get('productionSymlinkSwitched') is False, report
+          assert report.get('productionEnvironmentLoaded') is False, report
+          assert report.get('productionDatabaseReused') is False, report
+          assert report.get('candidateOnlyWritableState') is True, report
+          assert report.get('candidateExecutedAsRoot') is False, report
+          probes = report.get('httpProbes') or []
+          assert len(probes) == 3 and all(item.get('ok') is True for item in probes), probes
+          print(json.dumps({
+              'verified': report['verified'],
+              'sourceCommit': report['sourceCommit'],
+              'candidateId': report['candidateId'],
+              'candidateBase': report['candidateBase'],
+              'runtimePython': report['runtimePython'],
+              'loopbackPort': report['loopbackPort'],
+              'productionBoundaryDisjoint': report['productionBoundaryDisjoint'],
+              'productionCurrentReadable': report['productionCurrentReadable'],
+              'productionCurrentUnchanged': report['productionCurrentUnchanged'],
+              'verificationHash': report['verificationHash'],
+          }, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Publish candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: competition-ecs-candidate-${{ env.COMPETITION_SOURCE_COMMIT }}
+          path: |
+            dist/competition-candidate
+            dist/competition-runtime/competition-runtime-build.json
+            dist/competition-runtime/competition-runtime-verification.json
+            dist/competition-runtime/*.sha256
+            dist/competition-lineage/evidence-manifest.json
+            dist/competition-lineage/verification-report.json
+          if-no-files-found: warn
+          retention-days: 14
