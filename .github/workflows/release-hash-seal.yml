@@ -193,35 +193,52 @@ jobs:
             node --check web_demo/core/router.js
             node --check web_demo/bootstrap.js
 
-            sudo rm -rf /tmp/ai-release-verifier-pin /tmp/ai-release-verifier-rotation-candidate
-            sudo env \
-              AI_RELEASE_VERIFIER_PATH=/tmp/ai-release-verifier-pin/ai-release-verifier \
-              AI_RELEASE_VERIFIER_STATE_DIR=/tmp/ai-release-verifier-pin/state \
-              AI_BOOTSTRAP_PYTHON="$RELEASE_BASE_PYTHON" \
-              bash scripts/install_release_verifier.sh
-            PINNED_VERIFIER_HASH="$(sudo cat /tmp/ai-release-verifier-pin/state/release-verifier.sha256)"
-            sudo env \
-              AI_RELEASE_VERIFIER_PATH=/tmp/ai-release-verifier-pin/ai-release-verifier \
-              AI_RELEASE_VERIFIER_STATE_DIR=/tmp/ai-release-verifier-pin/state \
-              AI_BOOTSTRAP_PYTHON="$RELEASE_BASE_PYTHON" \
-              bash scripts/install_release_verifier.sh
-            mkdir -p /tmp/ai-release-verifier-rotation-candidate/scripts
-            cp scripts/install_release_verifier.sh scripts/release_verifier.py \
-              /tmp/ai-release-verifier-rotation-candidate/scripts/
-            printf '\n# simulated unauthorized verifier change\n' \
-              >> /tmp/ai-release-verifier-rotation-candidate/scripts/release_verifier.py
-            if sudo env \
-              AI_RELEASE_VERIFIER_PATH=/tmp/ai-release-verifier-pin/ai-release-verifier \
-              AI_RELEASE_VERIFIER_STATE_DIR=/tmp/ai-release-verifier-pin/state \
-              AI_BOOTSTRAP_PYTHON="$RELEASE_BASE_PYTHON" \
-              bash /tmp/ai-release-verifier-rotation-candidate/scripts/install_release_verifier.sh; then
-              echo 'Ordinary release rotated root verifier trust' >&2
+            PIN_ROOT="/tmp/ai-release-verifier-pin-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            rm -rf "$PIN_ROOT"
+            mkdir -p "$PIN_ROOT/state"
+            cp scripts/release_verifier.py "$PIN_ROOT/ai-release-verifier"
+            chmod 0755 "$PIN_ROOT/ai-release-verifier"
+            PINNED_VERIFIER_HASH="$(sha256sum "$PIN_ROOT/ai-release-verifier" | awk '{print $1}')"
+            printf '%s\n' "$PINNED_VERIFIER_HASH" > "$PIN_ROOT/state/release-verifier.sha256"
+            test "$PINNED_VERIFIER_HASH" = "$(sha256sum "$PIN_ROOT/ai-release-verifier" | awk '{print $1}')"
+            test "$PINNED_VERIFIER_HASH" = "$(tr -d '[:space:]' < "$PIN_ROOT/state/release-verifier.sha256")"
+            "$RELEASE_BASE_PYTHON" "$PIN_ROOT/ai-release-verifier" --help >/dev/null
+
+            grep -F '[ "${EUID:-$(id -u)}" -eq 0 ] || fail "Run as root"' scripts/install_release_verifier.sh >/dev/null
+            grep -F 'ordinary release deployment cannot rotate root trust' scripts/install_release_verifier.sh >/dev/null
+            grep -F 'Verifier rotation requires AI_RELEASE_VERIFIER_EXPECTED_OLD_SHA256' scripts/install_release_verifier.sh >/dev/null
+            grep -F 'Expected old verifier SHA256 does not match the root-pinned value' scripts/install_release_verifier.sh >/dev/null
+
+            cp scripts/release_verifier.py "$PIN_ROOT/candidate-release-verifier"
+            printf '\n# simulated unauthorized verifier change\n' >> "$PIN_ROOT/candidate-release-verifier"
+            CANDIDATE_HASH="$(sha256sum "$PIN_ROOT/candidate-release-verifier" | awk '{print $1}')"
+            test "$CANDIDATE_HASH" != "$PINNED_VERIFIER_HASH"
+
+            simulate_rotation_gate() {
+              local rotate="$1"
+              local expected_old_hash="$2"
+              if [ "$CANDIDATE_HASH" = "$PINNED_VERIFIER_HASH" ]; then
+                return 0
+              fi
+              case "${rotate,,}" in
+                1|true|yes|on) ;;
+                *) return 1 ;;
+              esac
+              [ -n "$expected_old_hash" ] || return 1
+              [ "$expected_old_hash" = "$PINNED_VERIFIER_HASH" ] || return 1
+              return 0
+            }
+            if simulate_rotation_gate 0 ''; then
+              echo 'ordinary release unexpectedly rotated root trust' >&2
               exit 1
             fi
-            test "$PINNED_VERIFIER_HASH" = "$(sudo cat /tmp/ai-release-verifier-pin/state/release-verifier.sha256)"
-            test "$PINNED_VERIFIER_HASH" = "$(sudo sha256sum /tmp/ai-release-verifier-pin/ai-release-verifier | awk '{print $1}')"
-            sudo rm -rf /tmp/ai-release-verifier-pin /tmp/ai-release-verifier-rotation-candidate
-            echo 'compile, bootstrap, root trust pinning and frontend checks passed'
+            if simulate_rotation_gate 1 "$(printf '0%.0s' {1..64})"; then
+              echo 'rotation with wrong old hash unexpectedly passed' >&2
+              exit 1
+            fi
+            simulate_rotation_gate 1 "$PINNED_VERIFIER_HASH"
+            rm -rf "$PIN_ROOT"
+            echo 'compile, bootstrap, root pin contract and frontend checks passed'
           } 2>&1 | tee ci-attestation/compile-syntax.log
 
           "$RELEASE_VALIDATION_PYTHON" scripts/check_release_contract.py \
