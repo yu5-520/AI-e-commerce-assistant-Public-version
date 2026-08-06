@@ -13,7 +13,7 @@ from uuid import uuid4
 
 from src.repositories.sqlite_repository import connect, dumps, ensure_columns, loads
 from src.runtime_version import VERSION
-from src.services.account_service import default_operator
+from src.services.competition_operator_context_service import default_operator
 from src.services.action_authority_v214_service import (
     AUTHORIZATION_DATA_MISSING,
     AUTO_EXECUTE,
@@ -176,7 +176,7 @@ def _bind_operator(decision: Dict[str, Any]) -> Dict[str, Any]:
         assigned = default_operator(plan.get("riskDomain") or plan.get("taskType")) or {}
         if assigned.get("id"):
             plan["assignedOperatorId"] = assigned.get("id")
-            plan["operatorBindingSource"] = "v22_store_assignment_policy"
+            plan["operatorBindingSource"] = "competition_fixed_operator_context"
     next_decision["taskPlan"] = plan
     return next_decision
 
