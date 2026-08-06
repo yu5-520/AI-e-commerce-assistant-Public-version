@@ -437,7 +437,7 @@ def recover_agent1_execution_locks_v22513(
             view_result = materialize_frontend_views_v2259(
                 data_version=data_version,
                 view_key="operator-center",
-                user_id="U001",
+                user_id="competition_operator",
             )
         except Exception as exc:
             view_result = {
