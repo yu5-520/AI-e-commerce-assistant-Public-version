@@ -7,7 +7,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Body, Query, Request
 
 from src.runtime_version import API_VERSION
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.ops_diagnostic_train_service import (
     OPS_DIAGNOSTIC_TRAIN_VERSION,
     check_single_station,
