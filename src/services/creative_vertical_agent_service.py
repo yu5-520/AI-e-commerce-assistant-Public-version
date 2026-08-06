@@ -10,7 +10,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict, List
 
-from src.services.account_service import current_user
+from src.services.competition_operator_context_service import current_user
 from src.services.experience_memory_service import list_category_profiles, search_cases
 from src.services.module_projection_service import projected_products
 from src.services.module_task_service import create_task
