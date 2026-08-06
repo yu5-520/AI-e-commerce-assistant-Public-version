@@ -1,7 +1,7 @@
 {
   "schema": "competition.runtime_scope.v1",
-  "version": "2026.08.06.1",
-  "description": "比赛公开版唯一稳定运行链路。运行文件由统一注册表、生产入口实际导入闭包和前端引用闭包共同确定。",
+  "version": "2026.08.06.2",
+  "description": "比赛公开版唯一稳定运行链路。运行文件由统一注册表、生产入口实际导入闭包和前端引用闭包共同确定。Python 包初始化器属于真实导入语义，必须进入运行闭包并参与依赖追踪。",
   "registryProjectionPath": "config/v23_registry_runtime.json",
   "productionEntrypoints": [
     "src.api.main:app"
@@ -29,6 +29,9 @@
     "frontend_view"
   ],
   "seedFiles": [
+    "src/__init__.py",
+    "src/api/__init__.py",
+    "src/services/__init__.py",
     "src/api/main.py",
     "src/runtime_version.py",
     "requirements.lock",
@@ -94,6 +97,7 @@
     "registryImplementationPathsAreRequired": true,
     "runnerModuleAndSymbolMustExist": true,
     "pythonImportClosureIsRequired": true,
+    "pythonPackageInitializersAreRuntimeRequired": true,
     "frontendReferenceClosureIsRequired": true,
     "privateBoundaryCrossingFails": true,
     "shadowFastApiEntrypointFails": true,
