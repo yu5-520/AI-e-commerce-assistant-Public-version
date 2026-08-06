@@ -875,6 +875,8 @@ def delete_enterprise_surface(root: Path, deleted: set[str]) -> None:
                 if path.is_file():
                     delete_path(root, path.relative_to(root).as_posix(), deleted)
     for test in sorted((root / "tests").glob("test_*.py")):
+        if test.name == "test_competition_operator_boundary.py":
+            continue
         content = test.read_text(encoding="utf-8", errors="ignore")
         if any(token in content for token in (
             "src.services.account_service",
