@@ -1,4 +1,4 @@
-name: Competition Registry Lineage
+name: Competition Runtime Package
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ on:
       - 'release/**'
       - 'requirements.lock'
       - 'VERSION.md'
-      - '.github/workflows/competition-registry-lineage.yml'
+      - '.github/workflows/competition-runtime-package.yml'
   push:
     branches:
       - main
@@ -21,13 +21,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: competition-registry-lineage-${{ github.event_name }}-${{ github.ref }}
+  group: competition-runtime-package-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  compile-lineage:
+  build-runtime-package:
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       COMPETITION_SOURCE_REF: ${{ github.head_ref || github.ref_name }}
@@ -72,9 +72,8 @@ jobs:
       - name: Resolve ECS Python 3.10+
         run: |
           set -euo pipefail
-          CANDIDATE_FILE="${RUNNER_TEMP}/competition-python-candidates.txt"
+          CANDIDATE_FILE="${RUNNER_TEMP}/competition-package-python-candidates.txt"
           : > "$CANDIDATE_FILE"
-
           for candidate in \
             python3.13 python3.12 python3.11 python3.10 \
             /usr/local/bin/python3.13 /usr/local/bin/python3.12 \
@@ -87,16 +86,13 @@ jobs:
               printf '%s\n' "$candidate" >> "$CANDIDATE_FILE"
             fi
           done
-
           for search_root in /opt /usr/local /home "$RUNNER_TOOL_CACHE"; do
             [ -d "$search_root" ] || continue
             find "$search_root" -maxdepth 7 -type f \
               \( -name 'python3.13' -o -name 'python3.12' -o -name 'python3.11' -o -name 'python3.10' -o -name 'python' \) \
               -perm -u+x -print 2>/dev/null >> "$CANDIDATE_FILE" || true
           done
-
           sort -u "$CANDIDATE_FILE" -o "$CANDIDATE_FILE"
-          echo 'Discovered Python candidates:'
           while IFS= read -r candidate; do
             [ -n "$candidate" ] || continue
             version="$($candidate -c 'import platform; print(platform.python_version())' 2>/dev/null || true)"
@@ -107,74 +103,57 @@ jobs:
               exit 0
             fi
           done < "$CANDIDATE_FILE"
-
           echo 'No usable Python 3.10+ runtime exists on this ECS runner.' >&2
-          echo 'Install Python 3.10+ once on ECS or point the workflow to an existing application venv.' >&2
           exit 1
 
-      - name: Verify resolved Python
-        run: |
-          set -euo pipefail
-          "$PYTHON_BIN" - <<'PY'
-          import platform
-          import sys
-          assert sys.version_info >= (3, 10), sys.version
-          print(platform.python_version())
-          PY
-
-      - name: Compile registry and hash lineage
+      - name: Compile exact registry and lineage
         env:
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
           set -euo pipefail
-          rm -rf dist/competition-lineage dist/competition-lineage-summary.json
-          "$PYTHON_BIN" -m py_compile scripts/compile_competition_lineage.py
+          rm -rf dist/competition-lineage dist/competition-runtime
           mkdir -p dist
+          "$PYTHON_BIN" -m py_compile \
+            scripts/compile_competition_lineage.py \
+            scripts/build_competition_runtime_package.py \
+            scripts/verify_competition_runtime_package.py
           "$PYTHON_BIN" scripts/compile_competition_lineage.py \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output-dir dist/competition-lineage \
-            | tee dist/competition-lineage-summary.json
+            2>&1 | tee dist/competition-lineage-summary.json
 
-      - name: Verify evidence files
+      - name: Build whitelist runtime package
         run: |
           set -euo pipefail
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/source-identity.json >/dev/null
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/registry-snapshot.json >/dev/null
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/lineage-graph.json >/dev/null
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/verification-report.json >/dev/null
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/evidence-manifest.json >/dev/null
-          test -s dist/competition-lineage/runtime-files.txt
-          test -s dist/competition-lineage/runtime-files.sha256
-          "$PYTHON_BIN" - <<'PY'
-          import json
-          import os
-          from pathlib import Path
+          "$PYTHON_BIN" scripts/build_competition_runtime_package.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --lineage-dir dist/competition-lineage \
+            --output-dir dist/competition-runtime \
+            --archive-name "competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            2>&1 | tee dist/competition-runtime-build-summary.json
 
-          report = json.loads(
-              Path('dist/competition-lineage/verification-report.json').read_text(encoding='utf-8')
-          )
-          assert report.get('verified') is True, report.get('findings')
-          assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
-          assert report.get('runtimeFileCount', 0) > 0, report
-          assert report.get('registryModuleCount') == 9, report
-          assert report.get('shadowEntrypoints') == [], report
-          print(json.dumps({
-              'verified': report['verified'],
-              'sourceCommit': report['sourceCommit'],
-              'runtimeFileCount': report['runtimeFileCount'],
-              'registryModuleCount': report['registryModuleCount'],
-              'runtimeHash': report['runtimeHash'],
-              'graphHash': report['graphHash'],
-          }, ensure_ascii=False, sort_keys=True))
-          PY
+      - name: Verify package from archive only
+        run: |
+          set -euo pipefail
+          ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          "$PYTHON_BIN" scripts/verify_competition_runtime_package.py \
+            "$ARCHIVE" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output dist/competition-runtime/competition-runtime-verification.json \
+            2>&1 | tee dist/competition-runtime-verification-summary.json
+          test -s "$ARCHIVE"
+          test -s "${ARCHIVE}.sha256"
 
-      - name: Publish lineage evidence
-        if: success()
+      - name: Publish precise runtime package
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: competition-registry-lineage-${{ env.COMPETITION_SOURCE_COMMIT }}
+          name: competition-runtime-${{ env.COMPETITION_SOURCE_COMMIT }}
           path: |
+            dist/competition-runtime
             dist/competition-lineage
             dist/competition-lineage-summary.json
-          if-no-files-found: error
+            dist/competition-runtime-build-summary.json
+            dist/competition-runtime-verification-summary.json
+          if-no-files-found: warn
           retention-days: 14
