@@ -10,8 +10,6 @@
   const s = (value) => AppShell.escape(value ?? "");
   const sourceOptions = [["ERP", "ERP"], ["CRM", "CRM"], ["platform", "平台后台"], ["ads", "广告后台"], ["manual", "手动表格"]];
   const strategyOptions = [["review", "转人工复核"], ["archive", "保留审计并归档"], ["keep", "保留当前状态"]];
-
-  function userHeader() { return AppApi?.getCurrentUserId?.() || "U001"; }
   function v3() { return AppMockData.v3 || { activeAlertCount: 0, highPriorityAlertCount: 0, taskLinkedAlertCount: 0, latestAlerts: [] }; }
   function shortVersion(value) { const text = String(value || "未导入"); return text.length > 24 ? `${text.slice(0, 24)}...` : text; }
   function rowDate(value) { return String(value || "").replace("T", " ").slice(0, 19); }
@@ -20,7 +18,7 @@
 
   async function requestJson(path, fallback, options = {}) {
     try {
-      const response = await fetch(path, { method: options.method || "GET", headers: { Accept: "application/json", "Content-Type": "application/json", "X-Mock-User-Id": userHeader() }, body: options.body ? JSON.stringify(options.body) : undefined });
+      const response = await fetch(path, { method: options.method || "GET", headers: { Accept: "application/json", "Content-Type": "application/json"}, body: options.body ? JSON.stringify(options.body) : undefined });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       return await response.json();
     } catch (error) {
