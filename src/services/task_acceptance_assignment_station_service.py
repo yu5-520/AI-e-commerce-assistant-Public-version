@@ -21,7 +21,7 @@ def accept_task(task_id: str, *, actor_user_id: str | None = None, note: str | N
     result = transition_lifecycle_task(
         task_id,
         action,
-        actor_user_id=actor_user_id or ("system" if auto else "U003"),
+        actor_user_id="system" if auto else "competition_operator",
         payload={"note": note or ("系统自动接收权限内任务。" if auto else "运营接收任务，进入处理中。"), "stationId": "task_acceptance_station"},
     )
     result["stationVersion"] = TASK_ACCEPT_ASSIGN_STATION_VERSION
@@ -34,26 +34,14 @@ def auto_accept_ready_task_pool_tasks(*, viewer_id: str | None = None) -> Dict[s
     result = auto_accept_ready_tasks(tasks, viewer_id=viewer_id)
     result["stationVersion"] = TASK_ACCEPT_ASSIGN_STATION_VERSION
     result["stationId"] = "task_acceptance_station"
-    result["rule"] = "只自动接收运营权限内、无需主管/老板确认的任务；待拆分/需复核任务留给总管派发站。"
+    result["rule"] = "比赛版只自动接收固定运营工作台可执行任务；企业组织审批任务不在公开运行链路执行。"
     return result
 
 
 def assign_task(task_id: str, *, actor_user_id: str | None = None, assignee_id: str | None = None, reviewer_id: str | None = None, note: str | None = None, split: bool = False) -> Dict[str, Any]:
-    reviewer_id = reviewer_id or (default_reviewer() or {}).get("id")
-    result = transition_lifecycle_task(
-        task_id,
-        "split" if split else "assign",
-        actor_user_id=actor_user_id or "U002",
-        payload={
-            "assigneeId": assignee_id,
-            "reviewerId": reviewer_id,
-            "note": note or "总管派发任务，等待运营接收。",
-            "stationId": "task_assignment_station",
-        },
-    )
-    result["stationVersion"] = TASK_ACCEPT_ASSIGN_STATION_VERSION
-    result["stationId"] = "task_assignment_station"
-    return result
+    _ = actor_user_id, assignee_id, reviewer_id, note, split
+    return {"version": TASK_ACCEPT_ASSIGN_STATION_VERSION, "ok": False, "stationId": "task_assignment_station", "taskId": task_id, "error": "enterprise_organization_collaboration_not_enabled", "message": "老板、主管、部门派发与审批属于企业组织协同增值能力，比赛版暂未开放。"}
+
 
 
 def acceptance_assignment_summary() -> Dict[str, Any]:
@@ -62,8 +50,8 @@ def acceptance_assignment_summary() -> Dict[str, Any]:
     return {
         "version": TASK_ACCEPT_ASSIGN_STATION_VERSION,
         "waitingAccept": len([task for task in tasks if task.get("status") in {"待接收", "待确认", "已派发"}]),
-        "waitingAssignment": len([task for task in tasks if task.get("status") == "待拆分" or task.get("taskLayer") == "manager_dispatch"]),
+        "waitingAssignment": 0,
         "processing": len([task for task in tasks if task.get("status") == "处理中"]),
         "lifecycle": summary,
-        "rule": "V13.7：任务入池后，接收和派发通过独立站点写统一生命周期状态机。",
+        "rule": "比赛版仅开放固定运营工作台接收与执行；组织派发为企业增值能力。",
     }
