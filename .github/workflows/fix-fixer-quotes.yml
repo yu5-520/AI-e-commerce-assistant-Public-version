@@ -50,13 +50,18 @@ jobs:
           source = base64.b64decode(current['content']).decode('utf-8')
           start = "    fixed_consumers = r'''\n"
           end = "\n'''\n    replace_once(\n        \"\\ndef build_product_boundary() -> dict[str, Any]:\\n\","
-          if source.count(start) != 1 or source.count(end) != 1:
-              raise SystemExit(f'delimiters not uniquely found: start={source.count(start)} end={source.count(end)}')
+          isolation_doc = '''    isolation = ''' + "'''\"\"\"Competition fixed-workspace data-scope helpers.\n\nThe public competition runtime has no application account system and accepts no\nclient-selected user, role, tenant or organization identity. These helpers preserve\nthe existing row-scope API while pinning the demo namespace on the server side.\n\"\"\"\nfrom __future__ import annotations\n"
+          isolation_comment = '''    isolation = ''' + "'''# Competition fixed-workspace data-scope helpers.\n# The public runtime accepts no client-selected identity and pins the demo namespace.\nfrom __future__ import annotations\n"
+          if source.count(start) != 1 or source.count(end) != 1 or source.count(isolation_doc) != 1:
+              raise SystemExit(
+                  f'markers not unique: start={source.count(start)} end={source.count(end)} isolation={source.count(isolation_doc)}'
+              )
+          source = source.replace(isolation_doc, isolation_comment, 1)
           source = source.replace(start, '    fixed_consumers = r"""\n', 1)
           source = source.replace(end, '\n"""\n    replace_once(\n        "\\ndef build_product_boundary() -> dict[str, Any]:\\n",', 1)
           compile(source, path, 'exec')
           payload = json.dumps({
-              'message': 'fix: 修正消费者补丁脚本多行引号',
+              'message': 'fix: 修正消费者补丁脚本嵌套字符串',
               'content': base64.b64encode(source.encode('utf-8')).decode('ascii'),
               'sha': current['sha'],
               'branch': branch,
