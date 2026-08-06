@@ -2,14 +2,15 @@
 """Run the ECS candidate smoke in a production-disjoint runner directory.
 
 The wrapper never scans permission-protected production paths for Python. The
-workflow must provide one already verified Python 3.11.9 executable, and that
-explicit runtime is the only interpreter admitted for candidate startup.
+workflow must provide one already verified Python 3.11.9 virtual-environment
+executable, and that exact path is preserved so its site-packages remain active.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -77,7 +78,7 @@ def paths_are_disjoint(candidate_base: Path, production_root: Path) -> bool:
 def strict_explicit_runtime(explicit: str | None) -> list[Path]:
     if not explicit:
         raise CandidateBoundaryError("EXPLICIT_RUNTIME_PYTHON_REQUIRED")
-    path = Path(explicit).expanduser()
+    path = Path(explicit).expanduser().absolute()
     try:
         is_file = path.is_file()
         executable = os.access(path, os.X_OK)
@@ -88,6 +89,47 @@ def strict_explicit_runtime(explicit: str | None) -> list[Path]:
     if not is_file or not executable:
         raise CandidateBoundaryError(f"EXPLICIT_RUNTIME_PYTHON_INVALID:{path}")
     return [path]
+
+
+def inspect_explicit_runtime(path: Path) -> dict[str, Any]:
+    command = [
+        str(path),
+        "-c",
+        (
+            "import json,platform,sys;"
+            "import fastapi,uvicorn,sqlalchemy,pydantic,openpyxl;"
+            "print(json.dumps({"
+            "'pythonVersion':platform.python_version(),"
+            "'executable':sys.executable,"
+            "'prefix':sys.prefix,"
+            "'basePrefix':sys.base_prefix,"
+            "'fastapi':fastapi.__version__,"
+            "'uvicorn':uvicorn.__version__,"
+            "'sqlalchemy':sqlalchemy.__version__,"
+            "'pydantic':pydantic.__version__,"
+            "'openpyxl':openpyxl.__version__},sort_keys=True));"
+            "raise SystemExit(0 if sys.version_info[:3]==(3,11,9) "
+            "and sys.prefix != sys.base_prefix else 1)"
+        ),
+    ]
+    result = subprocess.run(
+        command,
+        text=True,
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    output = (result.stdout or result.stderr or "").strip()
+    try:
+        details = json.loads(output.splitlines()[-1]) if output else {}
+    except json.JSONDecodeError:
+        details = {"raw": output[:2000]}
+    return {
+        "path": str(path),
+        "usable": result.returncode == 0,
+        "returnCode": result.returncode,
+        **details,
+    }
 
 
 def augment_boundary_report(
@@ -115,7 +157,7 @@ def augment_boundary_report(
     report["candidateExecutedAsRoot"] = (
         os.geteuid() == 0 if hasattr(os, "geteuid") else False
     )
-    report["runtimeSelectionMode"] = "explicit_verified_python_only"
+    report["runtimeSelectionMode"] = "explicit_verified_venv_only"
     if report["candidateExecutedAsRoot"]:
         report.setdefault("errors", []).append("CANDIDATE_MUST_NOT_RUN_AS_ROOT")
         report["verified"] = False
@@ -144,13 +186,21 @@ def run_candidate(
             f"{candidate_base}:{production_root}"
         )
     candidate_base.mkdir(parents=True, exist_ok=True)
-    strict_runtime = strict_explicit_runtime(str(runtime_python))[0].resolve()
+    strict_runtime = strict_explicit_runtime(str(runtime_python))[0]
+    runtime_probe = inspect_explicit_runtime(strict_runtime)
+    if runtime_probe.get("usable") is not True:
+        raise CandidateBoundaryError(
+            "EXPLICIT_RUNTIME_VERIFICATION_FAILED:"
+            + json.dumps(runtime_probe, ensure_ascii=False)
+        )
     before = observe_current(production_root)
 
     original_selector = candidate_module.candidate_python_paths
+    original_inspector = candidate_module.inspect_runtime_python
     candidate_module.candidate_python_paths = (
         lambda _deploy_root, explicit: strict_explicit_runtime(explicit)
     )
+    candidate_module.inspect_runtime_python = inspect_explicit_runtime
     failure: Exception | None = None
     report: dict[str, Any]
     try:
@@ -163,6 +213,7 @@ def run_candidate(
             attestation_path=attestation,
             startup_timeout=startup_timeout,
         )
+        report["explicitRuntimeProbe"] = runtime_probe
     except Exception as exc:
         failure = exc
         if attestation.is_file():
@@ -175,12 +226,14 @@ def run_candidate(
                 "sourceCommit": source_commit,
                 "errors": [],
             }
+        report["explicitRuntimeProbe"] = runtime_probe
         report.setdefault("errors", []).append(
             f"CANDIDATE_START_FAILED:{type(exc).__name__}:{exc}"
         )
         report["verified"] = False
     finally:
         candidate_module.candidate_python_paths = original_selector
+        candidate_module.inspect_runtime_python = original_inspector
 
     after = observe_current(production_root)
     augment_boundary_report(
@@ -241,7 +294,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         source_commit=args.source_commit.strip(),
         candidate_base=Path(args.candidate_base).expanduser(),
         production_root=Path(args.production_root).expanduser(),
-        runtime_python=Path(args.runtime_python).expanduser(),
+        runtime_python=Path(args.runtime_python).expanduser().absolute(),
         port=args.port,
         startup_timeout=args.startup_timeout,
         attestation=Path(args.attestation).expanduser().resolve(),
