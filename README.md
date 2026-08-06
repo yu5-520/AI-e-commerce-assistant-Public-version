@@ -1,181 +1,187 @@
-# AI ERP 企业级电商经营 SaaS 底座
+<div align="center">
 
-Public product/API release: **V22.4.0 Release Hash Seal Lite**  
-Deployment single-authority hotfix: **22.5.4**  
-Three-Agent state machine and execution lock: **22.5.5**  
-Agent1 input semantics: **22.5.8 / agent_input.agent1.v3**  
-Hash-directed Artifact runtime and frontend views: **22.5.9**  
-Interface documentation sync: **22.5.10**
+# AI 经营参谋
 
-V22.4负责Git Commit、Release Hash、精确Python、依赖、灰度证据、Root信任、GitHub Artifact传输、ECS目录和SQLite数据身份。V22.5在同一签封运行时内恢复三Agent业务语义分层，并以不可变Artifact Hash作为Agent执行、缓存重放和前端视图交接的唯一业务身份。
+### 面向电商团队的经营数据 → 可执行任务 Agent
 
-Production dependency contract: `requirements.lock`  
-Gray-test dependency contract: `requirements-dev.lock`  
-Runtime environment identity: `runtimePipFreezeHash == pipFreezeHash`
+**上传经营报表后，系统自动完成数据比对、问题判断、行动规划、SOP 生成与任务流转。**  
+**让一个运营管理更多店铺，让经营经验沉淀为企业资产，让人员变化不再打断店铺经营。**
 
-## 当前版本矩阵
+当前阶段：**可运行 MVP · 首批企业试点招募**  
+当前部署：**阿里云 ECS**  
+当前推理平台：**阿里云百炼 · 通义千问**  
+公开比赛版：**唯一稳定业务主链**
+
+</div>
+
+---
+
+## 项目定位
+
+AI 经营参谋不是一个只回答问题或生成文案的聊天工具，而是一套以经营数据为输入、以任务为执行载体、以复盘为知识回流入口的电商经营 Agent 系统。
 
 ```text
-公开产品/API版本                    22.4.0
-正式部署单一权威                     22.5.4
-三Agent状态机与执行锁                 22.5.5
-Agent1输入语义                       22.5.8
-Agent1输入Schema                     agent_input.agent1.v3
-Hash定向Artifact执行                 22.5.9
-Agent1严格Token运行时                22.5.9
-前端View Artifact/Manifest          22.5.9
-接口文档同步                         22.5.10
+经营报表
+→ 数据清洗与多期比对
+→ 商品级经营证据
+→ Agent 经营判断
+→ 平台与类目动作草案
+→ 企业执行 SOP
+→ 确定性任务映射
+→ 执行、验收与复盘
 ```
 
-这些版本承担不同职责，不应被强行改成一个数字。公开API保持22.4.0，不代表内部Agent执行仍停留在22.4.0。
+比赛公开版本聚焦一条经过验证的稳定链路，用于证明产品核心价值和端到端交付能力。完整母仓保留企业级增值能力与定制接口，比赛仓不公开其具体实现。
 
-## 唯一业务主链
+---
+
+## 客户为什么选择
+
+### 1. 减少繁琐的数据处理，让一个运营管理更多店铺
+
+传统运营需要反复下载报表、整理字段、清洗数据、跨周期比对、寻找异常并撰写执行方案。系统把这些机械环节压缩为自动化链路，让运营人员直接处理已经定位的经营问题和执行任务。
+
+企业由此可以：
+
+- 缩短从数据产生到经营动作落地的时间；
+- 减少重复报表整理和人工比对；
+- 提高单个运营人员的店铺与商品管理半径；
+- 在扩大业务规模时，降低人员同比例扩张的压力。
+
+### 2. 把个人经验沉淀为企业经营资产
+
+系统记录任务产生依据、执行过程、人工修改、审批结果和经营效果。经过验证与审核的经验可以回流企业 RAG，逐步形成企业自己的类目知识、平台经验、品牌规则和管理方法。
 
 ```text
-真实报表Artifact
+经营数据
+→ Agent 判断
+→ 人员执行
+→ 结果验证
+→ 人工复盘与审核
+→ 企业 RAG
+→ 下一轮任务质量提升
+```
+
+这使企业从依赖个别运营人员的个人能力，转向依靠可继承、可复用、可持续积累的组织能力运行。
+
+### 3. 用任务驱动组织，降低培训、离职与岗位调动风险
+
+每项任务都保留数据依据、问题解释、执行步骤、权限边界、验收标准和历史记录。新人可以在真实任务中边执行边学习，减少对资深运营一对一带教的依赖。
+
+当人员离职、休假或调岗时，其他运营可以沿着已有任务链、经营证据和复盘记录继续接手，显著降低交接成本和业务中断风险。
+
+### 4. 从单一结果指标升级为多证据经营评价
+
+ROI、ROAS 等结果指标仍然重要，但无法单独解释库存、审批、美工、采购和市场变化等外部影响。任务生命周期可以提供完整证据链：
+
+```text
+经营问题
+→ 任务生成
+→ 责任部门
+→ 执行与阻塞
+→ 审批与返工
+→ 验收结果
+→ 经营数据变化
+```
+
+系统可基于真实日志自动形成日报、周报和月报，减少员工重复整理汇报的时间，并为管理者提供结果、过程、协作和外部条件的交叉验证依据。
+
+---
+
+## 比赛版唯一稳定主链
+
+公开比赛版本只保留以下端到端主链，不把母仓中的企业增值接口重新塞入公开运行路径：
+
+```text
+真实/脱敏经营报表 Artifact
 → 最近五份事实比较与历史趋势
 → operatingEvidenceGraph.v1
 → signalRef
 → agent1InputRef
-→ 校验inputContentHash
 → executionHash / itemExecutionId
-→ Agent1经营判断（最多8商品微批次）
-→ 单商品Agent1输出Artifact
-→ agentExecutionOutputRef
-→ capabilityRef
+→ Agent1 经营判断
 → agent2DraftInputRef
-→ Agent2垂直类目/平台化动作草案
-→ agent2DraftRef
+→ Agent2 平台与类目动作草案
 → agent3SopInputRef
-→ Agent3公司化高质量SOP
-→ agent3SopRef
+→ Agent3 企业执行 SOP
 → 确定性任务映射
-→ taskMappingRef
-→ 权限准入、任务生命周期与自动复盘
+→ 权限准入、任务生命周期与复盘
 ```
 
-输入硬边界：
+观察类商品在 Agent1 后形成合法终态，不进入后续动作生成，避免为了“多生成任务”而制造无效运营动作。
+
+### 三 Agent 职责
+
+| 阶段 | 职责 | 明确边界 |
+|---|---|---|
+| Agent1 | 读取经营证据，识别主问题并锁定唯一动作方向 | 不生成最终成稿或完整 SOP |
+| Agent2 | 结合平台、类目、商品角色与参数边界形成动作草案 | 不改变 Agent1 的主动作，不生成公司审批流程 |
+| Agent3 | 结合企业规则与 RAG 生成可执行 SOP | 不扩大权限，不增加第二个执行目标 |
+| 确定性映射 | 将 Agent3 SOP 转换为任务并执行准入校验 | 不再调用 LLM，不增加或改写业务步骤 |
+
+---
+
+## 阿里云技术架构
+
+当前真实运行链路已经使用阿里云技术栈：
+
+| 层级 | 当前运行方案 |
+|---|---|
+| 云基础设施 | 阿里云 ECS |
+| 模型平台 | 阿里云百炼 |
+| 当前主模型 | 通义千问 |
+| Agent 调用 | Agent1 / Agent2 / Agent3 均通过统一 Provider 层调用百炼千问 |
+| 模型扩展 | 保留其他云模型与企业内部模型适配接口 |
+| 稳定控制 | 输入引用边界、执行 Hash、不可变 Artifact、确定性任务映射 |
+| 业务闭环 | 任务准入、执行、验收、复盘与知识回流 |
+
+统一模型适配接口不是对当前主模型的弱化，而是面向企业选型、容灾和私有化部署的扩展设计。比赛版本的当前正式主链仍以 **阿里云百炼通义千问** 为推理服务。
+
+### 智能与确定性的分工
 
 ```text
-Agent1只读取 artifactRefs.agent1InputRef
-Agent2只读取 artifactRefs.agent2DraftInputRef
-Agent3只读取 artifactRefs.agent3SopInputRef
+通义千问
+→ 负责理解、判断、规划和 SOP 生成
+
+系统规则与 Hash 运行时
+→ 负责身份、权限、重放、审计和确定性映射
 ```
 
-完整`signalRef`、`capabilityRef`、历史流水payload和原始批次输出只用于审计与血缘，不得成为模型失败回退输入。
+系统避免让大模型直接拥有完整业务状态机和任务数据库修改权，从而提高企业场景下的可追溯性、可复现性和可控制性。
 
-## Hash定向执行
+---
 
-每个Agent执行条件生成：
+## 核心技术特点
 
-```text
-executionHash = Hash(
-  inputArtifactRef + inputContentHash + stage + inputSchema +
-  projectionVersion + promptVersion + policyHash +
-  provider + model + generationParametersHash
-)
-```
+### Hash 定向执行
 
-硬规则：
+每个 Agent 执行条件形成唯一 `executionHash`。完全相同的执行条件返回同一个不可变输出 Artifact，不重复调用模型；输入、策略、模型或参数变化时生成新的执行身份，不覆盖旧结果。
 
 ```text
-一个executionHash
-→ 最多一个acceptedOutputRef
-
-完全相同executionHash
-→ 返回同一个不可变输出Artifact
-→ 不重新调用模型
+相同 executionHash
+→ 返回同一 acceptedOutputRef
+→ Provider 调用次数为 0
 
 执行条件变化
-→ 生成新executionHash
-→ 不覆盖旧输出
+→ 新 executionHash
+→ 新不可变输出
 ```
 
-禁止：
+### 商品级微批次隔离
+
+Agent1 单次 Provider 请求最多处理 8 个商品，通过 `itemExecutionId + inputContentHash` 匹配每个商品的输入与输出。单个商品失败不会导致同批已接受商品重跑。
+
+### 输入引用硬边界
 
 ```text
-旧Agent结果重绑新dataVersion
-旧Agent结果重绑新signalId/packageId/productId
-删除来源Hash后跨报表复用业务判断
+Agent1 只读取 artifactRefs.agent1InputRef
+Agent2 只读取 artifactRefs.agent2DraftInputRef
+Agent3 只读取 artifactRefs.agent3SopInputRef
 ```
 
-`llm_item_result_cache_v211`不再拥有Agent业务结果重放权。正式重放由`artifact_execution_index_v2259`定位不可变输出Artifact。
-
-## Agent1八商品微批次
-
-Agent1继续一次Provider请求最多处理8份商品，不拆成8次接口调用。
-
-```text
-Batch Manifest
-├─ itemExecutionId 1 + inputContentHash 1
-├─ itemExecutionId 2 + inputContentHash 2
-├─ ...
-└─ itemExecutionId 8 + inputContentHash 8
-```
-
-`slot`只表示请求顺序。模型返回顺序可以变化，匹配必须使用：
-
-```text
-itemExecutionId + inputContentHash
-```
-
-分类：
-
-```text
-原始响应完全没有itemExecutionId
-→ true missing
-→ 仅该商品单项补偿
-
-返回ID但Hash缺失/错误
-→ output contract invalid
-→ 不按漏商品重试
-
-重复ID
-→ 每一份都拒绝
-→ 不接受第一条
-
-批次外ID
-→ extra
-→ 不进入下游
-```
-
-一个商品失败不会使同批已接受商品重跑。
-
-## 三Agent职责
-
-### Agent1：经营判断
-
-负责数据波动、趋势、强关联、经营问题、观察/动作判断、经营路线和唯一动作族锁定。`act`必须锁定唯一主问题、主动作、责任人和执行对象。
-
-Agent1不生成标题、主图成稿、投放参数成稿或最终SOP。
-
-### Agent2：动作草案
-
-结合Agent1执行锁、垂直类目、平台习惯、商品角色、真实执行对象、参数和权限边界，生成差异化结构草案。
-
-```text
-输入：agent_input.agent2_draft.v1
-输出：agent2.action_draft.v1
-状态：draft_ready / draft_missing_data / draft_conflict / draft_rejected
-```
-
-Agent2不生成最终任务标题、完整SOP步骤、公司审批流程或任务生命周期状态，不得增加第二个直接执行目标。
-
-### Agent3：公司化SOP
-
-结合Agent1执行锁、Agent2草案、公司管理风格、品牌审美、审批规则和公司SOP RAG，生成运营可直接执行的高质量SOP。
-
-```text
-输入：agent_input.agent3_sop.v1
-输出：agent3.sop.v1
-状态：sop_ready / sop_missing_data / sop_requires_approval / sop_conflict
-```
-
-Agent3不得改变动作族、扩大权限和参数边界，也不得编造执行对象。
+原始报表、历史流水和完整审计内容不会被无边界地塞入每个 Agent 上下文。
 
 ### 确定性任务映射
-
-任务映射只把Agent3 SOP转换为Task DTO并执行权限准入：
 
 ```text
 noMappingLlm = true
@@ -183,115 +189,139 @@ compilerAddedStepCount = 0
 mappingMode = deterministic_agent3_projection_only
 ```
 
-映射器不增加、不删除、不重写业务步骤。
+模型负责智能判断，系统负责把已经通过合同校验的 SOP 投影为任务，避免在最后一步再次发生不可控改写。
 
-## Artifact引用链
+---
 
-业务阶段引用：
+## 企业级扩展能力
 
-```text
-signalRef
-agent1InputRef
-agent1Ref / observationRef / agent1FailureRef
-capabilityRef
-agent2DraftInputRef
-agent2DraftRef
-agent3SopInputRef
-agent3SopRef
-taskMappingRef
-taskAdmissionRef
-```
+完整母仓保留以下增值能力。为保证比赛版本稳定性、公开安全边界和知识产权保护，相关执行接口不进入公开比赛主链。
 
-V22.5.9执行引用：
+| 能力 | 比赛版状态 | 商业交付方式 |
+|---|---|---|
+| 报表上传、数据比对、三 Agent 与任务生成 | 公开可运行 | 标准 SaaS |
+| 通用电商 RAG 与平台风格能力 | 比赛场景可用 | 月费基础能力 |
+| 多租户数据库隔离 | 比赛版关闭 | 企业年费 |
+| ERP / CRM / 数据仓库自动接入 | 接口不公开 | 企业接口服务 |
+| 垂直类目 RAG | 实现留在母仓 | 企业增值服务 |
+| 公司经营管理与权限 RAG | 实现留在母仓 | 企业年费 / 定制 |
+| 跨部门父事务与任务依赖编排 | 业务方案公开，执行接口关闭 | 企业协同版 |
+| 自动日报、周报、月报 | 方案与数据基础公开 | 管理增值模块 |
+| 多证据绩效辅助分析 | 方案公开，AI 不直接决定绩效 | 企业管理模块 |
+| 企业内部服务器与数据库部署 | 部署细节不公开 | 一次性部署费 |
+| 1V1 运维与驻场服务 | 非公开代码能力 | 年度服务费 |
 
-```text
-agentExecutionInputRef
-agentExecutionOutputRef
-agentRawBatchOutputRef
-batchManifestRef
-inputContentHash
-outputContentHash
-executionHash
-itemExecutionId
-```
+更完整的状态说明见：[比赛能力状态矩阵](docs/COMPETITION_CAPABILITY_MATRIX.md)。
 
-状态机只保存阶段和引用；完整语义内容保存在Artifact Hub。
+---
 
-## 流水阶段
+## 跨部门经营编排示例
+
+企业版本可以围绕一个经营目标生成父事务，并按照真实依赖关系拆分部门任务。
+
+### ROAS 增投
 
 ```text
-agent1_pending
-agent1_running
-agent1_completed / observed_soft_gate
-agent1_output_invalid / agent1_failed
-
-action_pack_ready
-agent2_draft_input_invalid
-agent2_running
-agent2_draft_ready
-agent2_draft_output_invalid
-agent2_draft_failed
-
-agent3_sop_running
-agent3_sop_ready
-agent3_sop_output_invalid
-agent3_sop_failed
-
-task_mapped
-task_mapping_failed
-
-task_admitted
+高 ROAS 商品具备增投价值
+├─ 主管 / 财务：预算审批
+├─ 仓储：库存与可售天数检查
+├─ 采购：库存不足时生成补货任务
+├─ 运营：调整预算、出价和投放计划
+└─ 系统：观察销量、利润、库存与 ROAS 变化
 ```
 
-观察商品是合法终态，不进入Agent2、Agent3或任务池。
-
-## Token漏斗
+### 标题主图优化
 
 ```text
-Agent1处理全部准入商品
-Agent2只处理Agent1判定需要动作的商品
-Agent3只处理通过草案合同的商品
+点击率异常
+→ 运营确认问题与目标人群
+→ 美工制作主图
+→ 品牌 / 主管审核
+→ 运营上线或发起 A/B 测试
+→ 系统进入观察与复盘
 ```
 
-三Agent不等于每个商品调用三次。相同`executionHash`的精确重放也执行零次Provider调用。
+这使产品从“给运营建议”升级为“让经营数据按照正确顺序变成跨部门协同任务”。
 
-## 前端Hash View
+---
 
-稳定业务页面不再依赖按路径TTL反复拉取完整接口。
+## 商业模式
+
+### 个人与小型电商公司：标准 SaaS 月费
+
+提供报表上传、数据比对、通用电商 RAG、通用平台风格模型、经营任务与 SOP 生成。核心价值是节省报表处理时间，提高单个运营的店铺管理数量。
+
+### 中大型电商公司：企业年费 + 增值服务
+
+提供独立租户、ERP 自动接入、垂直类目 RAG、公司管理权限 RAG、跨部门任务编排、任务生命周期和经验审核回流。核心价值是组织效率、经验资产化和业务连续性。
+
+### 大型品牌电商：私有化部署 + 年度服务
+
+部署到企业内部服务器和数据库，提供全链路 RAG 定制、部门权限隔离、内部系统接入，以及远程 1V1 或驻场运维服务。
 
 ```text
-业务状态变化
-→ 模块View Artifacts
-→ Page Manifest Artifact
-→ View Head原子切换
+月费订阅
+＋ 企业年费
+＋ 接口接入费
+＋ RAG 定制费
+＋ 私有化部署费
+＋ 年度运维服务费
 ```
 
-前端流程：
+---
+
+## 当前阶段与比赛目标
+
+本项目已经完成可运行 MVP、核心主链测试和关键接口验证，当前尚未进入规模化客户运营阶段。
+
+本次参赛的目的不是把未来市场数据伪装成当前成绩，而是借助比赛完成从技术验证到市场验证的跨越：
 
 ```text
-GET轻量View Head
-→ 比较manifestHash
-
-Hash未变
-→ 使用本地不可变缓存
-→ 不重复下载
-→ 不重复渲染
-
-Hash变化
-→ 下载新Manifest
-→ 比较模块contentHash
-→ 只更新变化模块
+稳定公开比赛版
+→ 获得赛事曝光与行业背书
+→ 招募首批企业试点
+→ 形成真实使用数据
+→ 沉淀行业案例
+→ 企业销售与规模化
+→ 融资或持续经营增长
 ```
 
-接口：
+首批试点重点量化：
+
+- 报表处理与分析时间；
+- 单个运营可管理店铺数量；
+- Agent 任务采用率和人工修改率；
+- 新人适应周期与带教时间；
+- 店铺交接周期；
+- 跨部门任务完成与阻塞时间；
+- 日报、周报、月报编写时间；
+- 企业 RAG 回流前后的任务质量变化。
+
+---
+
+## 公开比赛仓与完整母仓边界
+
+比赛仓不是母仓的完整开源副本，而是面向公开验证的稳定产品核心。
 
 ```text
-GET  /api/view/head/{view_key}
-GET  /api/view/artifacts/{artifact_ref}
-POST /api/view/refresh
+比赛仓
+= 唯一稳定运行链路
++ 脱敏演示数据
++ 必要测试与公开证明
++ 商业模式与战略规划
+
+完整母仓
+= 企业增值接口
++ 私有 RAG 与权限规则
++ ERP / 内部系统适配
++ 跨部门定制编排
++ 私有化部署与运维能力
++ 内部架构治理能力
 ```
 
-旧Manifest可以在新`dataVersion`构建时继续显示，但必须保持旧Hash和旧版本身份，并标记`previous_snapshot`。Hash只负责内容寻址，不能替代租户、用户、角色和店铺范围授权。
+公开仓采用白名单精准抽取，不通过“仅隐藏前端按钮”保护私有能力。企业 RAG 配方、客户定制规则、内部部署脚本、密钥与母仓治理架构不会进入公开发布包。
+
+---
 
 ## 唯一运行入口
 
@@ -299,159 +329,36 @@ POST /api/view/refresh
 src.api.main:app
 ```
 
-稳定门面与实现版本：
-
-```text
-Worker稳定导入：station_agent_worker_v2255_service
-活动Worker元数据：22.5.9
-硬接口Facade：agent_runtime_hard_interface_v2255_service
-活动Facade版本：22.5.9
-下游状态机：22.5.5
-Agent1严格执行：agent_token_runtime_hash_exact_v2259_service
-```
-
-兼容文件不允许启动影子Worker、第二套队列或旧Agent2→SOP链。
-
-## 发布DNA
-
-```text
-精确Git Commit
-→ 纯静态合同检查
-→ Python 3.6 Bootstrap兼容检查
-→ Root Verifier固定权测试
-→ FastAPI干净子进程烟雾测试
-→ 编译、Shell、前端和pytest真实日志
-→ Python 3.11.9精确生产环境
-→ requirements.lock依赖闭包
-→ 灰度证据语义绑定
-→ runtimeFiles
-→ attestedFiles
-→ testEvidenceFiles
-→ testRunHash
-→ dependencyLockHash
-→ runtimePipFreezeHash
-→ pipFreezeHash
-→ manifestHash
-→ releaseHash
-→ GitHub Actions不可变Artifact
-→ api.github.com精确Artifact传输
-→ ECS固定Root Verifier
-→ validated SQLite backup
-→ release-data-lineage.json
-→ releases/<releaseHash>
-→ current原子切换
-→ API、Worker、环境、证明和SQLite数据身份共同验明身份
-```
-
-服务器运行身份由以下内容共同确定：
-
-```text
-sourceCommit
-releaseHash
-dependencyLockHash
-runtimePipFreezeHash
-pipFreezeHash
-testRunHash
-evidenceSemanticVerified
-Root Verifier pinned SHA256
-SQLite schemaHash / release data lineage
-```
-
-## 三类签封文件
-
-### runtimeFiles
-
-正式运行代码、前端、配置、启动与部署脚本、`requirements.lock`和发布Policy。
-
-### attestedFiles
-
-测试、静态检查器、Manifest生成器、Python 3.6兼容检查器、GitHub Artifact传输器、工作流、README和VERSION。
-
-### testEvidenceFiles
-
-CI真实证据位于：
-
-```text
-release/attestation/
-```
-
-最低集合：
-
-```text
-compile-syntax.log
-static-contract.log
-app-route-smoke.log
-pytest.log
-production-runtime-verification.json
-attested-files.sha256
-test-attestation.json
-pip-freeze.txt
-python-runtime.json
-```
-
-## ECS目录
-
-```text
-/opt/ai-ecommerce-assistant/
-├── releases/<releaseHash>/
-├── current -> releases/<releaseHash>/
-└── shared/
-    ├── .env
-    ├── .venv
-    ├── data/
-    ├── logs/
-    ├── outputs/
-    └── artifacts/
-```
-
-Release目录不可原地修改。数据、日志、密钥和Python虚拟环境通过`shared`复用。
-
-## 部署
-
-正式更新使用已绑定Token的精确签封部署命令：
+本地开发入口示例：
 
 ```bash
-sudo deploy-ai-release <40-character-main-commit>
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.lock
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 ```
 
-底层传输器只接受目标Commit对应的已完成、未过期、成功`push main` Release Artifact。部署器不执行动态`git pull`、`git reset`或`latest`工作树部署。
+生产环境通过不可变发布包部署到阿里云 ECS。密钥、数据库地址和百炼配置均由 ECS 外部环境变量注入，不写入公开仓库。
 
-## 状态接口
+---
 
-```text
-GET /api/version
-GET /api/health
-GET /api/system/release-identity
-GET /api/system/data-identity
-GET /api/system/agent-pipeline-status
-GET /api/view/pipeline-live
-GET /api/view/head/{view_key}
-GET /api/view/artifacts/{artifact_ref}
-```
+## 版本、发布与验证
 
-状态接口必须同时展示公开版本、状态机版本、Agent1输入版本、Hash执行版本和接口文档版本，不能用一个字段覆盖全部层级。
+详细版本矩阵见：[VERSION.md](VERSION.md)。
 
-## 当前文档
+当前发布体系以精确 Git Commit、依赖锁、运行文件清单、测试证据和 Release Hash 共同确定服务器运行身份。正式发布目录不可原地修改，通过新发布目录验证后再原子切换。
 
-```text
-docs/V22.4.0_RELEASE_HASH_SEAL.md
-docs/V22.4.0.7_GITHUB_ARTIFACT_TRANSPORT.md
-docs/V22.5.4_SINGLE_DEPLOYMENT_AUTHORITY.md
-docs/V22.5.9_INTERFACE_AND_MIGRATION.md
-docs/V22.5.9_HASH_DIRECTED_ARTIFACT_RUNTIME.md
-docs/V22.5.9_AGENT_BATCH_MANIFEST.md
-docs/V22.5.9_FRONTEND_VIEW_ARTIFACT.md
-```
+当前有效技术文档：
 
-历史职责与恢复文档：
+- [V22.4.0 Release Hash Seal](docs/V22.4.0_RELEASE_HASH_SEAL.md)
+- [V22.4.0.7 GitHub Artifact Transport](docs/V22.4.0.7_GITHUB_ARTIFACT_TRANSPORT.md)
+- [比赛能力状态矩阵](docs/COMPETITION_CAPABILITY_MATRIX.md)
+- [比赛版筛选、部署与验证计划](docs/COMPETITION_RELEASE_PLAN.md)
 
-```text
-docs/V22.5.0_THREE_AGENT_SEMANTIC_PIPELINE.md
-docs/V22.5.0_INTERFACE_AND_MIGRATION.md
-docs/V22.5.8_AGENT1_EVIDENCE_OUTPUT_CONTRACT.md
-docs/V22.5.8_DEPLOYMENT_AND_RECOVERY.md
-```
+---
 
-## MVP边界
+## MVP 边界
 
-当前不加入Merkle Tree、Ed25519发布签名或蓝绿双实例。系统继续使用轻量Hash签封、不可变Artifact、精确执行索引、单实例Worker、SQLite部署血缘和自动回滚。
+比赛阶段优先保证一条主链稳定、可交付、可重复验证。当前不为了增加技术名词而引入不必要的 Merkle Tree、Ed25519 发布签名或蓝绿双实例；继续采用轻量 Hash 签封、不可变 Artifact、精确执行索引、单实例 Worker 和可回滚发布目录。
+
+> **先用唯一稳定链路证明产品能解决真实问题，再通过企业试点把架构价值转化为真实使用数据和商业飞轮。**
