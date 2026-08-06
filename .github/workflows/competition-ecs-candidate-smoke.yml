@@ -27,11 +27,13 @@ concurrency:
 jobs:
   deploy-and-smoke-candidate:
     runs-on: self-hosted
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       COMPETITION_SOURCE_REF: ${{ github.head_ref || github.ref_name }}
-      COMPETITION_DEPLOY_ROOT: /opt/ai-ecommerce-assistant
+      COMPETITION_CANDIDATE_BASE: /opt/actions-runner-public/competition-candidates/ai-ecommerce-assistant-public
+      COMPETITION_PRODUCTION_ROOT: /opt/ai-ecommerce-assistant
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
     steps:
       - name: Materialize exact source commit with retries
         env:
@@ -107,7 +109,7 @@ jobs:
           echo 'No usable Python 3.10+ tool runtime exists on this ECS runner.' >&2
           exit 1
 
-      - name: Compile lineage and package tools
+      - name: Compile lineage, package and candidate tools
         env:
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
@@ -118,7 +120,8 @@ jobs:
             scripts/compile_competition_lineage.py \
             scripts/build_competition_runtime_package.py \
             scripts/verify_competition_runtime_package.py \
-            scripts/deploy_competition_candidate.py
+            scripts/deploy_competition_candidate.py \
+            scripts/deploy_competition_candidate_runner.py
 
       - name: Compile exact registry and hash lineage
         run: |
@@ -144,14 +147,72 @@ jobs:
             --output dist/competition-runtime/competition-runtime-verification.json \
             2>&1 | tee dist/competition-candidate/package-verification-summary.log
 
-      - name: Deploy isolated ECS candidate and smoke HTTP
+      - name: Prepare cached exact Python 3.11.9 application environment
+        run: |
+          set -euo pipefail
+          BASE_PYTHON=/opt/python/3.11.9/bin/python3.11
+          [ -x "$BASE_PYTHON" ] || {
+            echo "Pinned base Python missing: $BASE_PYTHON" >&2
+            exit 1
+          }
+          test "$($BASE_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          LOCK_HASH="$(sha256sum requirements.lock | awk '{print $1}')"
+          VENV_DIR="$COMPETITION_VENV_ROOT/$LOCK_HASH"
+          VENV_PYTHON="$VENV_DIR/bin/python"
+          mkdir -p "$COMPETITION_VENV_ROOT"
+          NEED_BUILD=1
+          if [ -x "$VENV_PYTHON" ]; then
+            if "$VENV_PYTHON" -c 'import fastapi,uvicorn,sqlalchemy,pydantic,openpyxl' >/dev/null 2>&1 \
+              && "$VENV_PYTHON" scripts/check_dependency_lock.py requirements.lock --strict >/dev/null 2>&1; then
+              NEED_BUILD=0
+            fi
+          fi
+          if [ "$NEED_BUILD" = "1" ]; then
+            TMP_VENV="${VENV_DIR}.tmp-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            rm -rf "$TMP_VENV"
+            "$BASE_PYTHON" -m venv "$TMP_VENV"
+            "$TMP_VENV/bin/python" -m pip install --disable-pip-version-check -r requirements.lock \
+              2>&1 | tee dist/competition-candidate/dependency-install.log
+            "$TMP_VENV/bin/python" scripts/check_dependency_lock.py requirements.lock --strict \
+              | tee dist/competition-candidate/dependency-verification.json
+            rm -rf "$VENV_DIR"
+            mv "$TMP_VENV" "$VENV_DIR"
+          else
+            "$VENV_PYTHON" scripts/check_dependency_lock.py requirements.lock --strict \
+              | tee dist/competition-candidate/dependency-verification.json
+          fi
+          "$VENV_PYTHON" - <<'PY' | tee dist/competition-candidate/application-python.json
+          import json
+          import platform
+          import sys
+          import fastapi
+          import uvicorn
+          import sqlalchemy
+          import pydantic
+          import openpyxl
+          assert platform.python_version() == '3.11.9'
+          print(json.dumps({
+              'pythonVersion': platform.python_version(),
+              'executable': sys.executable,
+              'fastapi': fastapi.__version__,
+              'uvicorn': uvicorn.__version__,
+              'sqlalchemy': sqlalchemy.__version__,
+              'pydantic': pydantic.__version__,
+              'openpyxl': openpyxl.__version__,
+          }, sort_keys=True))
+          PY
+          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$VENV_PYTHON" >> "$GITHUB_ENV"
+
+      - name: Deploy production-disjoint ECS candidate and smoke HTTP
         run: |
           set -euo pipefail
           ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
-          "$PYTHON_BIN" scripts/deploy_competition_candidate.py \
+          "$PYTHON_BIN" scripts/deploy_competition_candidate_runner.py \
             "$ARCHIVE" \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
-            --deploy-root "$COMPETITION_DEPLOY_ROOT" \
+            --candidate-base "$COMPETITION_CANDIDATE_BASE" \
+            --production-root "$COMPETITION_PRODUCTION_ROOT" \
+            --runtime-python "$COMPETITION_RUNTIME_PYTHON" \
             --port 39080 \
             --startup-timeout 120 \
             --attestation dist/competition-candidate/candidate-attestation.json \
@@ -171,20 +232,26 @@ jobs:
           assert report.get('schema') == 'competition.ecs_candidate_smoke.v1', report
           assert report.get('verified') is True, report.get('errors')
           assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
+          assert report.get('productionBoundaryDisjoint') is True, report
+          assert report.get('productionCurrentObservationUnchanged') is True, report
           assert report.get('productionCurrentUnchanged') is True, report
           assert report.get('productionServiceRestarted') is False, report
           assert report.get('productionSymlinkSwitched') is False, report
           assert report.get('productionEnvironmentLoaded') is False, report
           assert report.get('productionDatabaseReused') is False, report
           assert report.get('candidateOnlyWritableState') is True, report
+          assert report.get('candidateExecutedAsRoot') is False, report
           probes = report.get('httpProbes') or []
           assert len(probes) == 3 and all(item.get('ok') is True for item in probes), probes
           print(json.dumps({
               'verified': report['verified'],
               'sourceCommit': report['sourceCommit'],
               'candidateId': report['candidateId'],
+              'candidateBase': report['candidateBase'],
               'runtimePython': report['runtimePython'],
               'loopbackPort': report['loopbackPort'],
+              'productionBoundaryDisjoint': report['productionBoundaryDisjoint'],
+              'productionCurrentReadable': report['productionCurrentReadable'],
               'productionCurrentUnchanged': report['productionCurrentUnchanged'],
               'verificationHash': report['verificationHash'],
           }, ensure_ascii=False, sort_keys=True))
