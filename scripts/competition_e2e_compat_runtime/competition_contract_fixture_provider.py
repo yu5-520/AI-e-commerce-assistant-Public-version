@@ -2,10 +2,10 @@
 """Compatibility entry for the deterministic competition fixture provider.
 
 The base fixture already generates the business content for Agent1/2/3. The active
-V22.5.9 Agent1 contract additionally requires the provider to echo the exact
-``itemExecutionId + inputContentHash`` pair from every projected product. This
-entry adds only that transport identity and leaves all business fixture content in
-the base provider unchanged.
+V22.5.9 Agent1 contract additionally requires both the exact transport identity
+(``itemExecutionId + inputContentHash``) and a complete evidence-backed execution
+lock for every ``act`` result. This entry adds those contract fields without
+changing the product runtime or pretending to be a real model-quality proof.
 """
 from __future__ import annotations
 
@@ -24,6 +24,45 @@ _ORIGINAL_RESPONSE_PAYLOAD = base.response_payload
 
 def _text(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _act_lock_fields(judgment: dict[str, Any], source: dict[str, Any]) -> None:
+    family = _text(judgment.get("selectedActionFamilyHint"))
+    product_id = _text(source.get("productId"))
+    if family == "roas_scale":
+        problem = "高效投放已被连续趋势验证，但当前预算未充分承接有效流量。"
+        action = "对当前商品关联计划执行一次受控预算增投。"
+        decisive = [
+            "最近三期ROAS连续上升。",
+            "支付转化率同步改善。",
+            "库存仅作为承接条件，不参与ROAS因果判断。",
+        ]
+        forbidden = ["creative", "platform_activity", "cross_store_operation"]
+    else:
+        problem = "流量与点击稳定，但支付转化率连续下降，详情页首屏承接减弱。"
+        action = "对当前商品详情页首屏执行一次单变量转化修复。"
+        decisive = [
+            "最近三期流量与点击保持稳定。",
+            "最近三期支付转化率连续下降。",
+            "价格与投放保持不变，可隔离验证页面承接。",
+        ]
+        forbidden = ["price_change", "budget_change", "cross_store_operation"]
+    judgment.update(
+        evidenceStatus="sufficient",
+        primaryProblemNode=problem,
+        primaryAction=action,
+        primaryExecutionTarget={
+            "targetType": "product",
+            "targetId": product_id,
+            "owner": "运营专员",
+            "scope": "当前店铺当前商品",
+        },
+        primaryOwner="运营专员",
+        decisiveFacts=decisive,
+        supportingCoordination=[],
+        forbiddenActionDomains=forbidden,
+        missingEvidence=[],
+    )
 
 
 def _agent1_exact(payload: dict[str, Any]) -> dict[str, Any]:
@@ -56,6 +95,11 @@ def _agent1_exact(payload: dict[str, Any]) -> dict[str, Any]:
         judgment["productId"] = source.get("productId")
         judgment["storeId"] = source.get("storeId")
         judgment["signalId"] = source.get("signalId")
+        if _text(judgment.get("decisionType")).lower() == "act":
+            _act_lock_fields(judgment, source)
+        else:
+            judgment["evidenceStatus"] = "insufficient"
+            judgment.setdefault("missingEvidence", ["当前趋势未达到动作准入阈值。"])
     return result
 
 
