@@ -427,13 +427,17 @@ def main() -> None:
     assert_route_contract()
 
     workflow = text(".github/workflows/release-hash-seal.yml")
+    assert "runs-on: self-hosted" in workflow
+    assert "tarball/${RELEASE_SOURCE_COMMIT}" in workflow
+    assert "RELEASE_MODE" in workflow
+    assert "RELEASE_DEPLOYABLE" in workflow
     for marker in (
-        "python-version: '3.11.9'",
-        "requirements-dev.lock --strict",
-        "/tmp/ai-release-runtime-venv",
-        "--runtime-python /tmp/ai-release-runtime-venv/bin/python",
+        "RELEASE_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11",
+        "prepare_exact_venv requirements-dev.lock",
+        "RELEASE_RUNTIME_VENV_ROOT",
+        "--runtime-python \"$RELEASE_RUNTIME_PYTHON\"",
         "scripts/check_python36_bootstrap.py",
-        "Ordinary release rotated root verifier trust",
+        "ordinary release unexpectedly rotated root trust",
         "ordinaryVerifierRotationRejected",
         "ci-attestation/compile-syntax.log",
         "ci-attestation/static-contract.log",
