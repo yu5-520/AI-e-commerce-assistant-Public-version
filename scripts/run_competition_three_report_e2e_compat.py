@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """Compatibility launcher for the fixed three-report E2E.
 
-Three compatibility boundaries are applied without changing product runtime code:
+Compatibility boundaries are applied without changing product runtime code:
 
 1. launch the V22.5.9 exact-hash fixture provider entry;
-2. collect SQLite evidence by introspecting the current ``pipeline_items`` schema;
-3. disable the asynchronous station thread so the test's official manual Tick API
-   deterministically drains all three imported data versions before assertions.
+2. collect SQLite evidence from the current ``pipeline_items`` schema;
+3. disable the asynchronous station thread so official manual Tick calls own all
+   transitions;
+4. retain the first two imports as historical metric facts while suppressing their
+   task-generation queue jobs, so the third report is the single business version
+   evaluated against the two prior periods.
 """
 from __future__ import annotations
 
+import hashlib
 import os
 import sqlite3
 import sys
@@ -204,16 +208,89 @@ def query_runtime_database(db_path: Path, latest_version: str) -> dict[str, Any]
         connection.close()
 
 
+def _history_only(connection_path: Path, data_version: str) -> None:
+    if not connection_path.is_file():
+        raise base.ThreeReportE2EError(
+            f"HISTORY_ONLY_DATABASE_MISSING:{connection_path}"
+        )
+    connection = sqlite3.connect(connection_path, timeout=20)
+    try:
+        connection.execute(
+            """
+            UPDATE station_queue
+            SET status='disabled',
+                locked_by=NULL,
+                locked_until=NULL,
+                error_message='competition_history_only_no_task_generation',
+                updated_at=CURRENT_TIMESTAMP
+            WHERE data_version=? AND status IN ('queued','retry','running')
+            """,
+            (data_version,),
+        )
+        connection.execute(
+            """
+            UPDATE pipeline_jobs
+            SET status='completed',
+                current_station='history_only_import',
+                error_message=NULL,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE data_version=? AND system_type='task_generation'
+              AND status IN ('queued','running')
+            """,
+            (data_version,),
+        )
+        connection.execute(
+            """
+            UPDATE pipeline_items
+            SET current_stage='history_only_import',
+                status='completed',
+                last_error_code=NULL,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE data_version=?
+            """,
+            (data_version,),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    # The production runtime still owns exactly one worker implementation. The E2E
-    # disables only its asynchronous thread so every transition is driven by the
-    # public manual Tick endpoint and the test cannot stop while another thread is
-    # holding an older data version.
+    args = base.parse_args(argv)
+    scenario_path = Path(args.scenario).expanduser().resolve()
+    scenario_digest = hashlib.sha256(scenario_path.read_bytes()).hexdigest()
+    candidate_id = f"{args.source_commit.strip()[:12]}-{scenario_digest[:12]}"
+    database_path = (
+        Path(args.candidate_base).expanduser()
+        / candidate_id
+        / "state"
+        / "logs"
+        / "product_workbench.sqlite3"
+    )
+
     os.environ["STATION_QUEUE_WORKER_ENABLED"] = "false"
     os.environ["AGENT_PIPELINE_ITEM_WORKER_ENABLED"] = "true"
     os.environ["STATION_QUEUE_WORKER_MAX_JOBS_PER_TICK"] = "12"
     base.SCRIPT_DIR = SCRIPTS_DIR / "competition_e2e_compat_runtime"
     base.query_runtime_database = query_runtime_database
+
+    original_http_json = base.http_json
+    import_count = 0
+
+    def controlled_http_json(*request_args: Any, **request_kwargs: Any) -> tuple[int, Any]:
+        nonlocal import_count
+        status, response = original_http_json(*request_args, **request_kwargs)
+        method = str(request_args[0] if request_args else request_kwargs.get("method") or "")
+        url = str(request_args[1] if len(request_args) > 1 else request_kwargs.get("url") or "")
+        if method.upper() == "POST" and "/api/data/import/confirm" in url:
+            import_count += 1
+            if import_count <= 2 and isinstance(response, dict):
+                version = str(response.get("dataVersion") or "")
+                if version:
+                    _history_only(database_path, version)
+        return status, response
+
+    base.http_json = controlled_http_json
     return base.main(argv)
 
 
