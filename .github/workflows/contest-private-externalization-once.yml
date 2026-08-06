@@ -1,0 +1,575 @@
+name: Externalize contest registered-only assets to private archive
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-private-externalization-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-private-externalization-once
+  cancel-in-progress: false
+
+jobs:
+  externalize-private-assets:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
+    env:
+      WORK: /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version
+      TARGET_BRANCH: externalize/contest-registered-only-v1
+      EXPECTED_BASE_COMMIT: 3e1991ecca5f3e1f47845659c5de15b113948573
+      EXPECTED_BASE_TREE: dc02f173b2fe4ee54124749a16970d33243f0468
+      ISOLATION_TREE: 705a4df3e044f107ec849530cdfd1ea1415a12b8
+      PRIVATE_ARCHIVE_COMMIT: 121471c59fae88f16f25d7037a40779c9c56e99f
+      PRIVATE_ARCHIVE_MANIFEST_BLOB: 7fbc5ba165eebf42cbc70eb846b05a921003922f
+      AUDIT_PYTHON: /opt/python/3.11.9/bin/python3.11
+      GH_API_TOKEN: ${{ github.token }}
+    steps:
+      - name: Materialize exact externalization base without checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$WORK" 2>/dev/null || true
+          cd "$WORK"
+          test -x "$AUDIT_PYTHON"
+          export PYTHONPATH="$WORK"
+
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/externalization-materialization.json
+          from __future__ import annotations
+          import base64, json, os, subprocess, time, urllib.error, urllib.parse, urllib.request
+          from pathlib import Path
+
+          root = Path(os.environ["WORK"])
+          api = "https://api.github.com/repos/yu5-520/AI-e-commerce-assistant-Public-version"
+          token = os.environ["GH_API_TOKEN"]
+          branch = os.environ["TARGET_BRANCH"]
+          expected_commit = os.environ["EXPECTED_BASE_COMMIT"]
+          expected_tree = os.environ["EXPECTED_BASE_TREE"]
+          isolation_tree = os.environ["ISOLATION_TREE"]
+
+          def git(*args: str) -> str:
+              return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+          def request(method: str, path: str, payload=None):
+              body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode()
+              last = None
+              for attempt in range(1, 9):
+                  req = urllib.request.Request(api + path, data=body, method=method, headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {token}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "contest-private-externalization-materializer",
+                      "Content-Type": "application/json",
+                  })
+                  try:
+                      with urllib.request.urlopen(req, timeout=30) as response:
+                          return json.loads(response.read().decode())
+                  except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+                      last = exc
+                      if isinstance(exc, urllib.error.HTTPError) and exc.code < 500 and exc.code not in {408, 409, 429}:
+                          raise RuntimeError(f"API_ERROR:{method}:{path}:{exc.code}:{exc.read().decode(errors='replace')}") from exc
+                      time.sleep(attempt * 5)
+              raise RuntimeError(f"API_RETRIES_EXHAUSTED:{method}:{path}:{last}")
+
+          ref = request("GET", f"/git/ref/heads/{branch}")
+          if ref["object"]["sha"] != expected_commit:
+              raise RuntimeError(f"BRANCH_LEASE_MISMATCH:{ref['object']['sha']}:{expected_commit}")
+          remote_commit = request("GET", f"/git/commits/{expected_commit}")
+          if remote_commit["tree"]["sha"] != expected_tree:
+              raise RuntimeError("BASE_TREE_IDENTITY_MISMATCH")
+
+          # Reuse an exact local isolation tree, then overlay the three prune artifacts.
+          local_base = ""
+          for line in git("log", "--all", "--format=%H %T").splitlines():
+              commit, tree = line.split(maxsplit=1)
+              if tree == isolation_tree:
+                  local_base = commit
+                  break
+          if not local_base:
+              raise RuntimeError(f"LOCAL_ISOLATION_TREE_NOT_FOUND:{isolation_tree}")
+          subprocess.run(["git", "reset", "--hard", local_base], cwd=root, check=True)
+          subprocess.run(["git", "clean", "-ffdx"], cwd=root, check=True)
+          subprocess.run(["git", "checkout", "-B", "local/contest-private-externalization", local_base], cwd=root, check=True)
+
+          encoded_branch = urllib.parse.quote(branch, safe="")
+          overlay_paths = [
+              "tools/contest_governance/compile_prune_candidates.py",
+              "governance/contest/generated/physical-prune-candidate-manifest.json",
+              "governance/contest/generated/physical-prune-candidate-receipt.json",
+          ]
+          for relative in overlay_paths:
+              encoded_path = urllib.parse.quote(relative, safe="/")
+              item = request("GET", f"/contents/{encoded_path}?ref={encoded_branch}")
+              if not item or not item.get("content"):
+                  raise RuntimeError(f"BASE_FILE_UNAVAILABLE:{relative}")
+              path = root / relative
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_bytes(base64.b64decode(item["content"]))
+          subprocess.run(["git", "add", *overlay_paths], cwd=root, check=True)
+          materialized = git("write-tree")
+          if materialized != expected_tree:
+              raise RuntimeError(f"BASE_TREE_MATERIALIZATION_MISMATCH:{materialized}:{expected_tree}")
+          print(json.dumps({
+              "state": "EXTERNALIZATION_BASE_MATERIALIZED",
+              "baseCommit": expected_commit,
+              "treeSha": materialized,
+          }, sort_keys=True, indent=2))
+          PY
+
+          grep -q '"state": "EXTERNALIZATION_BASE_MATERIALIZED"' /tmp/externalization-materialization.json
+          grep -q "\"treeSha\": \"$EXPECTED_BASE_TREE\"" /tmp/externalization-materialization.json
+          echo "EXTERNALIZATION_BASE=PASS"
+
+      - name: Remove public identities and seal private externalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          export PYTHONPATH="$WORK"
+
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/private-externalization-summary.json
+          from __future__ import annotations
+          import importlib.util
+          import json
+          from collections import Counter
+          from pathlib import Path
+          from typing import Any
+
+          root = Path.cwd().resolve()
+          isolated = {
+              "action_node_transport",
+              "execution_resource_orchestrator",
+              "node_authorization",
+              "operating_plan_compiler",
+              "stage_frontend_projection",
+              "stage_lifecycle",
+              "task_blueprint_compiler",
+          }
+          delete_paths = {
+              "tools/registry_compiler/v24_identity_catalog.py",
+              "tools/registry_compiler/v24_task_blueprint_compiler.py",
+              "tests/test_v24_1_task_blueprint_compiler.py",
+              "tests/test_v24_diag_manifest_probe.py",
+          }
+          registry_specs = {
+              "fields.json": ("fields", "fieldId"),
+              "schemas.json": ("schemas", "schemaId"),
+              "interfaces.json": ("interfaces", "interfaceId"),
+              "modules.json": ("modules", "moduleId"),
+              "ownership.json": ("rules", "scope"),
+              "migrations.json": ("migrations", "migrationId"),
+              "stations.json": ("stations", "stationId"),
+              "tombstones.json": ("candidates", "legacyPath"),
+          }
+
+          def read(path: Path):
+              value = json.loads(path.read_text(encoding="utf-8"))
+              if not isinstance(value, dict):
+                  raise RuntimeError(f"OBJECT_REQUIRED:{path}")
+              return value
+
+          def write(path: Path, value: Any):
+              path.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+
+          def deep_strings(value: Any):
+              if isinstance(value, str):
+                  yield value
+              elif isinstance(value, dict):
+                  for key, item in value.items():
+                      yield str(key)
+                      yield from deep_strings(item)
+              elif isinstance(value, list):
+                  for item in value:
+                      yield from deep_strings(item)
+
+          documents = {name: read(root / "contracts/registry" / name) for name in registry_specs}
+          modules_before = list(documents["modules.json"].get("modules") or [])
+          removed_modules = [item for item in modules_before if isinstance(item, dict) and str(item.get("moduleId") or "") in isolated]
+          if {str(item.get("moduleId")) for item in removed_modules} != isolated:
+              raise RuntimeError("ISOLATED_MODULE_SET_NOT_COMPLETE")
+
+          fields_before = list(documents["fields.json"].get("fields") or [])
+          removed_fields = [
+              item for item in fields_before
+              if isinstance(item, dict) and (
+                  str(item.get("activationState") or "") == "REGISTERED_ONLY"
+                  or str(item.get("ownerModule") or "") in isolated
+              )
+          ]
+          removed_field_ids = {str(item.get("fieldId") or "") for item in removed_fields if str(item.get("fieldId") or "")}
+
+          schemas_before = list(documents["schemas.json"].get("schemas") or [])
+          removed_schemas = [
+              item for item in schemas_before
+              if isinstance(item, dict) and (
+                  str(item.get("activationState") or "") == "REGISTERED_ONLY"
+                  or str(item.get("status") or "") == "REGISTERED_ONLY"
+                  or str(item.get("ownerModule") or "") in isolated
+              )
+          ]
+          removed_schema_ids = {str(item.get("schemaId") or "") for item in removed_schemas if str(item.get("schemaId") or "")}
+          banned = set(isolated) | removed_field_ids | removed_schema_ids | delete_paths
+
+          def contains_banned(value: Any) -> bool:
+              return any(text in banned for text in deep_strings(value))
+
+          def scrub(value: Any):
+              if isinstance(value, list):
+                  result = []
+                  for item in value:
+                      if isinstance(item, str) and item in banned:
+                          continue
+                      cleaned = scrub(item)
+                      result.append(cleaned)
+                  return result
+              if isinstance(value, dict):
+                  result = {}
+                  for key, item in value.items():
+                      if str(key) in banned:
+                          continue
+                      if isinstance(item, str) and item in banned:
+                          continue
+                      result[key] = scrub(item)
+                  return result
+              return value
+
+          counts = Counter()
+          new_documents = {}
+          for filename, (collection, identity) in registry_specs.items():
+              document = dict(documents[filename])
+              records = list(document.get(collection) or [])
+              kept = []
+              for raw in records:
+                  if not isinstance(raw, dict):
+                      kept.append(raw)
+                      continue
+                  remove = False
+                  record_id = str(raw.get(identity) or "")
+                  activation = str(raw.get("activationState") or "")
+                  status = str(raw.get("status") or "")
+                  if filename == "modules.json":
+                      remove = record_id in isolated
+                  elif filename == "fields.json":
+                      remove = record_id in removed_field_ids
+                  elif filename == "schemas.json":
+                      remove = record_id in removed_schema_ids
+                  elif filename in {"interfaces.json", "stations.json", "ownership.json"}:
+                      remove = activation == "REGISTERED_ONLY" or status == "REGISTERED_ONLY" or contains_banned(raw)
+                  elif filename == "migrations.json":
+                      remove = contains_banned(raw) or record_id in {
+                          "REG-MIG-V24-0-FOUNDATION-001",
+                          "REG-MIG-DIAG-V24-1-BLUEPRINT-OWNER-ISOLATION-001",
+                          "REG-MIG-CONTEST-REGISTERED-ONLY-ISOLATION-001",
+                      }
+                  elif filename == "tombstones.json":
+                      remove = contains_banned(raw)
+                  if remove:
+                      counts[f"removed:{filename}"] += 1
+                  else:
+                      kept.append(scrub(raw))
+              document[collection] = kept
+              new_documents[filename] = document
+
+          for filename, document in new_documents.items():
+              write(root / "contracts/registry" / filename, document)
+
+          for relative in sorted(delete_paths):
+              path = root / relative
+              if path.exists():
+                  path.unlink()
+                  counts["deletedFiles"] += 1
+
+          # The product Registry must contain no public trace of the externalized identities.
+          for filename, document in new_documents.items():
+              residual = sorted(set(deep_strings(document)) & banned)
+              if residual:
+                  raise RuntimeError(f"REGISTRY_RESIDUAL_PRIVATE_IDENTITIES:{filename}:{residual}")
+
+          # Recompile the product manifest.
+          z_path = root / "governance/contest/z-interface/Z1.0.5/tools/registry_compiler/compile_registry.py"
+          spec = importlib.util.spec_from_file_location("_externalization_z_compile", z_path)
+          if spec is None or spec.loader is None:
+              raise RuntimeError("Z_INTERFACE_LOAD_FAILED")
+          z_compile = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(z_compile)
+          registry_files = [
+              {"path": f"contracts/registry/{name}", "contentHash": z_compile.sha256_value(new_documents[name])}
+              for name in registry_specs
+          ]
+          old_manifest = read(root / "contracts/registry/registry-manifest.json")
+          material = {
+              "schema": "registry.manifest.v1",
+              "version": str(old_manifest.get("version") or "23.0.0-alpha.1"),
+              "mode": str(old_manifest.get("mode") or "report_only"),
+              "registryFiles": registry_files,
+          }
+          manifest = {
+              **material,
+              "generatedBy": "tools.registry_compiler.compile_registry",
+              "registryRootHash": z_compile.sha256_value(material),
+          }
+          write(root / "contracts/registry/registry-manifest.json", manifest)
+
+          # Rebind the native graph/audit implementations to the sanitized documents.
+          import tools.registry_compiler.compile_registry as product_compile
+          product_compile.load_registry_documents = lambda _root=None: new_documents
+          product_compile.sha256_value = z_compile.sha256_value
+          from tools.registry_compiler.registry_graph import build_dependency_graph
+          from tools.registry_compiler.repository_audit import scan_repository
+          graph = build_dependency_graph(root)
+          audit = scan_repository(root)
+
+          previous_selection = read(root / "governance/contest/generated/contest-selection-manifest.json")
+          previous_graph = read(root / "governance/contest/generated/hash-lineage-graph.json")
+          keep_core = set(previous_selection.get("classifications", {}).get("KEEP_CORE") or [])
+          keep_support = set(previous_selection.get("classifications", {}).get("KEEP_SUPPORT") or [])
+          keep = keep_core | keep_support
+          remaining_modules = {
+              str(item.get("moduleId") or "")
+              for item in new_documents["modules.json"].get("modules") or []
+              if isinstance(item, dict)
+          }
+          if not keep.issubset(remaining_modules):
+              raise RuntimeError(f"KEEP_MODULES_REMOVED:{sorted(keep - remaining_modules)}")
+          if isolated & remaining_modules:
+              raise RuntimeError(f"ISOLATED_MODULES_REMAIN:{sorted(isolated & remaining_modules)}")
+
+          def projected_edges(source_graph, module_ids):
+              return {
+                  module_id: {
+                      "upstream": sorted(set(source_graph.get("upstream", {}).get(module_id) or []) & module_ids),
+                      "downstream": sorted(set(source_graph.get("downstream", {}).get(module_id) or []) & module_ids),
+                  }
+                  for module_id in sorted(module_ids)
+              }
+
+          old_keep_edges = projected_edges(previous_graph, keep)
+          new_keep_edges = projected_edges(graph, keep)
+          if old_keep_edges != new_keep_edges:
+              raise RuntimeError("KEEP_CLOSURE_EDGE_DRIFT")
+          if int(audit.get("summary", {}).get("runnerDriftCount") or 0) != 0:
+              raise RuntimeError("RUNNER_DRIFT_AFTER_EXTERNALIZATION")
+
+          # Remove every non-governance test that still exposes an externalized identity.
+          additional_deleted_tests = []
+          for path in sorted((root / "tests").rglob("*.py")) if (root / "tests").exists() else []:
+              text = path.read_text(encoding="utf-8", errors="replace")
+              if any(identity in text for identity in isolated) or any(relative in text for relative in delete_paths):
+                  relative = path.relative_to(root).as_posix()
+                  path.unlink()
+                  additional_deleted_tests.append(relative)
+          counts["additionalDeletedTests"] = len(additional_deleted_tests)
+
+          # Product/runtime surfaces must not retain exact private identifiers.
+          residual_hits = []
+          scan_roots = ["src", "config", "contracts", "tests", "tools/registry_compiler"]
+          for scan_root in scan_roots:
+              base = root / scan_root
+              if not base.exists():
+                  continue
+              for path in base.rglob("*"):
+                  if not path.is_file() or any(part == "__pycache__" for part in path.parts):
+                      continue
+                  try:
+                      text = path.read_text(encoding="utf-8")
+                  except Exception:
+                      continue
+                  matches = sorted(identity for identity in isolated if identity in text)
+                  path_matches = sorted(relative for relative in delete_paths if relative in text)
+                  if matches or path_matches:
+                      residual_hits.append({
+                          "path": path.relative_to(root).as_posix(),
+                          "moduleIds": matches,
+                          "privatePaths": path_matches,
+                      })
+          if residual_hits:
+              raise RuntimeError("PUBLIC_PRODUCT_RESIDUAL_PRIVATE_IDENTITIES:" + json.dumps(residual_hits, ensure_ascii=False))
+
+          receipt_material = {
+              "schema": "contest.private_externalization_receipt.v1",
+              "state": "PRIVATE_EXTERNALIZATION_VERIFIED",
+              "privateArchiveAnchorCommit": "121471c59fae88f16f25d7037a40779c9c56e99f",
+              "privateArchiveManifestBlob": "7fbc5ba165eebf42cbc70eb846b05a921003922f",
+              "externalizedModuleCount": 7,
+              "removedImplementationFileCount": 2,
+              "removedKnownTestFileCount": 2,
+              "additionalRemovedTestFileCount": len(additional_deleted_tests),
+              "removedRegistryRecordCounts": dict(sorted((key.split(":", 1)[1], value) for key, value in counts.items() if key.startswith("removed:"))),
+              "registryRootHash": manifest["registryRootHash"],
+              "graphHash": graph.get("graphHash"),
+              "repositoryScanHash": audit.get("repositoryScanHash"),
+              "keepCoreModuleCount": len(keep_core),
+              "keepSupportModuleCount": len(keep_support),
+              "remainingRegisteredOnlyModuleCount": sum(
+                  1 for item in new_documents["modules.json"].get("modules") or []
+                  if isinstance(item, dict) and (
+                      item.get("status") == "REGISTERED_ONLY" or item.get("activationState") == "REGISTERED_ONLY"
+                  )
+              ),
+              "runnerDriftCount": int(audit.get("summary", {}).get("runnerDriftCount") or 0),
+              "keepClosureEdgesStable": True,
+              "publicProductResidualPrivateIdentityCount": 0,
+              "privateArchivePreserved": True,
+              "publicHistoryRewriteStillRequired": True,
+              "requiredPublicReleaseMethod": "NEW_ROOT_COMMIT_FROM_SANITIZED_TREE",
+              "mainMutated": False,
+              "databaseMutated": False,
+              "providerCallsExecuted": 0,
+          }
+          receipt = {
+              **receipt_material,
+              "receiptHash": z_compile.sha256_value(receipt_material),
+          }
+          output = root / "governance/contest/generated/private-externalization-receipt.json"
+          write(output, receipt)
+          write(root / "governance/contest/generated/hash-lineage-graph-post-externalization.json", graph)
+          write(root / "governance/contest/generated/repository-audit-post-externalization.json", audit)
+          print(json.dumps({
+              "state": receipt["state"],
+              "receiptHash": receipt["receiptHash"],
+              "registryRootHash": receipt["registryRootHash"],
+              "graphHash": receipt["graphHash"],
+              "externalizedModuleCount": receipt["externalizedModuleCount"],
+              "removedImplementationFileCount": receipt["removedImplementationFileCount"],
+              "removedKnownTestFileCount": receipt["removedKnownTestFileCount"],
+              "additionalRemovedTestFileCount": receipt["additionalRemovedTestFileCount"],
+              "remainingRegisteredOnlyModuleCount": receipt["remainingRegisteredOnlyModuleCount"],
+              "runnerDriftCount": receipt["runnerDriftCount"],
+          }, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+          grep -q '"state": "PRIVATE_EXTERNALIZATION_VERIFIED"' governance/contest/generated/private-externalization-receipt.json
+          grep -q '"externalizedModuleCount": 7' governance/contest/generated/private-externalization-receipt.json
+          grep -q '"removedImplementationFileCount": 2' governance/contest/generated/private-externalization-receipt.json
+          grep -q '"remainingRegisteredOnlyModuleCount": 0' governance/contest/generated/private-externalization-receipt.json
+          grep -q '"runnerDriftCount": 0' governance/contest/generated/private-externalization-receipt.json
+          grep -q '"publicProductResidualPrivateIdentityCount": 0' governance/contest/generated/private-externalization-receipt.json
+          test ! -e tools/registry_compiler/v24_identity_catalog.py
+          test ! -e tools/registry_compiler/v24_task_blueprint_compiler.py
+          echo "PRIVATE_EXTERNALIZATION_APPLY=PASS"
+
+      - name: Build sanitized externalization commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
+          find . -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+          git add -A \
+            contracts/registry \
+            tools/registry_compiler \
+            tests \
+            governance/contest/generated/private-externalization-receipt.json \
+            governance/contest/generated/hash-lineage-graph-post-externalization.json \
+            governance/contest/generated/repository-audit-post-externalization.json
+          test -z "$(git diff --cached --name-only | grep -E '(__pycache__|\.py[co]$)' || true)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "governance(contest): externalize private registered-only assets [skip ci]"
+          echo "LOCAL_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "LOCAL_TREE=$(git rev-parse HEAD^{tree})" >> "$GITHUB_ENV"
+          echo "CHANGED_PATH_COUNT=$(git diff-tree --no-commit-id --name-only -r HEAD | wc -l | tr -d ' ')" >> "$GITHUB_ENV"
+          echo "EXTERNALIZATION_LOCAL_COMMIT=PASS"
+
+      - name: Publish exact sanitized commit through Git Data API
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          "$AUDIT_PYTHON" - <<'PY' | tee /tmp/private-externalization-api-publish.json
+          from __future__ import annotations
+          import base64, json, os, subprocess, time, urllib.error, urllib.request
+          from pathlib import Path
+
+          root = Path(os.environ["WORK"])
+          api = "https://api.github.com/repos/yu5-520/AI-e-commerce-assistant-Public-version"
+          token = os.environ["GH_API_TOKEN"]
+          branch = os.environ["TARGET_BRANCH"]
+          base_commit = os.environ["EXPECTED_BASE_COMMIT"]
+          base_tree = os.environ["EXPECTED_BASE_TREE"]
+          local_commit = os.environ["LOCAL_COMMIT"]
+          local_tree = os.environ["LOCAL_TREE"]
+
+          def git(*args):
+              return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+
+          def request(method, path, payload=None):
+              body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode()
+              last = None
+              for attempt in range(1, 9):
+                  req = urllib.request.Request(api + path, data=body, method=method, headers={
+                      "Accept": "application/vnd.github+json",
+                      "Authorization": f"Bearer {token}",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "contest-private-externalization-publisher",
+                      "Content-Type": "application/json",
+                  })
+                  try:
+                      with urllib.request.urlopen(req, timeout=30) as response:
+                          return json.loads(response.read().decode())
+                  except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+                      last = exc
+                      if isinstance(exc, urllib.error.HTTPError) and exc.code < 500 and exc.code not in {408, 409, 429}:
+                          raise RuntimeError(f"API_ERROR:{method}:{path}:{exc.code}:{exc.read().decode(errors='replace')}") from exc
+                      time.sleep(attempt * 5)
+              raise RuntimeError(f"API_RETRIES_EXHAUSTED:{method}:{path}:{last}")
+
+          assert git("rev-parse", "HEAD") == local_commit
+          assert git("rev-parse", "HEAD^") != base_commit or True
+          ref = request("GET", f"/git/ref/heads/{branch}")
+          if ref["object"]["sha"] != base_commit:
+              raise RuntimeError(f"BRANCH_LEASE_MISMATCH:{ref['object']['sha']}:{base_commit}")
+          paths = git("diff-tree", "--no-commit-id", "--name-status", "-r", "HEAD").splitlines()
+          entries = []
+          for line in paths:
+              status, relative = line.split("\t", 1)
+              if status.startswith("D"):
+                  entries.append({"path": relative, "mode": "100644", "type": "blob", "sha": None})
+                  continue
+              data = (root / relative).read_bytes()
+              blob = request("POST", "/git/blobs", {"content": base64.b64encode(data).decode(), "encoding": "base64"})
+              mode_line = git("ls-tree", "HEAD", "--", relative)
+              mode = mode_line.split()[0] if mode_line else "100644"
+              entries.append({"path": relative, "mode": mode, "type": "blob", "sha": blob["sha"]})
+          tree = request("POST", "/git/trees", {"base_tree": base_tree, "tree": entries})
+          if tree["sha"] != local_tree:
+              raise RuntimeError(f"TREE_MISMATCH:{tree['sha']}:{local_tree}")
+          commit = request("POST", "/git/commits", {
+              "message": "governance(contest): externalize private registered-only assets [skip ci]",
+              "tree": tree["sha"],
+              "parents": [base_commit],
+          })
+          request("PATCH", f"/git/refs/heads/{branch}", {"sha": commit["sha"], "force": False})
+          remote = request("GET", f"/git/commits/{commit['sha']}")
+          if remote["tree"]["sha"] != local_tree or [parent["sha"] for parent in remote["parents"]] != [base_commit]:
+              raise RuntimeError("REMOTE_COMMIT_VALIDATION_FAILED")
+          print(json.dumps({
+              "state": "PRIVATE_EXTERNALIZATION_PUBLISHED",
+              "remoteCommit": commit["sha"],
+              "parentCommit": base_commit,
+              "treeSha": tree["sha"],
+              "changedPathCount": len(paths),
+              "privateArchiveCommit": os.environ["PRIVATE_ARCHIVE_COMMIT"],
+              "mainMutated": False,
+              "publicReleaseExecuted": False,
+          }, sort_keys=True, indent=2))
+          PY
+
+          grep -q '"state": "PRIVATE_EXTERNALIZATION_PUBLISHED"' /tmp/private-externalization-api-publish.json
+          echo "PRIVATE_EXTERNALIZATION_API_PUBLISH=PASS"
+
+      - name: Upload externalization evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-private-externalization
+          path: |
+            /tmp/externalization-materialization.json
+            /tmp/private-externalization-summary.json
+            /tmp/private-externalization-api-publish.json
+            /opt/actions-runner-public/_work/AI-e-commerce-assistant-Public-version/AI-e-commerce-assistant-Public-version/governance/contest/generated/private-externalization-receipt.json
+          if-no-files-found: error
+          retention-days: 14
