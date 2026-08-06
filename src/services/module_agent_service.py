@@ -11,7 +11,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, List
 
-from src.services.account_service import current_user
+from src.services.competition_operator_context_service import current_user
 from src.services.action_plan_service import action_plan_for_problem, infer_action_problem_type
 from src.services.module_projection_service import projected_products, projected_report_details, projected_report_groups, projected_traffic
 from src.services.module_task_service import create_task, list_tasks
