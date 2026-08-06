@@ -21,6 +21,7 @@ jobs:
     env:
       RELEASE_PR_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha }}
       RELEASE_PR_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
+      RELEASE_PR_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - name: Materialize exact pull-request head archive
@@ -63,26 +64,46 @@ jobs:
           test "$(cat "$GITHUB_WORKSPACE/.release-pr-source-commit")" = "$RELEASE_PR_SOURCE_COMMIT"
           echo "PR validation only: no deployable release Artifact will be generated"
 
-      - name: Build exact validation environment
+      - name: Prepare cached runtime plus isolated dev dependencies
         run: |
           set -euo pipefail
           [ -x "$RELEASE_PR_TOOL_PYTHON" ]
           test "$($RELEASE_PR_TOOL_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
-          VALIDATION_VENV="${RUNNER_TEMP}/release-pr-validation-venv"
-          rm -rf "$VALIDATION_VENV"
-          "$RELEASE_PR_TOOL_PYTHON" -m venv "$VALIDATION_VENV"
-          "$VALIDATION_VENV/bin/python" -m pip install -r requirements-dev.lock
-          "$VALIDATION_VENV/bin/python" scripts/check_dependency_lock.py requirements-dev.lock --strict
-          printf 'RELEASE_PR_PYTHON=%s\n' "$VALIDATION_VENV/bin/python" >> "$GITHUB_ENV"
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$RELEASE_PR_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$RELEASE_PR_TOOL_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" \
+              "$RUNNER_TEMP" \
+              | tail -n 1
+          )"
+          [ -x "$RUNTIME_PYTHON" ]
+          test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          DEV_SITE="${RUNNER_TEMP}/release-pr-dev-site"
+          rm -rf "$DEV_SITE"
+          mkdir -p "$DEV_SITE"
+          "$RUNTIME_PYTHON" -m pip install \
+            --disable-pip-version-check \
+            --target "$DEV_SITE" \
+            iniconfig==2.3.0 \
+            packaging==26.2 \
+            pluggy==1.6.0 \
+            Pygments==2.20.0 \
+            pytest==9.0.1
+          PYTHONPATH="$DEV_SITE" \
+            "$RUNTIME_PYTHON" scripts/check_dependency_lock.py requirements-dev.lock --strict
+          printf 'RELEASE_PR_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+          printf 'RELEASE_PR_DEV_SITE=%s\n' "$DEV_SITE" >> "$GITHUB_ENV"
 
       - name: Validate pull-request contracts without sealing
         env:
-          PYTHONPATH: .
           ARTIFACT_ROOT: /tmp/ai-ecommerce-pr-validation-artifacts
           AI_RELEASE_REQUIRED: '0'
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
         run: |
           set -euo pipefail
+          export PYTHONPATH="${RELEASE_PR_DEV_SITE}:$GITHUB_WORKSPACE"
           "$RELEASE_PR_PYTHON" -m compileall -q src scripts tests
           bash -n \
             scripts/runtime_service_resolver.sh \
