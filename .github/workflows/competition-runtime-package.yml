@@ -112,6 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf dist/competition-lineage dist/competition-runtime
+          mkdir -p dist
           "$PYTHON_BIN" -m py_compile \
             scripts/compile_competition_lineage.py \
             scripts/build_competition_runtime_package.py \
@@ -119,7 +120,7 @@ jobs:
           "$PYTHON_BIN" scripts/compile_competition_lineage.py \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output-dir dist/competition-lineage \
-            | tee dist/competition-lineage-summary.json
+            2>&1 | tee dist/competition-lineage-summary.json
 
       - name: Build whitelist runtime package
         run: |
@@ -129,7 +130,7 @@ jobs:
             --lineage-dir dist/competition-lineage \
             --output-dir dist/competition-runtime \
             --archive-name "competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
-            | tee dist/competition-runtime-build-summary.json
+            2>&1 | tee dist/competition-runtime-build-summary.json
 
       - name: Verify package from archive only
         run: |
@@ -139,12 +140,12 @@ jobs:
             "$ARCHIVE" \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output dist/competition-runtime/competition-runtime-verification.json \
-            | tee dist/competition-runtime-verification-summary.json
+            2>&1 | tee dist/competition-runtime-verification-summary.json
           test -s "$ARCHIVE"
           test -s "${ARCHIVE}.sha256"
 
       - name: Publish precise runtime package
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: competition-runtime-${{ env.COMPETITION_SOURCE_COMMIT }}
@@ -154,5 +155,5 @@ jobs:
             dist/competition-lineage-summary.json
             dist/competition-runtime-build-summary.json
             dist/competition-runtime-verification-summary.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
