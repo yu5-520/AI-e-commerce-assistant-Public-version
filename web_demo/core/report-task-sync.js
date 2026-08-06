@@ -3,12 +3,10 @@
   const api = window.AppApi;
   const originalConfirm = api.confirmReportImport;
   const originalMockAlerts = api.importMockAlerts;
-  const userId = () => api.getCurrentUserId?.() || "U001";
-
   async function postJson(path, body) {
     const response = await fetch(path, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json", "X-Mock-User-Id": userId() },
+      headers: { Accept: "application/json", "Content-Type": "application/json"},
       body: JSON.stringify(body || {}),
     });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
