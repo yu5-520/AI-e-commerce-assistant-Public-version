@@ -2,7 +2,7 @@
   const s = (value) => AppShell.escape(value ?? "-");
 
   async function loadAlerts() {
-    const response = await fetch("/api/architecture/v7/release-alerts?limit=200", { method: "GET", headers: { Accept: "application/json", "X-Mock-User-Id": AppApi.getCurrentUserId() } });
+    const response = await fetch("/api/architecture/v7/release-alerts?limit=200", { method: "GET", headers: { Accept: "application/json"} });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response.json();
   }
