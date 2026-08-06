@@ -77,14 +77,12 @@ def row_store_id(row: Mapping[str, Any]) -> str | None:
 
 
 def row_scope_status(row: Mapping[str, Any], *, tenant_id: str = DEFAULT_TENANT_ID, org_id: str = DEFAULT_ORG_ID, store_id: str | None = None, require_store: bool = False) -> dict[str, Any]:
-    row_tenant = row_tenant_id(row)
-    row_org = row_org_id(row)
+    # Missing tenant/org values are assigned to the server-owned competition
+    # workspace. This is a namespace stamp, not a claim of enterprise tenant isolation.
+    row_tenant = row_tenant_id(row) or tenant_id
+    row_org = row_org_id(row) or org_id
     row_store = store_id or row_store_id(row)
     missing: list[str] = []
-    if not row_tenant:
-        missing.append("tenant_id")
-    if not row_org:
-        missing.append("org_id")
     if require_store and not row_store:
         missing.append("store_id")
     errors: list[str] = []
@@ -113,5 +111,5 @@ def isolation_runtime_summary() -> dict[str, Any]:
         "clientIdentityOverrideAllowed": False,
         "strictDataScope": True,
         "identityRule": "server-fixed competition operator; external identity adapter is enterprise-only",
-        "dataRule": "competition namespace is fixed; this is not presented as enterprise tenant isolation",
+        "dataRule": "missing tenant/org fields are server-stamped to competition_demo; explicit mismatches quarantine; no enterprise isolation claim",
     }
