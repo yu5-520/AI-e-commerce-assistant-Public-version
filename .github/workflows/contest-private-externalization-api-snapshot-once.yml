@@ -1,0 +1,484 @@
+name: Externalize contest private assets from API snapshot
+
+on:
+  push:
+    branches:
+      - migration/bulk-bootstrap
+    paths:
+      - .github/workflows/contest-private-externalization-api-snapshot-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contest-private-externalization-api-snapshot-once
+  cancel-in-progress: false
+
+jobs:
+  externalize-api-snapshot:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
+    env:
+      TARGET_BRANCH: externalize/contest-registered-only-v1
+      BASE_COMMIT: 3e1991ecca5f3e1f47845659c5de15b113948573
+      BASE_TREE: dc02f173b2fe4ee54124749a16970d33243f0468
+      PRIVATE_ARCHIVE_COMMIT: 121471c59fae88f16f25d7037a40779c9c56e99f
+      PRIVATE_ARCHIVE_MANIFEST_BLOB: 71233f80fa4ecfbe8d8e791b24698c5f9aa2f436
+      PYTHON: /opt/python/3.11.9/bin/python3.11
+      GH_API_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download snapshot externalize validate and publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$PYTHON"
+          "$PYTHON" - <<'PY' | tee /tmp/private-externalization-api-snapshot.json
+          from __future__ import annotations
+
+          import base64
+          import hashlib
+          import importlib.util
+          import json
+          import os
+          import shutil
+          import sys
+          import tempfile
+          import time
+          import urllib.error
+          import urllib.request
+          import zipfile
+          from collections import Counter
+          from pathlib import Path
+          from typing import Any
+
+          owner = "yu5-520"
+          repo = "AI-e-commerce-assistant-Public-version"
+          api = f"https://api.github.com/repos/{owner}/{repo}"
+          token = os.environ["GH_API_TOKEN"]
+          branch = os.environ["TARGET_BRANCH"]
+          base_commit = os.environ["BASE_COMMIT"]
+          base_tree = os.environ["BASE_TREE"]
+          private_archive_commit = os.environ["PRIVATE_ARCHIVE_COMMIT"]
+          private_archive_manifest_blob = os.environ["PRIVATE_ARCHIVE_MANIFEST_BLOB"]
+
+          def api_request(method: str, path: str, payload=None, *, raw: bool = False):
+              body = None if payload is None else json.dumps(payload, separators=(",", ":")).encode()
+              last = None
+              for attempt in range(1, 9):
+                  req = urllib.request.Request(
+                      api + path,
+                      data=body,
+                      method=method,
+                      headers={
+                          "Accept": "application/vnd.github+json",
+                          "Authorization": f"Bearer {token}",
+                          "X-GitHub-Api-Version": "2022-11-28",
+                          "User-Agent": "contest-private-externalization-api-snapshot",
+                          "Content-Type": "application/json",
+                      },
+                  )
+                  try:
+                      with urllib.request.urlopen(req, timeout=60) as response:
+                          data = response.read()
+                          return data if raw else json.loads(data.decode())
+                  except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+                      last = exc
+                      if isinstance(exc, urllib.error.HTTPError) and exc.code < 500 and exc.code not in {408, 409, 429}:
+                          detail = exc.read().decode(errors="replace")
+                          raise RuntimeError(f"API_ERROR:{method}:{path}:{exc.code}:{detail}") from exc
+                      time.sleep(attempt * 5)
+              raise RuntimeError(f"API_RETRIES_EXHAUSTED:{method}:{path}:{last}")
+
+          def sha256_bytes(data: bytes) -> str:
+              return hashlib.sha256(data).hexdigest()
+
+          def read_json(path: Path) -> dict[str, Any]:
+              value = json.loads(path.read_text(encoding="utf-8"))
+              if not isinstance(value, dict):
+                  raise RuntimeError(f"OBJECT_REQUIRED:{path}")
+              return value
+
+          def write_json(path: Path, value: Any) -> None:
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(
+                  json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n",
+                  encoding="utf-8",
+              )
+
+          def file_map(root: Path) -> dict[str, str]:
+              result = {}
+              for path in sorted(root.rglob("*")):
+                  if path.is_file() and not any(part == "__pycache__" for part in path.parts):
+                      result[path.relative_to(root).as_posix()] = sha256_bytes(path.read_bytes())
+              return result
+
+          ref = api_request("GET", f"/git/ref/heads/{branch}")
+          if ref["object"]["sha"] != base_commit:
+              raise RuntimeError(f"BRANCH_LEASE_MISMATCH:{ref['object']['sha']}:{base_commit}")
+          remote_base = api_request("GET", f"/git/commits/{base_commit}")
+          if remote_base["tree"]["sha"] != base_tree:
+              raise RuntimeError("BASE_TREE_IDENTITY_MISMATCH")
+
+          with tempfile.TemporaryDirectory(prefix="contest-externalize-") as temporary:
+              temp = Path(temporary)
+              archive_path = temp / "snapshot.zip"
+              archive_path.write_bytes(api_request("GET", f"/zipball/{base_commit}", raw=True))
+              extract_dir = temp / "extract"
+              extract_dir.mkdir()
+              with zipfile.ZipFile(archive_path) as archive:
+                  archive.extractall(extract_dir)
+              roots = [item for item in extract_dir.iterdir() if item.is_dir()]
+              if len(roots) != 1:
+                  raise RuntimeError(f"SNAPSHOT_ROOT_COUNT_INVALID:{len(roots)}")
+              root = roots[0]
+              before = file_map(root)
+              sys.path.insert(0, str(root))
+
+              isolated = {
+                  "action_node_transport",
+                  "execution_resource_orchestrator",
+                  "node_authorization",
+                  "operating_plan_compiler",
+                  "stage_frontend_projection",
+                  "stage_lifecycle",
+                  "task_blueprint_compiler",
+              }
+              delete_paths = {
+                  "tools/registry_compiler/v24_identity_catalog.py",
+                  "tools/registry_compiler/v24_task_blueprint_compiler.py",
+                  "tests/test_v24_1_task_blueprint_compiler.py",
+                  "tests/test_v24_diag_manifest_probe.py",
+              }
+              registry_specs = {
+                  "fields.json": ("fields", "fieldId"),
+                  "schemas.json": ("schemas", "schemaId"),
+                  "interfaces.json": ("interfaces", "interfaceId"),
+                  "modules.json": ("modules", "moduleId"),
+                  "ownership.json": ("rules", "scope"),
+                  "migrations.json": ("migrations", "migrationId"),
+                  "stations.json": ("stations", "stationId"),
+                  "tombstones.json": ("candidates", "legacyPath"),
+              }
+              documents = {name: read_json(root / "contracts/registry" / name) for name in registry_specs}
+
+              def deep_strings(value: Any):
+                  if isinstance(value, str):
+                      yield value
+                  elif isinstance(value, dict):
+                      for key, item in value.items():
+                          yield str(key)
+                          yield from deep_strings(item)
+                  elif isinstance(value, list):
+                      for item in value:
+                          yield from deep_strings(item)
+
+              modules_before = list(documents["modules.json"].get("modules") or [])
+              removed_modules = [
+                  item for item in modules_before
+                  if isinstance(item, dict) and str(item.get("moduleId") or "") in isolated
+              ]
+              if {str(item.get("moduleId")) for item in removed_modules} != isolated:
+                  raise RuntimeError("ISOLATED_MODULE_SET_NOT_COMPLETE")
+
+              fields_before = list(documents["fields.json"].get("fields") or [])
+              removed_fields = [
+                  item for item in fields_before
+                  if isinstance(item, dict) and (
+                      str(item.get("activationState") or "") == "REGISTERED_ONLY"
+                      or str(item.get("ownerModule") or "") in isolated
+                  )
+              ]
+              removed_field_ids = {
+                  str(item.get("fieldId") or "") for item in removed_fields if str(item.get("fieldId") or "")
+              }
+
+              schemas_before = list(documents["schemas.json"].get("schemas") or [])
+              removed_schemas = [
+                  item for item in schemas_before
+                  if isinstance(item, dict) and (
+                      str(item.get("activationState") or "") == "REGISTERED_ONLY"
+                      or str(item.get("status") or "") == "REGISTERED_ONLY"
+                      or str(item.get("ownerModule") or "") in isolated
+                  )
+              ]
+              removed_schema_ids = {
+                  str(item.get("schemaId") or "") for item in removed_schemas if str(item.get("schemaId") or "")
+              }
+              banned = set(isolated) | removed_field_ids | removed_schema_ids | delete_paths
+
+              def contains_banned(value: Any) -> bool:
+                  return any(text in banned for text in deep_strings(value))
+
+              def scrub(value: Any):
+                  if isinstance(value, list):
+                      return [scrub(item) for item in value if not (isinstance(item, str) and item in banned)]
+                  if isinstance(value, dict):
+                      result = {}
+                      for key, item in value.items():
+                          if str(key) in banned or (isinstance(item, str) and item in banned):
+                              continue
+                          result[key] = scrub(item)
+                      return result
+                  return value
+
+              counts = Counter()
+              new_documents = {}
+              for filename, (collection, identity) in registry_specs.items():
+                  document = dict(documents[filename])
+                  records = list(document.get(collection) or [])
+                  kept = []
+                  for raw_record in records:
+                      if not isinstance(raw_record, dict):
+                          kept.append(raw_record)
+                          continue
+                      record_id = str(raw_record.get(identity) or "")
+                      activation = str(raw_record.get("activationState") or "")
+                      status = str(raw_record.get("status") or "")
+                      remove = False
+                      if filename == "modules.json":
+                          remove = record_id in isolated
+                      elif filename == "fields.json":
+                          remove = record_id in removed_field_ids
+                      elif filename == "schemas.json":
+                          remove = record_id in removed_schema_ids
+                      elif filename in {"interfaces.json", "stations.json", "ownership.json"}:
+                          remove = activation == "REGISTERED_ONLY" or status == "REGISTERED_ONLY" or contains_banned(raw_record)
+                      elif filename == "migrations.json":
+                          remove = contains_banned(raw_record) or record_id in {
+                              "REG-MIG-V24-0-FOUNDATION-001",
+                              "REG-MIG-DIAG-V24-1-BLUEPRINT-OWNER-ISOLATION-001",
+                              "REG-MIG-CONTEST-REGISTERED-ONLY-ISOLATION-001",
+                          }
+                      elif filename == "tombstones.json":
+                          remove = contains_banned(raw_record)
+                      if remove:
+                          counts[f"removed:{filename}"] += 1
+                      else:
+                          kept.append(scrub(raw_record))
+                  document[collection] = kept
+                  new_documents[filename] = document
+                  write_json(root / "contracts/registry" / filename, document)
+
+              for relative in sorted(delete_paths):
+                  path = root / relative
+                  if path.exists():
+                      path.unlink()
+                      counts["deletedKnownFiles"] += 1
+
+              for filename, document in new_documents.items():
+                  residual = sorted(set(deep_strings(document)) & banned)
+                  if residual:
+                      raise RuntimeError(f"REGISTRY_RESIDUAL_PRIVATE_IDENTITIES:{filename}:{residual}")
+
+              z_path = root / "governance/contest/z-interface/Z1.0.5/tools/registry_compiler/compile_registry.py"
+              spec = importlib.util.spec_from_file_location("_externalization_z_compile", z_path)
+              if spec is None or spec.loader is None:
+                  raise RuntimeError("Z_INTERFACE_LOAD_FAILED")
+              z_compile = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(z_compile)
+              old_manifest = read_json(root / "contracts/registry/registry-manifest.json")
+              registry_files = [
+                  {"path": f"contracts/registry/{name}", "contentHash": z_compile.sha256_value(new_documents[name])}
+                  for name in registry_specs
+              ]
+              manifest_material = {
+                  "schema": "registry.manifest.v1",
+                  "version": str(old_manifest.get("version") or "23.0.0-alpha.1"),
+                  "mode": str(old_manifest.get("mode") or "report_only"),
+                  "registryFiles": registry_files,
+              }
+              manifest = {
+                  **manifest_material,
+                  "generatedBy": "tools.registry_compiler.compile_registry",
+                  "registryRootHash": z_compile.sha256_value(manifest_material),
+              }
+              write_json(root / "contracts/registry/registry-manifest.json", manifest)
+
+              import tools.registry_compiler.compile_registry as product_compile
+              product_compile.load_registry_documents = lambda _root=None: new_documents
+              product_compile.sha256_value = z_compile.sha256_value
+              from tools.registry_compiler.registry_graph import build_dependency_graph
+              from tools.registry_compiler.repository_audit import scan_repository
+              graph = build_dependency_graph(root)
+              audit = scan_repository(root)
+
+              previous_selection = read_json(root / "governance/contest/generated/contest-selection-manifest.json")
+              previous_graph = read_json(root / "governance/contest/generated/hash-lineage-graph.json")
+              keep_core = set(previous_selection.get("classifications", {}).get("KEEP_CORE") or [])
+              keep_support = set(previous_selection.get("classifications", {}).get("KEEP_SUPPORT") or [])
+              keep = keep_core | keep_support
+              remaining_modules = {
+                  str(item.get("moduleId") or "")
+                  for item in new_documents["modules.json"].get("modules") or []
+                  if isinstance(item, dict)
+              }
+              if not keep.issubset(remaining_modules):
+                  raise RuntimeError(f"KEEP_MODULES_REMOVED:{sorted(keep - remaining_modules)}")
+              if isolated & remaining_modules:
+                  raise RuntimeError(f"ISOLATED_MODULES_REMAIN:{sorted(isolated & remaining_modules)}")
+
+              def projected_edges(source_graph, module_ids):
+                  return {
+                      module_id: {
+                          "upstream": sorted(set(source_graph.get("upstream", {}).get(module_id) or []) & module_ids),
+                          "downstream": sorted(set(source_graph.get("downstream", {}).get(module_id) or []) & module_ids),
+                      }
+                      for module_id in sorted(module_ids)
+                  }
+
+              if projected_edges(previous_graph, keep) != projected_edges(graph, keep):
+                  raise RuntimeError("KEEP_CLOSURE_EDGE_DRIFT")
+              if int(audit.get("summary", {}).get("runnerDriftCount") or 0) != 0:
+                  raise RuntimeError("RUNNER_DRIFT_AFTER_EXTERNALIZATION")
+
+              additional_deleted_tests = []
+              tests_root = root / "tests"
+              if tests_root.exists():
+                  for path in sorted(tests_root.rglob("*.py")):
+                      text = path.read_text(encoding="utf-8", errors="replace")
+                      if any(identity in text for identity in isolated) or any(relative in text for relative in delete_paths):
+                          relative = path.relative_to(root).as_posix()
+                          path.unlink()
+                          additional_deleted_tests.append(relative)
+
+              residual_hits = []
+              scan_roots = ["src", "config", "contracts", "tests", "tools/registry_compiler", "docs"]
+              for scan_root in scan_roots:
+                  base = root / scan_root
+                  if not base.exists():
+                      continue
+                  for path in base.rglob("*"):
+                      if not path.is_file() or any(part == "__pycache__" for part in path.parts):
+                          continue
+                      try:
+                          text = path.read_text(encoding="utf-8")
+                      except Exception:
+                          continue
+                      matches = sorted(identity for identity in isolated if identity in text)
+                      path_matches = sorted(relative for relative in delete_paths if relative in text)
+                      if matches or path_matches:
+                          residual_hits.append({
+                              "path": path.relative_to(root).as_posix(),
+                              "moduleIds": matches,
+                              "privatePaths": path_matches,
+                          })
+              for readme in root.glob("README*"):
+                  if readme.is_file():
+                      text = readme.read_text(encoding="utf-8", errors="replace")
+                      matches = sorted(identity for identity in isolated if identity in text)
+                      if matches:
+                          residual_hits.append({"path": readme.name, "moduleIds": matches, "privatePaths": []})
+              if residual_hits:
+                  raise RuntimeError("PUBLIC_SURFACE_RESIDUAL_PRIVATE_IDENTITIES:" + json.dumps(residual_hits, ensure_ascii=False))
+
+              receipt_material = {
+                  "schema": "contest.private_externalization_receipt.v1",
+                  "state": "PRIVATE_EXTERNALIZATION_VERIFIED",
+                  "privateArchiveAnchorCommit": private_archive_commit,
+                  "privateArchiveManifestBlob": private_archive_manifest_blob,
+                  "externalizedModuleCount": 7,
+                  "removedImplementationFileCount": 2,
+                  "removedKnownTestFileCount": 2,
+                  "additionalRemovedTestFileCount": len(additional_deleted_tests),
+                  "removedRegistryRecordCounts": dict(sorted((key.split(":", 1)[1], value) for key, value in counts.items() if key.startswith("removed:"))),
+                  "registryRootHash": manifest["registryRootHash"],
+                  "graphHash": graph.get("graphHash"),
+                  "repositoryScanHash": audit.get("repositoryScanHash"),
+                  "keepCoreModuleCount": len(keep_core),
+                  "keepSupportModuleCount": len(keep_support),
+                  "remainingRegisteredOnlyModuleCount": sum(
+                      1 for item in new_documents["modules.json"].get("modules") or []
+                      if isinstance(item, dict) and (
+                          item.get("status") == "REGISTERED_ONLY" or item.get("activationState") == "REGISTERED_ONLY"
+                      )
+                  ),
+                  "runnerDriftCount": int(audit.get("summary", {}).get("runnerDriftCount") or 0),
+                  "keepClosureEdgesStable": True,
+                  "publicSurfaceResidualPrivateIdentityCount": 0,
+                  "privateArchivePreserved": True,
+                  "publicHistoryRewriteStillRequired": True,
+                  "requiredPublicReleaseMethod": "NEW_ROOT_COMMIT_FROM_SANITIZED_TREE",
+                  "mainMutated": False,
+                  "databaseMutated": False,
+                  "providerCallsExecuted": 0,
+              }
+              receipt = {**receipt_material, "receiptHash": z_compile.sha256_value(receipt_material)}
+              write_json(root / "governance/contest/generated/private-externalization-receipt.json", receipt)
+              write_json(root / "governance/contest/generated/hash-lineage-graph-post-externalization.json", graph)
+              write_json(root / "governance/contest/generated/repository-audit-post-externalization.json", audit)
+
+              after = file_map(root)
+              changed = sorted(path for path in set(before) | set(after) if before.get(path) != after.get(path))
+              deleted = sorted(path for path in changed if path not in after)
+              modified = sorted(path for path in changed if path in after)
+
+              tree_data = api_request("GET", f"/git/trees/{base_tree}?recursive=1")
+              modes = {
+                  item["path"]: item["mode"]
+                  for item in tree_data.get("tree") or []
+                  if item.get("type") == "blob"
+              }
+              entries = []
+              for relative in deleted:
+                  entries.append({"path": relative, "mode": modes.get(relative, "100644"), "type": "blob", "sha": None})
+              for relative in modified:
+                  data = (root / relative).read_bytes()
+                  blob = api_request("POST", "/git/blobs", {
+                      "content": base64.b64encode(data).decode(),
+                      "encoding": "base64",
+                  })
+                  entries.append({"path": relative, "mode": modes.get(relative, "100644"), "type": "blob", "sha": blob["sha"]})
+
+              tree = api_request("POST", "/git/trees", {"base_tree": base_tree, "tree": entries})
+              commit = api_request("POST", "/git/commits", {
+                  "message": "governance(contest): externalize private registered-only assets [skip ci]",
+                  "tree": tree["sha"],
+                  "parents": [base_commit],
+              })
+              current = api_request("GET", f"/git/ref/heads/{branch}")
+              if current["object"]["sha"] != base_commit:
+                  raise RuntimeError(f"FINAL_BRANCH_LEASE_MISMATCH:{current['object']['sha']}:{base_commit}")
+              api_request("PATCH", f"/git/refs/heads/{branch}", {"sha": commit["sha"], "force": False})
+              remote = api_request("GET", f"/git/commits/{commit['sha']}")
+              if remote["tree"]["sha"] != tree["sha"] or [parent["sha"] for parent in remote["parents"]] != [base_commit]:
+                  raise RuntimeError("REMOTE_COMMIT_VALIDATION_FAILED")
+
+              result = {
+                  "state": "PRIVATE_EXTERNALIZATION_PUBLISHED",
+                  "remoteCommit": commit["sha"],
+                  "parentCommit": base_commit,
+                  "treeSha": tree["sha"],
+                  "changedPathCount": len(changed),
+                  "deletedPathCount": len(deleted),
+                  "modifiedPathCount": len(modified),
+                  "receiptHash": receipt["receiptHash"],
+                  "registryRootHash": receipt["registryRootHash"],
+                  "graphHash": receipt["graphHash"],
+                  "externalizedModuleCount": 7,
+                  "remainingRegisteredOnlyModuleCount": receipt["remainingRegisteredOnlyModuleCount"],
+                  "runnerDriftCount": receipt["runnerDriftCount"],
+                  "mainMutated": False,
+                  "publicReleaseExecuted": False,
+              }
+              Path("/tmp/private-externalization-result.json").write_text(
+                  json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+                  encoding="utf-8",
+              )
+              print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+
+          grep -q '"state": "PRIVATE_EXTERNALIZATION_PUBLISHED"' /tmp/private-externalization-result.json
+          grep -q '"externalizedModuleCount": 7' /tmp/private-externalization-result.json
+          grep -q '"remainingRegisteredOnlyModuleCount": 0' /tmp/private-externalization-result.json
+          grep -q '"runnerDriftCount": 0' /tmp/private-externalization-result.json
+          echo "PRIVATE_EXTERNALIZATION_API_SNAPSHOT=PASS"
+
+      - name: Upload publication result
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-private-externalization-api-snapshot
+          path: |
+            /tmp/private-externalization-api-snapshot.json
+            /tmp/private-externalization-result.json
+          if-no-files-found: error
+          retention-days: 14
