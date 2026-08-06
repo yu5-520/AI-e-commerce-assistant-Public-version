@@ -41,14 +41,19 @@ jobs:
 
           candidates = [
               Path.home() / '.git-credentials',
-              Path('/root/.git-credentials'),
               Path('/home/ecs-user/.git-credentials'),
           ]
           candidates.extend(Path('/home').glob('*/.git-credentials'))
           for candidate in candidates:
-              if not candidate.is_file():
+              try:
+                  if not candidate.is_file():
+                      continue
+                  lines = candidate.read_text(
+                      encoding='utf-8', errors='ignore'
+                  ).splitlines()
+              except OSError:
                   continue
-              for line in candidate.read_text(encoding='utf-8', errors='ignore').splitlines():
+              for line in lines:
                   parsed = urlparse(line.strip())
                   if parsed.hostname == 'github.com' and parsed.password:
                       print(parsed.password)
