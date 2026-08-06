@@ -31,6 +31,7 @@ jobs:
     env:
       COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       COMPETITION_SOURCE_REF: ${{ github.head_ref || github.ref_name }}
+      COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_CANDIDATE_BASE: /opt/actions-runner-public/competition-candidates/ai-ecommerce-assistant-public
       COMPETITION_PRODUCTION_ROOT: /opt/ai-ecommerce-assistant
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
@@ -70,44 +71,12 @@ jobs:
           git reset --hard "$COMPETITION_SOURCE_COMMIT"
           git clean -ffdx
           test "$(git rev-parse HEAD)" = "$COMPETITION_SOURCE_COMMIT"
-          echo "competitionSourceCommit=$COMPETITION_SOURCE_COMMIT"
 
-      - name: Resolve tool Python 3.10+
+      - name: Verify exact tool Python
         run: |
           set -euo pipefail
-          CANDIDATE_FILE="${RUNNER_TEMP}/competition-candidate-python-candidates.txt"
-          : > "$CANDIDATE_FILE"
-          for candidate in \
-            python3.13 python3.12 python3.11 python3.10 \
-            /usr/local/bin/python3.13 /usr/local/bin/python3.12 \
-            /usr/local/bin/python3.11 /usr/local/bin/python3.10 \
-            /usr/bin/python3.13 /usr/bin/python3.12 \
-            /usr/bin/python3.11 /usr/bin/python3.10; do
-            if command -v "$candidate" >/dev/null 2>&1; then
-              command -v "$candidate" >> "$CANDIDATE_FILE"
-            elif [ -x "$candidate" ]; then
-              printf '%s\n' "$candidate" >> "$CANDIDATE_FILE"
-            fi
-          done
-          for search_root in /opt /usr/local /home "$RUNNER_TOOL_CACHE"; do
-            [ -d "$search_root" ] || continue
-            find "$search_root" -maxdepth 7 -type f \
-              \( -name 'python3.13' -o -name 'python3.12' -o -name 'python3.11' -o -name 'python3.10' -o -name 'python' \) \
-              -perm -u+x -print 2>/dev/null >> "$CANDIDATE_FILE" || true
-          done
-          sort -u "$CANDIDATE_FILE" -o "$CANDIDATE_FILE"
-          while IFS= read -r candidate; do
-            [ -n "$candidate" ] || continue
-            version="$($candidate -c 'import platform; print(platform.python_version())' 2>/dev/null || true)"
-            printf '  %s -> %s\n' "$candidate" "${version:-unusable}"
-            if "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
-              printf 'PYTHON_BIN=%s\n' "$candidate" >> "$GITHUB_ENV"
-              printf 'Resolved PYTHON_BIN=%s (%s)\n' "$candidate" "$version"
-              exit 0
-            fi
-          done < "$CANDIDATE_FILE"
-          echo 'No usable Python 3.10+ tool runtime exists on this ECS runner.' >&2
-          exit 1
+          [ -x "$COMPETITION_TOOL_PYTHON" ]
+          test "$($COMPETITION_TOOL_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
 
       - name: Compile lineage, package and candidate tools
         env:
@@ -116,7 +85,8 @@ jobs:
           set -euo pipefail
           rm -rf dist/competition-lineage dist/competition-runtime dist/competition-candidate
           mkdir -p dist/competition-candidate
-          "$PYTHON_BIN" -m py_compile \
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          "$COMPETITION_TOOL_PYTHON" -m py_compile \
             scripts/compile_competition_lineage.py \
             scripts/build_competition_runtime_package.py \
             scripts/verify_competition_runtime_package.py \
@@ -126,7 +96,7 @@ jobs:
       - name: Compile exact registry and hash lineage
         run: |
           set -euo pipefail
-          "$PYTHON_BIN" scripts/compile_competition_lineage.py \
+          "$COMPETITION_TOOL_PYTHON" scripts/compile_competition_lineage.py \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output-dir dist/competition-lineage \
             2>&1 | tee dist/competition-candidate/lineage-summary.log
@@ -134,14 +104,14 @@ jobs:
       - name: Build and verify precise runtime package
         run: |
           set -euo pipefail
-          "$PYTHON_BIN" scripts/build_competition_runtime_package.py \
+          "$COMPETITION_TOOL_PYTHON" scripts/build_competition_runtime_package.py \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --lineage-dir dist/competition-lineage \
             --output-dir dist/competition-runtime \
             --archive-name "competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
             2>&1 | tee dist/competition-candidate/package-build-summary.log
           ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
-          "$PYTHON_BIN" scripts/verify_competition_runtime_package.py \
+          "$COMPETITION_TOOL_PYTHON" scripts/verify_competition_runtime_package.py \
             "$ARCHIVE" \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output dist/competition-runtime/competition-runtime-verification.json \
@@ -150,64 +120,23 @@ jobs:
       - name: Prepare cached exact Python 3.11.9 application environment
         run: |
           set -euo pipefail
-          BASE_PYTHON=/opt/python/3.11.9/bin/python3.11
-          [ -x "$BASE_PYTHON" ] || {
-            echo "Pinned base Python missing: $BASE_PYTHON" >&2
-            exit 1
-          }
-          test "$($BASE_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
-          LOCK_HASH="$(sha256sum requirements.lock | awk '{print $1}')"
-          VENV_DIR="$COMPETITION_VENV_ROOT/$LOCK_HASH"
-          VENV_PYTHON="$VENV_DIR/bin/python"
-          mkdir -p "$COMPETITION_VENV_ROOT"
-          NEED_BUILD=1
-          if [ -x "$VENV_PYTHON" ]; then
-            if "$VENV_PYTHON" -c 'import fastapi,uvicorn,sqlalchemy,pydantic,openpyxl' >/dev/null 2>&1 \
-              && "$VENV_PYTHON" scripts/check_dependency_lock.py requirements.lock --strict >/dev/null 2>&1; then
-              NEED_BUILD=0
-            fi
-          fi
-          if [ "$NEED_BUILD" = "1" ]; then
-            TMP_VENV="${VENV_DIR}.tmp-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-            rm -rf "$TMP_VENV"
-            "$BASE_PYTHON" -m venv "$TMP_VENV"
-            "$TMP_VENV/bin/python" -m pip install --disable-pip-version-check -r requirements.lock \
-              2>&1 | tee dist/competition-candidate/dependency-install.log
-            "$TMP_VENV/bin/python" scripts/check_dependency_lock.py requirements.lock --strict \
-              | tee dist/competition-candidate/dependency-verification.json
-            rm -rf "$VENV_DIR"
-            mv "$TMP_VENV" "$VENV_DIR"
-          else
-            "$VENV_PYTHON" scripts/check_dependency_lock.py requirements.lock --strict \
-              | tee dist/competition-candidate/dependency-verification.json
-          fi
-          "$VENV_PYTHON" - <<'PY' | tee dist/competition-candidate/application-python.json
-          import json
-          import platform
-          import sys
-          import fastapi
-          import uvicorn
-          import sqlalchemy
-          import pydantic
-          import openpyxl
-          assert platform.python_version() == '3.11.9'
-          print(json.dumps({
-              'pythonVersion': platform.python_version(),
-              'executable': sys.executable,
-              'fastapi': fastapi.__version__,
-              'uvicorn': uvicorn.__version__,
-              'sqlalchemy': sqlalchemy.__version__,
-              'pydantic': pydantic.__version__,
-              'openpyxl': openpyxl.__version__,
-          }, sort_keys=True))
-          PY
-          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$VENV_PYTHON" >> "$GITHUB_ENV"
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_TOOL_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" \
+              "$GITHUB_WORKSPACE/dist/competition-candidate" \
+              | tee dist/competition-candidate/runtime-environment-summary.log \
+              | tail -n 1
+          )"
+          [ -x "$RUNTIME_PYTHON" ]
+          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
 
       - name: Deploy production-disjoint ECS candidate and smoke HTTP
         run: |
           set -euo pipefail
           ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
-          "$PYTHON_BIN" scripts/deploy_competition_candidate_runner.py \
+          "$COMPETITION_TOOL_PYTHON" scripts/deploy_competition_candidate_runner.py \
             "$ARCHIVE" \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --candidate-base "$COMPETITION_CANDIDATE_BASE" \
@@ -222,13 +151,14 @@ jobs:
         if: success()
         run: |
           set -euo pipefail
-          "$PYTHON_BIN" - <<'PY'
+          "$COMPETITION_TOOL_PYTHON" - <<'PY'
           import json
           import os
           from pathlib import Path
 
-          path = Path('dist/competition-candidate/candidate-attestation.json')
-          report = json.loads(path.read_text(encoding='utf-8'))
+          report = json.loads(
+              Path('dist/competition-candidate/candidate-attestation.json').read_text(encoding='utf-8')
+          )
           assert report.get('schema') == 'competition.ecs_candidate_smoke.v1', report
           assert report.get('verified') is True, report.get('errors')
           assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
