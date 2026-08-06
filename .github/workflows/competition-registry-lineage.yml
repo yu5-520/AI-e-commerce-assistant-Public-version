@@ -28,12 +28,21 @@ jobs:
   compile-lineage:
     runs-on: self-hosted
     timeout-minutes: 15
+    env:
+      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout exact source commit
         uses: actions/checkout@v4
         with:
+          ref: ${{ env.COMPETITION_SOURCE_COMMIT }}
           fetch-depth: 1
           clean: true
+
+      - name: Verify checkout identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$COMPETITION_SOURCE_COMMIT"
+          echo "competitionSourceCommit=$COMPETITION_SOURCE_COMMIT"
 
       - name: Resolve ECS Python 3.10+
         run: |
@@ -97,7 +106,7 @@ jobs:
           "$PYTHON_BIN" -m py_compile scripts/compile_competition_lineage.py
           mkdir -p dist
           "$PYTHON_BIN" scripts/compile_competition_lineage.py \
-            --source-commit "$GITHUB_SHA" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output-dir dist/competition-lineage \
             | tee dist/competition-lineage-summary.json
 
@@ -113,17 +122,20 @@ jobs:
           test -s dist/competition-lineage/runtime-files.sha256
           "$PYTHON_BIN" - <<'PY'
           import json
+          import os
           from pathlib import Path
 
           report = json.loads(
               Path('dist/competition-lineage/verification-report.json').read_text(encoding='utf-8')
           )
           assert report.get('verified') is True, report.get('findings')
+          assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
           assert report.get('runtimeFileCount', 0) > 0, report
           assert report.get('registryModuleCount') == 9, report
           assert report.get('shadowEntrypoints') == [], report
           print(json.dumps({
               'verified': report['verified'],
+              'sourceCommit': report['sourceCommit'],
               'runtimeFileCount': report['runtimeFileCount'],
               'registryModuleCount': report['registryModuleCount'],
               'runtimeHash': report['runtimeHash'],
@@ -135,7 +147,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: competition-registry-lineage-${{ github.sha }}
+          name: competition-registry-lineage-${{ env.COMPETITION_SOURCE_COMMIT }}
           path: |
             dist/competition-lineage
             dist/competition-lineage-summary.json
