@@ -13,7 +13,9 @@ on:
       - 'scripts/verify_competition_runtime_package.py'
       - 'scripts/deploy_competition_candidate.py'
       - 'scripts/competition_contract_fixture_provider.py'
+      - 'scripts/competition_e2e_compat_runtime/**'
       - 'scripts/run_competition_three_report_e2e.py'
+      - 'scripts/run_competition_three_report_e2e_compat.py'
       - 'release/**'
       - 'requirements.lock'
       - 'VERSION.md'
@@ -74,7 +76,7 @@ jobs:
           test "$DOWNLOADED" = "1"
           test -s "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
-          test -f "$EXTRACTED/scripts/run_competition_three_report_e2e.py"
+          test -f "$EXTRACTED/scripts/run_competition_three_report_e2e_compat.py"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
           printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
@@ -92,7 +94,9 @@ jobs:
             scripts/verify_competition_runtime_package.py \
             scripts/deploy_competition_candidate.py \
             scripts/competition_contract_fixture_provider.py \
-            scripts/run_competition_three_report_e2e.py
+            scripts/competition_e2e_compat_runtime/competition_contract_fixture_provider.py \
+            scripts/run_competition_three_report_e2e.py \
+            scripts/run_competition_three_report_e2e_compat.py
           "$COMPETITION_TOOL_PYTHON" -m json.tool fixtures/competition/three_report_scenario.json >/dev/null
 
       - name: Compile registry and exact hash lineage
@@ -153,7 +157,7 @@ jobs:
         run: |
           set -euo pipefail
           ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
-          "$COMPETITION_TOOL_PYTHON" scripts/run_competition_three_report_e2e.py \
+          "$COMPETITION_TOOL_PYTHON" scripts/run_competition_three_report_e2e_compat.py \
             "$ARCHIVE" \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --scenario fixtures/competition/three_report_scenario.json \
