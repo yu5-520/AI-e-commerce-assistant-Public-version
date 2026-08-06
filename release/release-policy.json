@@ -29,8 +29,6 @@
     "scripts/check_python36_bootstrap.py",
     "scripts/generate_release_manifest.py",
     "scripts/deploy_github_artifact.sh",
-    "scripts/prepare_competition_runtime_venv.sh",
-    "scripts/prepare_release_validation_venv.sh",
     ".github/workflows/release-hash-seal.yml",
     ".github/workflows/historical-contract-audit.yml",
     "README.md",
