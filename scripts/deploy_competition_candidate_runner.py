@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""Run the ECS candidate smoke in a runner-owned directory.
+"""Run the ECS candidate smoke in a production-disjoint runner directory.
 
-The production root can be permission-protected. This wrapper proves that the
-candidate base is physically disjoint from it, observes the production
-``current`` path before and after when possible, delegates the actual candidate
-startup, and enriches the resulting attestation without requesting root access.
+The wrapper never scans permission-protected production paths for Python. The
+workflow must provide one already verified Python 3.11.9 executable, and that
+explicit runtime is the only interpreter admitted for candidate startup.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Sequence
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import deploy_competition_candidate as candidate_module  # noqa: E402
 
 
 class CandidateBoundaryError(RuntimeError):
@@ -70,6 +74,59 @@ def paths_are_disjoint(candidate_base: Path, production_root: Path) -> bool:
     )
 
 
+def strict_explicit_runtime(explicit: str | None) -> list[Path]:
+    if not explicit:
+        raise CandidateBoundaryError("EXPLICIT_RUNTIME_PYTHON_REQUIRED")
+    path = Path(explicit).expanduser()
+    try:
+        is_file = path.is_file()
+        executable = os.access(path, os.X_OK)
+    except OSError as exc:
+        raise CandidateBoundaryError(
+            f"EXPLICIT_RUNTIME_PYTHON_UNREADABLE:{path}:{type(exc).__name__}:{exc}"
+        ) from exc
+    if not is_file or not executable:
+        raise CandidateBoundaryError(f"EXPLICIT_RUNTIME_PYTHON_INVALID:{path}")
+    return [path]
+
+
+def augment_boundary_report(
+    report: dict[str, Any],
+    *,
+    candidate_base: Path,
+    production_root: Path,
+    before: dict[str, Any],
+    after: dict[str, Any],
+) -> dict[str, Any]:
+    report["candidateBase"] = str(candidate_base.resolve(strict=False))
+    report["productionRoot"] = str(production_root.resolve(strict=False))
+    report["productionBoundaryDisjoint"] = True
+    report["productionCurrentObservationBefore"] = before
+    report["productionCurrentObservationAfter"] = after
+    report["productionCurrentObservationUnchanged"] = before == after
+    report["productionCurrentReadable"] = bool(
+        before.get("readable") and after.get("readable")
+    )
+    report["productionCurrentUnchanged"] = before == after
+    report["productionServiceRestarted"] = False
+    report["productionSymlinkSwitched"] = False
+    report["productionEnvironmentLoaded"] = False
+    report["productionDatabaseReused"] = False
+    report["candidateExecutedAsRoot"] = (
+        os.geteuid() == 0 if hasattr(os, "geteuid") else False
+    )
+    report["runtimeSelectionMode"] = "explicit_verified_python_only"
+    if report["candidateExecutedAsRoot"]:
+        report.setdefault("errors", []).append("CANDIDATE_MUST_NOT_RUN_AS_ROOT")
+        report["verified"] = False
+    if before != after:
+        report.setdefault("errors", []).append(
+            "PRODUCTION_CURRENT_OBSERVATION_CHANGED"
+        )
+        report["verified"] = False
+    return report
+
+
 def run_candidate(
     *,
     archive: Path,
@@ -83,90 +140,93 @@ def run_candidate(
 ) -> dict[str, Any]:
     if not paths_are_disjoint(candidate_base, production_root):
         raise CandidateBoundaryError(
-            f"CANDIDATE_AND_PRODUCTION_ROOTS_NOT_DISJOINT:{candidate_base}:{production_root}"
+            f"CANDIDATE_AND_PRODUCTION_ROOTS_NOT_DISJOINT:"
+            f"{candidate_base}:{production_root}"
         )
     candidate_base.mkdir(parents=True, exist_ok=True)
+    strict_runtime = strict_explicit_runtime(str(runtime_python))[0].resolve()
     before = observe_current(production_root)
-    command = [
-        sys.executable,
-        str(Path(__file__).with_name("deploy_competition_candidate.py")),
-        str(archive),
-        "--source-commit",
-        source_commit,
-        "--deploy-root",
-        str(candidate_base),
-        "--runtime-python",
-        str(runtime_python),
-        "--port",
-        str(port),
-        "--startup-timeout",
-        str(startup_timeout),
-        "--attestation",
-        str(attestation),
-    ]
-    result = subprocess.run(command, text=True)
+
+    original_selector = candidate_module.candidate_python_paths
+    candidate_module.candidate_python_paths = (
+        lambda _deploy_root, explicit: strict_explicit_runtime(explicit)
+    )
+    failure: Exception | None = None
+    report: dict[str, Any]
+    try:
+        report = candidate_module.deploy_candidate(
+            archive=archive,
+            deploy_root=candidate_base,
+            expected_source_commit=source_commit,
+            preferred_port=port,
+            explicit_python=str(strict_runtime),
+            attestation_path=attestation,
+            startup_timeout=startup_timeout,
+        )
+    except Exception as exc:
+        failure = exc
+        if attestation.is_file():
+            loaded = json.loads(attestation.read_text(encoding="utf-8"))
+            report = loaded if isinstance(loaded, dict) else {}
+        else:
+            report = {
+                "schema": "competition.ecs_candidate_smoke.v1",
+                "verified": False,
+                "sourceCommit": source_commit,
+                "errors": [],
+            }
+        report.setdefault("errors", []).append(
+            f"CANDIDATE_START_FAILED:{type(exc).__name__}:{exc}"
+        )
+        report["verified"] = False
+    finally:
+        candidate_module.candidate_python_paths = original_selector
+
     after = observe_current(production_root)
-
-    if attestation.is_file():
-        report = json.loads(attestation.read_text(encoding="utf-8"))
-        if not isinstance(report, dict):
-            raise CandidateBoundaryError("CANDIDATE_ATTESTATION_OBJECT_REQUIRED")
-    else:
-        report = {
-            "schema": "competition.ecs_candidate_smoke.v1",
-            "verified": False,
-            "sourceCommit": source_commit,
-            "errors": ["DELEGATE_ATTESTATION_MISSING"],
-        }
-
-    report["candidateBase"] = str(candidate_base.resolve(strict=False))
-    report["productionRoot"] = str(production_root.resolve(strict=False))
-    report["productionBoundaryDisjoint"] = True
-    report["productionCurrentObservationBefore"] = before
-    report["productionCurrentObservationAfter"] = after
-    report["productionCurrentObservationUnchanged"] = before == after
-    report["productionCurrentReadable"] = bool(before.get("readable") and after.get("readable"))
-    report["productionCurrentUnchanged"] = bool(before == after)
-    report["productionServiceRestarted"] = False
-    report["productionSymlinkSwitched"] = False
-    report["productionEnvironmentLoaded"] = False
-    report["productionDatabaseReused"] = False
-    report["candidateExecutedAsRoot"] = os.geteuid() == 0 if hasattr(os, "geteuid") else False
-    if report["candidateExecutedAsRoot"]:
-        report.setdefault("errors", []).append("CANDIDATE_MUST_NOT_RUN_AS_ROOT")
-        report["verified"] = False
-    if before != after:
-        report.setdefault("errors", []).append("PRODUCTION_CURRENT_OBSERVATION_CHANGED")
-        report["verified"] = False
-    if result.returncode != 0:
-        report.setdefault("errors", []).append(f"DELEGATE_EXIT_CODE:{result.returncode}")
-        report["verified"] = False
-
+    augment_boundary_report(
+        report,
+        candidate_base=candidate_base,
+        production_root=production_root,
+        before=before,
+        after=after,
+    )
     write_json(attestation, report)
+
     candidate_root = report.get("candidateRoot")
     if candidate_root:
-        candidate_attestation = Path(str(candidate_root)) / "candidate-attestation.json"
         try:
-            write_json(candidate_attestation, report)
+            write_json(
+                Path(str(candidate_root)) / "candidate-attestation.json",
+                report,
+            )
         except OSError:
             pass
 
-    if result.returncode != 0 or report.get("verified") is not True:
+    if failure is not None or report.get("verified") is not True:
         raise CandidateBoundaryError(
-            "CANDIDATE_DELEGATE_FAILED:" + json.dumps(report.get("errors") or [], ensure_ascii=False)
-        )
+            "CANDIDATE_FAILED:"
+            + json.dumps(report.get("errors") or [], ensure_ascii=False)
+        ) from failure
     return report
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run a production-disjoint ECS candidate smoke.")
+    parser = argparse.ArgumentParser(
+        description="Run a production-disjoint ECS candidate smoke."
+    )
     parser.add_argument("archive")
     parser.add_argument("--source-commit", required=True)
     parser.add_argument(
         "--candidate-base",
-        default="/opt/actions-runner-public/competition-candidates/ai-ecommerce-assistant-public",
+        default=(
+            "/opt/actions-runner-public/competition-candidates/"
+            "ai-ecommerce-assistant-public"
+        ),
     )
-    parser.add_argument("--production-root", default="/opt/ai-ecommerce-assistant")
+    parser.add_argument(
+        "--production-root",
+        default="/opt/ai-ecommerce-assistant",
+    )
     parser.add_argument("--runtime-python", required=True)
     parser.add_argument("--port", type=int, default=39080)
     parser.add_argument("--startup-timeout", type=float, default=120.0)
@@ -181,7 +241,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         source_commit=args.source_commit.strip(),
         candidate_base=Path(args.candidate_base).expanduser(),
         production_root=Path(args.production_root).expanduser(),
-        runtime_python=Path(args.runtime_python).expanduser().resolve(),
+        runtime_python=Path(args.runtime_python).expanduser(),
         port=args.port,
         startup_timeout=args.startup_timeout,
         attestation=Path(args.attestation).expanduser().resolve(),
@@ -195,7 +255,8 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception as exc:
         print(
-            f"competition candidate boundary runner failed: {type(exc).__name__}: {exc}",
+            "competition candidate boundary runner failed: "
+            f"{type(exc).__name__}: {exc}",
             file=sys.stderr,
         )
         raise
