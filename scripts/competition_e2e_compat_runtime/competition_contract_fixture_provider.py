@@ -2,10 +2,11 @@
 """Compatibility entry for the deterministic competition fixture provider.
 
 The base fixture generates deterministic business content for Agent1/2/3. The active
-runtime adds strict transport contracts that a structural fixture must echo exactly:
+runtime adds strict contracts that a structural fixture must satisfy exactly:
 
 - Agent1: ``itemExecutionId + inputContentHash`` and the evidence-backed execution lock;
-- Agent2: ``itemExecutionId + inputContentHash`` for every returned plan.
+- Agent2: ``itemExecutionId + inputContentHash`` for every returned plan;
+- Agent3: at least two distinct execution-evidence requirements for lifecycle admission.
 
 These additions prove transport and pipeline contracts only. They are not presented as
 real Bailian/Qwen model-quality evidence.
@@ -135,6 +136,39 @@ def _agent2_exact(payload: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _agent3_admission_evidence(result: dict[str, Any]) -> dict[str, Any]:
+    sops = result.get("sops") if isinstance(result.get("sops"), list) else []
+    for sop in sops:
+        if not isinstance(sop, dict):
+            continue
+        sop["submissionEvidence"] = [
+            {
+                "evidenceId": "EXECUTION-BEFORE-AFTER",
+                "title": "执行前后平台凭证",
+                "requiredFields": [
+                    "before",
+                    "after",
+                    "dataVersion",
+                    "operator",
+                    "operatedAt",
+                ],
+                "acceptance": "必须能核对同一店铺、同一商品及同一执行对象的操作前后状态。",
+            },
+            {
+                "evidenceId": "METRIC-REVIEW",
+                "title": "指标复盘记录",
+                "requiredFields": [
+                    "baseline",
+                    "finalValue",
+                    "metricWindow",
+                    "conclusion",
+                ],
+                "acceptance": "必须记录验证周期、核心指标变化与继续、暂停或回滚结论。",
+            },
+        ]
+    return result
+
+
 def response_payload(request_body: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     payload = base._last_user_payload(request_body)
     if isinstance(payload.get("products"), list):
@@ -144,7 +178,11 @@ def response_payload(request_body: Mapping[str, Any]) -> tuple[str, dict[str, An
         and payload.get("exactOutputIdentity") == "itemExecutionId+inputContentHash"
     ):
         return "action_plan_judgment_agent", _agent2_exact(payload)
-    return _ORIGINAL_RESPONSE_PAYLOAD(request_body)
+
+    stage, result = _ORIGINAL_RESPONSE_PAYLOAD(request_body)
+    if stage == "agent3_sop_agent" and isinstance(result, dict):
+        result = _agent3_admission_evidence(result)
+    return stage, result
 
 
 def main() -> int:
