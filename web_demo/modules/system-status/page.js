@@ -5,7 +5,7 @@
     try {
       const response = await fetch(path, {
         method: "GET",
-        headers: { Accept: "application/json", "X-Mock-User-Id": window.AppApi?.getCurrentUserId?.() || "U001" },
+        headers: { Accept: "application/json"},
       });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       return await response.json();
@@ -18,7 +18,7 @@
   async function postJson(path, body = null) {
     const response = await fetch(path, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json", "X-Mock-User-Id": window.AppApi?.getCurrentUserId?.() || "U001" },
+      headers: { Accept: "application/json", "Content-Type": "application/json"},
       body: body ? JSON.stringify(body) : undefined,
     });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
