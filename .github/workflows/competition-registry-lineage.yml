@@ -31,16 +31,19 @@ jobs:
     env:
       COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - name: Checkout exact source commit
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.COMPETITION_SOURCE_COMMIT }}
           fetch-depth: 1
           clean: true
 
-      - name: Verify checkout identity
+      - name: Switch to exact source commit
         run: |
           set -euo pipefail
+          if [ "$(git rev-parse HEAD)" != "$COMPETITION_SOURCE_COMMIT" ]; then
+            git fetch --no-tags --depth=1 origin "$COMPETITION_SOURCE_COMMIT"
+            git checkout --detach "$COMPETITION_SOURCE_COMMIT"
+          fi
           test "$(git rev-parse HEAD)" = "$COMPETITION_SOURCE_COMMIT"
           echo "competitionSourceCommit=$COMPETITION_SOURCE_COMMIT"
 
