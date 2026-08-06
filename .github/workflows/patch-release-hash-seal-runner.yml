@@ -1,0 +1,64 @@
+name: Patch Release Hash Seal Runner
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/patch-release-hash-seal-runner.yml'
+      - '.github/workflows/release-hash-seal.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: patch-release-hash-seal-runner-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch-pr-runner:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Patch only PR validation runner
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/release-hash-seal.yml')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          start = next(i for i, line in enumerate(lines) if line == '  pr-validation:')
+          end = next(i for i, line in enumerate(lines[start + 1:], start + 1) if line == '  seal-release:')
+          runner_line = next(
+              i for i in range(start + 1, end)
+              if lines[i].strip().startswith('runs-on:')
+          )
+          if lines[runner_line].strip() == 'runs-on: self-hosted':
+              print('PR validation already uses self-hosted runner')
+          else:
+              old = lines[runner_line]
+              lines[runner_line] = '    runs-on: self-hosted'
+              path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+              print(f'Patched: {old!r} -> {lines[runner_line]!r}')
+          PY
+
+      - name: Commit patch to pull-request branch
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- .github/workflows/release-hash-seal.yml; then
+            echo 'No patch commit required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/release-hash-seal.yml
+          git commit -m 'ci: PR哈希封印校验改用自托管Runner'
+          git push origin "HEAD:${HEAD_BRANCH}"
