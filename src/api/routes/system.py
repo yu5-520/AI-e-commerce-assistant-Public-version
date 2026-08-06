@@ -24,7 +24,7 @@ from src.runtime_version import (
     VERSION,
     runtime_versions,
 )
-from src.services.account_service import current_user, user_id_from_headers
+from src.services.competition_operator_context_service import current_user, user_id_from_headers
 from src.services.agent_pipeline_governance_v213_service import runtime_governance_summary
 from src.services.agent_pipeline_item_worker_v2010_service import agent_pipeline_status
 from src.services.agent_runtime_hard_interface_v2255_service import (
