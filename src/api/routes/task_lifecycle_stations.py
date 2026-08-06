@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Body, Query, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.task_acceptance_assignment_station_service import accept_task, acceptance_assignment_summary, assign_task, auto_accept_ready_task_pool_tasks
 from src.services.task_recap_rag_station_service import build_task_rag_candidate, complete_task_recap, recap_rag_summary, schedule_task_recap
 from src.services.task_submission_review_station_service import review_task, submission_review_summary, submit_task, task_evidence_detail
