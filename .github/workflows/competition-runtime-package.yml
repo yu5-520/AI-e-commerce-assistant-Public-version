@@ -30,20 +30,42 @@ jobs:
     timeout-minutes: 20
     env:
       COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_REF: ${{ github.head_ref || github.ref_name }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Switch to exact source commit
+      - name: Materialize exact source commit with retries
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ "$(git rev-parse HEAD)" != "$COMPETITION_SOURCE_COMMIT" ]; then
-            git fetch --no-tags --depth=1 origin "$COMPETITION_SOURCE_COMMIT"
-            git checkout --detach "$COMPETITION_SOURCE_COMMIT"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if [ ! -d .git ]; then
+            git init .
           fi
+          git remote remove origin >/dev/null 2>&1 || true
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_READ_TOKEN" | base64 | tr -d '\n')"
+          FETCHED=0
+          for attempt in $(seq 1 12); do
+            echo "Fetch attempt ${attempt}/12 for ${COMPETITION_SOURCE_REF}@${COMPETITION_SOURCE_COMMIT}"
+            if git \
+              -c http.version=HTTP/1.1 \
+              -c http.lowSpeedLimit=1 \
+              -c http.lowSpeedTime=120 \
+              -c http.https://github.com/.extraheader="$AUTH_HEADER" \
+              fetch --force --no-tags --prune --depth=1 origin \
+              "+refs/heads/${COMPETITION_SOURCE_REF}:refs/remotes/origin/${COMPETITION_SOURCE_REF}"; then
+              if git cat-file -e "${COMPETITION_SOURCE_COMMIT}^{commit}" 2>/dev/null; then
+                FETCHED=1
+                break
+              fi
+            fi
+            sleep $((attempt * 5))
+          done
+          unset AUTH_HEADER
+          test "$FETCHED" = "1"
+          git checkout --detach --force "$COMPETITION_SOURCE_COMMIT"
+          git reset --hard "$COMPETITION_SOURCE_COMMIT"
+          git clean -ffdx
           test "$(git rev-parse HEAD)" = "$COMPETITION_SOURCE_COMMIT"
           echo "competitionSourceCommit=$COMPETITION_SOURCE_COMMIT"
 
