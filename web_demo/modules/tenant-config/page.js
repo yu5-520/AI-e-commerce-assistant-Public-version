@@ -8,7 +8,7 @@
   async function fetchConfig() {
     const response = await fetch("/api/architecture/v7/tenant-config", {
       method: "GET",
-      headers: { Accept: "application/json", "X-Mock-User-Id": AppApi.getCurrentUserId() },
+      headers: { Accept: "application/json"},
     });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response.json();
