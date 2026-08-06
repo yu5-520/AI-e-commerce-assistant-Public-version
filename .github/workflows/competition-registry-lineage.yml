@@ -1,0 +1,92 @@
+name: Competition Registry Lineage
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'web_demo/**'
+      - 'config/**'
+      - 'contracts/**'
+      - 'scripts/**'
+      - 'release/**'
+      - 'requirements.lock'
+      - 'VERSION.md'
+      - '.github/workflows/competition-registry-lineage.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-registry-lineage-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up exact Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+
+      - name: Compile registry and hash lineage
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/compile_competition_lineage.py
+          python scripts/compile_competition_lineage.py \
+            --source-commit "$GITHUB_SHA" \
+            --output-dir dist/competition-lineage \
+            | tee dist/competition-lineage-summary.json
+
+      - name: Verify evidence files
+        run: |
+          set -euo pipefail
+          python -m json.tool dist/competition-lineage/source-identity.json >/dev/null
+          python -m json.tool dist/competition-lineage/registry-snapshot.json >/dev/null
+          python -m json.tool dist/competition-lineage/lineage-graph.json >/dev/null
+          python -m json.tool dist/competition-lineage/verification-report.json >/dev/null
+          python -m json.tool dist/competition-lineage/evidence-manifest.json >/dev/null
+          test -s dist/competition-lineage/runtime-files.txt
+          test -s dist/competition-lineage/runtime-files.sha256
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path('dist/competition-lineage/verification-report.json').read_text(encoding='utf-8')
+          )
+          assert report.get('verified') is True, report.get('findings')
+          assert report.get('runtimeFileCount', 0) > 0, report
+          assert report.get('registryModuleCount') == 9, report
+          assert report.get('shadowEntrypoints') == [], report
+          print(json.dumps({
+              'verified': report['verified'],
+              'runtimeFileCount': report['runtimeFileCount'],
+              'registryModuleCount': report['registryModuleCount'],
+              'runtimeHash': report['runtimeHash'],
+              'graphHash': report['graphHash'],
+          }, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Publish lineage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: competition-registry-lineage-${{ github.sha }}
+          path: |
+            dist/competition-lineage
+            dist/competition-lineage-summary.json
+          if-no-files-found: error
+          retention-days: 14
