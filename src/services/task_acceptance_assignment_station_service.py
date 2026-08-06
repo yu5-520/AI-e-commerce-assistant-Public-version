@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from src.services import module_task_service
-from src.services.account_service import default_reviewer
+from src.services.competition_operator_context_service import default_reviewer
 from src.services.task_lifecycle_state_machine_service import auto_accept_ready_tasks, lifecycle_state_summary, transition_lifecycle_task
 
 TASK_ACCEPT_ASSIGN_STATION_VERSION = "13.7.0"
@@ -39,7 +39,7 @@ def auto_accept_ready_task_pool_tasks(*, viewer_id: str | None = None) -> Dict[s
 
 
 def assign_task(task_id: str, *, actor_user_id: str | None = None, assignee_id: str | None = None, reviewer_id: str | None = None, note: str | None = None, split: bool = False) -> Dict[str, Any]:
-    reviewer_id = reviewer_id or (default_reviewer() or {}).get("id") or "U002"
+    reviewer_id = reviewer_id or (default_reviewer() or {}).get("id")
     result = transition_lifecycle_task(
         task_id,
         "split" if split else "assign",
