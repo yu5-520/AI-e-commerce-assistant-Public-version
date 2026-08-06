@@ -348,6 +348,12 @@ uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 
 当前发布体系以精确 Git Commit、依赖锁、运行文件清单、测试证据和 Release Hash 共同确定服务器运行身份。正式发布目录不可原地修改，通过新发布目录验证后再原子切换。
 
+### Release Hash 证据合同
+
+发布清单把运行代码与测试证据分开签封：`attestedFiles` 记录受签封源码，`testEvidenceFiles` 记录编译、静态合同、路由烟雾、测试日志、依赖环境与运行时身份等证据，并由 `testRunHash` 汇总。运行时还会校验 `runtimePipFreezeHash` 与构建时依赖指纹一致，并以 `evidenceSemanticVerified` 表示测试证据的来源 Commit、发布事件、工作流身份和语义边界均通过验证。
+
+这些字段用于证明“部署包、依赖环境和测试证据属于同一次精确发布”，而不是把一次普通 PR 校验伪装成可部署发布包。PR 只执行非封印校验；只有合并进入 `main` 后，正式发布工作流才生成不可变 Release Hash Artifact。
+
 当前有效技术文档：
 
 - [V22.4.0 Release Hash Seal](docs/V22.4.0_RELEASE_HASH_SEAL.md)
