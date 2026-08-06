@@ -15,7 +15,7 @@ import json
 from typing import Any, Dict, List, Mapping
 
 from src.repositories.sqlite_repository import connect, dumps, ensure_columns, loads
-from src.services.account_service import current_user, default_reviewer, visible_store_ids_for_user
+from src.services.competition_operator_context_service import current_user, default_reviewer, visible_store_ids_for_user
 from src.services.import_row_store_service import load_import_rows
 from src.services.metric_catalog_service import CATALOG_VERSION, METRIC_ALIASES, canonical_field, display_short_title, pick, product_identity, stable_code, system_codes
 from src.services.report_alert_service import now_iso
