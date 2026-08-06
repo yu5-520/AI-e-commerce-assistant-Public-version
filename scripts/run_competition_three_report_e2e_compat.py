@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Compatibility launcher for the fixed three-report E2E.
 
-Two compatibility boundaries are applied without changing product runtime code:
+Three compatibility boundaries are applied without changing product runtime code:
 
 1. launch the V22.5.9 exact-hash fixture provider entry;
-2. collect SQLite evidence by introspecting the current ``pipeline_items`` schema
-   instead of assuming historical ``input_ref``/``output_ref`` columns.
+2. collect SQLite evidence by introspecting the current ``pipeline_items`` schema;
+3. disable the asynchronous station thread so the test's official manual Tick API
+   deterministically drains all three imported data versions before assertions.
 """
 from __future__ import annotations
 
+import os
 import sqlite3
 import sys
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Sequence
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
@@ -119,12 +121,17 @@ def query_runtime_database(db_path: Path, latest_version: str) -> dict[str, Any]
                     "status",
                     "action_family",
                     "locked_action_family",
+                    "input_ref",
+                    "output_ref",
                     "input_artifact_ref",
                     "output_artifact_ref",
                     "payload_artifact_ref",
                     "artifact_refs_json",
                     "last_error_code",
                     "last_error_message",
+                    "error_reason",
+                    "failure_code",
+                    "failure_class",
                     "retry_count",
                 ],
             )
@@ -198,6 +205,13 @@ def query_runtime_database(db_path: Path, latest_version: str) -> dict[str, Any]
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    # The production runtime still owns exactly one worker implementation. The E2E
+    # disables only its asynchronous thread so every transition is driven by the
+    # public manual Tick endpoint and the test cannot stop while another thread is
+    # holding an older data version.
+    os.environ["STATION_QUEUE_WORKER_ENABLED"] = "false"
+    os.environ["AGENT_PIPELINE_ITEM_WORKER_ENABLED"] = "true"
+    os.environ["STATION_QUEUE_WORKER_MAX_JOBS_PER_TICK"] = "12"
     base.SCRIPT_DIR = SCRIPTS_DIR / "competition_e2e_compat_runtime"
     base.query_runtime_database = query_runtime_database
     return base.main(argv)
