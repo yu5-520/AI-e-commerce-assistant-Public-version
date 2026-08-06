@@ -1,0 +1,65 @@
+name: Patch Static Release Contract
+
+on:
+  push:
+    branches:
+      - release/self-hosted-main-seal-v1
+    paths:
+      - '.github/workflows/patch-static-release-contract.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-contract:
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Replace obsolete hosted-runner markers
+        run: |
+          set -euo pipefail
+          /opt/python/3.11.9/bin/python3.11 - <<'PY'
+          from pathlib import Path
+
+          path = Path('scripts/check_release_contract.py')
+          source = path.read_text(encoding='utf-8')
+          replacements = {
+              '"python-version: \'3.11.9\'",': '"RELEASE_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11",',
+              '"requirements-dev.lock --strict",': '"prepare_exact_venv requirements-dev.lock",',
+              '"/tmp/ai-release-runtime-venv",': '"RELEASE_RUNTIME_VENV_ROOT",',
+              '"--runtime-python /tmp/ai-release-runtime-venv/bin/python",': '"--runtime-python \\\"$RELEASE_RUNTIME_PYTHON\\\"",',
+              '"Ordinary release rotated root verifier trust",': '"ordinary release unexpectedly rotated root trust",',
+          }
+          for old, new in replacements.items():
+              if old not in source:
+                  raise SystemExit(f'missing obsolete marker: {old}')
+              source = source.replace(old, new, 1)
+          anchor = '    workflow = text(".github/workflows/release-hash-seal.yml")\n'
+          addition = (
+              anchor
+              + '    assert "runs-on: self-hosted" in workflow\n'
+              + '    assert "tarball/${RELEASE_SOURCE_COMMIT}" in workflow\n'
+              + '    assert "RELEASE_MODE" in workflow\n'
+              + '    assert "RELEASE_DEPLOYABLE" in workflow\n'
+          )
+          if anchor not in source:
+              raise SystemExit('workflow assertion anchor missing')
+          source = source.replace(anchor, addition, 1)
+          path.write_text(source, encoding='utf-8')
+          PY
+          /opt/python/3.11.9/bin/python3.11 -m py_compile scripts/check_release_contract.py
+
+      - name: Commit static contract migration
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add scripts/check_release_contract.py
+          git commit -m 'release: 静态合同适配ECS自托管封印'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
