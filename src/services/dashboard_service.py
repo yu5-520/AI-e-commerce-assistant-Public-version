@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from src.services.account_service import current_user, visible_store_ids_for_user
+from src.services.competition_operator_context_service import current_user, visible_store_ids_for_user
 from src.services.frontend_read_model_service import (
     FRONTEND_READ_MODEL_VERSION,
     read_dashboard_view,
