@@ -8,39 +8,25 @@ from typing import Any, Iterable
 
 @dataclass(frozen=True)
 class UserContext:
-    user_id: str = "U001"
-    tenant_id: str = "tenant_demo"
-    org_id: str = "org_demo"
-    role_id: str = "owner"
-    store_group_ids: list[str] = field(default_factory=lambda: ["G001"])
-    store_ids: list[str] = field(default_factory=lambda: ["S001", "S002", "S003", "S004"])
+    user_id: str = "competition_operator"
+    tenant_id: str = "competition_demo"
+    org_id: str = "competition_demo"
+    role_id: str = "operator"
+    store_group_ids: list[str] = field(default_factory=list)
+    store_ids: list[str] = field(default_factory=lambda: ["COMP-STORE-1"])
     strict_scope: bool = False
 
     @classmethod
     def from_any(cls, value: Any | None) -> "UserContext":
+        """Return the server-owned competition scope and ignore client identity."""
         if isinstance(value, cls):
-            return value
-        if value is None:
-            return cls()
-        if isinstance(value, dict):
-            return cls(
-                user_id=str(value.get("user_id") or value.get("userId") or value.get("id") or "U001"),
-                tenant_id=str(value.get("tenant_id") or value.get("tenantId") or "tenant_demo"),
-                org_id=str(value.get("org_id") or value.get("orgId") or "org_demo"),
-                role_id=str(value.get("role_id") or value.get("roleId") or "owner"),
-                store_group_ids=_as_list(value.get("store_group_ids") or value.get("storeGroupIds") or ["G001"]),
-                store_ids=_as_list(value.get("store_ids") or value.get("storeIds") or ["S001", "S002", "S003", "S004"]),
-                strict_scope=bool(value.get("strict_scope") or value.get("strictScope") or False),
-            )
-        return cls(
-            user_id=str(getattr(value, "user_id", "U001") or "U001"),
-            tenant_id=str(getattr(value, "tenant_id", "tenant_demo") or "tenant_demo"),
-            org_id=str(getattr(value, "org_id", "org_demo") or "org_demo"),
-            role_id=str(getattr(value, "role_id", "owner") or "owner"),
-            store_group_ids=_as_list(getattr(value, "store_group_ids", ["G001"])),
-            store_ids=_as_list(getattr(value, "store_ids", ["S001", "S002", "S003", "S004"])),
-            strict_scope=bool(getattr(value, "strict_scope", False)),
-        )
+            store_ids = list(value.store_ids or ["COMP-STORE-1"])
+        elif isinstance(value, dict):
+            store_ids = _as_list(value.get("store_ids") or value.get("storeIds") or ["COMP-STORE-1"])
+        else:
+            store_ids = _as_list(getattr(value, "store_ids", ["COMP-STORE-1"])) if value is not None else ["COMP-STORE-1"]
+        return cls(store_ids=store_ids or ["COMP-STORE-1"])
+
 
 
 def _as_list(value: Any) -> list[str]:
@@ -81,14 +67,8 @@ def query_plan_for_context(ctx: Any, *, table_alias: str = "resource", include_d
     params: dict[str, Any] = {"tenant_id": ctx.tenant_id, "org_id": ctx.org_id}
     if not include_deleted:
         where.append(f"{prefix}deleted_at IS NULL")
-    if ctx.role_id == "manager":
-        where.append(f"{prefix}store_group_id IN :store_group_ids")
-        params["store_group_ids"] = tuple(ctx.store_group_ids or ["__none__"])
-    elif ctx.role_id in {"operator", "finance", "observer"}:
-        where.append(f"{prefix}store_id IN :store_ids")
-        params["store_ids"] = tuple(ctx.store_ids or ["__none__"])
-    elif ctx.role_id != "owner":
-        where.append("1 = 0")
+    where.append(f"{prefix}store_id IN :store_ids")
+    params["store_ids"] = tuple(ctx.store_ids or ["__none__"])
     return ScopedQueryPlan(where=where, params=params)
 
 
@@ -123,16 +103,9 @@ def item_visible_to_context(
         return False
     if not include_deleted and _pick(item, *deleted_fields):
         return False
-    if ctx.role_id == "owner":
-        return True
-    store_group_id = _pick(item, *store_group_fields)
     store_id = _pick(item, *store_fields)
-    if ctx.strict_scope and not store_group_id and not store_id:
+    if ctx.strict_scope and not store_id:
         return False
-    if ctx.role_id == "manager":
-        if store_group_id:
-            return store_group_id in set(ctx.store_group_ids)
-        return (not ctx.strict_scope and not store_id) or store_id in set(ctx.store_ids)
     return (not ctx.strict_scope and not store_id) or store_id in set(ctx.store_ids)
 
 
