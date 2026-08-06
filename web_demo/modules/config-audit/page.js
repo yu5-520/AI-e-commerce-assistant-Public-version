@@ -8,7 +8,7 @@
     query.set("limit", String(params.limit || 80));
     const response = await fetch(`/api/architecture/v7/config-audits?${query.toString()}`, {
       method: "GET",
-      headers: { Accept: "application/json", "X-Mock-User-Id": AppApi.getCurrentUserId() },
+      headers: { Accept: "application/json"},
     });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response.json();
@@ -17,7 +17,7 @@
   async function compareAudit(auditId) {
     const response = await fetch(`/api/architecture/v7/config-audits/${encodeURIComponent(auditId)}/compare`, {
       method: "GET",
-      headers: { Accept: "application/json", "X-Mock-User-Id": AppApi.getCurrentUserId() },
+      headers: { Accept: "application/json"},
     });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const data = await response.json();
