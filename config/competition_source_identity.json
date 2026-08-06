@@ -1,0 +1,28 @@
+{
+  "schema": "competition.source_identity.v1",
+  "version": "2026.08.06.1",
+  "frozenDate": "2026-08-06",
+  "motherRepository": "yu5-520/AI-e-commerce-assistant",
+  "motherRef": "contest/opc-2026-runtime-rc",
+  "motherCommit": "ca70cc6ad63ff6a902bb6bf5d0f0380886d0a87e",
+  "publicRepository": "yu5-520/AI-e-commerce-assistant-Public-version",
+  "publicBaselineCommit": "342f47af088e2e8538bf6034006756c216511c41",
+  "publicReadmeContractCommit": "5da38bb8ae94fe4193dc645c6f9069c6965bf167",
+  "registryProjectionPath": "config/v23_registry_runtime.json",
+  "registryProjectionBlob": "37b71b064912dcfb0375db2b46956d334ad91048",
+  "registryRootHash": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+  "preRewriteReadmeBlob": "5b4bb95d1cf204fd66f2d6681fc6516d4dd76a4a",
+  "extractionContract": {
+    "mode": "registry_and_hash_lineage_allowlist",
+    "copyWholeMotherRepository": false,
+    "deleteAfterCopy": false,
+    "privateCoreMayEnterPublicRuntime": false,
+    "runtimeSelectionAuthority": "config/v23_registry_runtime.json + actual import/reference closure",
+    "productionEntrypoint": "src.api.main:app"
+  },
+  "notes": [
+    "母仓来源提交被冻结，用于后续追溯；母仓可以继续开发。",
+    "README 商业展示更新属于比赛仓展示层，不改变母仓来源身份。",
+    "后续运行文件必须由统一注册表和实际依赖闭包筛选，不按相似文件名猜测。"
+  ]
+}
