@@ -41,7 +41,7 @@ def main() -> int:
             raise RuntimeError(f"{label}: expected one match, found {count}")
         source = source.replace(old, new, 1)
 
-    fixed_consumers = r'''
+    fixed_consumers = r"""
 
 def patch_fixed_identity_consumers(root: Path, changed: set[str]) -> None:
     frontend_relative = "src/api/routes/frontend_views.py"
@@ -101,12 +101,8 @@ def patch_fixed_identity_consumers(root: Path, changed: set[str]) -> None:
     write_text(root, frontend_relative, frontend, changed)
 
     isolation_relative = "src/services/backend_isolation_service.py"
-    isolation = '''"""Competition fixed-workspace data-scope helpers.
-
-The public competition runtime has no application account system and accepts no
-client-selected user, role, tenant or organization identity. These helpers preserve
-the existing row-scope API while pinning the demo namespace on the server side.
-"""
+    isolation = '''# Competition fixed-workspace data-scope helpers.
+# The public runtime accepts no client-selected identity and pins the demo namespace.
 from __future__ import annotations
 
 from typing import Any, Mapping
@@ -286,7 +282,7 @@ def isolation_runtime_summary() -> dict[str, Any]:
     )
     neural = neural.replace('  window.addEventListener("mock-account-change", () => scheduleRefresh("account"));\n', '')
     write_text(root, neural_relative, neural, changed)
-'''
+"""
     replace_once(
         "\ndef build_product_boundary() -> dict[str, Any]:\n",
         fixed_consumers + "\ndef build_product_boundary() -> dict[str, Any]:\n",
