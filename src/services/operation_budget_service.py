@@ -111,7 +111,7 @@ def estimate_operation_budget(task_type: str | None, payload: Dict[str, Any] | N
         cost = _num(rule.get("fixedCost"), 100.0)
     risk_level = str(payload.get("riskLevel") or rule.get("riskDefault") or "low")
     if risk_level == "high":
-        budget_status = "manager_review_not_operator_budget"
+        budget_status = "enterprise_review_not_enabled_in_competition"
     else:
         budget_status = "estimated"
     return {"version": OPERATION_BUDGET_VERSION, "taskType": task_type, "riskLevel": risk_level, "budgetType": budget_type, "estimatedBudgetCost": round(cost, 2), "budgetFormula": formula, "budgetStatus": budget_status, "operatorBudgetApplies": risk_level != "high", "rule": "V14.3 Agent-generated tasks must carry estimated budget cost; high-risk review does not consume ordinary operator budget."}
@@ -119,7 +119,7 @@ def estimate_operation_budget(task_type: str | None, payload: Dict[str, Any] | N
 
 def daily_budget_usage(user_id: str | None, *, day: str | None = None) -> Dict[str, Any]:
     ensure_budget_tables()
-    user_id = user_id or "U001"
+    user_id = "competition_operator"
     day = day or date.today().isoformat()
     with connect() as conn:
         rows = conn.execute("SELECT * FROM operation_budget_ledger_v14 WHERE user_id = ? AND substr(created_at, 1, 10) = ?", (user_id, day)).fetchall()
@@ -138,7 +138,7 @@ def reserve_budget_for_task(task_snapshot: Dict[str, Any], *, user_id: str | Non
     budget = task_snapshot.get("operationBudget") if isinstance(task_snapshot.get("operationBudget"), dict) else estimate_operation_budget(task_snapshot.get("taskType"), task_snapshot)
     risk_level = str(budget.get("riskLevel") or task_snapshot.get("riskLevel") or "low")
     if risk_level == "high":
-        status = "manager_review"
+        status = "enterprise_review_not_enabled_in_competition"
     cost = float(budget.get("estimatedBudgetCost") or 0)
     ledger_id = _ledger_id(f"{task_snapshot.get('taskSnapshotId') or task_snapshot.get('taskId') or now_iso()}|{status}")
     now = now_iso()
