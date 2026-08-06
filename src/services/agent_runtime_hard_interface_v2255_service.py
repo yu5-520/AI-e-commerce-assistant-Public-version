@@ -25,7 +25,7 @@ def _publish_hash_views(result: Dict[str, Any], data_version: str | None) -> Non
         result["hashViewPublication"] = materialize_frontend_views_v2259(
             data_version=str(data_version),
             view_key="operator-center",
-            user_id="U001",
+            user_id="competition_operator",
         )
         result["hashViewPublicationStatus"] = "completed"
     except Exception as exc:
