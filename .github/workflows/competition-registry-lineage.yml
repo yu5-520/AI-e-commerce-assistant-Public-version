@@ -35,13 +35,20 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Verify ECS runner Python
+      - name: Set up exact Python on ECS runner
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+          cache: pip
+          cache-dependency-path: requirements.lock
+
+      - name: Verify exact Python
         run: |
           set -euo pipefail
-          python3 - <<'PY'
+          python - <<'PY'
           import platform
           import sys
-          assert sys.version_info >= (3, 10), sys.version
+          assert sys.version_info[:3] == (3, 11, 9), sys.version
           print(platform.python_version())
           PY
 
@@ -51,9 +58,9 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf dist/competition-lineage dist/competition-lineage-summary.json
-          python3 -m py_compile scripts/compile_competition_lineage.py
+          python -m py_compile scripts/compile_competition_lineage.py
           mkdir -p dist
-          python3 scripts/compile_competition_lineage.py \
+          python scripts/compile_competition_lineage.py \
             --source-commit "$GITHUB_SHA" \
             --output-dir dist/competition-lineage \
             | tee dist/competition-lineage-summary.json
@@ -61,14 +68,14 @@ jobs:
       - name: Verify evidence files
         run: |
           set -euo pipefail
-          python3 -m json.tool dist/competition-lineage/source-identity.json >/dev/null
-          python3 -m json.tool dist/competition-lineage/registry-snapshot.json >/dev/null
-          python3 -m json.tool dist/competition-lineage/lineage-graph.json >/dev/null
-          python3 -m json.tool dist/competition-lineage/verification-report.json >/dev/null
-          python3 -m json.tool dist/competition-lineage/evidence-manifest.json >/dev/null
+          python -m json.tool dist/competition-lineage/source-identity.json >/dev/null
+          python -m json.tool dist/competition-lineage/registry-snapshot.json >/dev/null
+          python -m json.tool dist/competition-lineage/lineage-graph.json >/dev/null
+          python -m json.tool dist/competition-lineage/verification-report.json >/dev/null
+          python -m json.tool dist/competition-lineage/evidence-manifest.json >/dev/null
           test -s dist/competition-lineage/runtime-files.txt
           test -s dist/competition-lineage/runtime-files.sha256
-          python3 - <<'PY'
+          python - <<'PY'
           import json
           from pathlib import Path
 
@@ -89,7 +96,7 @@ jobs:
           PY
 
       - name: Publish lineage evidence
-        if: always()
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: competition-registry-lineage-${{ github.sha }}
