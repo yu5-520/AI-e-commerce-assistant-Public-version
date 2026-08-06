@@ -18,6 +18,8 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
     timeout-minutes: 10
+    env:
+      PATCH_PYTHON: /opt/python/3.11.9/bin/python3.11
     steps:
       - name: Patch PR validation runner through Contents API
         env:
@@ -26,7 +28,8 @@ jobs:
           HEAD_BRANCH: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          python3 - <<'PY'
+          [ -x "$PATCH_PYTHON" ]
+          "$PATCH_PYTHON" - <<'PY'
           import base64
           import json
           import os
