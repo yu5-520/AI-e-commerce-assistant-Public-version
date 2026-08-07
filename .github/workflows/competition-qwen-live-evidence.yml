@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/run_competition_qwen_live_evidence.py'
+      - 'scripts/resolve_competition_qwen_credential.py'
       - 'tests/test_competition_qwen_live_evidence_contract.py'
       - 'web_demo/sample-data/*.xlsx'
       - 'src/services/llm_gateway_v196_service.py'
@@ -15,6 +16,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/run_competition_qwen_live_evidence.py'
+      - 'scripts/resolve_competition_qwen_credential.py'
       - 'web_demo/sample-data/*.xlsx'
       - 'src/services/llm_gateway_v196_service.py'
       - 'src/services/llm_gateway_v196_legacy_service.py'
@@ -72,6 +74,7 @@ jobs:
           test -s "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
           test -f "$EXTRACTED/scripts/run_competition_qwen_live_evidence.py"
+          test -f "$EXTRACTED/scripts/resolve_competition_qwen_credential.py"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
           printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
@@ -82,7 +85,7 @@ jobs:
           set -euo pipefail
           [ -x "$COMPETITION_TOOL_PYTHON" ]
           test "$($COMPETITION_TOOL_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
-          chmod +x scripts/prepare_competition_runtime_venv.sh
+          chmod +x scripts/prepare_competition_runtime_venv.sh scripts/resolve_competition_qwen_credential.py
           "$COMPETITION_TOOL_PYTHON" -m py_compile \
             scripts/compile_competition_lineage.py \
             scripts/build_competition_runtime_package.py \
@@ -90,6 +93,7 @@ jobs:
             scripts/deploy_competition_candidate.py \
             scripts/run_competition_three_report_e2e.py \
             scripts/run_competition_qwen_live_evidence.py \
+            scripts/resolve_competition_qwen_credential.py \
             tests/test_competition_qwen_live_evidence_contract.py
           "$COMPETITION_TOOL_PYTHON" tests/test_competition_qwen_live_evidence_contract.py
 
@@ -100,72 +104,7 @@ jobs:
           GH_QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
         run: |
           set -euo pipefail
-
-          read_qwen_bound_values() {
-            "$COMPETITION_TOOL_PYTHON" - "$1" "$2" <<'PY'
-          import pathlib
-          import sys
-
-          kind, source = sys.argv[1], sys.argv[2]
-          if kind == "file":
-              path = pathlib.Path(source)
-              if not path.is_file():
-                  raise SystemExit(0)
-              records = path.read_text(encoding="utf-8").splitlines()
-          elif kind == "proc":
-              path = pathlib.Path(f"/proc/{source}/environ")
-              if not path.is_file():
-                  raise SystemExit(0)
-              records = path.read_bytes().decode("utf-8", errors="ignore").split("\0")
-          else:
-              raise SystemExit(0)
-
-          values = {}
-          for raw in records:
-              line = raw.strip()
-              if not line or line.startswith("#") or "=" not in line:
-                  continue
-              if line.startswith("export "):
-                  line = line[7:].lstrip()
-              name, candidate = line.split("=", 1)
-              name = name.strip()
-              value = candidate.strip()
-              if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
-                  value = value[1:-1]
-              values[name] = value
-
-          for name in ("DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY"):
-              if values.get(name):
-                  sys.stdout.write(values[name])
-                  raise SystemExit(0)
-
-          provider_markers = [
-              values.get("LLM_PROVIDER", ""),
-              values.get("PRODUCT_JUDGMENT_AGENT_PROVIDER", ""),
-              values.get("ACTION_PLAN_AGENT_PROVIDER", ""),
-              values.get("TASK_MAPPING_AGENT_PROVIDER", ""),
-          ]
-          model_markers = [
-              values.get("BAILIAN_MODEL", ""), values.get("QWEN_MODEL", ""), values.get("LLM_MODEL", ""),
-              values.get("PRODUCT_JUDGMENT_AGENT_MODEL", ""), values.get("ACTION_PLAN_AGENT_MODEL", ""), values.get("TASK_MAPPING_AGENT_MODEL", ""),
-          ]
-          base_url_markers = [
-              values.get("BAILIAN_BASE_URL", ""), values.get("DASHSCOPE_BASE_URL", ""), values.get("QWEN_BASE_URL", ""), values.get("LLM_BASE_URL", ""),
-              values.get("PRODUCT_JUDGMENT_AGENT_BASE_URL", ""), values.get("ACTION_PLAN_AGENT_BASE_URL", ""), values.get("TASK_MAPPING_AGENT_BASE_URL", ""),
-          ]
-          qwen_bound = (
-              any(v.strip().lower().replace("-", "_") in {"aliyun_bailian", "bailian", "dashscope", "qwen"} for v in provider_markers)
-              or any(v.strip().lower().startswith("qwen") for v in model_markers)
-              or any("dashscope.aliyuncs.com" in v.strip().lower() for v in base_url_markers)
-          )
-          if qwen_bound:
-              for name in ("LLM_API_KEY", "PRODUCT_JUDGMENT_AGENT_API_KEY", "ACTION_PLAN_AGENT_API_KEY", "TASK_MAPPING_AGENT_API_KEY"):
-                  if values.get(name):
-                      sys.stdout.write(values[name])
-                      raise SystemExit(0)
-          PY
-          }
-
+          RESOLVER="scripts/resolve_competition_qwen_credential.py"
           key="${GH_DASHSCOPE_API_KEY:-}"
           source_name="github_secret:DASHSCOPE_API_KEY"
           if [ -z "$key" ]; then key="${GH_BAILIAN_API_KEY:-}"; source_name="github_secret:BAILIAN_API_KEY"; fi
@@ -173,48 +112,75 @@ jobs:
           if [ -z "$key" ]; then key="${DASHSCOPE_API_KEY:-}"; source_name="runner_env:DASHSCOPE_API_KEY"; fi
           if [ -z "$key" ]; then key="${BAILIAN_API_KEY:-}"; source_name="runner_env:BAILIAN_API_KEY"; fi
           if [ -z "$key" ]; then key="${QWEN_API_KEY:-}"; source_name="runner_env:QWEN_API_KEY"; fi
+
           if [ -z "$key" ] && [ -r "$COMPETITION_QWEN_CREDENTIAL_FILE" ]; then
-            key="$(read_qwen_bound_values file "$COMPETITION_QWEN_CREDENTIAL_FILE")"
+            key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$COMPETITION_QWEN_CREDENTIAL_FILE")"
             source_name="ecs_dedicated_model_credential"
           fi
           if [ -z "$key" ] && [ -r "$COMPETITION_SHARED_CREDENTIAL_FILE" ]; then
-            key="$(read_qwen_bound_values file "$COMPETITION_SHARED_CREDENTIAL_FILE")"
-            source_name="ecs_shared_model_credential"
+            key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$COMPETITION_SHARED_CREDENTIAL_FILE")"
+            source_name="ecs_shared_runtime_credential"
           fi
+
+          active_service=""
+          active_pid=""
           if [ -z "$key" ] && [ -f scripts/runtime_service_resolver.sh ]; then
             set +u
             source scripts/runtime_service_resolver.sh
             set -u
-            service="$(resolve_ai_runtime_service /opt/ai-ecommerce-assistant 2>/dev/null || true)"
-            if [ -n "$service" ]; then
-              pid="$(systemctl show "$service" --property=MainPID --value 2>/dev/null || true)"
-              if [[ "$pid" =~ ^[1-9][0-9]*$ ]] && [ -r "/proc/${pid}/environ" ]; then
-                key="$(read_qwen_bound_values proc "$pid")"
-                source_name="ecs_active_runtime_model_credential"
+            active_service="$(resolve_ai_runtime_service /opt/ai-ecommerce-assistant 2>/dev/null || true)"
+            if [ -n "$active_service" ]; then
+              active_pid="$(systemctl show "$active_service" --property=MainPID --value 2>/dev/null || true)"
+              if [[ "$active_pid" =~ ^[1-9][0-9]*$ ]] && [ -r "/proc/${active_pid}/environ" ]; then
+                key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" proc "$active_pid")"
+                source_name="ecs_active_runtime_credential"
               fi
             fi
           fi
+
           if [ -z "$key" ]; then
             for service in ai-operating-advisor.service ai-ecommerce.service; do
               systemctl is-active --quiet "$service" 2>/dev/null || continue
               pid="$(systemctl show "$service" --property=MainPID --value 2>/dev/null || true)"
               [[ "$pid" =~ ^[1-9][0-9]*$ ]] || continue
               [ -r "/proc/${pid}/environ" ] || continue
-              key="$(read_qwen_bound_values proc "$pid")"
+              key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" proc "$pid")"
               if [ -n "$key" ]; then
-                source_name="ecs_active_runtime_model_credential"
+                active_service="$service"
+                active_pid="$pid"
+                source_name="ecs_active_runtime_credential"
                 break
               fi
             done
           fi
+
           if [ -z "$key" ]; then
-            echo "::error::Real Bailian evidence could not locate a Bailian/Qwen-bound credential in approved secret/file sources or the read-only environment of the active AI runtime. Generic/stage API keys are accepted only when the same source proves a Qwen/Bailian provider, model, or DashScope endpoint binding. No environment file was sourced and no production database/service/symlink was modified."
+            echo "Credential preflight diagnostic (names/metadata only; no values):"
+            if [ -r "$COMPETITION_QWEN_CREDENTIAL_FILE" ]; then
+              printf 'dedicated_file='; "$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$COMPETITION_QWEN_CREDENTIAL_FILE" --diagnostic || true
+            else
+              echo "dedicated_file=unreadable_or_absent"
+            fi
+            if [ -r "$COMPETITION_SHARED_CREDENTIAL_FILE" ]; then
+              printf 'shared_file='; "$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$COMPETITION_SHARED_CREDENTIAL_FILE" --diagnostic || true
+            else
+              echo "shared_file=unreadable_or_absent"
+            fi
+            if [[ "$active_pid" =~ ^[1-9][0-9]*$ ]] && [ -r "/proc/${active_pid}/environ" ]; then
+              echo "active_service=${active_service}"
+              printf 'active_process='; "$COMPETITION_TOOL_PYTHON" "$RESOLVER" proc "$active_pid" --diagnostic || true
+              systemctl show "$active_service" --property=EnvironmentFiles --value 2>/dev/null | sed 's/^/environment_files_metadata=/' || true
+            else
+              echo "active_process=unresolved_or_unreadable"
+            fi
+            echo "::error::Real Bailian evidence could not locate a credential using the same provider/key fallback semantics as the repository LLM gateway. No credential value was printed; no environment file was sourced; no production database/service/symlink was modified."
             exit 86
           fi
+
           echo "::add-mask::$key"
           printf 'COMPETITION_BAILIAN_API_KEY=%s\n' "$key" >> "$GITHUB_ENV"
           printf 'COMPETITION_BAILIAN_CREDENTIAL_SOURCE=%s\n' "$source_name" >> "$GITHUB_ENV"
-          echo "Bailian credential detected from ${source_name}; only a Qwen-bound model-key value was read, and it will not be printed or published."
+          echo "Bailian credential resolved from ${source_name}; value is masked and will not be published."
 
       - name: Compile registry and exact hash lineage
         run: |
