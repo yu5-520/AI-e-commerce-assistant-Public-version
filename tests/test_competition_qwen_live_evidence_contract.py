@@ -50,6 +50,23 @@ def test_qwen_live_workflow_reads_only_qwen_bound_credentials_and_never_sources_
     assert "COMPETITION_BAILIAN_CREDENTIAL_SOURCE=%s" in text
 
 
+def test_active_runtime_credential_fallback_is_read_only():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert 'pathlib.Path(f"/proc/{source}/environ")' in text
+    assert "resolve_ai_runtime_service /opt/ai-ecommerce-assistant" in text
+    assert 'systemctl show "$service" --property=MainPID --value' in text
+    assert "ecs_active_runtime_model_credential" in text
+    for forbidden in (
+        "systemctl stop",
+        "systemctl restart",
+        "systemctl start",
+        "systemctl disable",
+        "systemctl enable",
+        "ln -sfn",
+    ):
+        assert forbidden not in text
+
+
 def test_qwen_live_attestation_has_explicit_production_disjoint_flags():
     text = SCRIPT.read_text(encoding="utf-8")
     for field in (
@@ -67,6 +84,7 @@ def run_contract_checks() -> None:
     """Stdlib-only entrypoint for the pinned ECS tool Python."""
     test_qwen_live_evidence_uses_real_judge_xlsx_upload_contract()
     test_qwen_live_workflow_reads_only_qwen_bound_credentials_and_never_sources_env()
+    test_active_runtime_credential_fallback_is_read_only()
     test_qwen_live_attestation_has_explicit_production_disjoint_flags()
 
 
