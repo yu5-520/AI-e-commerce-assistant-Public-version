@@ -109,19 +109,63 @@ jobs:
           path = pathlib.Path(sys.argv[1])
           if not path.is_file():
               raise SystemExit(0)
+          values = {}
           for raw in path.read_text(encoding="utf-8").splitlines():
               line = raw.strip()
               if not line or line.startswith("#") or "=" not in line:
                   continue
+              if line.startswith("export "):
+                  line = line[7:].lstrip()
               name, candidate = line.split("=", 1)
-              if name.strip() not in {"DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY"}:
-                  continue
+              name = name.strip()
               value = candidate.strip()
               if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
                   value = value[1:-1]
-              if value:
-                  sys.stdout.write(value)
-                  break
+              values[name] = value
+
+          for name in ("DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY"):
+              if values.get(name):
+                  sys.stdout.write(values[name])
+                  raise SystemExit(0)
+
+          provider_markers = [
+              values.get("LLM_PROVIDER", ""),
+              values.get("PRODUCT_JUDGMENT_AGENT_PROVIDER", ""),
+              values.get("ACTION_PLAN_AGENT_PROVIDER", ""),
+              values.get("TASK_MAPPING_AGENT_PROVIDER", ""),
+          ]
+          model_markers = [
+              values.get("BAILIAN_MODEL", ""),
+              values.get("QWEN_MODEL", ""),
+              values.get("LLM_MODEL", ""),
+              values.get("PRODUCT_JUDGMENT_AGENT_MODEL", ""),
+              values.get("ACTION_PLAN_AGENT_MODEL", ""),
+              values.get("TASK_MAPPING_AGENT_MODEL", ""),
+          ]
+          base_url_markers = [
+              values.get("BAILIAN_BASE_URL", ""),
+              values.get("DASHSCOPE_BASE_URL", ""),
+              values.get("QWEN_BASE_URL", ""),
+              values.get("LLM_BASE_URL", ""),
+              values.get("PRODUCT_JUDGMENT_AGENT_BASE_URL", ""),
+              values.get("ACTION_PLAN_AGENT_BASE_URL", ""),
+              values.get("TASK_MAPPING_AGENT_BASE_URL", ""),
+          ]
+          qwen_bound = (
+              any(v.strip().lower().replace("-", "_") in {"aliyun_bailian", "bailian", "dashscope", "qwen"} for v in provider_markers)
+              or any(v.strip().lower().startswith("qwen") for v in model_markers)
+              or any("dashscope.aliyuncs.com" in v.strip().lower() for v in base_url_markers)
+          )
+          if qwen_bound:
+              for name in (
+                  "LLM_API_KEY",
+                  "PRODUCT_JUDGMENT_AGENT_API_KEY",
+                  "ACTION_PLAN_AGENT_API_KEY",
+                  "TASK_MAPPING_AGENT_API_KEY",
+              ):
+                  if values.get(name):
+                      sys.stdout.write(values[name])
+                      raise SystemExit(0)
           PY
           }
 
@@ -141,13 +185,13 @@ jobs:
             source_name="ecs_shared_model_credential"
           fi
           if [ -z "$key" ]; then
-            echo "::error::Real Bailian evidence could not locate a model credential in repository secrets, runner service environment, the dedicated model credential file, or deployment-owned shared .env. No environment file was sourced and no production database/service/symlink was touched."
+            echo "::error::Real Bailian evidence could not locate a Bailian/Qwen-bound credential in repository secrets, runner service environment, the dedicated model credential file, or deployment-owned shared .env. Generic/stage API keys are accepted only when the same file proves a Qwen/Bailian provider, model, or DashScope endpoint binding. No environment file was sourced and no production database/service/symlink was touched."
             exit 86
           fi
           echo "::add-mask::$key"
           printf 'COMPETITION_BAILIAN_API_KEY=%s\n' "$key" >> "$GITHUB_ENV"
           printf 'COMPETITION_BAILIAN_CREDENTIAL_SOURCE=%s\n' "$source_name" >> "$GITHUB_ENV"
-          echo "Bailian credential detected from ${source_name}; only the exact model-key assignment was read, and the value will not be printed or published."
+          echo "Bailian credential detected from ${source_name}; only a Qwen-bound model-key assignment was read, and the value will not be printed or published."
 
       - name: Compile registry and exact hash lineage
         run: |
