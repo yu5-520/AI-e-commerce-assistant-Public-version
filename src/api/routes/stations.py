@@ -6,7 +6,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Body, HTTPException, Query, Request
 
 from src.runtime_version import VERSION
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.agent_pipeline_governance_v213_service import runtime_governance_summary
 from src.services.pipeline_item_service import pipeline_item_summary
 from src.services.station_contract_service import (

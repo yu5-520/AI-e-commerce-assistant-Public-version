@@ -13,7 +13,7 @@ from typing import Any, Dict, Iterable, List, Tuple
 
 from src.repositories.task_repository import TaskRepository
 from src.services import module_task_service
-from src.services.account_service import current_user
+from src.services.competition_operator_context_service import current_user
 from src.services.task_lifecycle_orchestrator_service import TASK_LIFECYCLE_VERSION as ORCHESTRATOR_VERSION
 from src.services.task_lifecycle_orchestrator_service import attach_lifecycle, complete_recap_and_create_rag_candidate, handle_evidence_submitted, handle_manager_reviewed
 from src.services.task_state_machine_service import mirror_all

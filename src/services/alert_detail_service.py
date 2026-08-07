@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect, loads
-from src.services.account_service import list_stores
+from src.services.competition_operator_context_service import list_stores
 from src.services.report_alert_service import _alert_visible_for_user, _row_to_alert, ensure_v3_tables
 
 ALERT_REPORT_VERSION = "3.0.7"
@@ -80,8 +80,8 @@ def _matching_rows(alert: Dict[str, Any], snapshot: Dict[str, Any] | None) -> Li
 def _store_context(store_id: str | None) -> Dict[str, Any]:
     store = next((item for item in list_stores() if item.get("id") == store_id), None)
     if not store:
-        return {"storeId": store_id, "storeName": "未绑定店铺", "operatorName": "待确认", "reviewerName": "店群总管"}
-    return {"storeId": store.get("id"), "storeName": store.get("name"), "platform": store.get("platform"), "operatorName": store.get("primaryOperatorName") or "未分配", "reviewerName": store.get("reviewerName") or "店群总管"}
+        return {"storeId": store_id, "storeName": "未绑定店铺", "operatorName": "待确认", "reviewerName": "企业组织协同版暂未开放"}
+    return {"storeId": store.get("id"), "storeName": store.get("name"), "platform": store.get("platform"), "operatorName": store.get("primaryOperatorName") or "未分配", "reviewerName": "企业组织协同版暂未开放"}
 
 
 def _evidence_cards(alert: Dict[str, Any], snapshot: Dict[str, Any] | None, store: Dict[str, Any]) -> List[Dict[str, Any]]:

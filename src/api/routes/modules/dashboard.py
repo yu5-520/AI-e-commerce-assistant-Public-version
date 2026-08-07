@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.dashboard_service import get_dashboard_summary
 
 router = APIRouter()

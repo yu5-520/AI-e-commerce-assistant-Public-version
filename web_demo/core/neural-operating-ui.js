@@ -12,19 +12,16 @@
     ["task-report", { route: "business-actions", stage: "executing", label: "任务执行" }],
     ["task-submit", { route: "business-actions", stage: "review_pending", label: "执行回流" }],
     ["business-report", { route: "business-report", stage: "learned", label: "经营记忆" }],
-    ["accounts", { route: "accounts", stage: "growth", label: "个人成长" }],
-    ["role-console", { route: "accounts", stage: "growth", label: "组织权限" }],
     ["system-status", { route: "system-status", stage: "health", label: "链路健康" }],
   ]);
   const STAGE_COPY = {
-    central: "系统正在汇总经营信号、任务与个人成长",
+    central: "系统正在汇总经营信号、任务与执行状态",
     sensed: "报表变化进入感知层，等待形成经营判断",
     interpreted: "多项经营信号正在汇聚为可执行方向",
     action_ready: "经营判断已经转化为按时效排序的任务",
     executing: "当前动作已进入人工执行节点",
     review_pending: "执行痕迹已回流，等待验证与自动复盘",
-    learned: "执行结果正在形成个人经验与组织记忆",
-    growth: "已验证的工作痕迹正在沉淀为成长记录",
+    learned: "执行结果正在形成可复用的经营记忆",
     health: "检查感知、判断、传导、回流与沉淀是否通畅",
   };
 
@@ -42,7 +39,6 @@
     if (["actionReady", "action_ready"].includes(stage)) return Number(counts.actionReady || 0);
     if (["reviewPending", "review_pending"].includes(stage)) return Number(counts.reviewPending || 0);
     if (["executing", "learned", "sensed", "interpreted"].includes(stage)) return Number(counts[stage] || 0);
-    if (stage === "growth") return Number(projection?.operatorProfile?.level || 0);
     if (stage === "health") return Number(counts.blocked || 0);
     return 0;
   }
@@ -99,10 +95,9 @@
     renderTopbar();
   }
   async function fetchProjection({ pulseOnChange = false } = {}) {
-    const userId = window.AppApi?.getCurrentUserId?.() || "U001";
     try {
       const response = await fetch("/api/modules/neural-operating", {
-        headers: { Accept: "application/json", "X-Mock-User-Id": userId },
+        headers: { Accept: "application/json" },
       });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       const next = await response.json();
@@ -132,7 +127,6 @@
     render();
     scheduleRefresh("route");
   });
-  window.addEventListener("mock-account-change", () => scheduleRefresh("account"));
   window.addEventListener("api-cache-updated", () => scheduleRefresh("cache"));
   window.addEventListener("v148-import-queued", () => scheduleRefresh("import"));
   window.addEventListener("task-state-changed", () => scheduleRefresh("task"));

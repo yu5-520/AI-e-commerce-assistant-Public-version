@@ -1,0 +1,155 @@
+{
+  "defaultPolicy": "deny_unregistered_interface",
+  "interfaces": {
+    "erp.report_import": {
+      "adapterPaths": [],
+      "allowedHosts": [],
+      "auditPolicy": "customer_configuration_required",
+      "bindingPresent": false,
+      "capability": "erp.report_import",
+      "competitionStatus": "ENTERPRISE_ONLY",
+      "contractHash": "sha256:1fa57386183a884d4697b7635f0d01b04b0b16c3f5e683ccb8e7df4b54a82b43",
+      "credentialSource": [],
+      "executionEnabled": false,
+      "implementationHashes": {},
+      "inputSchema": "erp_report_transport.v1",
+      "interfaceAvailable": true,
+      "networkEgress": true,
+      "outputSchema": "canonical_report_artifact.v1",
+      "provider": "customer_erp_adapter",
+      "retryPolicy": "customer_configuration_required",
+      "timeoutPolicy": "customer_configuration_required",
+      "upstreamRegistryModules": []
+    },
+    "identity.authentication.aliyun": {
+      "adapterPaths": [],
+      "allowedHosts": [],
+      "auditPolicy": "enterprise_configuration_required",
+      "bindingPresent": false,
+      "capability": "identity.authentication",
+      "competitionStatus": "ENTERPRISE_ONLY",
+      "contractHash": "sha256:7965552fb5671e2c529a1fe41ab161d6ddc9821fb257148a2aefba1929d755e7",
+      "credentialSource": [],
+      "executionEnabled": false,
+      "implementationHashes": {},
+      "inputSchema": "external_identity_assertion.v1",
+      "interfaceAvailable": true,
+      "networkEgress": true,
+      "outputSchema": "trusted_principal_claims.v1",
+      "provider": "aliyun_identity",
+      "retryPolicy": "enterprise_configuration_required",
+      "timeoutPolicy": "enterprise_configuration_required",
+      "upstreamRegistryModules": []
+    },
+    "model.inference.aliyun_bailian": {
+      "adapterPaths": [
+        "src/services/llm_gateway_v196_service.py",
+        "src/services/llm_gateway_v196_legacy_service.py",
+        "src/services/llm_gateway_hash_directed_v2259_service.py"
+      ],
+      "allowedHosts": [
+        "dashscope.aliyuncs.com"
+      ],
+      "auditPolicy": "provider_model_stage_latency_retry_execution_hash_without_secret",
+      "bindingPresent": true,
+      "capability": "model.inference",
+      "competitionStatus": "PUBLIC_RUNTIME",
+      "contractHash": "sha256:1c550198a6d2ddd6f6bdd68c722444854eeacfdab98dfabebec9464ea3a5705c",
+      "credentialSource": [
+        "BAILIAN_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "QWEN_API_KEY"
+      ],
+      "executionEnabled": true,
+      "implementationHashes": {
+        "src/services/llm_gateway_hash_directed_v2259_service.py": "sha256:4966eff934b11fec36caa25e36445313907b6f9899dbda76660ce9c6a4b000dd",
+        "src/services/llm_gateway_v196_legacy_service.py": "sha256:3ec4f870501f1fb0c238a03ce261814c61967dc8929c12a81eaea93968b2eeab",
+        "src/services/llm_gateway_v196_service.py": "sha256:ab55f6a4d89a192eb16f0d354821b2bbd4d9352100f969e3a4698853a189fdba"
+      },
+      "inputSchema": "openai_compatible.chat_completions.request.v1",
+      "interfaceAvailable": true,
+      "networkEgress": true,
+      "outputSchema": "openai_compatible.chat_completions.json_object.v1",
+      "provider": "aliyun_bailian",
+      "retryPolicy": "bounded_transport_retry_no_business_rebinding",
+      "timeoutPolicy": "stage_bounded_timeout",
+      "upstreamRegistryModules": [
+        "agent1_runtime",
+        "agent2_runtime",
+        "agent3_runtime"
+      ]
+    },
+    "model.inference.deepseek_compatible": {
+      "adapterPaths": [
+        "src/services/llm_gateway_v196_service.py",
+        "src/services/llm_gateway_v196_legacy_service.py"
+      ],
+      "allowedHosts": [
+        "api.deepseek.com"
+      ],
+      "auditPolicy": "registration_only",
+      "bindingPresent": false,
+      "capability": "model.inference",
+      "competitionStatus": "OPTIONAL_DISABLED",
+      "contractHash": "sha256:37e0a26a6ac467b2a286ff45014d5f098815892e6af9ba17705f91f4d92aec50",
+      "credentialSource": [],
+      "executionEnabled": false,
+      "implementationHashes": {
+        "src/services/llm_gateway_v196_legacy_service.py": "sha256:3ec4f870501f1fb0c238a03ce261814c61967dc8929c12a81eaea93968b2eeab",
+        "src/services/llm_gateway_v196_service.py": "sha256:ab55f6a4d89a192eb16f0d354821b2bbd4d9352100f969e3a4698853a189fdba"
+      },
+      "inputSchema": "openai_compatible.chat_completions.request.v1",
+      "interfaceAvailable": true,
+      "networkEgress": true,
+      "outputSchema": "openai_compatible.chat_completions.json_object.v1",
+      "provider": "deepseek",
+      "retryPolicy": "disabled_in_competition",
+      "timeoutPolicy": "disabled_in_competition",
+      "upstreamRegistryModules": []
+    },
+    "object.storage.aliyun_oss": {
+      "adapterPaths": [],
+      "allowedHosts": [],
+      "auditPolicy": "enterprise_configuration_required",
+      "bindingPresent": false,
+      "capability": "object.storage",
+      "competitionStatus": "ENTERPRISE_ONLY",
+      "contractHash": "sha256:c1daf0ebe6fbfb7ef8aad49fef26f4d964b6463f421ff79b8cd8988dd3b152e3",
+      "credentialSource": [],
+      "executionEnabled": false,
+      "implementationHashes": {},
+      "inputSchema": "artifact_object_write.v1",
+      "interfaceAvailable": true,
+      "networkEgress": true,
+      "outputSchema": "artifact_object_reference.v1",
+      "provider": "aliyun_oss",
+      "retryPolicy": "enterprise_configuration_required",
+      "timeoutPolicy": "enterprise_configuration_required",
+      "upstreamRegistryModules": []
+    },
+    "organization.directory.dingtalk": {
+      "adapterPaths": [],
+      "allowedHosts": [],
+      "auditPolicy": "enterprise_configuration_required",
+      "bindingPresent": false,
+      "capability": "organization.directory",
+      "competitionStatus": "ENTERPRISE_ONLY",
+      "contractHash": "sha256:5dfc66f6711b8e9df260bd481307b9ec713174d5259a3532515be494fb19af6d",
+      "credentialSource": [],
+      "executionEnabled": false,
+      "implementationHashes": {},
+      "inputSchema": "organization_directory_query.v1",
+      "interfaceAvailable": true,
+      "networkEgress": true,
+      "outputSchema": "organization_principal_projection.v1",
+      "provider": "dingtalk",
+      "retryPolicy": "enterprise_configuration_required",
+      "timeoutPolicy": "enterprise_configuration_required",
+      "upstreamRegistryModules": []
+    }
+  },
+  "registryHash": "sha256:28f04b99253714d52a441491ac988be3f3d2797c620add0570089f1563907ee5",
+  "runtimeSelectionAuthority": "registry+hash_lineage+validation_gate",
+  "schema": "competition.external_interface_registry.v1",
+  "version": "2026.08.06.1"
+}

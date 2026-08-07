@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request
 
-from src.services.account_service import current_user, user_id_from_headers
+from src.services.competition_operator_context_service import current_user, user_id_from_headers
 from src.services.experience_memory_service import (
     approve_case,
     draft_experience_from_task,

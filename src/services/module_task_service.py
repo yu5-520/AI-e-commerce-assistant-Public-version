@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List
 from uuid import uuid4
 
-from src.services.account_service import default_reviewer, get_user, user_display
+from src.services.competition_operator_context_service import default_reviewer, get_user, user_display
 from src.services.action_authorization_gate_service import apply_action_authorization
 from src.services.action_impact_estimation_service import apply_action_impact_estimation
 from src.services.rag_business_memory_service import apply_rag_business_memory

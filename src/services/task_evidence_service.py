@@ -10,7 +10,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict, List
 
-from src.services.account_service import get_user, user_display
+from src.services.competition_operator_context_service import get_user, user_display
 from src.services.module_task_service import create_log, find_task, now_iso, update_task
 from src.services.task_evidence_repository_service import persist_evidence_submission
 from src.services.task_lifecycle_state_machine_service import get_lifecycle_task_projection

@@ -12,7 +12,7 @@ from typing import Any, Dict, Iterable, List
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.frontend_read_model_service import FRONTEND_READ_MODEL_VERSION, read_product_detail, read_product_views
 from src.services.module_projection_service import projected_products
 from src.services.task_pool_station_service import enter_task_pool_from_snapshot

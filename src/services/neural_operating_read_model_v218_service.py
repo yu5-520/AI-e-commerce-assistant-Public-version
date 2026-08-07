@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List
 
-from src.services.account_service import current_user, visible_store_ids_for_user
+from src.services.competition_operator_context_service import current_user, visible_store_ids_for_user
 from src.services.operator_growth_projection_v218_service import (
     build_operator_growth_projection,
 )

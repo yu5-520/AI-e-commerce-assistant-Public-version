@@ -1,0 +1,37 @@
+{
+  "applicationAccountSystemEnabled": false,
+  "applicationLoginEnabled": false,
+  "boundaryHash": "sha256:55c692a492de2c8cc21311183e6c1cccf091af636372b5c068e5c3d2bcc3ee65",
+  "clientIdentityOverrideAllowed": false,
+  "enterpriseCapabilitiesNotEnabled": [
+    "owner_account",
+    "manager_account",
+    "department_accounts",
+    "tenant_provisioning",
+    "role_management",
+    "organization_approval_workflow"
+  ],
+  "enterpriseIdentityProvider": "external_adapter_only",
+  "fixedActor": {
+    "actorId": "competition_operator",
+    "clientOverrideAllowed": false,
+    "role": "operator",
+    "serverInjected": true,
+    "workspaceId": "competition_demo"
+  },
+  "forbiddenPublicRoutes": [
+    "/login",
+    "/register",
+    "/api/accounts",
+    "/api/accounts/switch",
+    "/api/approvals",
+    "/api/action-authority"
+  ],
+  "organizationGovernance": "enterprise_only",
+  "publicRuntimePurpose": "single_operator_agent_business_chain",
+  "roleSwitchEnabled": false,
+  "runtimeActorMode": "fixed_competition_operator",
+  "schema": "competition.product_boundary.v1",
+  "tenantManagementEnabled": false,
+  "version": "2026.08.06.3"
+}

@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.frontend_read_model_service import FRONTEND_READ_MODEL_VERSION, read_product_views
 
 router = APIRouter()

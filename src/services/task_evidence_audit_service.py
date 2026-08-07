@@ -30,8 +30,8 @@ def _ctx_from_task(task: Dict[str, Any], actor_id: str | None) -> UserContext:
     return UserContext(
         tenant_id=tenant_id,
         org_id=org_id,
-        user_id=actor_id or task.get("assignedTo") or task.get("createdBy") or "U001",
-        role_id=str(task.get("roleId") or "operator"),
+        user_id="competition_operator",
+        role_id="operator",
         role_name=str(task.get("roleName") or "运营"),
         permissions=[],
         store_group_ids=[],
@@ -78,7 +78,7 @@ def persist_evidence_submission(task: Dict[str, Any], record: Dict[str, Any]) ->
 
 
 def persist_evidence_review(task: Dict[str, Any], review: Dict[str, Any]) -> Dict[str, Any]:
-    """Write a manager evidence review to task_evidence and task_logs."""
+    """Write an evidence review record; department review is enterprise-only."""
 
     ensure_task_persistence_tables()
     tenant_id, org_id, task_id = _task_ids(task)

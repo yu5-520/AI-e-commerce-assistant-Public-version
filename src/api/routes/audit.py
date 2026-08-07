@@ -13,7 +13,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Body, Query, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 
 router = APIRouter(prefix="/api/audit", tags=["audit"])
 AUDIT_ROUTE_VERSION = "16.14"

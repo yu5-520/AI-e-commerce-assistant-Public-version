@@ -273,7 +273,7 @@
     try {
       const response = await fetch("/api/view/pipeline-live?limit=100", {
         cache: "no-store",
-        headers: { Accept: "application/json", "X-Mock-User-Id": AppApi.getCurrentUserId() },
+        headers: { Accept: "application/json"},
         signal: controller?.signal,
       });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);

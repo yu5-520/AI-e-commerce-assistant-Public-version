@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.task_snapshot_station_service import create_task_snapshot, get_task_snapshot, list_task_snapshots, task_snapshot_summary
 
 router = APIRouter(prefix="/api/task-snapshots", tags=["task-snapshots"])

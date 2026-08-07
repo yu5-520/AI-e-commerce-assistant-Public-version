@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect, ensure_columns
-from src.services.account_service import user_display
+from src.services.competition_operator_context_service import user_display
 from src.services.lifecycle_task_v183_service import create_lifecycle_task_from_snapshot
 from src.services.task_snapshot_station_service import get_task_snapshot, list_task_snapshots
 

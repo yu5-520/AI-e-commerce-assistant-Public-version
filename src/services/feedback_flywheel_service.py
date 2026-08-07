@@ -11,7 +11,7 @@ from collections import Counter
 from copy import deepcopy
 from typing import Any, Dict, List
 
-from src.services.account_service import current_user
+from src.services.competition_operator_context_service import current_user
 from src.services.experience_memory_service import (
     draft_experience_from_task,
     list_cases,

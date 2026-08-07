@@ -1,0 +1,49 @@
+{
+  "$id": "competition.external_interface_registry.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "defaultPolicy": {
+      "const": "deny_unregistered_interface"
+    },
+    "interfaces": {
+      "additionalProperties": {
+        "required": [
+          "capability",
+          "provider",
+          "competitionStatus",
+          "interfaceAvailable",
+          "bindingPresent",
+          "executionEnabled",
+          "networkEgress",
+          "adapterPaths",
+          "implementationHashes",
+          "inputSchema",
+          "outputSchema",
+          "contractHash"
+        ],
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "registryHash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "schema": {
+      "const": "competition.external_interface_registry.v1"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "version",
+    "defaultPolicy",
+    "interfaces",
+    "registryHash"
+  ],
+  "title": "Competition External Interface Registry",
+  "type": "object"
+}

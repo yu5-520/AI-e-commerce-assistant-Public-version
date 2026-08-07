@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.frontend_read_model_service import read_dashboard_view, read_system_status_view
 from src.services.system_service import get_db_status
 from src.services.task_pool_station_service import enter_task_pool_from_snapshot

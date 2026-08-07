@@ -47,7 +47,7 @@ def _now() -> str:
 
 
 def _scope_key(view_key: str, user_id: str) -> str:
-    return f"{view_key.strip() or DEFAULT_VIEW_KEY}::{user_id.strip() or 'U001'}"
+    return f"{view_key.strip() or DEFAULT_VIEW_KEY}::{user_id.strip() or 'competition_operator'}"
 
 
 def stable_view_payload(value: Any) -> Any:
@@ -194,7 +194,7 @@ def materialize_frontend_views_v2259(
     *,
     data_version: str | None = None,
     view_key: str = DEFAULT_VIEW_KEY,
-    user_id: str = "U001",
+    user_id: str = "competition_operator",
 ) -> Dict[str, Any]:
     ensure_frontend_view_artifact_tables()
     resolved_version = data_version or _latest_data_version()
@@ -327,7 +327,7 @@ def materialize_frontend_views_v2259(
 def get_frontend_view_head_v2259(
     *,
     view_key: str = DEFAULT_VIEW_KEY,
-    user_id: str = "U001",
+    user_id: str = "competition_operator",
     data_version: str | None = None,
     materialize_if_missing: bool = True,
 ) -> Dict[str, Any]:
@@ -368,7 +368,7 @@ def read_frontend_view_artifact_v2259(
     artifact_ref: str,
     *,
     view_key: str = DEFAULT_VIEW_KEY,
-    user_id: str = "U001",
+    user_id: str = "competition_operator",
 ) -> Dict[str, Any]:
     scope_key = _scope_key(view_key, user_id)
     row = _head_row(scope_key)

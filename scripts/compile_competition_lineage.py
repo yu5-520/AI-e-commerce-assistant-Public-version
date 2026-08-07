@@ -22,6 +22,8 @@ from collections import defaultdict, deque
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from competition_interface_gate import compile_interface_governance
+
 
 SCHEMA_VERSION = "competition.lineage.compiler.v1"
 HTML_REF_RE = re.compile(r"""(?:src|href)\s*=\s*["']([^"'?#]+)""", re.IGNORECASE)
@@ -517,6 +519,14 @@ def compile_lineage(
 
     add_package_initializers(root, runtime_paths)
 
+    interface_governance = compile_interface_governance(
+        root, scope=scope, runtime_paths=runtime_paths
+    )
+    findings.extend(interface_governance.get("findings") or [])
+    warnings.extend(interface_governance.get("warnings") or [])
+    for edge in interface_governance.get("edges") or []:
+        edges.add((str(edge["from"]), str(edge["to"]), str(edge["type"])))
+
     for relative in sorted(runtime_paths):
         if forbidden_names and Path(relative).name in forbidden_names:
             findings.append(f"FORBIDDEN_FILE_NAME_IN_RUNTIME:{relative}")
@@ -590,8 +600,9 @@ def compile_lineage(
         {"from": source, "to": target, "type": edge_type}
         for source, target, edge_type in sorted(edges)
     ]
+    interface_nodes = list(interface_governance.get("nodes") or [])
     graph_material = {
-        "nodes": sorted(file_nodes + registry_nodes, key=lambda item: item["id"]),
+        "nodes": sorted(file_nodes + registry_nodes + interface_nodes, key=lambda item: item["id"]),
         "edges": edge_records,
     }
     graph_hash = canonical_hash(graph_material)
@@ -611,6 +622,11 @@ def compile_lineage(
         "modules": registry_snapshot_modules,
         "runtimeFileCount": len(file_records),
         "runtimeHash": runtime_hash,
+        "productBoundaryHash": interface_governance.get("productBoundaryHash"),
+        "externalInterfaceRegistryHash": interface_governance.get("externalInterfaceRegistryHash"),
+        "interfaceGovernanceHash": interface_governance.get("governanceHash"),
+        "enabledInterfaceCount": interface_governance.get("enabledInterfaceCount"),
+        "disabledInterfaceCount": interface_governance.get("disabledInterfaceCount"),
     }
     registry_snapshot = {
         **registry_snapshot_material,
@@ -636,6 +652,11 @@ def compile_lineage(
         "sourceIdentityHash": source_identity_hash,
         "registryRootHash": actual_registry_hash,
         "runtimeHash": runtime_hash,
+        "productBoundaryHash": interface_governance.get("productBoundaryHash"),
+        "externalInterfaceRegistryHash": interface_governance.get("externalInterfaceRegistryHash"),
+        "interfaceGovernanceHash": interface_governance.get("governanceHash"),
+        "enabledInterfaceCount": interface_governance.get("enabledInterfaceCount"),
+        "disabledInterfaceCount": interface_governance.get("disabledInterfaceCount"),
         "graphHash": graph_hash,
         "runtimeFileCount": len(file_records),
         "registryModuleCount": len(registry_snapshot_modules),
@@ -656,6 +677,11 @@ def compile_lineage(
         "sourceIdentityHash": source_identity_hash,
         "registrySnapshotHash": registry_snapshot["snapshotHash"],
         "runtimeHash": runtime_hash,
+        "productBoundaryHash": interface_governance.get("productBoundaryHash"),
+        "externalInterfaceRegistryHash": interface_governance.get("externalInterfaceRegistryHash"),
+        "interfaceGovernanceHash": interface_governance.get("governanceHash"),
+        "enabledInterfaceCount": interface_governance.get("enabledInterfaceCount"),
+        "disabledInterfaceCount": interface_governance.get("disabledInterfaceCount"),
         "lineageGraphHash": graph_hash,
         "verificationHash": verification_report["verificationHash"],
         "verified": verification_report["verified"],
@@ -673,6 +699,7 @@ def compile_lineage(
         "runtimeFiles": file_records,
         "verificationReport": verification_report,
         "evidenceManifest": evidence_manifest,
+        "interfaceGovernance": interface_governance,
     }
 
 
@@ -683,6 +710,7 @@ def write_outputs(output_dir: Path, compiled: Mapping[str, Any]) -> None:
     write_json(output_dir / "lineage-graph.json", compiled["lineageGraph"])
     write_json(output_dir / "verification-report.json", compiled["verificationReport"])
     write_json(output_dir / "evidence-manifest.json", compiled["evidenceManifest"])
+    write_json(output_dir / "interface-governance.json", compiled["interfaceGovernance"])
 
     file_records = list(compiled["runtimeFiles"])
     (output_dir / "runtime-files.txt").write_text(

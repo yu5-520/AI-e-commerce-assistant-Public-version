@@ -5,20 +5,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List
 
-from src.services.account_service import get_user
+from src.services.competition_operator_context_service import get_user
 from src.services.module_task_service import find_task, list_tasks
 from src.services.task_lifecycle_orchestrator_service import TASK_LIFECYCLE_VERSION, lifecycle_snapshot
 from src.services.task_lifecycle_state_machine_service import TASK_LIFECYCLE_STATE_MACHINE_VERSION, get_lifecycle_task_projection
 
 REPORT_VERSION = "12.9.1"
 
-ROLE_INSIGHTS = {
-    "owner": {"title": "老板视角", "summary": "看进度、预算、责任和经营结果。", "focus": ["预算", "经营结果", "RAG候选"], "hidden": []},
-    "manager": {"title": "总管视角", "summary": "看复核、退回、自动复盘周期和RAG候选质量。", "focus": ["复核", "退回", "复盘", "RAG"], "hidden": []},
-    "operator": {"title": "运营视角", "summary": "看提交材料和系统后续复盘。", "focus": ["提交材料", "复盘周期"], "hidden": []},
-    "finance": {"title": "财务视角", "summary": "看毛利、退款、广告消耗和库存资金。", "focus": ["毛利", "退款", "广告消耗"], "hidden": []},
-    "observer": {"title": "只读视角", "summary": "看状态和归档结果。", "focus": ["状态", "结果"], "hidden": []},
-}
+ROLE_INSIGHTS = {"operator": {"title": "运营工作台", "summary": "查看执行材料、任务状态和系统复盘。", "focus": ["提交材料", "执行状态", "复盘周期"], "hidden": ["企业组织审批", "部门角色视图"]}}
+
 
 
 def _now() -> str:
@@ -35,17 +30,12 @@ def _text(value: Any, default: str = "待确认") -> str:
 
 
 def _apply_role_insight(report: Dict[str, Any], user_id: str | None = None) -> Dict[str, Any]:
-    try:
-        user = get_user(user_id)
-    except Exception:
-        user = None
-    if not user:
-        report.setdefault("roleInsight", ROLE_INSIGHTS["observer"])
-        return report
-    report["viewer"] = {"userId": user.get("id"), "name": user.get("name"), "roleName": user.get("roleName"), "roleId": user.get("roleId"), "insightDepth": user.get("insightDepth"), "permissionNames": user.get("permissionNames", [])}
-    report["roleInsight"] = ROLE_INSIGHTS.get(user.get("roleId"), ROLE_INSIGHTS["observer"])
-    report["insightDepth"] = user.get("insightDepth")
+    user = get_user(user_id) or get_user(None) or {}
+    report["viewer"] = {"userId": user.get("id") or "competition_operator", "name": user.get("name") or "赛事运营工作台", "roleName": "运营", "roleId": "operator", "permissionNames": user.get("permissionNames", [])}
+    report["roleInsight"] = ROLE_INSIGHTS["operator"]
+    report["enterpriseOrganizationCapabilities"] = "暂未开放"
     return report
+
 
 
 def _task_lookup(task_id: str, user_id: str | None = None, ctx: Any | None = None) -> Dict[str, Any] | None:
@@ -121,7 +111,7 @@ def _steps(task: Dict[str, Any]) -> List[str]:
         return [str(item) for item in steps]
     if fields:
         return [f"提交{field}" for field in fields[:5]]
-    return ["按任务要求提交处理材料", "等待系统自动复盘或总管复核"]
+    return ["按任务要求提交处理材料", "等待系统自动复盘"]
 
 
 def _source_trace(task: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -143,7 +133,7 @@ def _structure_missing_report(task_id: str, user_id: str | None = None, task: Di
         "affectedProducts": products, "affectedProductCount": task.get("affectedProductCount") or len(products), "actionAuthorization": gate, "actionImpactEstimate": task.get("actionImpactEstimate") or task.get("v126ImpactEstimate"),
         "ragBusinessMemory": task.get("ragBusinessMemory") or task.get("v126RagMemory"), "taskLifecycle": lifecycle, "recapCycles": lifecycle.get("recapCycles") or [], "ragCandidate": task.get("ragCandidate") or lifecycle.get("ragCandidate"),
         "autoRecapResult": task.get("autoRecapResult"), "nextStep": lifecycle.get("nextExpected") or "按任务卡当前动作继续处理。", "sourceTrace": _source_trace(task),
-        "responsibility": {"store": {"storeName": task.get("storeName") or task.get("store"), "platform": task.get("platform")}, "operatorName": task.get("operatorName") or task.get("assigneeName") or "运营账号", "reviewerName": task.get("reviewerName") or "店群总管"},
+        "responsibility": {"store": {"storeName": task.get("storeName") or task.get("store"), "platform": task.get("platform")}, "operatorName": task.get("operatorName") or task.get("assigneeName") or "运营账号", "reviewerName": task.get("reviewerName") or "企业组织协同版暂未开放"},
         "triggerRule": {"name": task.get("riskDomain") or "经营任务触发", "status": task.get("status") or "已生成", "rule": _reason(task)}, "fallbackDetail": bool(not task.get("taskDetailReport")), "structureMissing": bool(not task.get("taskDetailReport")), "failClosed": False,
         "relatedTask": task, "rule": "V12.9.1：详情报告读取Repository-aware生命周期投影，同一个task_id贯穿自动接收、提交、复核、自动复盘和RAG候选。",
     }

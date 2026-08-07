@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Body, Query, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.agent_llm_enrichment_service import enrich_feedback_draft_result, enrich_feedback_summary_result
 from src.services.feedback_flywheel_service import cycle_feedback_agent, draft_cycle_memory, feedback_flywheel_summary
 

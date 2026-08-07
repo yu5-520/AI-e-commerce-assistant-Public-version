@@ -1,7 +1,7 @@
 (function () {
   const s = (value) => AppShell.escape(value ?? "-");
   async function fetchJson(path) {
-    const response = await fetch(path, { method: "GET", headers: { Accept: "application/json", "X-Mock-User-Id": AppApi.getCurrentUserId() } });
+    const response = await fetch(path, { method: "GET", headers: { Accept: "application/json"} });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response.json();
   }
@@ -29,7 +29,7 @@
   async function decideApproval(approvalId, decision) {
     const response = await fetch(`/api/architecture/v8/weight-approvals/${encodeURIComponent(approvalId)}/decide`, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json", "X-Mock-User-Id": AppApi.getCurrentUserId() },
+      headers: { Accept: "application/json", "Content-Type": "application/json"},
       body: JSON.stringify({ decision, note: `V8.9 ${decision}` }),
     });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
@@ -38,7 +38,7 @@
   async function submitFeedback(executionId) {
     const response = await fetch(`/api/architecture/v8/weight-executions/${encodeURIComponent(executionId)}/feedback`, {
       method: "POST",
-      headers: { Accept: "application/json", "Content-Type": "application/json", "X-Mock-User-Id": AppApi.getCurrentUserId() },
+      headers: { Accept: "application/json", "Content-Type": "application/json"},
       body: JSON.stringify({
         actualActions: [{ action: "人工已执行权重任务组动作", status: "done" }],
         resultMetrics: { roiDelta: 0.03, riskDelta: -0.05, complaintDelta: -0.02 },

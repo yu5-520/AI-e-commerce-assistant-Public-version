@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Request
 
 from src.api.routes.modules.common import find_or_404
-from src.services.account_service import current_user, user_id_from_headers, visible_store_ids_for_user
+from src.services.competition_operator_context_service import current_user, user_id_from_headers, visible_store_ids_for_user
 from src.services.module_data_service import LISTINGS
 from src.services.module_task_service import visible_candidates
 

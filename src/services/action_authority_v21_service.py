@@ -14,7 +14,10 @@ from typing import Any, Dict, Iterable, List
 from fastapi import HTTPException
 
 from src.repositories.sqlite_repository import connect, dumps, loads
-from src.services.account_service import assignment_for_store, current_user, user_raw
+from src.services.competition_operator_context_service import (
+    COMPETITION_OPERATOR_ID,
+    competition_operator,
+)
 
 ACTION_AUTHORITY_VERSION = "21.0"
 ROAS_FAMILIES = {"roas_scale", "roas_guard"}
@@ -22,6 +25,24 @@ AUTO_EXECUTE = "auto_execute"
 MANAGER_APPROVAL = "manager_approval_required"
 OWNER_APPROVAL = "owner_approval_required"
 AUTHORIZATION_DATA_MISSING = "authorization_data_missing"
+
+
+def assignment_for_store(store_id: str | None) -> Dict[str, Any]:
+    """Return the server-owned competition operator binding for action safety."""
+    return {
+        "storeId": store_id,
+        "primaryOperatorId": COMPETITION_OPERATOR_ID,
+        "source": "competition_fixed_operator_context",
+    }
+
+
+def current_user(_: str | None = None) -> Dict[str, Any]:
+    """Compatibility view over the fixed runtime actor; no client identity is read."""
+    return competition_operator()
+
+
+def user_raw(_: str | None = None) -> Dict[str, Any]:
+    return competition_operator()
 
 DEFAULT_OPERATOR_AUTHORITY = {
     "authorityLevel": "operator_l2",

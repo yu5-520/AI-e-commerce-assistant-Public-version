@@ -11,14 +11,14 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect, dumps, init_db, loads
+from src.services.competition_operator_context_service import COMPETITION_OPERATOR_ID, COMPETITION_OPERATOR_ROLE
 from src.services.task_detail_snapshot_v2024_service import (
     TASK_DETAIL_SNAPSHOT_VERSION,
     upsert_task_detail_snapshot_in_conn,
 )
 
 TASK_POOL_LIFECYCLE_SYNC_VERSION = "20.24"
-DEFAULT_MANAGER_ID = "U002"
-DEFAULT_OPERATOR_ID = "U003"
+DEFAULT_OPERATOR_ID = COMPETITION_OPERATOR_ID
 
 
 def _table_exists(conn: Any, table: str) -> bool:
@@ -50,14 +50,10 @@ def _status_for_task(task: Dict[str, Any], task_layer: str | None) -> str:
     status = str(task.get("status") or task.get("workflowStatus") or "").strip()
     if status and status not in {"ready", "pending", "entered_task_pool", "completed"}:
         return status
-    if task_layer == "manager_dispatch":
-        return "待派发"
     return "待接收"
 
 
 def _visible_actions(task_layer: str | None, status: str) -> List[Dict[str, Any]]:
-    if task_layer == "manager_dispatch" or "派发" in status or "复核" in status:
-        return [{"action": "review", "label": "复核", "primary": True}, {"action": "detail", "label": "详情"}]
     if "接收" in status or status in {"待处理", "待办"}:
         return [{"action": "accept", "label": "接收", "primary": True}, {"action": "detail", "label": "详情"}]
     if "提交" in status or "处理中" in status or "已接收" in status:
@@ -76,11 +72,9 @@ def _task_from_entry(row: Any) -> Dict[str, Any]:
     product = _dict(task.get("productIdentity")) or _dict(snapshot.get("productIdentity")) or _dict(plan.get("productIdentity"))
 
     task_id = _first(row["task_id"], task.get("taskId"), task.get("id"), payload.get("taskId"))
-    task_layer = _first(row["task_layer"], task.get("taskLayer"), "operator_execution")
-    reviewer_id = _first(row["reviewer_id"], task.get("reviewerId"), ownership.get("reviewerId"), DEFAULT_MANAGER_ID)
-    assignee_id = _first(row["assignee_id"], task.get("assigneeId"), ownership.get("assignedOperatorId"))
-    if not assignee_id:
-        assignee_id = reviewer_id if task_layer == "manager_dispatch" else DEFAULT_OPERATOR_ID
+    task_layer = "operator_execution"
+    reviewer_id = None
+    assignee_id = DEFAULT_OPERATOR_ID
 
     status = _status_for_task(task, str(task_layer))
     now = datetime.now().isoformat()
@@ -101,8 +95,8 @@ def _task_from_entry(row: Any) -> Dict[str, Any]:
         "assignee_id": assignee_id,
         "reviewerId": reviewer_id,
         "reviewer_id": reviewer_id,
-        "visibleUserIds": list(dict.fromkeys([x for x in [assignee_id, reviewer_id, "U001"] if x])),
-        "visibleRoleIds": task.get("visibleRoleIds") or ["owner", "manager", "operator"],
+        "visibleUserIds": [COMPETITION_OPERATOR_ID],
+        "visibleRoleIds": [COMPETITION_OPERATOR_ROLE],
         "productIdentity": product or task.get("productIdentity") or {},
         "productId": _first(task.get("productId"), product.get("productId"), row["task_id"]),
         "storeId": _first(task.get("storeId"), product.get("storeId")),
@@ -145,12 +139,12 @@ def _upsert_task_status_in_conn(conn: Any, task: Dict[str, Any]) -> None:
         task.get("dataVersion"),
         task.get("taskType"),
         task.get("riskLevel") or task.get("priority"),
-        "pending" if task.get("taskLayer") == "manager_dispatch" else "not_required",
+        "not_required",
         task.get("status"),
         task.get("workflowStatus"),
         task.get("assigneeId"),
         task.get("reviewerId"),
-        0 if task.get("taskLayer") == "manager_dispatch" else 1,
+        1,
         dumps(task),
         task.get("updatedAt"),
     ))

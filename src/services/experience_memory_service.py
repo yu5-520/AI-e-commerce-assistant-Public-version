@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 from uuid import uuid4
 
 from src.repositories.sqlite_repository import connect, dumps, loads
-from src.services.account_service import current_user, user_display
+from src.services.competition_operator_context_service import current_user, user_display
 from src.services.demo_rag_seed_data import DEMO_RAG_MIN_SEED_COUNT, DEMO_RAG_SEED_VERSION, category_profiles, seed_cards
 from src.services.module_task_service import find_task
 

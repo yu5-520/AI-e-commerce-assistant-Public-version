@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect, ensure_columns
 from src.services import module_task_service
-from src.services.account_service import current_user, list_stores, visible_store_ids_for_user
+from src.services.competition_operator_context_service import current_user, list_stores, visible_store_ids_for_user
 from src.services.pipeline_gate_service import PIPELINE_GATE_VERSION, record_stage_gate, stable_hash, stage_summary
 
 OPERATING_UNIT_SNAPSHOT_VERSION = "12.13.0"

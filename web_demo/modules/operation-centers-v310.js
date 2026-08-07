@@ -3,12 +3,9 @@
   let inventoryData = null;
   let serviceData = null;
   let notice = "";
-
-  function userHeader() { return AppApi?.getCurrentUserId?.() || "U001"; }
-
   async function requestJson(path, fallback) {
     try {
-      const response = await fetch(path, { headers: { Accept: "application/json", "X-Mock-User-Id": userHeader() } });
+      const response = await fetch(path, { headers: { Accept: "application/json"} });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       return await response.json();
     } catch (error) {
@@ -18,7 +15,7 @@
   }
 
   async function postJson(path) {
-    const response = await fetch(path, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json", "X-Mock-User-Id": userHeader() } });
+    const response = await fetch(path, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json"} });
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response.json();
   }

@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect, dumps, loads
-from src.services.account_service import assignment_for_store, default_operator
+from src.services.competition_operator_context_service import assignment_for_store, default_operator
 from src.services.action_authority_v214_service import (
     ACTION_AUTHORITY_VERSION,
     AUTHORIZATION_DATA_MISSING,
@@ -231,11 +231,12 @@ def recalculate_pending_roas_authority(
             else:
                 payload.update(
                     {
-                        "decision": "manager_review_required",
-                        "taskLayer": "manager_dispatch",
-                        "assigneeId": None,
-                        "status": "待审批",
-                        "workflowStatus": "待审批",
+                        "decision": "enterprise_review_required",
+                        "taskLayer": "operator_execution",
+                        "assigneeId": "competition_operator",
+                        "status": "企业审批能力暂未开放",
+                        "workflowStatus": "企业审批能力暂未开放",
+                        "enterpriseOrganizationCapability": "not_enabled_in_competition",
                         "displayStatus": "待审批",
                         "visibleTaskActions": [
                             {"action": "review", "label": "复核", "primary": True},

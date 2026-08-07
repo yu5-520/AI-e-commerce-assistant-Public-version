@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.frontend_read_model_service import read_dashboard_view, read_task_views
 from src.services.neural_operating_read_model_v218_service import (
     build_neural_operating_projection,

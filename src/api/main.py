@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -8,9 +9,6 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api.routes import (
-    accounts,
-    action_authority,
-    approvals,
     artifacts_ops,
     audit,
     data_import,
@@ -78,6 +76,34 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 WEB_DEMO_DIR = ROOT_DIR / "web_demo"
 WEB_INDEX_FILE = WEB_DEMO_DIR / "index.html"
 
+COMPETITION_PRODUCT_BOUNDARY_FILE = ROOT_DIR / "config" / "competition_product_boundary.json"
+
+
+def _load_competition_product_boundary() -> dict[str, Any]:
+    value = json.loads(COMPETITION_PRODUCT_BOUNDARY_FILE.read_text(encoding="utf-8"))
+    required_false = (
+        "applicationLoginEnabled",
+        "applicationAccountSystemEnabled",
+        "roleSwitchEnabled",
+        "tenantManagementEnabled",
+        "clientIdentityOverrideAllowed",
+    )
+    for field in required_false:
+        if value.get(field) is not False:
+            raise RuntimeError(f"Competition boundary requires {field}=false")
+    actor = value.get("fixedActor") or {}
+    if value.get("runtimeActorMode") != "fixed_competition_operator":
+        raise RuntimeError("Competition runtime actor mode must be fixed_competition_operator")
+    if actor.get("actorId") != "competition_operator" or actor.get("role") != "operator":
+        raise RuntimeError("Competition fixed operator identity is invalid")
+    if actor.get("serverInjected") is not True:
+        raise RuntimeError("Competition fixed operator must be server injected")
+    return value
+
+
+COMPETITION_PRODUCT_BOUNDARY = _load_competition_product_boundary()
+COMPETITION_FIXED_ACTOR = dict(COMPETITION_PRODUCT_BOUNDARY["fixedActor"])
+
 app = FastAPI(title="AI ERP Operating Advisor API", version=VERSION)
 
 
@@ -101,6 +127,8 @@ def station_mainline() -> dict[str, Any]:
         "mode": RUNTIME_MODE,
         "runtimeVersions": runtime_versions(),
         "releaseIdentity": identity,
+        "competitionProductBoundary": COMPETITION_PRODUCT_BOUNDARY,
+        "runtimeActor": COMPETITION_FIXED_ACTOR,
         "agentRuntimeIntegrity": hard,
         "runtimeUnit": {
             "batchBoundary": "businessDataVersion",
@@ -253,9 +281,6 @@ def station_mainline() -> dict[str, Any]:
 
 for route_module in [
     health,
-    accounts,
-    action_authority,
-    approvals,
     artifacts_ops,
     audit,
     data_import,
@@ -315,6 +340,8 @@ def api_version() -> dict[str, Any]:
         "cachedOutputRebindingAllowed": False,
         "runtimeVersions": runtime_versions(),
         "releaseIdentity": identity,
+        "competitionProductBoundary": COMPETITION_PRODUCT_BOUNDARY,
+        "runtimeActor": COMPETITION_FIXED_ACTOR,
         "agentHardInterface": hard,
         "stationMainline": station_mainline(),
         "llmProviders": {
@@ -432,6 +459,18 @@ def api_version() -> dict[str, Any]:
         "routerMounted": True,
         "frontendStaticMounted": True,
         "frontendStaticPath": "/web_demo",
+    }
+
+
+@app.get("/api/competition/runtime-boundary")
+def competition_runtime_boundary() -> dict[str, Any]:
+    return {
+        "schema": "competition.runtime_boundary.v1",
+        "productBoundary": COMPETITION_PRODUCT_BOUNDARY,
+        "runtimeActor": COMPETITION_FIXED_ACTOR,
+        "authenticationOwner": "external_identity_adapter_enterprise_only",
+        "applicationLoginEnabled": False,
+        "accountSystemEnabled": False,
     }
 
 

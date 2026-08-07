@@ -10,7 +10,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from src.services.account_service import user_id_from_headers
+from src.services.competition_operator_context_service import user_id_from_headers
 from src.services.product_trend_read_model_v217_service import read_product_trend
 
 router = APIRouter()
