@@ -24,17 +24,21 @@ def test_qwen_live_evidence_uses_real_judge_xlsx_upload_contract():
         assert (ROOT / "web_demo" / "sample-data" / filename).is_file()
 
 
-def test_qwen_live_workflow_never_loads_production_env_or_publishes_key():
+def test_qwen_live_workflow_never_loads_production_business_env_or_publishes_key():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "secrets.DASHSCOPE_API_KEY" in text
     assert "secrets.BAILIAN_API_KEY" in text
     assert "secrets.QWEN_API_KEY" in text
     assert "::add-mask::" in text
-    assert "Production .env is intentionally not loaded" in text
+    assert "/etc/ai-ecommerce-assistant/qwen37-plus.env" in text
+    assert "Production application .env and production business state are intentionally not loaded" in text
     assert "/opt/ai-ecommerce-assistant/.env" not in text
+    assert "source /etc/ai-ecommerce-assistant/qwen37-plus.env" not in text
+    assert ". /etc/ai-ecommerce-assistant/qwen37-plus.env" not in text
     assert "qwen-live-attestation.json" in text
     assert "candidate-app.log" not in text
     assert "COMPETITION_BAILIAN_API_KEY=%s" in text
+    assert "COMPETITION_BAILIAN_CREDENTIAL_SOURCE=%s" in text
 
 
 def test_qwen_live_attestation_has_explicit_production_disjoint_flags():
@@ -59,7 +63,7 @@ def run_contract_checks() -> None:
     installation or network dependency.
     """
     test_qwen_live_evidence_uses_real_judge_xlsx_upload_contract()
-    test_qwen_live_workflow_never_loads_production_env_or_publishes_key()
+    test_qwen_live_workflow_never_loads_production_business_env_or_publishes_key()
     test_qwen_live_attestation_has_explicit_production_disjoint_flags()
 
 
