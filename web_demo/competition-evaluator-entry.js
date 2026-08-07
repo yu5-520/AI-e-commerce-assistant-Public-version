@@ -5,23 +5,23 @@
     {
       index: "01",
       label: "第1期脱敏经营报表",
-      note: "比赛样例 · JSON",
-      href: "/web_demo/sample-data/AI经营参谋_脱敏样例_第1期.json",
-      filename: "AI经营参谋_脱敏样例_第1期.json",
+      note: "评委样例 · XLSX",
+      href: "/web_demo/sample-data/AI经营参谋_脱敏样例_第1期.xlsx",
+      filename: "AI经营参谋_脱敏样例_第1期.xlsx",
     },
     {
       index: "02",
       label: "第2期脱敏经营报表",
-      note: "比赛样例 · JSON",
-      href: "/web_demo/sample-data/AI经营参谋_脱敏样例_第2期.json",
-      filename: "AI经营参谋_脱敏样例_第2期.json",
+      note: "评委样例 · XLSX",
+      href: "/web_demo/sample-data/AI经营参谋_脱敏样例_第2期.xlsx",
+      filename: "AI经营参谋_脱敏样例_第2期.xlsx",
     },
     {
       index: "03",
       label: "第3期脱敏经营报表",
-      note: "比赛样例 · JSON",
-      href: "/web_demo/sample-data/AI经营参谋_脱敏样例_第3期.json",
-      filename: "AI经营参谋_脱敏样例_第3期.json",
+      note: "评委样例 · XLSX",
+      href: "/web_demo/sample-data/AI经营参谋_脱敏样例_第3期.xlsx",
+      filename: "AI经营参谋_脱敏样例_第3期.xlsx",
     },
   ];
 
@@ -32,9 +32,9 @@
       <div class="competition-evaluator-intro">
         <div>
           <strong>三期脱敏经营报表</strong>
-          <p>按顺序下载并逐份上传。样例会进入现有真实报表上传、解析、证据构建与 Agent 业务链路，不走 Demo 捷径。</p>
+          <p>按顺序下载并逐份上传 XLSX。样例会进入现有真实报表上传、Excel 解析、证据构建与 Agent 业务链路，不走 Demo 捷径。</p>
         </div>
-        <span class="status-badge">3 份 · 已脱敏</span>
+        <span class="status-badge">3 份 · XLSX · 已脱敏</span>
       </div>
       <div class="competition-sample-grid">
         ${SAMPLE_REPORTS.map((item) => `<article class="competition-sample-card">
@@ -75,8 +75,10 @@
 
     if (!upload.querySelector("[data-competition-samples]")) {
       const input = upload.querySelector("[data-manual-file-input]");
-      if (input) input.insertAdjacentHTML("afterend", sampleMarkup());
-      else uploadHeader?.insertAdjacentHTML("afterend", sampleMarkup());
+      if (input) {
+        input.setAttribute("accept", ".xlsx,.xlsm,.xls,.csv,.json");
+        input.insertAdjacentHTML("afterend", sampleMarkup());
+      } else uploadHeader?.insertAdjacentHTML("afterend", sampleMarkup());
     }
 
     const sourceSection = findSourceSection(root);
