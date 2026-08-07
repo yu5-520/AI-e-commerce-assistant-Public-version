@@ -41,6 +41,7 @@ jobs:
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       COMPETITION_QWEN_BASE: /opt/actions-runner-public/competition-qwen-live/ai-ecommerce-assistant-public
       COMPETITION_QWEN_CREDENTIAL_FILE: /etc/ai-ecommerce-assistant/qwen37-plus.env
+      COMPETITION_SHARED_CREDENTIAL_FILE: /opt/ai-ecommerce-assistant/shared/.env
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - name: Materialize exact source commit archive
@@ -124,25 +125,50 @@ jobs:
               if not line or line.startswith("#") or "=" not in line:
                   continue
               name, candidate = line.split("=", 1)
-              if name.strip() != "DASHSCOPE_API_KEY":
+              if name.strip() not in {"DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY"}:
                   continue
               value = candidate.strip()
               if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
                   value = value[1:-1]
-              break
+              if value:
+                  break
           sys.stdout.write(value)
           PY
             )"
-            source_name="ecs_file:qwen37-plus.env"
+            source_name="ecs_dedicated_model_credential"
+          fi
+          if [ -z "$key" ] && [ -r "$COMPETITION_SHARED_CREDENTIAL_FILE" ]; then
+            key="$("$COMPETITION_TOOL_PYTHON" - "$COMPETITION_SHARED_CREDENTIAL_FILE" <<'PY'
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1])
+          value = ""
+          for raw in path.read_text(encoding="utf-8").splitlines():
+              line = raw.strip()
+              if not line or line.startswith("#") or "=" not in line:
+                  continue
+              name, candidate = line.split("=", 1)
+              if name.strip() not in {"DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY"}:
+                  continue
+              value = candidate.strip()
+              if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+                  value = value[1:-1]
+              if value:
+                  break
+          sys.stdout.write(value)
+          PY
+            )"
+            source_name="ecs_shared_model_credential"
           fi
           if [ -z "$key" ]; then
-            echo "::error::Real Bailian evidence requires DASHSCOPE_API_KEY, BAILIAN_API_KEY or QWEN_API_KEY in repository secrets, the self-hosted runner service environment, or the dedicated /etc/ai-ecommerce-assistant/qwen37-plus.env credential file. Production application .env and production business state are intentionally not loaded."
+            echo "::error::Real Bailian evidence could not locate a model credential in repository secrets, runner service environment, the dedicated model credential file, or the deployment-owned shared environment. No environment file was sourced and no production database/service/symlink was touched."
             exit 86
           fi
           echo "::add-mask::$key"
           printf 'COMPETITION_BAILIAN_API_KEY=%s\n' "$key" >> "$GITHUB_ENV"
           printf 'COMPETITION_BAILIAN_CREDENTIAL_SOURCE=%s\n' "$source_name" >> "$GITHUB_ENV"
-          echo "Bailian credential detected from ${source_name}; value will not be printed or published."
+          echo "Bailian credential detected from ${source_name}; only the exact model-key assignment was read, and the value will not be printed or published."
 
       - name: Compile registry and exact hash lineage
         run: |
@@ -186,6 +212,7 @@ jobs:
               | tail -n 1
           )"
           [ -x "$RUNTIME_PYTHON" ]
+          test "$($COMPETITION_RUNTIME_PYTHON -c 'import platform; print(platform.python_version())' 2>/dev/null || true)" != "" || true
           test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
           "$RUNTIME_PYTHON" -c 'import uvicorn, fastapi, openpyxl'
           printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
