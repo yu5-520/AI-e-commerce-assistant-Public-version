@@ -40,6 +40,7 @@ jobs:
       COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       COMPETITION_QWEN_BASE: /opt/actions-runner-public/competition-qwen-live/ai-ecommerce-assistant-public
+      COMPETITION_QWEN_CREDENTIAL_FILE: /etc/ai-ecommerce-assistant/qwen37-plus.env
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - name: Materialize exact source commit archive
@@ -105,18 +106,43 @@ jobs:
         run: |
           set -euo pipefail
           key="${GH_DASHSCOPE_API_KEY:-}"
-          [ -n "$key" ] || key="${GH_BAILIAN_API_KEY:-}"
-          [ -n "$key" ] || key="${GH_QWEN_API_KEY:-}"
-          [ -n "$key" ] || key="${DASHSCOPE_API_KEY:-}"
-          [ -n "$key" ] || key="${BAILIAN_API_KEY:-}"
-          [ -n "$key" ] || key="${QWEN_API_KEY:-}"
+          source_name="github_secret:DASHSCOPE_API_KEY"
+          if [ -z "$key" ]; then key="${GH_BAILIAN_API_KEY:-}"; source_name="github_secret:BAILIAN_API_KEY"; fi
+          if [ -z "$key" ]; then key="${GH_QWEN_API_KEY:-}"; source_name="github_secret:QWEN_API_KEY"; fi
+          if [ -z "$key" ]; then key="${DASHSCOPE_API_KEY:-}"; source_name="runner_env:DASHSCOPE_API_KEY"; fi
+          if [ -z "$key" ]; then key="${BAILIAN_API_KEY:-}"; source_name="runner_env:BAILIAN_API_KEY"; fi
+          if [ -z "$key" ]; then key="${QWEN_API_KEY:-}"; source_name="runner_env:QWEN_API_KEY"; fi
+          if [ -z "$key" ] && [ -r "$COMPETITION_QWEN_CREDENTIAL_FILE" ]; then
+            key="$("$COMPETITION_TOOL_PYTHON" - "$COMPETITION_QWEN_CREDENTIAL_FILE" <<'PY'
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1])
+          value = ""
+          for raw in path.read_text(encoding="utf-8").splitlines():
+              line = raw.strip()
+              if not line or line.startswith("#") or "=" not in line:
+                  continue
+              name, candidate = line.split("=", 1)
+              if name.strip() != "DASHSCOPE_API_KEY":
+                  continue
+              value = candidate.strip()
+              if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+                  value = value[1:-1]
+              break
+          sys.stdout.write(value)
+          PY
+            )"
+            source_name="ecs_file:qwen37-plus.env"
+          fi
           if [ -z "$key" ]; then
-            echo "::error::Real Bailian evidence requires DASHSCOPE_API_KEY, BAILIAN_API_KEY or QWEN_API_KEY in repository secrets or the self-hosted runner service environment. Production .env is intentionally not loaded."
+            echo "::error::Real Bailian evidence requires DASHSCOPE_API_KEY, BAILIAN_API_KEY or QWEN_API_KEY in repository secrets, the self-hosted runner service environment, or the dedicated /etc/ai-ecommerce-assistant/qwen37-plus.env credential file. Production application .env and production business state are intentionally not loaded."
             exit 86
           fi
           echo "::add-mask::$key"
           printf 'COMPETITION_BAILIAN_API_KEY=%s\n' "$key" >> "$GITHUB_ENV"
-          echo "Bailian credential detected; value will not be printed or published."
+          printf 'COMPETITION_BAILIAN_CREDENTIAL_SOURCE=%s\n' "$source_name" >> "$GITHUB_ENV"
+          echo "Bailian credential detected from ${source_name}; value will not be printed or published."
 
       - name: Compile registry and exact hash lineage
         run: |
