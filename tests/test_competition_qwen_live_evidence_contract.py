@@ -48,3 +48,21 @@ def test_qwen_live_attestation_has_explicit_production_disjoint_flags():
         assert field in text
     assert '"published": False' in text
     assert '"sourceValuePersisted": False' in text
+
+
+def run_contract_checks() -> None:
+    """Stdlib-only entrypoint for the pinned ECS tool Python.
+
+    The self-hosted tool interpreter intentionally stays minimal and does not
+    carry pytest. Pytest can still collect the test_* functions elsewhere, while
+    CI calls this entrypoint directly so contract verification has zero package
+    installation or network dependency.
+    """
+    test_qwen_live_evidence_uses_real_judge_xlsx_upload_contract()
+    test_qwen_live_workflow_never_loads_production_env_or_publishes_key()
+    test_qwen_live_attestation_has_explicit_production_disjoint_flags()
+
+
+if __name__ == "__main__":
+    run_contract_checks()
+    print("COMPETITION_QWEN_LIVE_CONTRACT=verified")
