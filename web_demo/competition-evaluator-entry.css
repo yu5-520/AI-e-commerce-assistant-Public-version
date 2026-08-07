@@ -1,0 +1,89 @@
+.competition-evaluator-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  margin: 14px 0 16px;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 18px;
+  background: #fbfcfe;
+}
+
+.competition-evaluator-intro strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.competition-evaluator-intro p {
+  margin: 0;
+  color: var(--muted, #667085);
+  line-height: 1.65;
+}
+
+.competition-evaluator-intro .status-badge {
+  flex: 0 0 auto;
+}
+
+.competition-sample-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.competition-sample-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.competition-sample-card small,
+.competition-sample-card span {
+  display: block;
+  color: var(--muted, #667085);
+}
+
+.competition-sample-card strong {
+  display: block;
+  margin: 6px 0 4px;
+  font-size: 16px;
+}
+
+.competition-sample-card a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid #d8dde6;
+  background: #f5f7fa;
+  color: #111827;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.competition-enterprise-note {
+  margin: 8px 0 18px;
+  color: var(--muted, #667085);
+  line-height: 1.65;
+}
+
+.compact-upload-section[data-competition-evaluator-entry="true"] {
+  scroll-margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .competition-sample-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .competition-evaluator-intro {
+    flex-direction: column;
+  }
+}
