@@ -81,4 +81,6 @@ def test_transport_binds_artifact_sha_to_sealed_manifest_before_deploy() -> None
     assert deploy_call in source
     assert source.index(manifest_check) < source.index(deploy_call)
     assert "GitHub artifact ZIP digest mismatch" in source
-    assert "Expected exactly one release-*.tar.gz" in source
+    assert 'BUNDLE_ROOT="$ARTIFACT_DIR/ci-artifacts"' in source
+    assert 'formal-release-${SOURCE_COMMIT}-*.tar.gz' in source
+    assert "Expected exactly one formal-release-${SOURCE_COMMIT}-*.tar.gz in ci-artifacts" in source
