@@ -101,16 +101,27 @@ jobs:
         run: |
           set -euo pipefail
 
-          read_model_key() {
-            "$COMPETITION_TOOL_PYTHON" - "$1" <<'PY'
+          read_qwen_bound_values() {
+            "$COMPETITION_TOOL_PYTHON" - "$1" "$2" <<'PY'
           import pathlib
           import sys
 
-          path = pathlib.Path(sys.argv[1])
-          if not path.is_file():
+          kind, source = sys.argv[1], sys.argv[2]
+          if kind == "file":
+              path = pathlib.Path(source)
+              if not path.is_file():
+                  raise SystemExit(0)
+              records = path.read_text(encoding="utf-8").splitlines()
+          elif kind == "proc":
+              path = pathlib.Path(f"/proc/{source}/environ")
+              if not path.is_file():
+                  raise SystemExit(0)
+              records = path.read_bytes().decode("utf-8", errors="ignore").split("\0")
+          else:
               raise SystemExit(0)
+
           values = {}
-          for raw in path.read_text(encoding="utf-8").splitlines():
+          for raw in records:
               line = raw.strip()
               if not line or line.startswith("#") or "=" not in line:
                   continue
@@ -135,21 +146,12 @@ jobs:
               values.get("TASK_MAPPING_AGENT_PROVIDER", ""),
           ]
           model_markers = [
-              values.get("BAILIAN_MODEL", ""),
-              values.get("QWEN_MODEL", ""),
-              values.get("LLM_MODEL", ""),
-              values.get("PRODUCT_JUDGMENT_AGENT_MODEL", ""),
-              values.get("ACTION_PLAN_AGENT_MODEL", ""),
-              values.get("TASK_MAPPING_AGENT_MODEL", ""),
+              values.get("BAILIAN_MODEL", ""), values.get("QWEN_MODEL", ""), values.get("LLM_MODEL", ""),
+              values.get("PRODUCT_JUDGMENT_AGENT_MODEL", ""), values.get("ACTION_PLAN_AGENT_MODEL", ""), values.get("TASK_MAPPING_AGENT_MODEL", ""),
           ]
           base_url_markers = [
-              values.get("BAILIAN_BASE_URL", ""),
-              values.get("DASHSCOPE_BASE_URL", ""),
-              values.get("QWEN_BASE_URL", ""),
-              values.get("LLM_BASE_URL", ""),
-              values.get("PRODUCT_JUDGMENT_AGENT_BASE_URL", ""),
-              values.get("ACTION_PLAN_AGENT_BASE_URL", ""),
-              values.get("TASK_MAPPING_AGENT_BASE_URL", ""),
+              values.get("BAILIAN_BASE_URL", ""), values.get("DASHSCOPE_BASE_URL", ""), values.get("QWEN_BASE_URL", ""), values.get("LLM_BASE_URL", ""),
+              values.get("PRODUCT_JUDGMENT_AGENT_BASE_URL", ""), values.get("ACTION_PLAN_AGENT_BASE_URL", ""), values.get("TASK_MAPPING_AGENT_BASE_URL", ""),
           ]
           qwen_bound = (
               any(v.strip().lower().replace("-", "_") in {"aliyun_bailian", "bailian", "dashscope", "qwen"} for v in provider_markers)
@@ -157,12 +159,7 @@ jobs:
               or any("dashscope.aliyuncs.com" in v.strip().lower() for v in base_url_markers)
           )
           if qwen_bound:
-              for name in (
-                  "LLM_API_KEY",
-                  "PRODUCT_JUDGMENT_AGENT_API_KEY",
-                  "ACTION_PLAN_AGENT_API_KEY",
-                  "TASK_MAPPING_AGENT_API_KEY",
-              ):
+              for name in ("LLM_API_KEY", "PRODUCT_JUDGMENT_AGENT_API_KEY", "ACTION_PLAN_AGENT_API_KEY", "TASK_MAPPING_AGENT_API_KEY"):
                   if values.get(name):
                       sys.stdout.write(values[name])
                       raise SystemExit(0)
@@ -177,21 +174,47 @@ jobs:
           if [ -z "$key" ]; then key="${BAILIAN_API_KEY:-}"; source_name="runner_env:BAILIAN_API_KEY"; fi
           if [ -z "$key" ]; then key="${QWEN_API_KEY:-}"; source_name="runner_env:QWEN_API_KEY"; fi
           if [ -z "$key" ] && [ -r "$COMPETITION_QWEN_CREDENTIAL_FILE" ]; then
-            key="$(read_model_key "$COMPETITION_QWEN_CREDENTIAL_FILE")"
+            key="$(read_qwen_bound_values file "$COMPETITION_QWEN_CREDENTIAL_FILE")"
             source_name="ecs_dedicated_model_credential"
           fi
           if [ -z "$key" ] && [ -r "$COMPETITION_SHARED_CREDENTIAL_FILE" ]; then
-            key="$(read_model_key "$COMPETITION_SHARED_CREDENTIAL_FILE")"
+            key="$(read_qwen_bound_values file "$COMPETITION_SHARED_CREDENTIAL_FILE")"
             source_name="ecs_shared_model_credential"
           fi
+          if [ -z "$key" ] && [ -f scripts/runtime_service_resolver.sh ]; then
+            set +u
+            source scripts/runtime_service_resolver.sh
+            set -u
+            service="$(resolve_ai_runtime_service /opt/ai-ecommerce-assistant 2>/dev/null || true)"
+            if [ -n "$service" ]; then
+              pid="$(systemctl show "$service" --property=MainPID --value 2>/dev/null || true)"
+              if [[ "$pid" =~ ^[1-9][0-9]*$ ]] && [ -r "/proc/${pid}/environ" ]; then
+                key="$(read_qwen_bound_values proc "$pid")"
+                source_name="ecs_active_runtime_model_credential"
+              fi
+            fi
+          fi
           if [ -z "$key" ]; then
-            echo "::error::Real Bailian evidence could not locate a Bailian/Qwen-bound credential in repository secrets, runner service environment, the dedicated model credential file, or deployment-owned shared .env. Generic/stage API keys are accepted only when the same file proves a Qwen/Bailian provider, model, or DashScope endpoint binding. No environment file was sourced and no production database/service/symlink was touched."
+            for service in ai-operating-advisor.service ai-ecommerce.service; do
+              systemctl is-active --quiet "$service" 2>/dev/null || continue
+              pid="$(systemctl show "$service" --property=MainPID --value 2>/dev/null || true)"
+              [[ "$pid" =~ ^[1-9][0-9]*$ ]] || continue
+              [ -r "/proc/${pid}/environ" ] || continue
+              key="$(read_qwen_bound_values proc "$pid")"
+              if [ -n "$key" ]; then
+                source_name="ecs_active_runtime_model_credential"
+                break
+              fi
+            done
+          fi
+          if [ -z "$key" ]; then
+            echo "::error::Real Bailian evidence could not locate a Bailian/Qwen-bound credential in approved secret/file sources or the read-only environment of the active AI runtime. Generic/stage API keys are accepted only when the same source proves a Qwen/Bailian provider, model, or DashScope endpoint binding. No environment file was sourced and no production database/service/symlink was modified."
             exit 86
           fi
           echo "::add-mask::$key"
           printf 'COMPETITION_BAILIAN_API_KEY=%s\n' "$key" >> "$GITHUB_ENV"
           printf 'COMPETITION_BAILIAN_CREDENTIAL_SOURCE=%s\n' "$source_name" >> "$GITHUB_ENV"
-          echo "Bailian credential detected from ${source_name}; only a Qwen-bound model-key assignment was read, and the value will not be printed or published."
+          echo "Bailian credential detected from ${source_name}; only a Qwen-bound model-key value was read, and it will not be printed or published."
 
       - name: Compile registry and exact hash lineage
         run: |
