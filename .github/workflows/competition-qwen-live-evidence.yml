@@ -12,8 +12,7 @@ on:
       - 'config/external_interface_registry.json'
       - '.github/workflows/competition-qwen-live-evidence.yml'
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'scripts/run_competition_qwen_live_evidence.py'
       - 'web_demo/sample-data/*.xlsx'
@@ -56,13 +55,8 @@ jobs:
           DOWNLOADED=0
           for attempt in $(seq 1 8); do
             echo "Archive download attempt ${attempt}/8"
-            if curl \
-              --fail \
-              --location \
-              --silent \
-              --show-error \
-              --connect-timeout 20 \
-              --max-time 300 \
+            if curl --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
               -H "Authorization: Bearer ${GH_READ_TOKEN}" \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
@@ -106,6 +100,31 @@ jobs:
           GH_QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
         run: |
           set -euo pipefail
+
+          read_model_key() {
+            "$COMPETITION_TOOL_PYTHON" - "$1" <<'PY'
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1])
+          if not path.is_file():
+              raise SystemExit(0)
+          for raw in path.read_text(encoding="utf-8").splitlines():
+              line = raw.strip()
+              if not line or line.startswith("#") or "=" not in line:
+                  continue
+              name, candidate = line.split("=", 1)
+              if name.strip() not in {"DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY"}:
+                  continue
+              value = candidate.strip()
+              if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+                  value = value[1:-1]
+              if value:
+                  sys.stdout.write(value)
+                  break
+          PY
+          }
+
           key="${GH_DASHSCOPE_API_KEY:-}"
           source_name="github_secret:DASHSCOPE_API_KEY"
           if [ -z "$key" ]; then key="${GH_BAILIAN_API_KEY:-}"; source_name="github_secret:BAILIAN_API_KEY"; fi
@@ -114,55 +133,15 @@ jobs:
           if [ -z "$key" ]; then key="${BAILIAN_API_KEY:-}"; source_name="runner_env:BAILIAN_API_KEY"; fi
           if [ -z "$key" ]; then key="${QWEN_API_KEY:-}"; source_name="runner_env:QWEN_API_KEY"; fi
           if [ -z "$key" ] && [ -r "$COMPETITION_QWEN_CREDENTIAL_FILE" ]; then
-            key="$("$COMPETITION_TOOL_PYTHON" - "$COMPETITION_QWEN_CREDENTIAL_FILE" <<'PY'
-          import pathlib
-          import sys
-
-          path = pathlib.Path(sys.argv[1])
-          value = ""
-          for raw in path.read_text(encoding="utf-8").splitlines():
-              line = raw.strip()
-              if not line or line.startswith("#") or "=" not in line:
-                  continue
-              name, candidate = line.split("=", 1)
-              if name.strip() not in {"DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY"}:
-                  continue
-              value = candidate.strip()
-              if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
-                  value = value[1:-1]
-              if value:
-                  break
-          sys.stdout.write(value)
-          PY
-            )"
+            key="$(read_model_key "$COMPETITION_QWEN_CREDENTIAL_FILE")"
             source_name="ecs_dedicated_model_credential"
           fi
           if [ -z "$key" ] && [ -r "$COMPETITION_SHARED_CREDENTIAL_FILE" ]; then
-            key="$("$COMPETITION_TOOL_PYTHON" - "$COMPETITION_SHARED_CREDENTIAL_FILE" <<'PY'
-          import pathlib
-          import sys
-
-          path = pathlib.Path(sys.argv[1])
-          value = ""
-          for raw in path.read_text(encoding="utf-8").splitlines():
-              line = raw.strip()
-              if not line or line.startswith("#") or "=" not in line:
-                  continue
-              name, candidate = line.split("=", 1)
-              if name.strip() not in {"DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY"}:
-                  continue
-              value = candidate.strip()
-              if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
-                  value = value[1:-1]
-              if value:
-                  break
-          sys.stdout.write(value)
-          PY
-            )"
+            key="$(read_model_key "$COMPETITION_SHARED_CREDENTIAL_FILE")"
             source_name="ecs_shared_model_credential"
           fi
           if [ -z "$key" ]; then
-            echo "::error::Real Bailian evidence could not locate a model credential in repository secrets, runner service environment, the dedicated model credential file, or the deployment-owned shared environment. No environment file was sourced and no production database/service/symlink was touched."
+            echo "::error::Real Bailian evidence could not locate a model credential in repository secrets, runner service environment, the dedicated model credential file, or deployment-owned shared .env. No environment file was sourced and no production database/service/symlink was touched."
             exit 86
           fi
           echo "::add-mask::$key"
@@ -173,10 +152,7 @@ jobs:
       - name: Compile registry and exact hash lineage
         run: |
           set -euo pipefail
-          rm -rf \
-            dist/competition-lineage \
-            dist/competition-runtime \
-            dist/competition-qwen-live-evidence
+          rm -rf dist/competition-lineage dist/competition-runtime dist/competition-qwen-live-evidence
           mkdir -p dist/competition-qwen-live-evidence
           "$COMPETITION_TOOL_PYTHON" scripts/compile_competition_lineage.py \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
@@ -212,7 +188,6 @@ jobs:
               | tail -n 1
           )"
           [ -x "$RUNTIME_PYTHON" ]
-          test "$($COMPETITION_RUNTIME_PYTHON -c 'import platform; print(platform.python_version())' 2>/dev/null || true)" != "" || true
           test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
           "$RUNTIME_PYTHON" -c 'import uvicorn, fastapi, openpyxl'
           printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
@@ -242,9 +217,7 @@ jobs:
           import os
           from pathlib import Path
 
-          report = json.loads(
-              Path('dist/competition-qwen-live-evidence/qwen-live-attestation.json').read_text(encoding='utf-8')
-          )
+          report = json.loads(Path('dist/competition-qwen-live-evidence/qwen-live-attestation.json').read_text(encoding='utf-8'))
           assert report.get('schema') == 'competition.qwen_live_evidence.v1', report
           assert report.get('verified') is True, report.get('errors')
           assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
