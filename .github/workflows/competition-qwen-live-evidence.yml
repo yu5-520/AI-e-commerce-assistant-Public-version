@@ -93,8 +93,9 @@ jobs:
             scripts/verify_competition_runtime_package.py \
             scripts/deploy_competition_candidate.py \
             scripts/run_competition_three_report_e2e.py \
-            scripts/run_competition_qwen_live_evidence.py
-          "$COMPETITION_TOOL_PYTHON" -m pytest -q tests/test_competition_qwen_live_evidence_contract.py
+            scripts/run_competition_qwen_live_evidence.py \
+            tests/test_competition_qwen_live_evidence_contract.py
+          "$COMPETITION_TOOL_PYTHON" tests/test_competition_qwen_live_evidence_contract.py
 
       - name: Resolve Bailian credential without disclosure
         env:
