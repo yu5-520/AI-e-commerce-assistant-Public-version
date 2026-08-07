@@ -24,7 +24,7 @@ def test_qwen_live_evidence_uses_real_judge_xlsx_upload_contract():
         assert (ROOT / "web_demo" / "sample-data" / filename).is_file()
 
 
-def test_qwen_live_workflow_reads_only_exact_model_credentials_and_never_sources_env():
+def test_qwen_live_workflow_reads_only_qwen_bound_credentials_and_never_sources_env():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "secrets.DASHSCOPE_API_KEY" in text
     assert "secrets.BAILIAN_API_KEY" in text
@@ -32,7 +32,13 @@ def test_qwen_live_workflow_reads_only_exact_model_credentials_and_never_sources
     assert "::add-mask::" in text
     assert "/etc/ai-ecommerce-assistant/qwen37-plus.env" in text
     assert "/opt/ai-ecommerce-assistant/shared/.env" in text
-    assert 'name.strip() not in {"DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY"}' in text
+    assert 'for name in ("DASHSCOPE_API_KEY", "BAILIAN_API_KEY", "QWEN_API_KEY")' in text
+    assert '"LLM_API_KEY"' in text
+    assert '"PRODUCT_JUDGMENT_AGENT_API_KEY"' in text
+    assert '"ACTION_PLAN_AGENT_API_KEY"' in text
+    assert '"TASK_MAPPING_AGENT_API_KEY"' in text
+    assert "qwen_bound" in text
+    assert "dashscope.aliyuncs.com" in text
     assert "No environment file was sourced" in text
     assert "source /etc/ai-ecommerce-assistant/qwen37-plus.env" not in text
     assert "source /opt/ai-ecommerce-assistant/shared/.env" not in text
@@ -60,7 +66,7 @@ def test_qwen_live_attestation_has_explicit_production_disjoint_flags():
 def run_contract_checks() -> None:
     """Stdlib-only entrypoint for the pinned ECS tool Python."""
     test_qwen_live_evidence_uses_real_judge_xlsx_upload_contract()
-    test_qwen_live_workflow_reads_only_exact_model_credentials_and_never_sources_env()
+    test_qwen_live_workflow_reads_only_qwen_bound_credentials_and_never_sources_env()
     test_qwen_live_attestation_has_explicit_production_disjoint_flags()
 
 
