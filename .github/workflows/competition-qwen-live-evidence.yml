@@ -1,0 +1,236 @@
+name: Competition Qwen Live Evidence
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/run_competition_qwen_live_evidence.py'
+      - 'tests/test_competition_qwen_live_evidence_contract.py'
+      - 'web_demo/sample-data/*.xlsx'
+      - 'src/services/llm_gateway_v196_service.py'
+      - 'src/services/llm_gateway_v196_legacy_service.py'
+      - 'src/services/llm_gateway_hash_directed_v2259_service.py'
+      - 'config/external_interface_registry.json'
+      - '.github/workflows/competition-qwen-live-evidence.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/run_competition_qwen_live_evidence.py'
+      - 'web_demo/sample-data/*.xlsx'
+      - 'src/services/llm_gateway_v196_service.py'
+      - 'src/services/llm_gateway_v196_legacy_service.py'
+      - 'src/services/llm_gateway_hash_directed_v2259_service.py'
+      - 'config/external_interface_registry.json'
+      - '.github/workflows/competition-qwen-live-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-qwen-live-evidence-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qwen-live-evidence:
+    runs-on: self-hosted
+    timeout-minutes: 60
+    env:
+      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
+      COMPETITION_QWEN_BASE: /opt/actions-runner-public/competition-qwen-live/ai-ecommerce-assistant-public
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Materialize exact source commit archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="${RUNNER_TEMP}/competition-qwen-source-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/competition-qwen-source-${COMPETITION_SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          DOWNLOADED=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download attempt ${attempt}/8"
+            if curl \
+              --fail \
+              --location \
+              --silent \
+              --show-error \
+              --connect-timeout 20 \
+              --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${COMPETITION_SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              DOWNLOADED=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$DOWNLOADED" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/run_competition_qwen_live_evidence.py"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
+          test "$(cat "$GITHUB_WORKSPACE/.competition-source-commit")" = "$COMPETITION_SOURCE_COMMIT"
+
+      - name: Verify exact tool Python and live evidence contract
+        run: |
+          set -euo pipefail
+          [ -x "$COMPETITION_TOOL_PYTHON" ]
+          test "$($COMPETITION_TOOL_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          "$COMPETITION_TOOL_PYTHON" -m py_compile \
+            scripts/compile_competition_lineage.py \
+            scripts/build_competition_runtime_package.py \
+            scripts/verify_competition_runtime_package.py \
+            scripts/deploy_competition_candidate.py \
+            scripts/run_competition_three_report_e2e.py \
+            scripts/run_competition_qwen_live_evidence.py
+          "$COMPETITION_TOOL_PYTHON" -m pytest -q tests/test_competition_qwen_live_evidence_contract.py
+
+      - name: Resolve Bailian credential without disclosure
+        env:
+          GH_DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          GH_BAILIAN_API_KEY: ${{ secrets.BAILIAN_API_KEY }}
+          GH_QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
+        run: |
+          set -euo pipefail
+          key="${GH_DASHSCOPE_API_KEY:-}"
+          [ -n "$key" ] || key="${GH_BAILIAN_API_KEY:-}"
+          [ -n "$key" ] || key="${GH_QWEN_API_KEY:-}"
+          [ -n "$key" ] || key="${DASHSCOPE_API_KEY:-}"
+          [ -n "$key" ] || key="${BAILIAN_API_KEY:-}"
+          [ -n "$key" ] || key="${QWEN_API_KEY:-}"
+          if [ -z "$key" ]; then
+            echo "::error::Real Bailian evidence requires DASHSCOPE_API_KEY, BAILIAN_API_KEY or QWEN_API_KEY in repository secrets or the self-hosted runner service environment. Production .env is intentionally not loaded."
+            exit 86
+          fi
+          echo "::add-mask::$key"
+          printf 'COMPETITION_BAILIAN_API_KEY=%s\n' "$key" >> "$GITHUB_ENV"
+          echo "Bailian credential detected; value will not be printed or published."
+
+      - name: Compile registry and exact hash lineage
+        run: |
+          set -euo pipefail
+          rm -rf \
+            dist/competition-lineage \
+            dist/competition-runtime \
+            dist/competition-qwen-live-evidence
+          mkdir -p dist/competition-qwen-live-evidence
+          "$COMPETITION_TOOL_PYTHON" scripts/compile_competition_lineage.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output-dir dist/competition-lineage \
+            2>&1 | tee dist/competition-qwen-live-evidence/lineage-summary.log
+
+      - name: Build and independently verify precise runtime package
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" scripts/build_competition_runtime_package.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --lineage-dir dist/competition-lineage \
+            --output-dir dist/competition-runtime \
+            --archive-name "competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            2>&1 | tee dist/competition-qwen-live-evidence/package-build-summary.log
+          ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          "$COMPETITION_TOOL_PYTHON" scripts/verify_competition_runtime_package.py \
+            "$ARCHIVE" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output dist/competition-runtime/competition-runtime-verification.json \
+            2>&1 | tee dist/competition-qwen-live-evidence/package-verification-summary.log
+
+      - name: Prepare cached exact Python 3.11.9 application environment
+        run: |
+          set -euo pipefail
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_TOOL_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" \
+              "$GITHUB_WORKSPACE/dist/competition-qwen-live-evidence" \
+              | tee dist/competition-qwen-live-evidence/runtime-environment-summary.log \
+              | tail -n 1
+          )"
+          [ -x "$RUNTIME_PYTHON" ]
+          test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          "$RUNTIME_PYTHON" -c 'import uvicorn, fastapi, openpyxl'
+          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+
+      - name: Run three judge XLSX reports through real Bailian Qwen
+        run: |
+          set -euo pipefail
+          ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          "$COMPETITION_TOOL_PYTHON" scripts/run_competition_qwen_live_evidence.py \
+            "$ARCHIVE" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --report-dir web_demo/sample-data \
+            --candidate-base "$COMPETITION_QWEN_BASE" \
+            --runtime-python "$COMPETITION_RUNTIME_PYTHON" \
+            --app-port 39380 \
+            --startup-timeout 150 \
+            --max-ticks 80 \
+            --output dist/competition-qwen-live-evidence/qwen-live-attestation.json \
+            2>&1 | tee dist/competition-qwen-live-evidence/qwen-live-summary.log
+
+      - name: Verify publishable live evidence boundary
+        if: success()
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads(
+              Path('dist/competition-qwen-live-evidence/qwen-live-attestation.json').read_text(encoding='utf-8')
+          )
+          assert report.get('schema') == 'competition.qwen_live_evidence.v1', report
+          assert report.get('verified') is True, report.get('errors')
+          assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
+          assert report.get('mode') == 'judge_xlsx_real_aliyun_bailian_qwen', report
+          assert report.get('modelQualityProof') is True, report
+          assert report.get('realBailianRunStillRequired') is False, report
+          assert len(report.get('imports') or []) == 3, report
+          assert all((report.get('assertions') or {}).values()), report.get('assertions')
+          assert (report.get('credential') or {}).get('published') is False, report
+          assert (report.get('productionBoundary') or {}).get('productionEnvironmentLoaded') is False, report
+          provider = report.get('providerEvidence') or {}
+          assert provider.get('provider') == 'aliyun_bailian', provider
+          assert provider.get('nonBailianProviderCalls') == 0, provider
+          print(json.dumps({
+              'verified': report['verified'],
+              'sourceCommit': report['sourceCommit'],
+              'sampleSetHash': report['sampleSetHash'],
+              'provider': provider['provider'],
+              'models': provider['models'],
+              'stageProviderCalls': provider['stageProviderCalls'],
+              'providerRequestIdCount': provider['providerRequestIdCount'],
+              'taskCount': report['viewEvidence']['taskCount'],
+              'verificationHash': report['verificationHash'],
+          }, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Publish sanitized Qwen live evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: competition-qwen-live-evidence-${{ env.COMPETITION_SOURCE_COMMIT }}
+          path: |
+            dist/competition-qwen-live-evidence/qwen-live-attestation.json
+            dist/competition-qwen-live-evidence/lineage-summary.log
+            dist/competition-qwen-live-evidence/package-build-summary.log
+            dist/competition-qwen-live-evidence/package-verification-summary.log
+            dist/competition-qwen-live-evidence/runtime-environment-summary.log
+            dist/competition-runtime/competition-runtime-verification.json
+            dist/competition-runtime/*.sha256
+            dist/competition-lineage/evidence-manifest.json
+            dist/competition-lineage/verification-report.json
+          if-no-files-found: warn
+          retention-days: 30
