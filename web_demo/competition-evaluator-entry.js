@@ -85,8 +85,8 @@
       const sourceHeader = sourceSection.querySelector(":scope > .section-header");
       const sourceTitle = sourceHeader?.querySelector("h3");
       const sourceBadge = sourceHeader?.querySelector(".status-badge");
-      if (sourceTitle) sourceTitle.textContent = "企业数据源接入";
-      if (sourceBadge) sourceBadge.textContent = "正式部署可配置";
+      if (sourceTitle && sourceTitle.textContent.trim() !== "企业数据源接入") sourceTitle.textContent = "企业数据源接入";
+      if (sourceBadge && sourceBadge.textContent.trim() !== "正式部署可配置") sourceBadge.textContent = "正式部署可配置";
       if (!sourceSection.querySelector("[data-competition-enterprise-note]")) {
         sourceHeader?.insertAdjacentHTML(
           "afterend",
