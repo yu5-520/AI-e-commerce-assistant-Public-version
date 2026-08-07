@@ -7,7 +7,7 @@ set -euo pipefail
 # Artifact metadata, sealed manifest and test attestation share one commit identity.
 # It never deploys a mutable branch working tree and never runs Git transport commands.
 
-REPOSITORY="${AI_GITHUB_REPOSITORY:-yu5-520/AI-e-commerce-assistant}"
+REPOSITORY="${AI_GITHUB_REPOSITORY:-yu5-520/AI-e-commerce-assistant-Public-version}"
 BRANCH="${AI_RELEASE_BRANCH:-main}"
 FORMAL_BRANCH="main"
 FORMAL_WORKFLOW_PATH=".github/workflows/release-hash-seal.yml"
@@ -194,7 +194,7 @@ import json
 import sys
 
 path, branch, requested_sha = sys.argv[1:4]
-expected_name = "release-" + requested_sha
+expected_name = "release-formal-" + requested_sha
 with open(path, "r") as handle:
     payload = json.load(handle)
 
@@ -234,7 +234,7 @@ if not values[0] or len(values[1]) != 40 or not values[4] or not values[5]:
     raise SystemExit(4)
 print("\t".join(values))
 PY
-)" || fail "Commit $SOURCE_COMMIT does not yet have an unexpired release-$SOURCE_COMMIT Artifact on main"
+)" || fail "Commit $SOURCE_COMMIT does not yet have an unexpired release-formal-$SOURCE_COMMIT Artifact on main"
 
 IFS=$'\t' read -r ARTIFACT_ID RESOLVED_COMMIT ARTIFACT_NAME ARTIFACT_DIGEST DOWNLOAD_URL RUN_ID <<< "$SELECTION"
 printf 'artifactId=%s\nartifactName=%s\nsourceCommit=%s\nworkflowRunId=%s\n' \
