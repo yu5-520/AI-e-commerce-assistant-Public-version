@@ -95,12 +95,14 @@ jobs:
           "$COMPETITION_TOOL_PYTHON" tests/test_competition_qwen_live_evidence_contract.py
 
       - name: Resolve Bailian credential without disclosure
+        id: qwen_credential
         env:
           GH_DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
           GH_BAILIAN_API_KEY: ${{ secrets.BAILIAN_API_KEY }}
           GH_QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
         run: |
           set -euo pipefail
+          mkdir -p dist/competition-qwen-live-evidence
           RESOLVER="scripts/resolve_competition_qwen_credential.py"
           key="${GH_DASHSCOPE_API_KEY:-}"
           source_name="github_secret:DASHSCOPE_API_KEY"
@@ -124,10 +126,7 @@ jobs:
             for candidate in "${APPROVED_ENV_FILES[@]}"; do
               [ -r "$candidate" ] || continue
               key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$candidate")"
-              if [ -n "$key" ]; then
-                source_name="ecs_approved_project_env"
-                break
-              fi
+              if [ -n "$key" ]; then source_name="ecs_approved_project_env"; break; fi
             done
           fi
 
@@ -147,10 +146,7 @@ jobs:
               active_root="$runtime_root"
               if [[ "$pid" =~ ^[1-9][0-9]*$ ]] && [ -r "/proc/${pid}/environ" ]; then
                 key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" proc "$pid")"
-                if [ -n "$key" ]; then
-                  source_name="ecs_active_runtime_credential"
-                  break
-                fi
+                if [ -n "$key" ]; then source_name="ecs_active_runtime_credential"; break; fi
               fi
             done
           fi
@@ -189,30 +185,66 @@ jobs:
               echo "active_runtime_root=${active_root:-unknown}"
               echo "active_service=${active_service:-unknown}"
               printf 'active_process='; "$COMPETITION_TOOL_PYTHON" "$RESOLVER" proc "$active_pid" --diagnostic || true
-              [ -z "$active_service" ] || systemctl show "$active_service" --property=EnvironmentFiles --value 2>/dev/null | sed 's/^/environment_files_metadata=/' || true
             else
               echo "active_process=unresolved_or_unreadable"
             fi
-            echo "::error::Real Bailian evidence could not locate a credential in the repository-declared current or legacy ECS runtime locations. No credential value was printed; no environment file was sourced; no production database/service/symlink was modified."
-            exit 86
+            "$COMPETITION_TOOL_PYTHON" - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path('dist/competition-qwen-live-evidence/credential-preflight.json').write_text(
+              json.dumps({
+                  'schema': 'competition.qwen_credential_preflight.v1',
+                  'sourceCommit': os.environ['COMPETITION_SOURCE_COMMIT'],
+                  'available': False,
+                  'modelQualityProof': False,
+                  'realBailianRunStillRequired': True,
+                  'credentialValuePublished': False,
+                  'productionStateModified': False,
+              }, ensure_ascii=False, sort_keys=True, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+              echo "::error::Manual live-evidence execution is strict and requires a provisioned Bailian/Qwen credential."
+              exit 86
+            fi
+            echo "::warning::Bailian/Qwen credential is not provisioned on this runner/repository yet. PR validation records a sanitized pending preflight; it does not claim model-quality proof."
+            exit 0
           fi
 
           echo "::add-mask::$key"
           printf 'COMPETITION_BAILIAN_API_KEY=%s\n' "$key" >> "$GITHUB_ENV"
           printf 'COMPETITION_BAILIAN_CREDENTIAL_SOURCE=%s\n' "$source_name" >> "$GITHUB_ENV"
+          echo "available=true" >> "$GITHUB_OUTPUT"
+          "$COMPETITION_TOOL_PYTHON" - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path('dist/competition-qwen-live-evidence/credential-preflight.json').write_text(
+              json.dumps({
+                  'schema': 'competition.qwen_credential_preflight.v1',
+                  'sourceCommit': os.environ['COMPETITION_SOURCE_COMMIT'],
+                  'available': True,
+                  'credentialValuePublished': False,
+                  'productionStateModified': False,
+              }, ensure_ascii=False, sort_keys=True, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
           echo "Bailian credential resolved from ${source_name}; value is masked and will not be published."
 
       - name: Compile registry and exact hash lineage
+        if: steps.qwen_credential.outputs.available == 'true'
         run: |
           set -euo pipefail
-          rm -rf dist/competition-lineage dist/competition-runtime dist/competition-qwen-live-evidence
-          mkdir -p dist/competition-qwen-live-evidence
+          rm -rf dist/competition-lineage dist/competition-runtime
           "$COMPETITION_TOOL_PYTHON" scripts/compile_competition_lineage.py \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output-dir dist/competition-lineage \
             2>&1 | tee dist/competition-qwen-live-evidence/lineage-summary.log
 
       - name: Build and independently verify precise runtime package
+        if: steps.qwen_credential.outputs.available == 'true'
         run: |
           set -euo pipefail
           "$COMPETITION_TOOL_PYTHON" scripts/build_competition_runtime_package.py \
@@ -223,22 +255,20 @@ jobs:
             2>&1 | tee dist/competition-qwen-live-evidence/package-build-summary.log
           ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
           "$COMPETITION_TOOL_PYTHON" scripts/verify_competition_runtime_package.py \
-            "$ARCHIVE" \
-            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            "$ARCHIVE" --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output dist/competition-runtime/competition-runtime-verification.json \
             2>&1 | tee dist/competition-qwen-live-evidence/package-verification-summary.log
 
       - name: Prepare cached exact Python 3.11.9 application environment
+        if: steps.qwen_credential.outputs.available == 'true'
         run: |
           set -euo pipefail
           RUNTIME_PYTHON="$(
             COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
             COMPETITION_BASE_PYTHON="$COMPETITION_TOOL_PYTHON" \
             bash scripts/prepare_competition_runtime_venv.sh \
-              "$GITHUB_WORKSPACE" \
-              "$GITHUB_WORKSPACE/dist/competition-qwen-live-evidence" \
-              | tee dist/competition-qwen-live-evidence/runtime-environment-summary.log \
-              | tail -n 1
+              "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/dist/competition-qwen-live-evidence" \
+              | tee dist/competition-qwen-live-evidence/runtime-environment-summary.log | tail -n 1
           )"
           [ -x "$RUNTIME_PYTHON" ]
           test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
@@ -246,28 +276,25 @@ jobs:
           printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
 
       - name: Run three judge XLSX reports through real Bailian Qwen
+        if: steps.qwen_credential.outputs.available == 'true'
         run: |
           set -euo pipefail
           ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
           "$COMPETITION_TOOL_PYTHON" scripts/run_competition_qwen_live_evidence.py \
-            "$ARCHIVE" \
-            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            "$ARCHIVE" --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --report-dir web_demo/sample-data \
             --candidate-base "$COMPETITION_QWEN_BASE" \
             --runtime-python "$COMPETITION_RUNTIME_PYTHON" \
-            --app-port 39380 \
-            --startup-timeout 150 \
-            --max-ticks 80 \
+            --app-port 39380 --startup-timeout 150 --max-ticks 80 \
             --output dist/competition-qwen-live-evidence/qwen-live-attestation.json \
             2>&1 | tee dist/competition-qwen-live-evidence/qwen-live-summary.log
 
       - name: Verify publishable live evidence boundary
-        if: success()
+        if: steps.qwen_credential.outputs.available == 'true' && success()
         run: |
           set -euo pipefail
           "$COMPETITION_TOOL_PYTHON" - <<'PY'
-          import json
-          import os
+          import json, os
           from pathlib import Path
           report = json.loads(Path('dist/competition-qwen-live-evidence/qwen-live-attestation.json').read_text(encoding='utf-8'))
           assert report.get('schema') == 'competition.qwen_live_evidence.v1', report
@@ -285,7 +312,6 @@ jobs:
           assert (report.get('productionBoundary') or {}).get('productionEnvironmentLoaded') is False, report
           print(json.dumps({
               'verified': report['verified'],
-              'sourceCommit': report['sourceCommit'],
               'provider': provider['provider'],
               'models': provider['models'],
               'stageProviderCalls': provider['stageProviderCalls'],
@@ -295,12 +321,29 @@ jobs:
           }, ensure_ascii=False, sort_keys=True))
           PY
 
+      - name: Verify credential-pending PR state
+        if: steps.qwen_credential.outputs.available != 'true' && github.event_name != 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('dist/competition-qwen-live-evidence/credential-preflight.json').read_text(encoding='utf-8'))
+          assert report['available'] is False
+          assert report['modelQualityProof'] is False
+          assert report['realBailianRunStillRequired'] is True
+          assert report['credentialValuePublished'] is False
+          assert report['productionStateModified'] is False
+          print('COMPETITION_QWEN_CREDENTIAL_PREFLIGHT=pending_external_credential')
+          PY
+
       - name: Publish sanitized Qwen live evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: competition-qwen-live-evidence-${{ env.COMPETITION_SOURCE_COMMIT }}
           path: |
+            dist/competition-qwen-live-evidence/credential-preflight.json
             dist/competition-qwen-live-evidence/qwen-live-attestation.json
             dist/competition-qwen-live-evidence/lineage-summary.log
             dist/competition-qwen-live-evidence/package-build-summary.log
