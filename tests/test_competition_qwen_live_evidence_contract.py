@@ -65,25 +65,30 @@ def test_qwen_live_workflow_masks_credentials_and_never_sources_env_files():
     assert "::add-mask::" in text
     assert "/etc/ai-ecommerce-assistant/qwen37-plus.env" in text
     assert "/opt/ai-ecommerce-assistant/shared/.env" in text
+    assert "/root/apps/AI-e-commerce-assistant/.env" in text
     assert "resolve_competition_qwen_credential.py" in text
     assert "No credential value was printed" in text
     assert "source /etc/ai-ecommerce-assistant/qwen37-plus.env" not in text
     assert "source /opt/ai-ecommerce-assistant/shared/.env" not in text
+    assert "source /root/apps/AI-e-commerce-assistant/.env" not in text
     assert ". /etc/ai-ecommerce-assistant/qwen37-plus.env" not in text
     assert ". /opt/ai-ecommerce-assistant/shared/.env" not in text
+    assert ". /root/apps/AI-e-commerce-assistant/.env" not in text
     assert "qwen-live-attestation.json" in text
     assert "candidate-app.log" not in text
     assert "COMPETITION_BAILIAN_API_KEY=%s" in text
     assert "COMPETITION_BAILIAN_CREDENTIAL_SOURCE=%s" in text
 
 
-def test_active_runtime_credential_fallback_is_read_only():
+def test_current_and_legacy_runtime_credential_fallbacks_are_read_only():
     text = WORKFLOW.read_text(encoding="utf-8")
     resolver_text = RESOLVER.read_text(encoding="utf-8")
     assert 'pathlib.Path(f"/proc/{source}/environ")' in resolver_text
-    assert "resolve_ai_runtime_service /opt/ai-ecommerce-assistant" in text
-    assert 'systemctl show "$active_service" --property=MainPID --value' in text
+    assert "for runtime_root in /opt/ai-ecommerce-assistant /root/apps/AI-e-commerce-assistant" in text
+    assert 'systemctl show "$service" --property=MainPID --value' in text
     assert "ecs_active_runtime_credential" in text
+    assert "matching_app_process_credential" in text
+    assert "uvicorn*src.api.main:app" in text
     for forbidden in (
         "systemctl stop",
         "systemctl restart",
@@ -114,7 +119,7 @@ def run_contract_checks() -> None:
     test_credential_resolver_mirrors_gateway_default_provider_semantics()
     test_credential_resolver_reads_export_syntax_without_sourcing_file()
     test_qwen_live_workflow_masks_credentials_and_never_sources_env_files()
-    test_active_runtime_credential_fallback_is_read_only()
+    test_current_and_legacy_runtime_credential_fallbacks_are_read_only()
     test_qwen_live_attestation_has_explicit_production_disjoint_flags()
 
 
