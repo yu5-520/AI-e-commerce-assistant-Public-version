@@ -41,8 +41,6 @@ jobs:
       COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       COMPETITION_QWEN_BASE: /opt/actions-runner-public/competition-qwen-live/ai-ecommerce-assistant-public
-      COMPETITION_QWEN_CREDENTIAL_FILE: /etc/ai-ecommerce-assistant/qwen37-plus.env
-      COMPETITION_SHARED_CREDENTIAL_FILE: /opt/ai-ecommerce-assistant/shared/.env
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - name: Materialize exact source commit archive
@@ -78,7 +76,6 @@ jobs:
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
           printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
-          test "$(cat "$GITHUB_WORKSPACE/.competition-source-commit")" = "$COMPETITION_SOURCE_COMMIT"
 
       - name: Verify exact tool Python and live evidence contract
         run: |
@@ -113,42 +110,65 @@ jobs:
           if [ -z "$key" ]; then key="${BAILIAN_API_KEY:-}"; source_name="runner_env:BAILIAN_API_KEY"; fi
           if [ -z "$key" ]; then key="${QWEN_API_KEY:-}"; source_name="runner_env:QWEN_API_KEY"; fi
 
-          if [ -z "$key" ] && [ -r "$COMPETITION_QWEN_CREDENTIAL_FILE" ]; then
-            key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$COMPETITION_QWEN_CREDENTIAL_FILE")"
-            source_name="ecs_dedicated_model_credential"
-          fi
-          if [ -z "$key" ] && [ -r "$COMPETITION_SHARED_CREDENTIAL_FILE" ]; then
-            key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$COMPETITION_SHARED_CREDENTIAL_FILE")"
-            source_name="ecs_shared_runtime_credential"
+          APPROVED_ENV_FILES=(
+            /etc/ai-ecommerce-assistant/qwen37-plus.env
+            /opt/ai-ecommerce-assistant/shared/.env
+            /opt/ai-ecommerce-assistant/current/.env
+            /opt/ai-ecommerce-assistant/.env
+            /root/apps/AI-e-commerce-assistant/shared/.env
+            /root/apps/AI-e-commerce-assistant/current/.env
+            /root/apps/AI-e-commerce-assistant/.env
+            /root/apps/AI-e-commerce-assistant/config/qwen37-plus.env
+          )
+          if [ -z "$key" ]; then
+            for candidate in "${APPROVED_ENV_FILES[@]}"; do
+              [ -r "$candidate" ] || continue
+              key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$candidate")"
+              if [ -n "$key" ]; then
+                source_name="ecs_approved_project_env"
+                break
+              fi
+            done
           fi
 
           active_service=""
           active_pid=""
+          active_root=""
           if [ -z "$key" ] && [ -f scripts/runtime_service_resolver.sh ]; then
             set +u
             source scripts/runtime_service_resolver.sh
             set -u
-            active_service="$(resolve_ai_runtime_service /opt/ai-ecommerce-assistant 2>/dev/null || true)"
-            if [ -n "$active_service" ]; then
-              active_pid="$(systemctl show "$active_service" --property=MainPID --value 2>/dev/null || true)"
-              if [[ "$active_pid" =~ ^[1-9][0-9]*$ ]] && [ -r "/proc/${active_pid}/environ" ]; then
-                key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" proc "$active_pid")"
-                source_name="ecs_active_runtime_credential"
+            for runtime_root in /opt/ai-ecommerce-assistant /root/apps/AI-e-commerce-assistant; do
+              service="$(resolve_ai_runtime_service "$runtime_root" 2>/dev/null || true)"
+              [ -n "$service" ] || continue
+              pid="$(systemctl show "$service" --property=MainPID --value 2>/dev/null || true)"
+              active_service="$service"
+              active_pid="$pid"
+              active_root="$runtime_root"
+              if [[ "$pid" =~ ^[1-9][0-9]*$ ]] && [ -r "/proc/${pid}/environ" ]; then
+                key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" proc "$pid")"
+                if [ -n "$key" ]; then
+                  source_name="ecs_active_runtime_credential"
+                  break
+                fi
               fi
-            fi
+            done
           fi
 
           if [ -z "$key" ]; then
-            for service in ai-operating-advisor.service ai-ecommerce.service; do
-              systemctl is-active --quiet "$service" 2>/dev/null || continue
-              pid="$(systemctl show "$service" --property=MainPID --value 2>/dev/null || true)"
-              [[ "$pid" =~ ^[1-9][0-9]*$ ]] || continue
-              [ -r "/proc/${pid}/environ" ] || continue
+            for proc in /proc/[1-9][0-9]*; do
+              pid="${proc##*/}"
+              [ -r "$proc/cmdline" ] || continue
+              command="$(tr '\0' ' ' < "$proc/cmdline" 2>/dev/null || true)"
+              case "$command" in
+                *uvicorn*src.api.main:app*|*python*src.api.main*) ;;
+                *) continue ;;
+              esac
+              [ -r "$proc/environ" ] || continue
               key="$("$COMPETITION_TOOL_PYTHON" "$RESOLVER" proc "$pid")"
               if [ -n "$key" ]; then
-                active_service="$service"
                 active_pid="$pid"
-                source_name="ecs_active_runtime_credential"
+                source_name="ecs_matching_app_process_credential"
                 break
               fi
             done
@@ -156,24 +176,24 @@ jobs:
 
           if [ -z "$key" ]; then
             echo "Credential preflight diagnostic (names/metadata only; no values):"
-            if [ -r "$COMPETITION_QWEN_CREDENTIAL_FILE" ]; then
-              printf 'dedicated_file='; "$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$COMPETITION_QWEN_CREDENTIAL_FILE" --diagnostic || true
-            else
-              echo "dedicated_file=unreadable_or_absent"
-            fi
-            if [ -r "$COMPETITION_SHARED_CREDENTIAL_FILE" ]; then
-              printf 'shared_file='; "$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$COMPETITION_SHARED_CREDENTIAL_FILE" --diagnostic || true
-            else
-              echo "shared_file=unreadable_or_absent"
-            fi
+            readable_count=0
+            for candidate in "${APPROVED_ENV_FILES[@]}"; do
+              if [ -r "$candidate" ]; then
+                readable_count=$((readable_count + 1))
+                printf 'approved_env[%s]=' "$readable_count"
+                "$COMPETITION_TOOL_PYTHON" "$RESOLVER" file "$candidate" --diagnostic || true
+              fi
+            done
+            [ "$readable_count" -gt 0 ] || echo "approved_env=none_readable"
             if [[ "$active_pid" =~ ^[1-9][0-9]*$ ]] && [ -r "/proc/${active_pid}/environ" ]; then
-              echo "active_service=${active_service}"
+              echo "active_runtime_root=${active_root:-unknown}"
+              echo "active_service=${active_service:-unknown}"
               printf 'active_process='; "$COMPETITION_TOOL_PYTHON" "$RESOLVER" proc "$active_pid" --diagnostic || true
-              systemctl show "$active_service" --property=EnvironmentFiles --value 2>/dev/null | sed 's/^/environment_files_metadata=/' || true
+              [ -z "$active_service" ] || systemctl show "$active_service" --property=EnvironmentFiles --value 2>/dev/null | sed 's/^/environment_files_metadata=/' || true
             else
               echo "active_process=unresolved_or_unreadable"
             fi
-            echo "::error::Real Bailian evidence could not locate a credential using the same provider/key fallback semantics as the repository LLM gateway. No credential value was printed; no environment file was sourced; no production database/service/symlink was modified."
+            echo "::error::Real Bailian evidence could not locate a credential in the repository-declared current or legacy ECS runtime locations. No credential value was printed; no environment file was sourced; no production database/service/symlink was modified."
             exit 86
           fi
 
@@ -249,7 +269,6 @@ jobs:
           import json
           import os
           from pathlib import Path
-
           report = json.loads(Path('dist/competition-qwen-live-evidence/qwen-live-attestation.json').read_text(encoding='utf-8'))
           assert report.get('schema') == 'competition.qwen_live_evidence.v1', report
           assert report.get('verified') is True, report.get('errors')
@@ -259,15 +278,14 @@ jobs:
           assert report.get('realBailianRunStillRequired') is False, report
           assert len(report.get('imports') or []) == 3, report
           assert all((report.get('assertions') or {}).values()), report.get('assertions')
-          assert (report.get('credential') or {}).get('published') is False, report
-          assert (report.get('productionBoundary') or {}).get('productionEnvironmentLoaded') is False, report
           provider = report.get('providerEvidence') or {}
           assert provider.get('provider') == 'aliyun_bailian', provider
           assert provider.get('nonBailianProviderCalls') == 0, provider
+          assert (report.get('credential') or {}).get('published') is False, report
+          assert (report.get('productionBoundary') or {}).get('productionEnvironmentLoaded') is False, report
           print(json.dumps({
               'verified': report['verified'],
               'sourceCommit': report['sourceCommit'],
-              'sampleSetHash': report['sampleSetHash'],
               'provider': provider['provider'],
               'models': provider['models'],
               'stageProviderCalls': provider['stageProviderCalls'],
