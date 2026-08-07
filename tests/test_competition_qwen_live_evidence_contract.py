@@ -68,7 +68,9 @@ def test_qwen_live_workflow_masks_credentials_and_never_sources_env_files():
     assert "/opt/ai-ecommerce-assistant/shared/.env" in text
     assert "/root/apps/AI-e-commerce-assistant/.env" in text
     assert "resolve_competition_qwen_credential.py" in text
-    assert "No credential value was printed" in text
+    assert "names/metadata only; no values" in text
+    assert "credentialValuePublished" in text
+    assert "value is masked and will not be published" in text
     assert "source /etc/ai-ecommerce-assistant/qwen37-plus.env" not in text
     assert "source /opt/ai-ecommerce-assistant/shared/.env" not in text
     assert "source /root/apps/AI-e-commerce-assistant/.env" not in text
