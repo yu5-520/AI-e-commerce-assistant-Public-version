@@ -18,7 +18,7 @@ from sqlite3 import OperationalError
 from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect, loads
-from src.services.competition_operator_context_service import COMPETITION_OPERATOR_ID, competition_stores
+from src.services.competition_operator_context_service import COMPETITION_OPERATOR_ID, competition_stores, visible_store_ids_for_user
 from src.services.backend_isolation_service import DEFAULT_ORG_ID, DEFAULT_TENANT_ID, row_scope_status, strict_data_scope_enabled
 from src.services.import_row_store_service import load_import_rows
 from src.services.metric_catalog_service import (
@@ -111,6 +111,10 @@ def _store_name(store_id: str | None) -> str:
 def _store_platform(store_id: str | None, fallback: str = "导入数据") -> str:
     store = _store_index().get(store_id or "")
     return store.get("platform") if store else fallback
+
+
+def _visible_store_ids(user_id: str | None) -> set[str]:
+    return set(visible_store_ids_for_user(user_id)) if user_id else set()
 
 
 def _snapshot_payloads() -> List[Dict[str, Any]]:
