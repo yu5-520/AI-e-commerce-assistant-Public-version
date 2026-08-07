@@ -74,9 +74,19 @@ def default_operator(_: Any | None = None) -> Dict[str, Any]:
     return competition_operator()
 
 
-def default_reviewer() -> None:
-    """Department review is an enterprise-only capability, not a demo account."""
-    return None
+def default_reviewer() -> Dict[str, Any]:
+    """Return a non-account sentinel for legacy callers expecting a mapping.
+
+    Department review remains unavailable in the public competition runtime. The
+    mapping deliberately carries no reviewer identity, so compatibility callers
+    can safely read ``.get('id')`` without reintroducing a manager demo account.
+    """
+    return {
+        "id": None,
+        "available": False,
+        "enterpriseOnly": True,
+        "source": "competition_enterprise_review_boundary",
+    }
 
 
 def competition_stores() -> List[Dict[str, Any]]:
