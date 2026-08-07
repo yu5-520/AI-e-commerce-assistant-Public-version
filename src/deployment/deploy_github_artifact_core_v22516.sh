@@ -309,8 +309,10 @@ fi
 
 log "5. Extract Actions artifact and verify sealed identity"
 "$BOOTSTRAP_PYTHON" -m zipfile -e "$ARTIFACT_ZIP" "$ARTIFACT_DIR"
-mapfile -t BUNDLES < <(find "$ARTIFACT_DIR" -type f -name 'release-*.tar.gz' -print | sort)
-[ "${#BUNDLES[@]}" -eq 1 ] || fail "Expected exactly one release-*.tar.gz in artifact, found ${#BUNDLES[@]}"
+BUNDLE_ROOT="$ARTIFACT_DIR/ci-artifacts"
+[ -d "$BUNDLE_ROOT" ] || fail "Formal artifact is missing ci-artifacts/"
+mapfile -t BUNDLES < <(find "$BUNDLE_ROOT" -maxdepth 1 -type f -name "formal-release-${SOURCE_COMMIT}-*.tar.gz" -print | sort)
+[ "${#BUNDLES[@]}" -eq 1 ] || fail "Expected exactly one formal-release-${SOURCE_COMMIT}-*.tar.gz in ci-artifacts, found ${#BUNDLES[@]}"
 BUNDLE_TAR="${BUNDLES[0]}"
 tar -xzf "$BUNDLE_TAR" -C "$CANDIDATE_DIR"
 [ -f "$CANDIDATE_DIR/release/release-manifest.json" ] || fail "Sealed bundle manifest is missing"
