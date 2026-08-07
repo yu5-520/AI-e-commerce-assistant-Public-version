@@ -125,7 +125,7 @@ chmod 700 "$WRAPPER_PATH"
 if [ ! -f "$DEPLOYMENT_ENV" ]; then
   umask 077
   cat > "$DEPLOYMENT_ENV" <<EOF
-AI_GITHUB_REPOSITORY=yu5-520/AI-e-commerce-assistant
+AI_GITHUB_REPOSITORY=yu5-520/AI-e-commerce-assistant-Public-version
 AI_RELEASE_BRANCH=main
 AI_ECOMMERCE_ROOT=/opt/ai-ecommerce-assistant
 AI_RELEASE_PYTHON=/opt/ai-runtime/python/current/bin/python3.11
