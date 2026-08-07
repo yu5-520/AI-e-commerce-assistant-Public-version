@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "run_competition_qwen_live_evidence.py"
 RESOLVER = ROOT / "scripts" / "resolve_competition_qwen_credential.py"
 WORKFLOW = ROOT / ".github" / "workflows" / "competition-qwen-live-evidence.yml"
+DOC = ROOT / "docs" / "competition" / "QWEN_LIVE_EVIDENCE.md"
 SAMPLES = [
     "AI经营参谋_脱敏样例_第1期.xlsx",
     "AI经营参谋_脱敏样例_第2期.xlsx",
@@ -100,6 +101,23 @@ def test_current_and_legacy_runtime_credential_fallbacks_are_read_only():
         assert forbidden not in text
 
 
+def test_missing_credential_is_explicitly_pending_on_pr_but_strict_on_manual_run():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "credential-preflight.json" in text
+    assert "available=false" in text
+    assert "'modelQualityProof': False" in text
+    assert "'realBailianRunStillRequired': True" in text
+    assert 'if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then' in text
+    assert "Manual live-evidence execution is strict" in text
+    assert "pending_external_credential" in text
+    assert "steps.qwen_credential.outputs.available == 'true'" in text
+    doc = DOC.read_text(encoding="utf-8")
+    assert "available=false" in doc
+    assert "modelQualityProof=false" in doc
+    assert "realBailianRunStillRequired=true" in doc
+    assert "DASHSCOPE_API_KEY" in doc
+
+
 def test_qwen_live_attestation_has_explicit_production_disjoint_flags():
     text = SCRIPT.read_text(encoding="utf-8")
     for field in (
@@ -120,6 +138,7 @@ def run_contract_checks() -> None:
     test_credential_resolver_reads_export_syntax_without_sourcing_file()
     test_qwen_live_workflow_masks_credentials_and_never_sources_env_files()
     test_current_and_legacy_runtime_credential_fallbacks_are_read_only()
+    test_missing_credential_is_explicitly_pending_on_pr_but_strict_on_manual_run()
     test_qwen_live_attestation_has_explicit_production_disjoint_flags()
 
 
