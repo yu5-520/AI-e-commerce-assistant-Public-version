@@ -7,6 +7,7 @@ regenerate XLSX files per request.
 from __future__ import annotations
 
 import io
+import re
 import zipfile
 from datetime import datetime
 from typing import Any, Dict, List
@@ -38,13 +39,30 @@ SAMPLE_REPORTS: Dict[int, List[Dict[str, Any]]] = {
 }
 
 _FIXED_XLSX_TIME = datetime(2026, 1, 1, 0, 0, 0)
+_FIXED_XLSX_TIME_XML = b"2026-01-01T00:00:00Z"
 _FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
+_CORE_TIME_PATTERN = re.compile(
+    rb"(<dcterms:(?:created|modified)\b[^>]*>)[^<]*(</dcterms:(?:created|modified)>)"
+)
 
 
 def sample_report_filename(period: int) -> str:
     if period not in SAMPLE_REPORTS:
         raise ValueError("competition_sample_period_not_found")
     return f"AI经营参谋_脱敏样例_第{period}期.xlsx"
+
+
+def _canonicalize_archive_member(name: str, payload: bytes) -> bytes:
+    # openpyxl.save_workbook overwrites workbook.properties.modified with the
+    # current wall-clock time immediately before writing docProps/core.xml. ZIP
+    # metadata normalization alone therefore cannot make XLSX bytes reproducible.
+    # Normalize both core-property timestamps inside the XML payload as well.
+    if name == "docProps/core.xml":
+        payload = _CORE_TIME_PATTERN.sub(
+            lambda match: match.group(1) + _FIXED_XLSX_TIME_XML + match.group(2),
+            payload,
+        )
+    return payload
 
 
 def _canonicalize_xlsx_archive(payload: bytes) -> bytes:
@@ -61,7 +79,13 @@ def _canonicalize_xlsx_archive(payload: bytes) -> bytes:
             info.compress_type = zipfile.ZIP_DEFLATED
             info.create_system = 0
             info.external_attr = 0
-            target.writestr(info, source.read(name), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+            member = _canonicalize_archive_member(name, source.read(name))
+            target.writestr(
+                info,
+                member,
+                compress_type=zipfile.ZIP_DEFLATED,
+                compresslevel=9,
+            )
     return target_buffer.getvalue()
 
 
