@@ -1,7 +1,8 @@
-"""Product module routes backed by V14.8.2 product read bridge.
+"""Product module routes backed by the canonical product snapshot root.
 
-The product page merges the cached frontend read model with runtime product
-projection and displays business data dates instead of engineering cache labels.
+The product list/detail APIs no longer merge an independent frontend read model
+with a fresh runtime projection. They render the detail projection whose parent is
+the same immutable ``productSnapshotHash`` used by Agent-facing bundles.
 """
 
 from __future__ import annotations
@@ -12,14 +13,14 @@ from typing import Any, Dict, Iterable, List
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
+from src.services.canonical_product_snapshot_service import find_product_detail, list_product_details
 from src.services.competition_operator_context_service import user_id_from_headers
-from src.services.frontend_read_model_service import FRONTEND_READ_MODEL_VERSION, read_product_detail, read_product_views
-from src.services.module_projection_service import projected_products
+from src.services.frontend_read_model_service import FRONTEND_READ_MODEL_VERSION
 from src.services.task_pool_station_service import enter_task_pool_from_snapshot
 from src.services.task_snapshot_station_service import create_task_snapshot
 
 router = APIRouter()
-PRODUCT_ARCHIVE_VERSION = "14.8.2"
+PRODUCT_ARCHIVE_VERSION = "canonical-1.1"
 BLANK_VALUES = {None, "", "—", "未识别"}
 
 METRIC_GROUPS = [
@@ -195,7 +196,7 @@ def _normalize_archive_item(item: Dict[str, Any]) -> Dict[str, Any]:
         "productArchiveVersion": PRODUCT_ARCHIVE_VERSION,
         "readModelVersion": FRONTEND_READ_MODEL_VERSION,
         "sourceRoute": "business-products",
-        "readMode": "frontend_product_view_plus_projection_bridge",
+        "readMode": "canonical_product_snapshot_projection",
     }
     position = item.get("productPosition") if isinstance(item.get("productPosition"), dict) else {}
     normalized["productPosition"] = {
@@ -218,22 +219,25 @@ def _normalize_archive_item(item: Dict[str, Any]) -> Dict[str, Any]:
     normalized["sourceDataVersions"] = item.get("sourceDataVersions") or ([item.get("dataVersion")] if item.get("dataVersion") else [])
     normalized["sourceDatasets"] = item.get("sourceDatasets") or []
     normalized["taskHistorySummary"] = item.get("taskHistorySummary") or {"taskCount": 0, "summary": "商品页只显示任务摘要，完整SOP在任务详情页查看。"}
+    normalized["canonicalLineage"] = {
+        "productSnapshotHash": item.get("productSnapshotHash"),
+        "parentSnapshotHash": item.get("parentSnapshotHash"),
+        "detailProjectionHash": item.get("detailProjectionHash"),
+        "factHashRefs": item.get("factHashRefs") or [],
+        "sourceArtifactRefs": item.get("sourceArtifactRefs") or [],
+    }
     return normalized
 
 
 def _merge_product_items(user_id: str | None, store_id: str | None = None) -> List[Dict[str, Any]]:
-    merged: Dict[str, Dict[str, Any]] = {}
-    read_result = read_product_views(store_id=store_id, limit=500)
-    for item in read_result.get("items") or []:
-        normalized = _normalize_archive_item(item)
-        merged[_archive_key(normalized)] = normalized
-    for item in projected_products(user_id):
+    """Compatibility name; there is intentionally no multi-source merge anymore."""
+    values = list_product_details(user_id=user_id)
+    items: List[Dict[str, Any]] = []
+    for item in values:
         if store_id and _text(item.get("storeId")) != _text(store_id):
             continue
-        normalized = _normalize_archive_item(item)
-        key = _archive_key(normalized)
-        merged[key] = {**merged.get(key, {}), **normalized, "readMode": "projection_overrides_compact_read_model"}
-    return sorted(merged.values(), key=lambda row: (row.get("storeName") or "", row.get("productId") or ""))
+        items.append(_normalize_archive_item(item))
+    return sorted(items, key=lambda row: (row.get("storeName") or "", row.get("productId") or ""))
 
 
 def product_items(user_id: str | None, store_id: str | None = None, store_name: str | None = None) -> List[Dict[str, Any]]:
@@ -248,8 +252,39 @@ def product_task_payload(item: Dict[str, Any]) -> Dict[str, Any]:
     missing = (item.get("metricFactSummary") or {}).get("missingFields") or []
     priority = "中" if missing else ("高" if item.get("signalStrength") == "high" else "中" if item.get("signalStrength") == "medium" else "低")
     task_type = "商品数据核验" if missing else "商品经营复核"
-    task_text = f"补齐商品核心指标：{', '.join(missing)}。提交原始报表、字段映射截图和数据口径。" if missing else "基于商品全量包读模型复核商品状态，提交截图、数据口径和处理结论。"
-    return {"entityType": "商品", "entityId": item["id"], "riskDomain": "指标事实补齐" if missing else (item.get("metricCode") or "商品"), "actionType": "data_gap_verification" if missing else "manual_product_review", "sourceModule": "商品模块", "source": "前端读模型人工请求", "sourceRoute": "business-products", "productId": item.get("productId") or item["id"], "objectId": item["id"], "storeIds": [item.get("storeId")] if item.get("storeId") else [], "visibleStoreIds": [item.get("storeId")] if item.get("storeId") else [], "imageLabel": item.get("imageLabel") or "品", "productShort": item.get("shortName") or item.get("title") or item.get("productId") or item["id"], "productTitle": item.get("title") or item.get("productId") or item["id"], "title": f"{task_type}｜{item.get('productId') or item['id']}", "platform": item.get("platform") or "导入数据", "store": item.get("storeName") or item.get("store") or "未绑定店铺", "priority": priority, "priorityLevel": "danger" if priority == "高" else "warning" if priority == "中" else "good", "deadline": "24小时内" if missing else ("今天内" if priority == "高" else "明天前"), "taskType": task_type, "taskSignal": "data_gap_required" if missing else (item.get("primarySignalType") or "前端人工请求"), "task": task_text, "reason": "V14.8.2：缺字段不阻断任务，商品页可直接生成数据核验任务。" if missing else "商品来自 frontend_product_view + projection bridge；页面请求不触发商品投影或Agent重算。", "judgmentTags": [item.get("verticalCategory", "未归类"), f"支付 {item.get('paymentAmount', '—')}", f"退款率 {item.get('refundRate', '—')}", f"库存 {item.get('inventory', '—')}"] + ([f"缺失 {len(missing)} 字段"] if missing else []), "sourceDataVersions": item.get("sourceDataVersions") or [], "sourceDatasets": item.get("sourceDatasets") or ["frontend_product_view", "module_projection"]}
+    task_text = f"补齐商品核心指标：{', '.join(missing)}。提交原始报表、字段映射截图和数据口径。" if missing else "基于商品统一事实快照复核商品状态，提交截图、数据口径和处理结论。"
+    return {
+        "entityType": "商品",
+        "entityId": item["id"],
+        "riskDomain": "指标事实补齐" if missing else (item.get("metricCode") or "商品"),
+        "actionType": "data_gap_verification" if missing else "manual_product_review",
+        "sourceModule": "商品模块",
+        "source": "canonical_product_snapshot_manual_request",
+        "sourceRoute": "business-products",
+        "productId": item.get("productId") or item["id"],
+        "objectId": item["id"],
+        "storeIds": [item.get("storeId")] if item.get("storeId") else [],
+        "visibleStoreIds": [item.get("storeId")] if item.get("storeId") else [],
+        "imageLabel": item.get("imageLabel") or "品",
+        "productShort": item.get("shortName") or item.get("title") or item.get("productId") or item["id"],
+        "productTitle": item.get("title") or item.get("productId") or item["id"],
+        "title": f"{task_type}｜{item.get('productId') or item['id']}",
+        "platform": item.get("platform") or "导入数据",
+        "store": item.get("storeName") or item.get("store") or "未绑定店铺",
+        "priority": priority,
+        "priorityLevel": "danger" if priority == "高" else "warning" if priority == "中" else "good",
+        "deadline": "24小时内" if missing else ("今天内" if priority == "高" else "明天前"),
+        "taskType": task_type,
+        "taskSignal": "data_gap_required" if missing else (item.get("primarySignalType") or "前端人工请求"),
+        "task": task_text,
+        "reason": "缺字段不阻断人工核验任务。" if missing else "商品页与Agent共用canonical product snapshot；页面人工请求不触发事实重建。",
+        "judgmentTags": [item.get("verticalCategory", "未归类"), f"支付 {item.get('paymentAmount', '—')}", f"退款率 {item.get('refundRate', '—')}", f"库存 {item.get('inventory', '—')}"] + ([f"缺失 {len(missing)} 字段"] if missing else []),
+        "sourceDataVersions": item.get("sourceDataVersions") or [],
+        "sourceDatasets": item.get("sourceDatasets") or ["canonical_product_snapshot"],
+        "productSnapshotHash": item.get("productSnapshotHash"),
+        "parentSnapshotHash": item.get("parentSnapshotHash"),
+        "factHashRefs": item.get("factHashRefs") or [],
+    }
 
 
 def _enter_snapshot_pool(payload: Dict[str, Any], user_id: str | None = None) -> Dict[str, Any]:
@@ -257,8 +292,50 @@ def _enter_snapshot_pool(payload: Dict[str, Any], user_id: str | None = None) ->
     source_version = (payload.get("sourceDataVersions") or [None])[0]
     priority = payload.get("priority") or "中"
     decision = "manager_review_required" if priority == "高" else "create_task_snapshot"
-    task_plan = {"title": payload.get("title") or entity_id, "subtitle": "manual_product_read_model_request_v14_8_2", "entityType": payload.get("entityType") or "商品", "entityId": entity_id, "productId": payload.get("productId"), "storeId": (payload.get("storeIds") or [None])[0], "taskType": payload.get("taskType") or "商品复核", "actionType": payload.get("actionType") or "manual_request", "priority": priority, "deadline": payload.get("deadline") or "24小时内", "riskDomain": payload.get("riskDomain") or "商品", "operationBudget": {"riskLevel": "medium" if priority == "中" else "low", "operatorBudgetApplies": False, "requiresApproval": decision == "manager_review_required"}, "sopSteps": [payload.get("task") or "复核该经营对象。", "提交处理截图、数据口径和影响范围。", "后续由系统复盘相关指标。"], "evidenceRequirements": ["页面来源", "处理截图", "数据口径"], "reviewMetrics": ["支付金额", "ROAS/ROI", "点击率", "转化率", "退款率", "库存"], "needManagerReview": decision == "manager_review_required", "reason": payload.get("reason") or payload.get("taskSignal")}
-    snapshot = create_task_snapshot({"dataVersion": source_version, "decision": decision, "confidence": 0.7, "entityType": payload.get("entityType") or "商品", "entityId": entity_id, "productId": payload.get("productId"), "storeId": (payload.get("storeIds") or [None])[0], "signalRef": f"manual:product-read-model:{entity_id}:{source_version or 'latest'}", "ragContext": {"source": "product_read_model_manual_request", "version": PRODUCT_ARCHIVE_VERSION}, "agentJudgment": {"decision": decision, "confidence": 0.7, "reason": task_plan["reason"], "status": "manual_read_model_snapshot_bridge"}, "taskPlan": task_plan, "operationBudget": task_plan["operationBudget"], "evidenceRequirements": task_plan["evidenceRequirements"], "systemFacts": {"modulePayload": payload}, "source": "product_module_read_model_manual_request"}, created_by=user_id)
+    task_plan = {
+        "title": payload.get("title") or entity_id,
+        "subtitle": "manual_product_canonical_snapshot_request",
+        "entityType": payload.get("entityType") or "商品",
+        "entityId": entity_id,
+        "productId": payload.get("productId"),
+        "storeId": (payload.get("storeIds") or [None])[0],
+        "taskType": payload.get("taskType") or "商品复核",
+        "actionType": payload.get("actionType") or "manual_request",
+        "priority": priority,
+        "deadline": payload.get("deadline") or "24小时内",
+        "riskDomain": payload.get("riskDomain") or "商品",
+        "operationBudget": {"riskLevel": "medium" if priority == "中" else "low", "operatorBudgetApplies": False, "requiresApproval": decision == "manager_review_required"},
+        "sopSteps": [payload.get("task") or "复核该经营对象。", "提交处理截图、数据口径和影响范围。", "后续由系统复盘相关指标。"],
+        "evidenceRequirements": ["页面来源", "处理截图", "数据口径"],
+        "reviewMetrics": ["支付金额", "ROAS/ROI", "点击率", "转化率", "退款率", "库存"],
+        "needManagerReview": decision == "manager_review_required",
+        "reason": payload.get("reason") or payload.get("taskSignal"),
+    }
+    snapshot = create_task_snapshot(
+        {
+            "dataVersion": source_version,
+            "decision": decision,
+            "confidence": 0.7,
+            "entityType": payload.get("entityType") or "商品",
+            "entityId": entity_id,
+            "productId": payload.get("productId"),
+            "storeId": (payload.get("storeIds") or [None])[0],
+            "signalRef": f"manual:canonical-product-snapshot:{entity_id}:{source_version or 'latest'}",
+            "ragContext": {"source": "canonical_product_snapshot_manual_request", "version": PRODUCT_ARCHIVE_VERSION},
+            "agentJudgment": {"decision": decision, "confidence": 0.7, "reason": task_plan["reason"], "status": "manual_canonical_snapshot_bridge"},
+            "taskPlan": task_plan,
+            "operationBudget": task_plan["operationBudget"],
+            "evidenceRequirements": task_plan["evidenceRequirements"],
+            "systemFacts": {
+                "modulePayload": payload,
+                "productSnapshotHash": payload.get("productSnapshotHash"),
+                "parentSnapshotHash": payload.get("parentSnapshotHash"),
+                "factHashRefs": payload.get("factHashRefs") or [],
+            },
+            "source": "product_module_canonical_snapshot_manual_request",
+        },
+        created_by=user_id,
+    )
     pool = enter_task_pool_from_snapshot(snapshot.get("taskSnapshotId"), created_by=user_id)
     return {"version": PRODUCT_ARCHIVE_VERSION, "mode": "manual_request_via_task_snapshot", "snapshot": snapshot, "pool": pool, "task": pool.get("task") if isinstance(pool, dict) else None}
 
@@ -272,13 +349,13 @@ def product(request: Request, store_id: str | None = Query(None, alias="storeId"
 @router.get("/product/{product_id}")
 def product_detail(request: Request, product_id: str) -> Dict[str, Any]:
     user_id = user_id_from_headers(request.headers)
-    cached = read_product_detail(product_id)
-    if cached.get("item"):
-        return _normalize_archive_item(cached["item"])
+    canonical = find_product_detail(product_id, user_id=user_id)
+    if canonical:
+        return _normalize_archive_item(canonical)
     for item in product_items(user_id):
         if product_id in {item.get("id"), item.get("productId"), item.get("archiveId"), item.get("objectId"), item.get("skuId")}:
             return item
-    raise HTTPException(status_code=404, detail="product not found in frontend read model or product projection")
+    raise HTTPException(status_code=404, detail="product not found in canonical product snapshot")
 
 
 @router.post("/product/{product_id}/tasks")
