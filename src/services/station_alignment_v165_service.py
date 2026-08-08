@@ -12,6 +12,9 @@ from typing import Any, Dict, List
 from src.repositories.sqlite_repository import loads
 from src.runtime_version import API_VERSION
 from src.services import system_product_snapshot_service as product_snapshot_service
+from src.services.canonical_product_snapshot_v215_bridge_service import (
+    install_canonical_product_snapshot_v215_bridge,
+)
 from src.services.import_row_store_service import load_import_rows
 from src.services.metric_trigger_expansion_v171_service import is_first_report_baseline
 from src.services.module_projection_service import projected_products, projection_summary
@@ -145,6 +148,7 @@ def product_metric_snapshot_station(
     force: bool = True,
     **_: Any,
 ) -> Dict[str, Any]:
+    install_canonical_product_snapshot_v215_bridge()
     result = product_snapshot_service.materialize_system_product_snapshot(
         data_version=data_version,
         user_id=user_id,
