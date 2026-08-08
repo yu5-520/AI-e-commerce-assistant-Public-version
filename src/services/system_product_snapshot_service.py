@@ -5,10 +5,11 @@ but it no longer owns a second product snapshot implementation. All reads and
 materialization are delegated to ``canonical_product_snapshot_service`` so the
 Agent path and product-detail path cannot diverge at the fact layer.
 
-A read-only SQLite compatibility view is created only when the historical
-``system_product_snapshots_v14`` object is absent. This keeps stale direct SQL
-readers on the canonical table during the migration window without restoring the
-legacy table as a second persisted source of truth.
+When the historical ``system_product_snapshots_v14`` object is absent, a SQLite
+compatibility view is created over the canonical table. Its only supported legacy
+write is UPDATE, implemented as an INSTEAD OF trigger that writes through to the
+canonical table. No rows are persisted in the legacy object, so it cannot become a
+second source of truth.
 """
 from src.repositories.sqlite_repository import connect
 from src.services.canonical_product_snapshot_service import (
@@ -27,10 +28,11 @@ from src.services.canonical_product_snapshot_service import (
 
 SYSTEM_PRODUCT_SNAPSHOT_VERSION = CANONICAL_PRODUCT_SNAPSHOT_VERSION
 LEGACY_PRODUCT_SNAPSHOT_OBJECT = "system_product_snapshots_v14"
+LEGACY_PRODUCT_SNAPSHOT_UPDATE_TRIGGER = "compat_system_product_snapshots_v14_update"
 
 
-def _ensure_legacy_snapshot_read_view() -> str:
-    """Bridge stale SQL readers to canonical storage without reviving legacy writes."""
+def _ensure_legacy_snapshot_compatibility_view() -> str:
+    """Route stale SQL reads/metadata updates into canonical storage."""
     ensure_snapshot_tables()
     with connect() as conn:
         row = conn.execute(
@@ -51,9 +53,31 @@ def _ensure_legacy_snapshot_read_view() -> str:
                 FROM canonical_product_snapshot_sets_v1
                 """
             )
+            object_type = "view"
+        else:
+            object_type = str(row["type"] or "")
+
+        if object_type == "view":
+            conn.execute(
+                f"""
+                CREATE TRIGGER IF NOT EXISTS {LEGACY_PRODUCT_SNAPSHOT_UPDATE_TRIGGER}
+                INSTEAD OF UPDATE ON {LEGACY_PRODUCT_SNAPSHOT_OBJECT}
+                BEGIN
+                    UPDATE canonical_product_snapshot_sets_v1
+                    SET
+                        data_version = NEW.data_version,
+                        product_count = NEW.product_count,
+                        payload = NEW.payload,
+                        created_at = NEW.created_at,
+                        updated_at = NEW.updated_at
+                    WHERE snapshot_id = OLD.snapshot_id;
+                END
+                """
+            )
             conn.commit()
-            return "canonical_read_view_created"
-        return f"existing_{row['type']}"
+            return "canonical_compatibility_view_ready"
+
+        return f"existing_{object_type}"
 
 
 def materialize_system_product_snapshot(
@@ -62,8 +86,8 @@ def materialize_system_product_snapshot(
     user_id: str | None = None,
     force: bool = True,
 ):
-    """Legacy station entrypoint routed to the canonical root plus read bridge."""
-    _ensure_legacy_snapshot_read_view()
+    """Legacy station entrypoint routed to the canonical root plus SQL bridge."""
+    _ensure_legacy_snapshot_compatibility_view()
     return materialize_canonical_product_snapshot(
         data_version=data_version,
         user_id=user_id,
