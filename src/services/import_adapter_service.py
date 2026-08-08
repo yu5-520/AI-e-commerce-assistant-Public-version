@@ -20,6 +20,7 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+from zipfile import BadZipFile
 
 SUPPORTED_EXTENSIONS = {".xlsx", ".xlsm", ".xls", ".csv", ".json"}
 ADAPTER_VERSION = "12.2.2"
@@ -159,10 +160,16 @@ def _parse_json(content: bytes) -> Dict[str, Any]:
 def _parse_xlsx(content: bytes) -> Dict[str, Any]:
     try:
         from openpyxl import load_workbook
+        from openpyxl.utils.exceptions import InvalidFileException
     except ImportError as exc:
         raise ValueError("缺少 openpyxl 依赖，无法解析 .xlsx / .xlsm 文件。") from exc
 
-    workbook = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    try:
+        workbook = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    except (BadZipFile, InvalidFileException, OSError) as exc:
+        raise ValueError(
+            "XLSX 文件损坏或不是有效的 Excel OpenXML 文件；请重新下载评委样例或上传有效报表。"
+        ) from exc
     rows: List[Dict[str, Any]] = []
     sheet_rows: Dict[str, List[Dict[str, Any]]] = {}
     sheet_matrices: Dict[str, List[Dict[str, Any]]] = {}
