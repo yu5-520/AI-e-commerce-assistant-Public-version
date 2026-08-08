@@ -1,7 +1,14 @@
-"""Deterministic evaluator XLSX samples for the competition public runtime."""
+"""Deterministic seed material for immutable competition sample XLSX assets.
+
+This module owns only the canonical seed payload. Runtime downloads must read the
+sealed bytes from SQLite through competition_sample_asset_service; they must not
+regenerate XLSX files per request.
+"""
 from __future__ import annotations
 
 import io
+import zipfile
+from datetime import datetime
 from typing import Any, Dict, List
 
 SAMPLE_REPORT_VERSION = "1.0.0"
@@ -30,6 +37,9 @@ SAMPLE_REPORTS: Dict[int, List[Dict[str, Any]]] = {
     ],
 }
 
+_FIXED_XLSX_TIME = datetime(2026, 1, 1, 0, 0, 0)
+_FIXED_ZIP_TIME = (1980, 1, 1, 0, 0, 0)
+
 
 def sample_report_filename(period: int) -> str:
     if period not in SAMPLE_REPORTS:
@@ -37,7 +47,26 @@ def sample_report_filename(period: int) -> str:
     return f"AI经营参谋_脱敏样例_第{period}期.xlsx"
 
 
+def _canonicalize_xlsx_archive(payload: bytes) -> bytes:
+    source_buffer = io.BytesIO(payload)
+    target_buffer = io.BytesIO()
+    with zipfile.ZipFile(source_buffer, "r") as source, zipfile.ZipFile(
+        target_buffer,
+        "w",
+        compression=zipfile.ZIP_DEFLATED,
+        compresslevel=9,
+    ) as target:
+        for name in sorted(source.namelist()):
+            info = zipfile.ZipInfo(filename=name, date_time=_FIXED_ZIP_TIME)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.create_system = 0
+            info.external_attr = 0
+            target.writestr(info, source.read(name), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+    return target_buffer.getvalue()
+
+
 def build_competition_sample_xlsx(period: int) -> bytes:
+    """Build canonical XLSX bytes for database seeding only."""
     if period not in SAMPLE_REPORTS:
         raise ValueError("competition_sample_period_not_found")
     try:
@@ -46,6 +75,8 @@ def build_competition_sample_xlsx(period: int) -> bytes:
         raise RuntimeError("openpyxl_required_for_competition_sample_xlsx") from exc
 
     workbook = Workbook()
+    workbook.properties.created = _FIXED_XLSX_TIME
+    workbook.properties.modified = _FIXED_XLSX_TIME
     worksheet = workbook.active
     worksheet.title = f"第{period}期经营数据"
     worksheet.append(SAMPLE_HEADERS)
@@ -53,7 +84,7 @@ def build_competition_sample_xlsx(period: int) -> bytes:
         worksheet.append([row.get(header, "") for header in SAMPLE_HEADERS])
     buffer = io.BytesIO()
     workbook.save(buffer)
-    payload = buffer.getvalue()
+    payload = _canonicalize_xlsx_archive(buffer.getvalue())
     if not payload.startswith(b"PK"):
         raise RuntimeError("competition_sample_xlsx_not_openxml")
     return payload

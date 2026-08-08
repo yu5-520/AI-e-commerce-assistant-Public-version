@@ -1,11 +1,12 @@
 """V22.5.11 deterministic runtime database schema preparation.
 
 Deployment must finish every release-owned SQLite schema change before it seals
-``release-data-lineage.json``. FastAPI startup calls the same owner so a restart cannot
+``release-data-lineage.json``. FastAPI startup calls the same owners so a restart cannot
 introduce a schema that deployment never attested.
 
-V22.5.12 also makes this already-sealed ``src/**/*`` owner directly executable with
-``python -m``. Deployment no longer depends on a separately allow-listed script.
+Release-owned immutable system assets are also seeded here. They are not business
+migration rows: they are fixed, hash-verified evaluator fixtures whose bytes become
+part of the shared SQLite state before data lineage is sealed.
 """
 from __future__ import annotations
 
@@ -25,6 +26,7 @@ from src.services.agent_runtime_recovery_v2261_service import (
     ensure_agent1_runtime_columns,
 )
 from src.services.artifact_storage_service import ensure_artifact_storage
+from src.services.competition_sample_asset_service import ensure_competition_sample_assets
 from src.services.frontend_view_artifact_v2259_service import (
     ensure_frontend_view_artifact_tables,
 )
@@ -52,9 +54,10 @@ def _identity() -> Dict[str, Any]:
     return database_identity(Path(DB_PATH), include_content_hash=False)
 
 
-def _ensure_release_owned_schema_once() -> None:
-    # Keep this list explicit. New release-owned tables or columns must be registered
-    # here before application startup is allowed to depend on them.
+def _ensure_release_owned_schema_once() -> Dict[str, Any]:
+    # Keep this list explicit. New release-owned tables, columns or immutable system
+    # assets must be registered here before application startup is allowed to depend
+    # on them.
     ensure_artifact_storage()
     init_db()
     ensure_artifact_tables()
@@ -66,30 +69,32 @@ def _ensure_release_owned_schema_once() -> None:
     ensure_agent3_runtime_columns()
     ensure_hash_directed_runtime_tables()
     ensure_frontend_view_artifact_tables()
+    competition_assets = ensure_competition_sample_assets()
     # limit=0 materializes the read-model table and indexes without rewriting tasks.
     backfill_task_detail_snapshots(limit=0)
+    return {"competitionSampleAssets": competition_assets}
 
 
 def prepare_runtime_database_schema(
     *,
     verify_idempotent: bool = False,
 ) -> Dict[str, Any]:
-    """Materialize every release-owned SQLite table, column and index.
+    """Materialize every release-owned SQLite table, column, index and system asset.
 
-    When ``verify_idempotent`` is enabled, the exact schema preparation is run twice
-    and the resulting schema Hash must remain unchanged. This is safe because this
-    function contains schema owners only; business migrations and lease recovery are
-    intentionally excluded.
+    When ``verify_idempotent`` is enabled, the exact preparation is run twice and the
+    resulting schema Hash must remain unchanged. Immutable competition sample BLOBs
+    are verified against their canonical content hashes on both passes.
     """
     before = _identity()
-    _ensure_release_owned_schema_once()
+    release_owned = _ensure_release_owned_schema_once()
     prepared = _identity()
     if prepared.get("verified") is not True:
         raise RuntimeError(f"runtime_database_schema_prepare_failed:{prepared}")
 
     second: Dict[str, Any] | None = None
+    second_release_owned: Dict[str, Any] | None = None
     if verify_idempotent:
-        _ensure_release_owned_schema_once()
+        second_release_owned = _ensure_release_owned_schema_once()
         second = _identity()
         if second.get("verified") is not True:
             raise RuntimeError(f"runtime_database_schema_second_pass_failed:{second}")
@@ -98,6 +103,14 @@ def prepare_runtime_database_schema(
                 "runtime_database_schema_not_idempotent:"
                 f"{prepared.get('schemaHash')}!={second.get('schemaHash')}"
             )
+        first_assets = (release_owned.get("competitionSampleAssets") or {}).get(
+            "contentSha256ByPeriod"
+        )
+        second_assets = (second_release_owned.get("competitionSampleAssets") or {}).get(
+            "contentSha256ByPeriod"
+        )
+        if first_assets != second_assets:
+            raise RuntimeError("competition_sample_asset_seed_not_idempotent")
 
     return {
         "schema": RUNTIME_DATABASE_PREPARE_CONTRACT,
@@ -120,6 +133,8 @@ def prepare_runtime_database_schema(
         "businessMigrationExecuted": False,
         "leaseRecoveryExecuted": False,
         "standaloneScriptRequired": False,
+        "immutableSystemAssets": release_owned,
+        "secondPassImmutableSystemAssets": second_release_owned,
     }
 
 
