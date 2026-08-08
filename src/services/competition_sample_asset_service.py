@@ -1,9 +1,14 @@
 """SQLite-backed immutable competition sample XLSX assets.
 
-The database is the runtime authority for evaluator downloads.  Canonical XLSX bytes
+The database is the runtime authority for evaluator downloads. Canonical XLSX bytes
 are generated only while the release-owned database state is prepared/sealed, then
-stored as BLOBs with a content SHA256.  Download requests read and verify the stored
+stored as BLOBs with a content SHA256. Download requests read and verify the stored
 bytes; they never regenerate a workbook.
+
+Release preparation is the sole repair authority for this system table. Runtime reads
+remain fail-closed; if an earlier failed deployment left a stale seed row, the next
+sealed release may replace only that managed row with the current canonical bytes
+before data lineage is sealed.
 """
 from __future__ import annotations
 
@@ -99,11 +104,59 @@ def _validate_asset_row(row: Any, *, expected: Dict[str, Any] | None = None) -> 
     return result
 
 
+def _row_matches_expected(row: Any, expected: Dict[str, Any]) -> bool:
+    if row is None:
+        return False
+    payload = bytes(row["content_blob"] or b"")
+    return all(
+        (
+            str(row["asset_id"]) == expected["assetId"],
+            int(row["period"]) == expected["period"],
+            str(row["filename"]) == expected["filename"],
+            str(row["mime_type"]) == expected["mimeType"],
+            payload == expected["content"],
+            str(row["content_sha256"] or "") == expected["contentSha256"],
+            int(row["byte_size"] or 0) == expected["byteSize"],
+            str(row["schema_version"]) == expected["schemaVersion"],
+            str(row["sample_version"]) == expected["sampleVersion"],
+            bool(row["active"]) is expected["active"],
+        )
+    )
+
+
+def _repair_managed_seed_row(conn: Any, expected: Dict[str, Any]) -> Any:
+    """Repair only the canonical row selected by our exact managed asset_id."""
+    conn.execute(
+        f"""
+        UPDATE {COMPETITION_SAMPLE_ASSET_TABLE}
+        SET filename=?, mime_type=?, content_blob=?, content_sha256=?, byte_size=?,
+            schema_version=?, sample_version=?, active=1
+        WHERE asset_id=? AND period=?
+        """,
+        (
+            expected["filename"],
+            expected["mimeType"],
+            expected["content"],
+            expected["contentSha256"],
+            expected["byteSize"],
+            expected["schemaVersion"],
+            expected["sampleVersion"],
+            expected["assetId"],
+            expected["period"],
+        ),
+    )
+    return conn.execute(
+        f"SELECT * FROM {COMPETITION_SAMPLE_ASSET_TABLE} WHERE asset_id=?",
+        (expected["assetId"],),
+    ).fetchone()
+
+
 def ensure_competition_sample_assets() -> Dict[str, Any]:
-    """Create and seed the immutable system-asset table idempotently."""
+    """Create, seed and verify the immutable runtime system assets idempotently."""
 
     def _operation() -> Dict[str, Any]:
         seeded = 0
+        repaired = 0
         verified = 0
         hashes: Dict[str, str] = {}
         with connect() as conn:
@@ -172,6 +225,12 @@ def ensure_competition_sample_assets() -> Dict[str, Any]:
                         (expected["assetId"],),
                     ).fetchone()
                     seeded += 1
+                elif not _row_matches_expected(row, expected):
+                    # This path exists specifically for interrupted/failed release
+                    # preparation. Runtime reads never call it and remain fail-closed.
+                    row = _repair_managed_seed_row(conn, expected)
+                    repaired += 1
+
                 _validate_asset_row(row, expected=expected)
                 verified += 1
                 hashes[str(period)] = expected["contentSha256"]
@@ -182,10 +241,12 @@ def ensure_competition_sample_assets() -> Dict[str, Any]:
             "table": COMPETITION_SAMPLE_ASSET_TABLE,
             "assetCount": verified,
             "seededCount": seeded,
+            "repairedCount": repaired,
             "verifiedCount": verified,
             "contentSha256ByPeriod": hashes,
             "runtimeDownloadAuthority": "sqlite_blob",
             "runtimeWorkbookGenerationAllowed": False,
+            "releasePrepareRepairAuthority": True,
             "resetProtected": True,
         }
 
