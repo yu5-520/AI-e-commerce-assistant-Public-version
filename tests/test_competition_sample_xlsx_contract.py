@@ -6,6 +6,7 @@ import pytest
 from openpyxl import load_workbook
 
 from src.repositories import sqlite_repository
+from src.services.competition_era_sample_payload_v2 import sample_contract
 from src.services.competition_sample_asset_service import (
     COMPETITION_SAMPLE_ASSET_TABLE,
     ensure_competition_sample_assets,
@@ -13,8 +14,8 @@ from src.services.competition_sample_asset_service import (
     list_competition_sample_asset_metadata,
 )
 from src.services.competition_sample_report_service import (
-    SAMPLE_HEADERS,
     SAMPLE_REPORTS,
+    SAMPLE_SHEET_ORDER,
     build_competition_sample_xlsx,
 )
 from src.services.import_adapter_service import parse_upload_file
@@ -22,6 +23,11 @@ from src.services.system_service import RUNTIME_TABLES
 
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 FIXED_CORE_TIME = b"2026-01-01T00:00:00Z"
+EXPECTED_SHEET_ROWS = {
+    "商品经营明细": 30,
+    "店铺经营汇总": 3,
+    "流量来源明细": 150,
+}
 
 
 @pytest.fixture()
@@ -32,7 +38,7 @@ def isolated_sample_db(monkeypatch, tmp_path):
     yield tmp_path / "product_workbench.sqlite3"
 
 
-def test_seed_builder_is_byte_deterministic_and_normalizes_openpyxl_modified_time():
+def test_seed_builder_is_byte_deterministic_and_preserves_era_operating_units():
     for period in (1, 2, 3):
         first = build_competition_sample_xlsx(period)
         second = build_competition_sample_xlsx(period)
@@ -44,13 +50,29 @@ def test_seed_builder_is_byte_deterministic_and_normalizes_openpyxl_modified_tim
         assert core.count(FIXED_CORE_TIME) == 2
 
         workbook = load_workbook(io.BytesIO(first), read_only=True, data_only=True)
-        worksheet = workbook.active
-        rows = list(worksheet.iter_rows(values_only=True))
-        assert list(rows[0]) == SAMPLE_HEADERS
-        assert len(rows) == 4
-        assert rows[1][0] == "COMP-P-CONVERSION"
-        assert rows[2][0] == "COMP-P-OBSERVE"
-        assert rows[3][0] == "COMP-P-SCALE"
+        assert workbook.sheetnames == list(SAMPLE_SHEET_ORDER)
+        assert workbook["商品经营明细"].max_row == 31
+        assert workbook["店铺经营汇总"].max_row == 4
+        assert workbook["流量来源明细"].max_row == 151
+
+        rows = list(workbook["商品经营明细"].iter_rows(values_only=True))
+        headers = list(rows[0])
+        store_idx = headers.index("店铺ID")
+        product_idx = headers.index("商品ID")
+        sku_idx = headers.index("SKU ID")
+        operating_units = {(row[store_idx], row[product_idx], row[sku_idx]) for row in rows[1:]}
+        global_products = {row[product_idx] for row in rows[1:]}
+        stores = {row[store_idx] for row in rows[1:]}
+        assert len(operating_units) == 30
+        assert len(global_products) == 10
+        assert len(stores) == 3
+
+        contract = sample_contract(period)
+        assert contract["operatingProductUnitCount"] == 30
+        assert contract["globalProductCount"] == 10
+        assert contract["storeCount"] == 3
+        assert contract["sheetDataRows"] == EXPECTED_SHEET_ROWS
+        assert len(contract["signalOperatingUnits"]) == 3
 
 
 def test_sqlite_is_runtime_authority_and_seed_is_idempotent(isolated_sample_db):
@@ -80,7 +102,9 @@ def test_sqlite_is_runtime_authority_and_seed_is_idempotent(isolated_sample_db):
         assert asset["contentSha256"] == hashlib.sha256(payload).hexdigest()
         parsed = parse_upload_file(asset["filename"], payload, XLSX_MEDIA_TYPE)
         assert parsed["format"] == "xlsx"
-        assert parsed["totalRows"] == 3
+        assert parsed["sheetCount"] == 3
+        assert parsed["totalRows"] == 183
+        assert {name: len(parsed["sheetRows"][name]) for name in SAMPLE_SHEET_ORDER} == EXPECTED_SHEET_ROWS
 
 
 def test_runtime_read_fails_closed_but_release_prepare_repairs_stale_seed(isolated_sample_db):
@@ -114,11 +138,13 @@ def test_runtime_read_fails_closed_but_release_prepare_repairs_stale_seed(isolat
     assert second["contentSha256ByPeriod"] == repaired["contentSha256ByPeriod"]
 
 
-def test_periods_preserve_expected_business_trend():
+def test_three_signal_fixture_is_downstream_only_and_preserves_expected_trends():
+    assert all(len(SAMPLE_REPORTS[p]) == 3 for p in (1, 2, 3))
     conversion_roi = [SAMPLE_REPORTS[p][0]["roi"] for p in (1, 2, 3)]
     scale_roi = [SAMPLE_REPORTS[p][2]["roi"] for p in (1, 2, 3)]
     assert conversion_roi == [3.2, 2.55, 2.08]
     assert scale_roi == [3.85, 4.25, 4.62]
+    assert sample_contract(1)["operatingProductUnitCount"] == 30
 
 
 def test_invalid_period_and_corrupt_upload_fail_closed():

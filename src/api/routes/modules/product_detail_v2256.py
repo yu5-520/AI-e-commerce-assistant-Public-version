@@ -1,8 +1,9 @@
 """V22.5.6 composite product-detail read route.
 
 The list read model remains lightweight. A product detail request combines the rich
-V16.4 product projection with the V21.7 recent-five/history trend projection so the
-page does not lose metric groups or traffic-source facts when the compact cache is used.
+current product projection with recent-five/history trend math. After canonical product
+migration, trend observations are read from canonical snapshot sets so multiple report
+versions remain visible instead of falling through the retired legacy snapshot table.
 """
 from __future__ import annotations
 
@@ -10,8 +11,8 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
+from src.services.canonical_product_trend_v2_service import read_canonical_product_trend
 from src.services.competition_operator_context_service import user_id_from_headers
-from src.services.product_trend_read_model_v217_service import read_product_trend
 
 router = APIRouter()
 PRODUCT_DETAIL_COMPOSITE_VERSION = "22.5.6"
@@ -62,7 +63,14 @@ def product_detail_v2256(
 
     raw_product_id = _text(matched.get("productId") or matched.get("rawProductId") or wanted)
     resolved_store_id = _text(matched.get("storeId") or store_id) or None
-    trend = read_product_trend(raw_product_id, store_id=resolved_store_id)
+    # objectId is the operating-unit identity (platform/store/product/sku). Prefer it
+    # for history matching so the same global product in another store cannot bleed in.
+    trend_lookup_id = _text(matched.get("objectId") or matched.get("id") or raw_product_id)
+    trend = read_canonical_product_trend(
+        trend_lookup_id,
+        store_id=resolved_store_id,
+        user_id=user_id,
+    )
     latest_snapshot = (trend.get("recentSnapshots") or [])[-1] if trend.get("recentSnapshots") else None
 
     return {
@@ -73,10 +81,12 @@ def product_detail_v2256(
         "latestSnapshot": latest_snapshot,
         "dataCompleteness": trend.get("observationSummary") or {},
         "sourceLineage": {
-            "productProjection": "module_projection_service.projected_products",
+            "productProjection": "canonical_product_snapshot_service.list_product_details",
             "productArchive": "modules.product.product_items",
-            "recentTrend": "product_trend_read_model_v217_service",
+            "recentTrend": "canonical_product_trend_v2_service",
+            "trendAlgorithm": "product_trend_read_model_v217_service",
+            "snapshotAuthority": "canonical_product_snapshot_sets_v1",
             "compactListReadModelUsedAsDetail": False,
         },
-        "readRule": "Product detail combines rich current facts, traffic-source child facts, recent-five direct comparisons and older-history algorithms; list cache never replaces detail facts.",
+        "readRule": "Product detail combines canonical current facts with the same operating unit across historical dataVersions; latest five compare directly and older history remains algorithm input.",
     }
