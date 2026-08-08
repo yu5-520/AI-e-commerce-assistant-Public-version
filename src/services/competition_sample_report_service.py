@@ -1,8 +1,9 @@
 """Deterministic seed material for immutable competition sample XLSX assets.
 
-This module owns only the canonical seed payload. Runtime downloads must read the
-sealed bytes from SQLite through competition_sample_asset_service; they must not
-regenerate XLSX files per request.
+Runtime downloads read sealed bytes from SQLite. The downloadable workbook is the
+three-sheet ERA operating report (30 operating product units per period). The compact
+three-product SAMPLE_REPORTS fixture remains only as a deterministic signal contract;
+it no longer defines the operating inventory shown to evaluators.
 """
 from __future__ import annotations
 
@@ -12,7 +13,12 @@ import zipfile
 from datetime import datetime
 from typing import Any, Dict, List
 
-SAMPLE_REPORT_VERSION = "1.0.0"
+from src.services.competition_era_sample_payload_v2 import (
+    SAMPLE_SHEET_ORDER,
+    build_competition_era_workbook_rows,
+)
+
+SAMPLE_REPORT_VERSION = "2.0.0"
 SAMPLE_HEADERS = [
     "product_id", "store_id", "store_name", "product_name", "category", "platform",
     "stock", "sale_price", "cost_price", "roi", "traffic", "clicks", "ctr",
@@ -20,6 +26,7 @@ SAMPLE_HEADERS = [
     "good_review_rate", "bad_review_rate", "refund_rate",
 ]
 
+# Deterministic Agent signal fixture only. It must never become the product inventory.
 SAMPLE_REPORTS: Dict[int, List[Dict[str, Any]]] = {
     1: [
         {"product_id":"COMP-P-CONVERSION","store_id":"COMP-STORE-1","store_name":"比赛脱敏店铺","product_name":"轻量通勤双肩包","category":"箱包","platform":"天猫","stock":860,"sale_price":199,"cost_price":82,"roi":3.2,"traffic":12000,"clicks":720,"ctr":0.06,"conversion_rate":0.052,"gross_margin":0.588,"ad_spend":31000,"sales_volume":450,"revenue":89550,"good_review_rate":0.974,"bad_review_rate":0.009,"refund_rate":0.041},
@@ -53,10 +60,6 @@ def sample_report_filename(period: int) -> str:
 
 
 def _canonicalize_archive_member(name: str, payload: bytes) -> bytes:
-    # openpyxl.save_workbook overwrites workbook.properties.modified with the
-    # current wall-clock time immediately before writing docProps/core.xml. ZIP
-    # metadata normalization alone therefore cannot make XLSX bytes reproducible.
-    # Normalize both core-property timestamps inside the XML payload as well.
     if name == "docProps/core.xml":
         payload = _CORE_TIME_PATTERN.sub(
             lambda match: match.group(1) + _FIXED_XLSX_TIME_XML + match.group(2),
@@ -90,7 +93,7 @@ def _canonicalize_xlsx_archive(payload: bytes) -> bytes:
 
 
 def build_competition_sample_xlsx(period: int) -> bytes:
-    """Build canonical XLSX bytes for database seeding only."""
+    """Build canonical three-sheet ERA XLSX bytes for release-time database seeding."""
     if period not in SAMPLE_REPORTS:
         raise ValueError("competition_sample_period_not_found")
     try:
@@ -98,14 +101,17 @@ def build_competition_sample_xlsx(period: int) -> bytes:
     except ImportError as exc:
         raise RuntimeError("openpyxl_required_for_competition_sample_xlsx") from exc
 
+    workbook_rows = build_competition_era_workbook_rows(period)
     workbook = Workbook()
     workbook.properties.created = _FIXED_XLSX_TIME
     workbook.properties.modified = _FIXED_XLSX_TIME
-    worksheet = workbook.active
-    worksheet.title = f"第{period}期经营数据"
-    worksheet.append(SAMPLE_HEADERS)
-    for row in SAMPLE_REPORTS[period]:
-        worksheet.append([row.get(header, "") for header in SAMPLE_HEADERS])
+    workbook.remove(workbook.active)
+
+    for sheet_name in SAMPLE_SHEET_ORDER:
+        worksheet = workbook.create_sheet(sheet_name)
+        for row in workbook_rows[sheet_name]:
+            worksheet.append(row)
+
     buffer = io.BytesIO()
     workbook.save(buffer)
     payload = _canonicalize_xlsx_archive(buffer.getvalue())
@@ -118,6 +124,7 @@ __all__ = [
     "SAMPLE_REPORT_VERSION",
     "SAMPLE_HEADERS",
     "SAMPLE_REPORTS",
+    "SAMPLE_SHEET_ORDER",
     "sample_report_filename",
     "build_competition_sample_xlsx",
 ]
