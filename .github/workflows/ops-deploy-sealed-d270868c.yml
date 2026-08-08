@@ -1,0 +1,106 @@
+name: Ops Deploy Sealed d270868c
+
+on:
+  push:
+    branches:
+      - ops/deploy-d270868c-20260808
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-sealed-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy-sealed-main-release
+    runs-on: self-hosted
+    timeout-minutes: 90
+    env:
+      RELEASE_SOURCE_COMMIT: d270868c9d4b8e3673b8baaf78175ca4a92eb074
+      AI_GITHUB_TOKEN: ${{ github.token }}
+      AI_GITHUB_REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Materialize exact attested deploy bootstrap without git transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          BOOTSTRAP_ROOT="${RUNNER_TEMP}/sealed-deploy-bootstrap-${RELEASE_SOURCE_COMMIT}"
+          rm -rf "$BOOTSTRAP_ROOT"
+          mkdir -p "$BOOTSTRAP_ROOT/scripts" "$BOOTSTRAP_ROOT/src/deployment"
+
+          api_raw() {
+            local path="$1"
+            local output="$2"
+            local url="https://api.github.com/repos/${AI_GITHUB_REPOSITORY}/contents/${path}?ref=${RELEASE_SOURCE_COMMIT}"
+            local attempt
+            for attempt in $(seq 1 8); do
+              echo "bootstrap fetch ${path} attempt ${attempt}/8"
+              if curl --fail --location --silent --show-error \
+                --connect-timeout 20 --max-time 180 \
+                -H "Authorization: Bearer ${AI_GITHUB_TOKEN}" \
+                -H "Accept: application/vnd.github.raw+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "$url" -o "$output"; then
+                test -s "$output"
+                return 0
+              fi
+              rm -f "$output"
+              sleep $((attempt * 4))
+            done
+            return 1
+          }
+
+          api_raw scripts/deploy_github_artifact.sh "$BOOTSTRAP_ROOT/scripts/deploy_github_artifact.sh"
+          api_raw src/deployment/deploy_github_artifact_core_v22516.sh "$BOOTSTRAP_ROOT/src/deployment/deploy_github_artifact_core_v22516.sh"
+          chmod 0755 "$BOOTSTRAP_ROOT/scripts/deploy_github_artifact.sh" "$BOOTSTRAP_ROOT/src/deployment/deploy_github_artifact_core_v22516.sh"
+
+          grep -F 'Only main push artifacts are deployable' "$BOOTSTRAP_ROOT/src/deployment/deploy_github_artifact_core_v22516.sh" >/dev/null
+          grep -F 'release-formal-' "$BOOTSTRAP_ROOT/src/deployment/deploy_github_artifact_core_v22516.sh" >/dev/null
+          grep -F 'successful push to main' "$BOOTSTRAP_ROOT/src/deployment/deploy_github_artifact_core_v22516.sh" >/dev/null
+
+          printf 'BOOTSTRAP_ROOT=%s\n' "$BOOTSTRAP_ROOT" >> "$GITHUB_ENV"
+
+      - name: Deploy exact sealed formal artifact to ECS
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo -n env \
+            AI_GITHUB_TOKEN="$AI_GITHUB_TOKEN" \
+            AI_GITHUB_REPOSITORY="$AI_GITHUB_REPOSITORY" \
+            AI_RELEASE_BRANCH=main \
+            AI_RELEASE_SOURCE_COMMIT="$RELEASE_SOURCE_COMMIT" \
+            AI_DEPLOY_GITHUB_ARTIFACT_CORE="$BOOTSTRAP_ROOT/src/deployment/deploy_github_artifact_core_v22516.sh" \
+            /bin/bash "$BOOTSTRAP_ROOT/scripts/deploy_github_artifact.sh" "$RELEASE_SOURCE_COMMIT"
+
+      - name: Assert deployed release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          expected = os.environ['RELEASE_SOURCE_COMMIT']
+          urls = [
+              'http://127.0.0.1/api/system/release-identity',
+              'http://127.0.0.1:8000/api/system/release-identity',
+          ]
+          errors = []
+          for url in urls:
+              try:
+                  with urllib.request.urlopen(url, timeout=15) as response:
+                      payload = json.load(response)
+                  actual = str(payload.get('sourceCommit') or payload.get('releaseCommit') or payload.get('commit') or '')
+                  if actual != expected:
+                      raise RuntimeError(f'{url} returned commit {actual!r}, expected {expected!r}')
+                  print(json.dumps({'url': url, 'sourceCommit': actual, 'releaseIdentity': payload}, ensure_ascii=False))
+                  break
+              except Exception as exc:
+                  errors.append(f'{url}: {exc}')
+          else:
+              raise SystemExit('release identity assertion failed: ' + ' | '.join(errors))
+          PY
