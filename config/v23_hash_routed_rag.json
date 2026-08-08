@@ -1,0 +1,44 @@
+{
+  "schema": "rag.hash_route.v1",
+  "version": "23.0.0",
+  "routeMode": "tag_hash_first",
+  "routeAuthority": "application_hash_router",
+  "providerRoutingAuthority": false,
+  "vectorRetrieval": {
+    "enabled": true,
+    "scope": "exact_route_only",
+    "crossTagVectorRetrievalAllowed": false,
+    "globalFallbackAllowed": false
+  },
+  "graphExpansion": {
+    "mode": "conditional_only",
+    "requiresScopedVectorStage": true,
+    "crossTagExpansionAllowed": false,
+    "globalFallbackAllowed": false
+  },
+  "compatibility": {
+    "legacyRagDocumentIds": true,
+    "legacyDocumentIdsMaySelectRoute": false,
+    "legacyDocumentIdsMayBypassRouteProof": false,
+    "crossTagRebindingAllowed": false
+  },
+  "providers": {
+    "dify": {
+      "role": "retriever_only",
+      "routingAuthority": false
+    },
+    "externalMcp": {
+      "role": "retriever_only",
+      "routingAuthority": false
+    }
+  },
+  "governance": {
+    "failClosed": true,
+    "routeTagsRequired": true,
+    "routeHashRequired": true,
+    "candidateRouteProofRequired": true,
+    "fabricatedDocumentRefsAllowed": false,
+    "crossTagRetrievalAllowed": false,
+    "globalFallbackAllowed": false
+  }
+}
