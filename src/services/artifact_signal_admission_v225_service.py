@@ -2,7 +2,8 @@
 
 This is the formal bridge from one validated batch artifact to product-level
 ``signalRef`` items. It does not reload the legacy Signal Pool and does not use a
-payload fallback.
+payload fallback. A first-report baseline artifact is consumed only to record the
+closed historical gate: it creates zero Signal items and zero Agent1 work.
 """
 from __future__ import annotations
 
@@ -47,6 +48,18 @@ def _signals(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
         or []
     )
     return [item for item in values if isinstance(item, dict)]
+
+
+def _baseline_bundle_count(payload: Dict[str, Any]) -> int:
+    for key in ("baselineProductBundleCount", "bundleCount"):
+        try:
+            value = int(payload.get(key) or 0)
+        except Exception:
+            value = 0
+        if value > 0:
+            return value
+    bundles = payload.get("baselineProductBundles")
+    return len(bundles) if isinstance(bundles, list) else 0
 
 
 def _signal_identity(signal: Dict[str, Any]) -> tuple[str, str, str]:
@@ -155,29 +168,39 @@ def product_signal_admission_station_v225(
         max_admitted=max_admitted,
     )
     payload = _validated_payload(validated_bundle_ref)
-    signals = _signals(payload)
     baseline_only = bool(
         payload.get("baselineNoPrevious")
         or (payload.get("baseline") or {}).get("baselineNoPrevious")
         if isinstance(payload.get("baseline"), dict)
         else payload.get("baselineNoPrevious")
     )
+    signals = _signals(payload)
     if baseline_only:
+        baseline_bundle_count = _baseline_bundle_count(payload)
         return {
             "version": ARTIFACT_SIGNAL_ADMISSION_VERSION,
             "stationId": "product_signal_admission_station",
-            "businessOutputType": "baseline_signal_admission",
+            "businessOutputType": "baseline_history_gate_closed",
             "dataVersion": data_version,
             "validatedBundleArtifactRef": validated_bundle_ref,
             "baselineOnly": True,
-            "fullSignalCount": len(signals),
+            "signalEligibility": False,
+            "baselineGate": "closed_before_signal_engine",
+            "baselineProductBundleCount": baseline_bundle_count,
+            "fullSignalCount": 0,
+            "generatedSignalCount": 0,
             "qualifiedSignalCount": 0,
             "candidateProductCount": 0,
             "admittedSignalCount": 0,
-            "observedSignalCount": len(signals),
+            "observedSignalCount": 0,
             "agent1PendingItemCount": 0,
+            "legacySignalPoolRead": False,
+            "signalArtifactsCreated": 0,
             "outputRef": f"business_output_pending_artifact:baseline_admission:{data_version or 'latest'}",
-            "rule": "First comparable report remains baseline and never enters Agent1.",
+            "rule": (
+                "First active report is canonical baseline only: no Signal Pool, no "
+                "signalRef itemization and no Agent1 execution."
+            ),
         }
 
     scored = [{"signal": signal, "score": score_signal(signal)} for signal in signals]
@@ -218,7 +241,10 @@ def product_signal_admission_station_v225(
         "dataVersion": data_version,
         "validatedBundleArtifactRef": validated_bundle_ref,
         "baselineOnly": False,
+        "signalEligibility": True,
+        "baselineGate": "open_after_previous_snapshot",
         "fullSignalCount": len(signals),
+        "generatedSignalCount": len(signals),
         "qualifiedSignalCount": len(qualified),
         "candidateProductCount": len(admitted),
         "admittedSignalCount": len(admitted),
@@ -231,7 +257,7 @@ def product_signal_admission_station_v225(
         "artificialMinimumApplied": False,
         "legacySignalPoolRead": False,
         "outputRef": f"business_output_pending_artifact:signal_admission:{data_version or 'latest'}",
-        "rule": "Validated bundle Artifact fans out directly to one immutable signalRef per product.",
+        "rule": "Validated delta bundle Artifact fans out directly to one immutable signalRef per product.",
     }
 
 
