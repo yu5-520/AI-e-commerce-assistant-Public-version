@@ -5,8 +5,9 @@ inside that dataset. This service therefore derives a deterministic runtimeState
 the active pipeline projection and uses that hash, together with dataVersion, to invalidate
 frontend manifests.
 
-Immutable module Artifacts remain cacheable. The lightweight Head is the only mutable
-pointer and is republished atomically whenever runtimeStateHash changes.
+Immutable module Artifacts remain cacheable by their own business content. The manifest
+carries runtimeStateHash, so a mutable execution transition republishes the Head without
+forcing unrelated module content hashes to rotate.
 """
 from __future__ import annotations
 
@@ -230,11 +231,11 @@ def _module_builders(
             else _empty_current_products
         ),
         "tasks": (
-            lambda: project_task_list_response(
+            (lambda: project_task_list_response(
                 read_task_fast_views_v2021(data_version=data_version, limit=200)
-            )
+            ))
             if active
-            else _empty_current_tasks()
+            else _empty_current_tasks
         ),
         "pipeline": (
             (lambda: copy.deepcopy(pipeline))
@@ -362,7 +363,6 @@ def materialize_frontend_views_v2259(
                 "scopeKey": scope_key,
                 "moduleKey": module_key,
                 "dataVersion": resolved_version,
-                "runtimeStateHash": runtime_state_hash,
                 "payload": payload,
                 "businessContentHash": _hash(payload),
             }
@@ -378,7 +378,6 @@ def materialize_frontend_views_v2259(
                     "userId": user_id,
                     "scopeKey": scope_key,
                     "moduleKey": module_key,
-                    "runtimeStateHash": runtime_state_hash,
                     "businessContentHash": document["businessContentHash"],
                 },
             )
