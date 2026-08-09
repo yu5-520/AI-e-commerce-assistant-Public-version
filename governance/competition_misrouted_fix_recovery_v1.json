@@ -1,0 +1,134 @@
+{
+  "schema": "competition.misrouted_fix_recovery.v1",
+  "version": "2026.08.09.1",
+  "sourceReference": {
+    "repository": "yu5-520/AI-e-commerce-assistant",
+    "pullRequest": 109,
+    "role": "problem-and-repair-intent-only",
+    "codeCopyAllowed": false,
+    "cherryPickAllowed": false
+  },
+  "rules": {
+    "filenameSimilarityMaySelectFiles": false,
+    "registryAndLineageOwnScope": true,
+    "businessBehaviorNeedsRuntimeVerification": true,
+    "deploymentImplementationMayBeCopied": false,
+    "competitionSingleWorkerMustRemain": true
+  },
+  "requirements": [
+    {
+      "id": "REC-001",
+      "title": "10 products / 30 operating units and canonical history",
+      "disposition": "verify_existing",
+      "reason": "Competition PR #20 already restored the ERA operating-unit inventory and canonical multi-dataVersion trend authority.",
+      "anchorRegistryModules": ["frontend_view"],
+      "requiredFieldIds": ["entity.data_version", "entity.store_id", "entity.product_id"],
+      "behaviorVerificationRequired": true,
+      "runtimeChecks": [
+        "10 distinct global products",
+        "30 store-product operating units per report period",
+        "same product in different stores never shares history",
+        "canonical snapshots remain visible across dataVersions"
+      ]
+    },
+    {
+      "id": "REC-002",
+      "title": "Fresh upload identity: sourceContentHash is not dataVersion",
+      "disposition": "verify_then_recover",
+      "anchorRegistryModules": ["agent1_input_projection", "frontend_view"],
+      "requiredFieldIds": ["entity.data_version", "execution.input_content_hash"],
+      "behaviorVerificationRequired": true,
+      "runtimeChecks": [
+        "same report bytes may keep the same source content hash",
+        "every accepted upload receives a fresh dataVersion",
+        "fresh upload cannot replay an old run solely by source hash"
+      ]
+    },
+    {
+      "id": "REC-003",
+      "title": "Agent1 exact execution identity",
+      "disposition": "verify_existing",
+      "anchorRegistryModules": ["agent1_input_projection", "agent1_runtime"],
+      "requiredFieldIds": [
+        "execution.item_execution_id",
+        "execution.input_content_hash",
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id"
+      ],
+      "behaviorVerificationRequired": true,
+      "runtimeChecks": [
+        "itemExecutionId is required for every Agent1 item",
+        "inputContentHash must match the exact projected input",
+        "productId/storeId/signalId may not be used as fallback join keys"
+      ]
+    },
+    {
+      "id": "REC-004",
+      "title": "Agent1 partial failure isolation",
+      "disposition": "verify_existing",
+      "anchorRegistryModules": ["agent1_runtime"],
+      "requiredFieldIds": ["execution.item_execution_id", "execution.input_content_hash"],
+      "behaviorVerificationRequired": true,
+      "runtimeChecks": [
+        "one missing or contract-invalid item does not invalidate sibling operating units",
+        "P10007 store variants are accepted or rejected independently",
+        "contract-invalid returned output is not retried as a missing product"
+      ]
+    },
+    {
+      "id": "REC-005",
+      "title": "Competition Agent1 stays deterministic single-worker",
+      "disposition": "verify_existing",
+      "anchorRegistryModules": ["agent1_runtime"],
+      "requiredFieldIds": ["execution.item_execution_id"],
+      "behaviorVerificationRequired": true,
+      "runtimeChecks": [
+        "provider batches execute sequentially",
+        "no ThreadPool/fan-out concurrency is introduced by recovery",
+        "downstream Agent2/Agent3 only run after Agent1 aggregation"
+      ]
+    },
+    {
+      "id": "REC-006",
+      "title": "Agent stage artifact/hash lineage and real gates",
+      "disposition": "verify_then_recover",
+      "anchorRegistryModules": ["agent1_input_projection", "agent1_runtime", "agent2_runtime", "agent3_input_projection", "agent3_runtime", "task_mapping", "task_pool", "frontend_view"],
+      "requiredFieldIds": [
+        "execution.input_artifact_ref",
+        "execution.input_content_hash",
+        "execution.item_execution_id",
+        "entity.data_version"
+      ],
+      "behaviorVerificationRequired": true,
+      "runtimeChecks": [
+        "Agent input/output artifacts retain parent lineage",
+        "frontend status reads persisted runtime state rather than inferring completion from task counts",
+        "partial Agent1 completion remains auditable"
+      ]
+    },
+    {
+      "id": "REC-007",
+      "title": "report_received idle / worker handoff",
+      "disposition": "runtime_trace_required",
+      "anchorRegistryModules": ["agent1_input_projection", "agent1_runtime"],
+      "requiredFieldIds": ["entity.data_version"],
+      "behaviorVerificationRequired": true,
+      "runtimeChecks": [
+        "measure upload accepted -> first deterministic processing timestamp",
+        "no fixed ~402 second idle before processing",
+        "trace the existing competition worker/tick chain before changing implementation"
+      ]
+    },
+    {
+      "id": "REC-008",
+      "title": "Mother-repo OPC deployment implementation",
+      "disposition": "do_not_migrate",
+      "reason": "Competition repository already owns Registry Lineage, Runtime Package, ECS Candidate Smoke, Three Report E2E and Release Hash Seal. Only deployment intent may be compared; implementation is not copied.",
+      "anchorRegistryModules": ["release_governance"],
+      "requiredFieldIds": ["registry.root_hash"],
+      "behaviorVerificationRequired": false,
+      "runtimeChecks": []
+    }
+  ]
+}
