@@ -140,6 +140,27 @@ jobs:
             --output dist/competition-autonomous-worker/autonomous-worker-attestation.json \
             2>&1 | tee dist/competition-autonomous-worker/autonomous-worker-summary.log
 
+      - name: Collect autonomous candidate diagnostics
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p dist/competition-autonomous-worker/runtime-diagnostics
+          CANDIDATE_ID="auto-${COMPETITION_SOURCE_COMMIT:0:12}-$(sha256sum fixtures/competition/three_report_scenario.json | awk '{print substr($1,1,10)}')"
+          EVIDENCE_DIR="$COMPETITION_AUTO_BASE/$CANDIDATE_ID/evidence"
+          echo "candidateId=$CANDIDATE_ID" | tee dist/competition-autonomous-worker/runtime-diagnostics/location.txt
+          echo "evidenceDir=$EVIDENCE_DIR" >> dist/competition-autonomous-worker/runtime-diagnostics/location.txt
+          if [ -d "$EVIDENCE_DIR" ]; then
+            cp -a "$EVIDENCE_DIR"/. dist/competition-autonomous-worker/runtime-diagnostics/ || true
+          fi
+          if [ -f dist/competition-autonomous-worker/runtime-diagnostics/candidate-app.log ]; then
+            echo '===== candidate-app.log tail ====='
+            tail -n 160 dist/competition-autonomous-worker/runtime-diagnostics/candidate-app.log || true
+          fi
+          if [ -f dist/competition-autonomous-worker/runtime-diagnostics/fixture-provider.log ]; then
+            echo '===== fixture-provider.log tail ====='
+            tail -n 80 dist/competition-autonomous-worker/runtime-diagnostics/fixture-provider.log || true
+          fi
+
       - name: Verify autonomous handoff evidence boundary
         run: |
           set -euo pipefail
