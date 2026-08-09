@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - architecture/hash-lineage-update-controller-v1
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,7 +16,7 @@ concurrency:
 
 jobs:
   deploy-sealed-candidate:
-    if: contains(github.event.head_commit.message, '[deploy-v2]')
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[deploy-v2]')
     runs-on: self-hosted
     timeout-minutes: 45
     env:
@@ -27,7 +28,10 @@ jobs:
       TARGET_BRANCH: architecture/hash-lineage-update-controller-v1
       PINNED_PYTHON: /opt/python/3.11.9/bin/python3.11
       EVIDENCE_DIR: /tmp/competition-authorized-deploy-v2
+      CONTROLLER: /usr/local/sbin/ai-competition-authorized-deploy-v2
+      ROOT_RECEIPT_BASE: /var/lib/ai-ecommerce-authorized-deploy-v2/receipts
       PYTHONDONTWRITEBYTECODE: '1'
+
     steps:
       - name: Download exact validated sealed candidate
         env:
@@ -39,9 +43,6 @@ jobs:
           RUN_JSON="$EVIDENCE_DIR/release-run.json"
           META_JSON="$EVIDENCE_DIR/artifact-meta.json"
           ZIP="$EVIDENCE_DIR/release-candidate.zip"
-          ARTIFACT_DIR="$EVIDENCE_DIR/artifact"
-          CANDIDATE_DIR="$EVIDENCE_DIR/candidate"
-          mkdir -p "$ARTIFACT_DIR" "$CANDIDATE_DIR"
 
           curl --fail --silent --show-error \
             -H "Authorization: Bearer ${GH_READ_TOKEN}" \
@@ -58,18 +59,18 @@ jobs:
 
           "$PINNED_PYTHON" - "$RUN_JSON" "$META_JSON" <<'PY'
           import json, os, sys
-          run=json.load(open(sys.argv[1],encoding='utf-8'))
-          art=json.load(open(sys.argv[2],encoding='utf-8'))
-          assert str(run.get('id')) == os.environ['TARGET_RELEASE_RUN_ID'], run
-          assert run.get('head_sha') == os.environ['TARGET_SOURCE_COMMIT'], run
-          assert run.get('head_branch') == os.environ['TARGET_BRANCH'], run
-          assert run.get('status') == 'completed' and run.get('conclusion') == 'success', run
-          assert str(art.get('id')) == os.environ['TARGET_ARTIFACT_ID'], art
-          assert art.get('name') == os.environ['TARGET_ARTIFACT_NAME'], art
-          assert art.get('expired') is False, art
-          assert art.get('digest') == 'sha256:' + os.environ['TARGET_ARTIFACT_ZIP_SHA256'], art
-          assert (art.get('workflow_run') or {}).get('head_sha') == os.environ['TARGET_SOURCE_COMMIT'], art
-          print('SEALED_ARTIFACT_METADATA_OK')
+          run = json.load(open(sys.argv[1], encoding="utf-8"))
+          artifact = json.load(open(sys.argv[2], encoding="utf-8"))
+          assert str(run.get("id")) == os.environ["TARGET_RELEASE_RUN_ID"], run
+          assert run.get("head_sha") == os.environ["TARGET_SOURCE_COMMIT"], run
+          assert run.get("head_branch") == os.environ["TARGET_BRANCH"], run
+          assert run.get("status") == "completed" and run.get("conclusion") == "success", run
+          assert str(artifact.get("id")) == os.environ["TARGET_ARTIFACT_ID"], artifact
+          assert artifact.get("name") == os.environ["TARGET_ARTIFACT_NAME"], artifact
+          assert artifact.get("expired") is False, artifact
+          assert artifact.get("digest") == "sha256:" + os.environ["TARGET_ARTIFACT_ZIP_SHA256"], artifact
+          assert (artifact.get("workflow_run") or {}).get("head_sha") == os.environ["TARGET_SOURCE_COMMIT"], artifact
+          print("SEALED_ARTIFACT_METADATA_OK")
           PY
 
           curl --fail --location --silent --show-error \
@@ -80,183 +81,90 @@ jobs:
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${TARGET_ARTIFACT_ID}/zip" \
             -o "$ZIP"
           echo "${TARGET_ARTIFACT_ZIP_SHA256}  ${ZIP}" | sha256sum --check -
-          "$PINNED_PYTHON" -m zipfile -e "$ZIP" "$ARTIFACT_DIR"
-          mapfile -t BUNDLES < <(find "$ARTIFACT_DIR/ci-artifacts" -maxdepth 1 -type f \
-            -name "candidate-release-${TARGET_SOURCE_COMMIT}-*.tar.gz" -print | sort)
-          test "${#BUNDLES[@]}" -eq 1
-          BUNDLE="${BUNDLES[0]}"
-          tar -xzf "$BUNDLE" -C "$CANDIDATE_DIR"
-          test -f "$CANDIDATE_DIR/release/release-manifest.json"
-          test -f "$CANDIDATE_DIR/release/attestation/test-attestation.json"
-          test -f "$CANDIDATE_DIR/scripts/deploy_release.sh"
-          test -f "$CANDIDATE_DIR/scripts/install_release_verifier.sh"
+          echo "SEALED_ARTIFACT_DOWNLOAD_OK=true"
 
-          "$PINNED_PYTHON" "$CANDIDATE_DIR/scripts/release_verifier.py" \
-            --root "$CANDIDATE_DIR" \
-            --manifest "$CANDIDATE_DIR/release/release-manifest.json" \
-            > "$EVIDENCE_DIR/candidate-verification.json"
-          "$PINNED_PYTHON" - "$CANDIDATE_DIR/release/release-manifest.json" \
-            "$CANDIDATE_DIR/release/attestation/test-attestation.json" <<'PY'
-          import json, os, sys
-          manifest=json.load(open(sys.argv[1],encoding='utf-8'))
-          att=json.load(open(sys.argv[2],encoding='utf-8'))
-          assert manifest.get('sourceCommit') == os.environ['TARGET_SOURCE_COMMIT'], manifest
-          assert att.get('sourceCommit') == os.environ['TARGET_SOURCE_COMMIT'], att
-          print('SEALED_CANDIDATE_IDENTITY_OK')
-          print('releaseHash=' + str(manifest.get('releaseHash')))
-          PY
-          printf 'DEPLOY_BUNDLE=%s\n' "$BUNDLE" >> "$GITHUB_ENV"
-          printf 'DEPLOY_CANDIDATE_DIR=%s\n' "$CANDIDATE_DIR" >> "$GITHUB_ENV"
-
-      - name: Resolve ECS runtime and preserve existing model configuration
+      - name: Deploy through immutable root controller
         run: |
           set -euo pipefail
-          root_exec() {
-            if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi
-          }
-          if [ "$(id -u)" -ne 0 ]; then
-            command -v sudo >/dev/null 2>&1
-            sudo -n true
+          LOG="$EVIDENCE_DIR/controller.log"
+          if [ ! -x "$CONTROLLER" ]; then
+            echo "ERROR: immutable root controller is not installed: $CONTROLLER" | tee "$LOG" >&2
+            echo "Run the one-time root bootstrap: config/deployment/install_competition_authorized_deploy_v2_controller.sh" | tee -a "$LOG" >&2
+            exit 78
           fi
-          RESOLVER="$DEPLOY_CANDIDATE_DIR/scripts/runtime_service_resolver.sh"
-          ROOT=''
-          SERVICE=''
-          for candidate in /opt/ai-ecommerce-assistant /root/apps/AI-e-commerce-assistant; do
-            resolved="$(root_exec bash -c "source '$RESOLVER'; resolve_ai_runtime_service '$candidate'" 2>/dev/null || true)"
-            if [ -n "$resolved" ]; then ROOT="$candidate"; SERVICE="$resolved"; break; fi
-          done
-          test -n "$ROOT"
-          test -n "$SERVICE"
-          PORT="$(root_exec bash -c "source '$RESOLVER'; resolve_ai_runtime_port '$ROOT' '$SERVICE'")"
-          printf 'AI_DEPLOY_ROOT=%s\nAI_DEPLOY_SERVICE=%s\nAI_DEPLOY_PORT=%s\n' "$ROOT" "$SERVICE" "$PORT" >> "$GITHUB_ENV"
 
-          CONFIG_PATH=''
-          for p in "$ROOT/shared/.env" "$ROOT/.env" /etc/ai-ecommerce-assistant/qwen37-plus.env; do
-            if root_exec test -f "$p"; then CONFIG_PATH="$p"; break; fi
-          done
-          if [ -n "$CONFIG_PATH" ]; then
-            CONFIG_HASH="$(root_exec sha256sum "$CONFIG_PATH" | awk '{print $1}')"
-            printf '%s\n' "$CONFIG_HASH" > "$EVIDENCE_DIR/model-config-before.sha256"
-            printf '%s\n' "$CONFIG_PATH" > "$EVIDENCE_DIR/model-config-source.txt"
-            echo "MODEL_CONFIG_SNAPSHOT=present hash=${CONFIG_HASH}"
+          set +e
+          if [ "$(id -u)" -eq 0 ]; then
+            "$CONTROLLER" 2>&1 | tee "$LOG"
+            status=${PIPESTATUS[0]}
           else
-            echo 'MODEL_CONFIG_SNAPSHOT=no-readable-config-file; service environment may own the binding'
+            sudo -n "$CONTROLLER" 2>&1 | tee "$LOG"
+            status=${PIPESTATUS[0]}
           fi
-          echo "DEPLOY_ROOT=$ROOT SERVICE=$SERVICE PORT=$PORT"
+          set -e
 
-      - name: Pin sealed verifier if required
-        run: |
-          set -euo pipefail
-          root_exec() {
-            if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi
-          }
-          TARGET=/usr/local/sbin/ai-release-verifier
-          HASH_FILE=/etc/ai-ecommerce-assistant/release-verifier.sha256
-          CANDIDATE_HASH="$(sha256sum "$DEPLOY_CANDIDATE_DIR/scripts/release_verifier.py" | awk '{print $1}')"
-          target_exists=false; hash_exists=false
-          root_exec test -e "$TARGET" && target_exists=true || true
-          root_exec test -e "$HASH_FILE" && hash_exists=true || true
-          if [ "$target_exists" != "$hash_exists" ]; then
-            echo 'ERROR: incomplete root verifier state' >&2
-            exit 41
-          fi
-          if [ "$target_exists" = false ]; then
-            root_exec env AI_RELEASE_PYTHON="$PINNED_PYTHON" \
-              bash "$DEPLOY_CANDIDATE_DIR/scripts/install_release_verifier.sh"
-          else
-            OLD_HASH="$(root_exec cat "$HASH_FILE" | tr -d '[:space:]')"
-            ACTUAL_HASH="$(root_exec sha256sum "$TARGET" | awk '{print $1}')"
-            test "$OLD_HASH" = "$ACTUAL_HASH"
-            if [ "$CANDIDATE_HASH" != "$OLD_HASH" ]; then
-              root_exec env \
-                AI_RELEASE_PYTHON="$PINNED_PYTHON" \
-                AI_RELEASE_VERIFIER_ROTATE=1 \
-                AI_RELEASE_VERIFIER_EXPECTED_OLD_SHA256="$OLD_HASH" \
-                bash "$DEPLOY_CANDIDATE_DIR/scripts/install_release_verifier.sh"
-            else
-              root_exec env AI_RELEASE_PYTHON="$PINNED_PYTHON" \
-                bash "$DEPLOY_CANDIDATE_DIR/scripts/install_release_verifier.sh"
+          if [ "$status" -ne 0 ]; then
+            if grep -Eqi 'password is required|not allowed to execute|not in the sudoers|a terminal is required' "$LOG"; then
+              echo "ERROR: root bridge is not bootstrapped for this runner user." >&2
+              echo "Only the zero-argument controller should receive NOPASSWD; do not grant generic sudo." >&2
             fi
+            exit "$status"
           fi
-          FINAL_HASH="$(root_exec cat "$HASH_FILE" | tr -d '[:space:]')"
-          test "$FINAL_HASH" = "$CANDIDATE_HASH"
-          echo "ROOT_VERIFIER_PIN_OK sha256=${FINAL_HASH}"
+          grep -Fxq 'AUTHORIZED_DEPLOYMENT_OK=true' "$LOG"
 
-      - name: Atomically deploy validated candidate
+      - name: Verify immutable deployment receipt
         run: |
           set -euo pipefail
-          root_exec() {
-            if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi
-          }
-          root_exec env \
-            AI_ECOMMERCE_ROOT="$AI_DEPLOY_ROOT" \
-            AI_RELEASE_BUNDLE="$DEPLOY_BUNDLE" \
-            AI_RELEASE_PYTHON="$PINNED_PYTHON" \
-            AI_RELEASE_KEEP_COUNT=2 \
-            AI_ECOMMERCE_BACKUP_KEEP_COUNT=1 \
-            bash "$DEPLOY_CANDIDATE_DIR/scripts/deploy_release.sh" "$DEPLOY_BUNDLE" \
-            2>&1 | tee "$EVIDENCE_DIR/deploy-release.log"
+          ROOT_RECEIPT="$ROOT_RECEIPT_BASE/$TARGET_SOURCE_COMMIT"
+          test -r "$ROOT_RECEIPT/live-health.json"
+          test -r "$ROOT_RECEIPT/live-release-identity.json"
+          test -r "$ROOT_RECEIPT/controller-attestation.json"
+          test -r "$ROOT_RECEIPT/deploy-release.log"
 
-      - name: Verify live release identity without calling Qwen
-        run: |
-          set -euo pipefail
-          root_exec() {
-            if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi
-          }
-          RESOLVER="$DEPLOY_CANDIDATE_DIR/scripts/runtime_service_resolver.sh"
-          SERVICE="$(root_exec bash -c "source '$RESOLVER'; resolve_ai_runtime_service '$AI_DEPLOY_ROOT'")"
-          PORT="$(root_exec bash -c "source '$RESOLVER'; resolve_ai_runtime_port '$AI_DEPLOY_ROOT' '$SERVICE'")"
-          root_exec systemctl is-active --quiet "$SERVICE"
-          curl --fail --silent --show-error --max-time 15 \
-            "http://127.0.0.1:${PORT}/api/health" > "$EVIDENCE_DIR/live-health.json"
-          curl --fail --silent --show-error --max-time 30 \
-            "http://127.0.0.1:${PORT}/api/system/release-identity?verifyContent=false" \
-            > "$EVIDENCE_DIR/live-release-identity.json"
+          OUT="$GITHUB_WORKSPACE/dist/competition-authorized-deploy-v2"
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+          cp "$ROOT_RECEIPT/live-health.json" \
+             "$ROOT_RECEIPT/live-release-identity.json" \
+             "$ROOT_RECEIPT/controller-attestation.json" \
+             "$ROOT_RECEIPT/deploy-release.log" \
+             "$EVIDENCE_DIR/controller.log" \
+             "$OUT/"
 
-          "$PINNED_PYTHON" - "$EVIDENCE_DIR/live-release-identity.json" <<'PY'
+          "$PINNED_PYTHON" - \
+            "$OUT/live-release-identity.json" \
+            "$OUT/controller-attestation.json" <<'PY'
           import json, os, sys
-          identity=json.load(open(sys.argv[1],encoding='utf-8'))
-          assert identity.get('verified') is True, identity
-          assert identity.get('sourceCommit') == os.environ['TARGET_SOURCE_COMMIT'], identity
-          assert identity.get('workerReleaseMatch') is True, identity
-          assert identity.get('runtimeEnvironmentMatch') is True, identity
-          assert identity.get('evidenceSemanticVerified') is True, identity
-          print('DEPLOYMENT_OK=true')
-          print('sourceCommit=' + identity['sourceCommit'])
-          print('releaseHash=' + str(identity.get('releaseHash')))
-          print('workerReleaseMatch=true')
-          print('runtimeEnvironmentMatch=true')
-          print('extraQwenModelCallPerformed=false')
+          identity = json.load(open(sys.argv[1], encoding="utf-8"))
+          attestation = json.load(open(sys.argv[2], encoding="utf-8"))
+          expected = os.environ["TARGET_SOURCE_COMMIT"]
+          expected_zip = "sha256:" + os.environ["TARGET_ARTIFACT_ZIP_SHA256"]
+          assert identity.get("verified") is True, identity
+          assert identity.get("sourceCommit") == expected, identity
+          assert identity.get("workerReleaseMatch") is True, identity
+          assert identity.get("runtimeEnvironmentMatch") is True, identity
+          assert identity.get("evidenceSemanticVerified") is True, identity
+          assert attestation.get("sourceCommit") == expected, attestation
+          assert attestation.get("artifactZipSha256") == expected_zip, attestation
+          assert attestation.get("extraQwenModelCallPerformed") is False, attestation
+          assert attestation.get("modelConfigPreserved") in ("true", "not-hash-verifiable"), attestation
+          print("DEPLOYMENT_OK=true")
+          print("sourceCommit=" + expected)
+          print("artifactZipSha256=" + expected_zip)
+          print("workerReleaseMatch=true")
+          print("runtimeEnvironmentMatch=true")
+          print("extraQwenModelCallPerformed=false")
           PY
 
-          BEFORE="$EVIDENCE_DIR/model-config-before.sha256"
-          if [ -s "$BEFORE" ]; then
-            SOURCE="$(cat "$EVIDENCE_DIR/model-config-source.txt")"
-            BEFORE_HASH="$(cat "$BEFORE")"
-            AFTER_PATH="$SOURCE"
-            if ! root_exec test -f "$AFTER_PATH" && root_exec test -f "$AI_DEPLOY_ROOT/shared/.env"; then
-              AFTER_PATH="$AI_DEPLOY_ROOT/shared/.env"
-            fi
-            AFTER_HASH="$(root_exec sha256sum "$AFTER_PATH" | awk '{print $1}')"
-            test "$BEFORE_HASH" = "$AFTER_HASH"
-            echo "MODEL_CONFIG_PRESERVED=true sha256=${AFTER_HASH}"
-          else
-            echo 'MODEL_CONFIG_PRESERVED=not_hash_verifiable; no extra model call performed'
-          fi
-
-          mkdir -p "$GITHUB_WORKSPACE/dist/competition-authorized-deploy-v2"
-          cp "$EVIDENCE_DIR/live-health.json" \
-             "$EVIDENCE_DIR/live-release-identity.json" \
-             "$EVIDENCE_DIR/deploy-release.log" \
-             "$GITHUB_WORKSPACE/dist/competition-authorized-deploy-v2/"
-          printf '%s\n' "$TARGET_SOURCE_COMMIT" > \
-             "$GITHUB_WORKSPACE/dist/competition-authorized-deploy-v2/deployed-source-commit.txt"
+          printf '%s\n' "$TARGET_SOURCE_COMMIT" > "$OUT/deployed-source-commit.txt"
 
       - name: Publish deployment receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: competition-authorized-deploy-v2-${{ env.TARGET_SOURCE_COMMIT }}
-          path: dist/competition-authorized-deploy-v2
+          path: |
+            dist/competition-authorized-deploy-v2
+            /tmp/competition-authorized-deploy-v2/controller.log
           if-no-files-found: warn
           retention-days: 30
