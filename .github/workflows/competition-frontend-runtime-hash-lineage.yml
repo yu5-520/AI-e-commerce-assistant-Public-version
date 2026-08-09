@@ -9,6 +9,7 @@ on:
       - 'contracts/**'
       - 'governance/frontend_runtime_hash_field_semantics_v1.json'
       - 'scripts/verify_baseline_signal_field_lineage.py'
+      - 'scripts/verify_frontend_runtime_hash_behavior.py'
       - '.github/workflows/competition-frontend-runtime-hash-lineage.yml'
   push:
     branches:
@@ -66,6 +67,7 @@ jobs:
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
           test -f "$EXTRACTED/scripts/compile_competition_lineage.py"
           test -f "$EXTRACTED/scripts/verify_baseline_signal_field_lineage.py"
+          test -f "$EXTRACTED/scripts/verify_frontend_runtime_hash_behavior.py"
           test -f "$EXTRACTED/governance/frontend_runtime_hash_field_semantics_v1.json"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
@@ -114,7 +116,9 @@ jobs:
           rm -rf dist/competition-frontend-runtime-hash-lineage
           "$PYTHON_BIN" -m py_compile \
             scripts/compile_competition_lineage.py \
-            scripts/verify_baseline_signal_field_lineage.py
+            scripts/verify_baseline_signal_field_lineage.py \
+            scripts/verify_frontend_runtime_hash_behavior.py \
+            src/services/frontend_view_artifact_v2259_service.py
           "$PYTHON_BIN" scripts/compile_competition_lineage.py \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output-dir dist/competition-frontend-runtime-hash-lineage
@@ -146,4 +150,22 @@ jobs:
           assert required.issubset(consumers), sorted(required - consumers)
           print('frontendRuntimeHashLineageHash=' + str(report.get('verificationHash')))
           print('consumerRuntimeFileCount=' + str(len(consumers)))
+          PY
+
+      - name: Verify frontend runtime hash behavior
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" scripts/verify_frontend_runtime_hash_behavior.py \
+            | tee dist/frontend-runtime-hash-behavior-report.json
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('dist/frontend-runtime-hash-behavior-report.json').read_text(encoding='utf-8'))
+          assert report.get('verified') is True, report
+          assert report['runtime']['queuedHash'] != report['runtime']['completedHash'], report
+          assert report['head']['changedManifest'] != report['head']['reusedManifest'], report
+          assert report['client']['missing'] == [], report
+          print('frontendRuntimeHashBehavior=verified')
           PY
