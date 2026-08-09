@@ -1,0 +1,75 @@
+{
+  "schema": "competition.lineage_update_policy.v1",
+  "version": "2026.08.09.4",
+  "defaultProfile": "governance_bootstrap",
+  "profiles": {
+    "governance_bootstrap": {
+      "description": "Current PR default gate: permit only the three hash-lineage-selected first-report baseline repair nodes; all other runtime membership, Registry, edge and special-hash changes remain fail-closed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/system_product_snapshot_service.py",
+        "src/services/station_alignment_v225_service.py",
+        "src/services/artifact_signal_admission_v225_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": [
+        "productBoundaryHash"
+      ]
+    },
+    "baseline_history_gate": {
+      "description": "Exact H2 repair scope for first-report baseline semantics. Only the Signal/Agent history facade and the two artifact station boundaries may change; Agent1 runtime, identity binding and downstream action stages remain sealed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/system_product_snapshot_service.py",
+        "src/services/station_alignment_v225_service.py",
+        "src/services/artifact_signal_admission_v225_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": [
+        "productBoundaryHash"
+      ]
+    },
+    "agent1_recovery": {
+      "description": "Reserved H2 profile. Keep fail-closed until the recovery scope artifact names the exact Agent1 runtime paths/modules/nodes that still require behavioral repair.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": true,
+      "allowedRuntimePathPrefixes": [],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "scoped_runtime_change": {
+      "description": "Fail-closed template for a future graph-scoped runtime update. Populate explicit runtime path/module/node allowlists before use.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": true,
+      "allowedRuntimePathPrefixes": [],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    }
+  }
+}

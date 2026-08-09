@@ -111,6 +111,24 @@ print(json.dumps({
 }, sort_keys=True))
 PY
 
+# Return a regular executable launcher instead of the venv's python symlink. Several
+# evidence runners normalize their --runtime-python path with pathlib.Path.resolve();
+# resolving the symlink would silently escape the verified venv and execute the base
+# interpreter without locked application dependencies.
+#
+# This file deliberately has a different name from the workflow-level
+# runtime-python-launcher.sh wrappers. Those workflows may wrap this entry again; using
+# a distinct name prevents them from overwriting the target and recursively executing
+# themselves.
+VERIFIED_VENV_LAUNCHER="$EVIDENCE_DIR/verified-venv-python.sh"
+printf '#!/usr/bin/env bash\nexec %q "$@"\n' "$VENV_PYTHON" > "$VERIFIED_VENV_LAUNCHER"
+chmod 0755 "$VERIFIED_VENV_LAUNCHER"
+
+timeout 30 "$VERIFIED_VENV_LAUNCHER" -c \
+  'import platform,fastapi,uvicorn,sqlalchemy,pydantic,openpyxl; assert platform.python_version()=="3.11.9"'
+printf '%s\n' "$VENV_PYTHON" > "$EVIDENCE_DIR/runtime-python-venv-target.txt"
+printf '%s\n' "$VERIFIED_VENV_LAUNCHER" > "$EVIDENCE_DIR/runtime-python-launcher.txt"
+
 # The self-hosted runner executes JavaScript actions with its bundled Node runtime,
 # but that binary is not necessarily exported to shell-step PATH. Resolve the same
 # trusted runner-owned executable and expose only its directory to later steps.
@@ -145,4 +163,4 @@ else
   echo "Runner-owned Node executable was not found; later JavaScript syntax checks may fail." >&2
 fi
 
-printf '%s\n' "$VENV_PYTHON"
+printf '%s\n' "$VERIFIED_VENV_LAUNCHER"

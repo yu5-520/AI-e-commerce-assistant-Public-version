@@ -9,6 +9,7 @@ on:
       - 'contracts/**'
       - 'scripts/**'
       - 'release/**'
+      - 'governance/**'
       - 'requirements.lock'
       - 'VERSION.md'
       - '.github/workflows/competition-registry-lineage.yml'
@@ -16,6 +17,16 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      baseline_commit:
+        description: 'Optional exact BASE commit. Defaults to PR base, push before, or current SHA.'
+        required: false
+        type: string
+      profile:
+        description: 'Lineage update policy profile.'
+        required: false
+        default: governance_bootstrap
+        type: string
 
 permissions:
   contents: read
@@ -27,49 +38,81 @@ concurrency:
 jobs:
   compile-lineage:
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_BASELINE_COMMIT: ${{ github.event.pull_request.base.sha || inputs.baseline_commit || github.event.before || github.sha }}
+      LINEAGE_UPDATE_PROFILE: ${{ inputs.profile || 'governance_bootstrap' }}
     steps:
-      - name: Materialize exact source commit archive
+      - name: Materialize exact BASE and TARGET source archives
         env:
           GH_READ_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          ARCHIVE="${RUNNER_TEMP}/competition-lineage-source-${COMPETITION_SOURCE_COMMIT}.tar.gz"
-          EXTRACTED="${RUNNER_TEMP}/competition-lineage-source-${COMPETITION_SOURCE_COMMIT}"
-          rm -rf "$ARCHIVE" "$EXTRACTED"
-          mkdir -p "$EXTRACTED"
-          DOWNLOADED=0
-          for attempt in $(seq 1 8); do
-            echo "Archive download attempt ${attempt}/8"
-            if curl \
-              --fail \
-              --location \
-              --silent \
-              --show-error \
-              --connect-timeout 20 \
-              --max-time 300 \
-              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${COMPETITION_SOURCE_COMMIT}" \
-              -o "$ARCHIVE"; then
-              DOWNLOADED=1
-              break
-            fi
-            rm -f "$ARCHIVE"
-            sleep $((attempt * 5))
-          done
-          test "$DOWNLOADED" = "1"
-          test -s "$ARCHIVE"
-          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
-          test -f "$EXTRACTED/scripts/compile_competition_lineage.py"
+
+          SOURCE_COMMIT="$COMPETITION_SOURCE_COMMIT"
+          BASE_COMMIT="$COMPETITION_BASELINE_COMMIT"
+          if ! [[ "$BASE_COMMIT" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            BASE_COMMIT="$SOURCE_COMMIT"
+          fi
+          printf 'COMPETITION_BASELINE_COMMIT=%s\n' "$BASE_COMMIT" >> "$GITHUB_ENV"
+
+          download_archive() {
+            local commit="$1"
+            local archive="$2"
+            local downloaded=0
+            rm -f "$archive"
+            for attempt in $(seq 1 8); do
+              echo "Archive download ${commit} attempt ${attempt}/8"
+              if curl \
+                --fail \
+                --location \
+                --silent \
+                --show-error \
+                --connect-timeout 20 \
+                --max-time 300 \
+                -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${commit}" \
+                -o "$archive"; then
+                downloaded=1
+                break
+              fi
+              rm -f "$archive"
+              sleep $((attempt * 5))
+            done
+            test "$downloaded" = "1"
+            test -s "$archive"
+          }
+
+          TARGET_ARCHIVE="${RUNNER_TEMP}/competition-lineage-target-${SOURCE_COMMIT}.tar.gz"
+          TARGET_EXTRACTED="${RUNNER_TEMP}/competition-lineage-target-${SOURCE_COMMIT}"
+          BASE_ARCHIVE="${RUNNER_TEMP}/competition-lineage-base-${BASE_COMMIT}.tar.gz"
+          BASE_EXTRACTED="${RUNNER_TEMP}/competition-lineage-base-${BASE_COMMIT}"
+
+          rm -rf "$TARGET_EXTRACTED" "$BASE_EXTRACTED"
+          mkdir -p "$TARGET_EXTRACTED" "$BASE_EXTRACTED"
+          download_archive "$SOURCE_COMMIT" "$TARGET_ARCHIVE"
+          download_archive "$BASE_COMMIT" "$BASE_ARCHIVE"
+          tar -xzf "$TARGET_ARCHIVE" -C "$TARGET_EXTRACTED" --strip-components=1
+          tar -xzf "$BASE_ARCHIVE" -C "$BASE_EXTRACTED" --strip-components=1
+
+          test -f "$TARGET_EXTRACTED/scripts/compile_competition_lineage.py"
+          test -f "$TARGET_EXTRACTED/scripts/verify_competition_lineage_update.py"
+          test -f "$TARGET_EXTRACTED/scripts/plan_competition_recovery_scope.py"
+          test -f "$TARGET_EXTRACTED/governance/competition_lineage_update_policy.json"
+          test -f "$TARGET_EXTRACTED/governance/competition_misrouted_fix_recovery_v1.json"
+          test -f "$BASE_EXTRACTED/scripts/compile_competition_lineage.py"
+
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
-          printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
-          test "$(cat "$GITHUB_WORKSPACE/.competition-source-commit")" = "$COMPETITION_SOURCE_COMMIT"
-          echo "competitionSourceCommit=$COMPETITION_SOURCE_COMMIT"
+          cp -a "$TARGET_EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
+          test "$(cat "$GITHUB_WORKSPACE/.competition-source-commit")" = "$SOURCE_COMMIT"
+          printf 'BASELINE_ROOT=%s\n' "$BASE_EXTRACTED" >> "$GITHUB_ENV"
+          echo "competitionBaselineCommit=$BASE_COMMIT"
+          echo "competitionSourceCommit=$SOURCE_COMMIT"
+          echo "lineageUpdateProfile=$LINEAGE_UPDATE_PROFILE"
 
       - name: Resolve ECS Python 3.10+
         run: |
@@ -124,59 +167,145 @@ jobs:
           print(platform.python_version())
           PY
 
-      - name: Compile registry and hash lineage
+      - name: Compile TARGET registry and hash lineage
         env:
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
           set -euo pipefail
-          rm -rf dist/competition-lineage dist/competition-lineage-summary.json
-          "$PYTHON_BIN" -m py_compile scripts/compile_competition_lineage.py
+          rm -rf dist/competition-lineage dist/competition-lineage-baseline
+          rm -f dist/competition-lineage-summary.json dist/competition-lineage-baseline-summary.json
+          rm -f dist/competition-lineage-update-report.json dist/competition-lineage-update-summary.json
+          rm -f dist/competition-recovery-scope-plan.json dist/competition-recovery-scope-summary.json
+          "$PYTHON_BIN" -m py_compile \
+            scripts/compile_competition_lineage.py \
+            scripts/verify_competition_lineage_update.py \
+            scripts/plan_competition_recovery_scope.py
           mkdir -p dist
           "$PYTHON_BIN" scripts/compile_competition_lineage.py \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output-dir dist/competition-lineage \
             | tee dist/competition-lineage-summary.json
 
+      - name: Plan misplaced competition fixes from TARGET lineage
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" scripts/plan_competition_recovery_scope.py \
+            --recovery governance/competition_misrouted_fix_recovery_v1.json \
+            --lineage-dir dist/competition-lineage \
+            --output dist/competition-recovery-scope-plan.json \
+            | tee dist/competition-recovery-scope-summary.json
+
+      - name: Compile BASE registry and hash lineage
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          test -n "$BASELINE_ROOT"
+          test -f "$BASELINE_ROOT/scripts/compile_competition_lineage.py"
+          "$PYTHON_BIN" -m py_compile "$BASELINE_ROOT/scripts/compile_competition_lineage.py"
+          BASE_OUTPUT="$BASELINE_ROOT/dist/competition-lineage-baseline"
+          rm -rf "$BASE_OUTPUT" dist/competition-lineage-baseline
+          (
+            cd "$BASELINE_ROOT"
+            "$PYTHON_BIN" scripts/compile_competition_lineage.py \
+              --root "$BASELINE_ROOT" \
+              --source-commit "$COMPETITION_BASELINE_COMMIT" \
+              --output-dir dist/competition-lineage-baseline
+          ) | tee dist/competition-lineage-baseline-summary.json
+          test -d "$BASE_OUTPUT"
+          cp -a "$BASE_OUTPUT" dist/competition-lineage-baseline
+
+      - name: Verify BASE to TARGET hash-lineage update scope
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" scripts/verify_competition_lineage_update.py \
+            --baseline-dir dist/competition-lineage-baseline \
+            --target-dir dist/competition-lineage \
+            --policy governance/competition_lineage_update_policy.json \
+            --profile "$LINEAGE_UPDATE_PROFILE" \
+            --output dist/competition-lineage-update-report.json \
+            | tee dist/competition-lineage-update-summary.json
+
       - name: Verify evidence files
         run: |
           set -euo pipefail
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/source-identity.json >/dev/null
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/registry-snapshot.json >/dev/null
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/lineage-graph.json >/dev/null
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/verification-report.json >/dev/null
-          "$PYTHON_BIN" -m json.tool dist/competition-lineage/evidence-manifest.json >/dev/null
-          test -s dist/competition-lineage/runtime-files.txt
-          test -s dist/competition-lineage/runtime-files.sha256
+          for evidence_dir in dist/competition-lineage-baseline dist/competition-lineage; do
+            "$PYTHON_BIN" -m json.tool "$evidence_dir/source-identity.json" >/dev/null
+            "$PYTHON_BIN" -m json.tool "$evidence_dir/registry-snapshot.json" >/dev/null
+            "$PYTHON_BIN" -m json.tool "$evidence_dir/lineage-graph.json" >/dev/null
+            "$PYTHON_BIN" -m json.tool "$evidence_dir/verification-report.json" >/dev/null
+            "$PYTHON_BIN" -m json.tool "$evidence_dir/evidence-manifest.json" >/dev/null
+            test -s "$evidence_dir/runtime-files.txt"
+            test -s "$evidence_dir/runtime-files.sha256"
+          done
+          "$PYTHON_BIN" -m json.tool dist/competition-lineage-update-report.json >/dev/null
+          "$PYTHON_BIN" -m json.tool dist/competition-recovery-scope-plan.json >/dev/null
           "$PYTHON_BIN" - <<'PY'
           import json
           import os
           from pathlib import Path
 
-          report = json.loads(
+          target = json.loads(
               Path('dist/competition-lineage/verification-report.json').read_text(encoding='utf-8')
           )
-          assert report.get('verified') is True, report.get('findings')
-          assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
-          assert report.get('runtimeFileCount', 0) > 0, report
-          assert report.get('registryModuleCount') == 9, report
-          assert report.get('shadowEntrypoints') == [], report
+          baseline = json.loads(
+              Path('dist/competition-lineage-baseline/verification-report.json').read_text(encoding='utf-8')
+          )
+          update = json.loads(
+              Path('dist/competition-lineage-update-report.json').read_text(encoding='utf-8')
+          )
+          recovery = json.loads(
+              Path('dist/competition-recovery-scope-plan.json').read_text(encoding='utf-8')
+          )
+          assert target.get('verified') is True, target.get('findings')
+          assert baseline.get('verified') is True, baseline.get('findings')
+          assert target.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], target
+          assert baseline.get('sourceCommit') == os.environ['COMPETITION_BASELINE_COMMIT'], baseline
+          assert target.get('runtimeFileCount', 0) > 0, target
+          assert target.get('registryModuleCount') == 9, target
+          assert target.get('shadowEntrypoints') == [], target
+          assert update.get('verified') is True, update.get('findings')
+          assert recovery.get('verified') is True, recovery.get('findings')
+          assert recovery.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], recovery
           print(json.dumps({
-              'verified': report['verified'],
-              'sourceCommit': report['sourceCommit'],
-              'runtimeFileCount': report['runtimeFileCount'],
-              'registryModuleCount': report['registryModuleCount'],
-              'runtimeHash': report['runtimeHash'],
-              'graphHash': report['graphHash'],
+              'verified': update['verified'],
+              'profile': update['profile'],
+              'baselineCommit': update['baselineCommit'],
+              'targetCommit': update['targetCommit'],
+              'baselineRuntimeHash': update['baselineRuntimeHash'],
+              'targetRuntimeHash': update['targetRuntimeHash'],
+              'baselineGraphHash': update['baselineGraphHash'],
+              'targetGraphHash': update['targetGraphHash'],
+              'runtimeHashChanged': update['runtimeHashChanged'],
+              'graphHashChanged': update['graphHashChanged'],
+              'changedRuntimeFiles': update['changedRuntimeFiles'],
+              'changedRegistryModules': update['changedRegistryModules'],
+              'updateHash': update['updateHash'],
+              'recoveryPlanHash': recovery['planHash'],
+              'recoveryRequirements': [
+                  {
+                      'id': item['id'],
+                      'status': item['structuralStatus'],
+                      'candidateRuntimePathCount': len(item['candidateRuntimePaths']),
+                  }
+                  for item in recovery['requirements']
+              ],
           }, ensure_ascii=False, sort_keys=True))
           PY
 
-      - name: Publish lineage evidence
+      - name: Publish lineage and update-control evidence
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: competition-registry-lineage-${{ env.COMPETITION_SOURCE_COMMIT }}
           path: |
             dist/competition-lineage
+            dist/competition-lineage-baseline
             dist/competition-lineage-summary.json
+            dist/competition-lineage-baseline-summary.json
+            dist/competition-lineage-update-report.json
+            dist/competition-lineage-update-summary.json
+            dist/competition-recovery-scope-plan.json
+            dist/competition-recovery-scope-summary.json
           if-no-files-found: error
           retention-days: 14

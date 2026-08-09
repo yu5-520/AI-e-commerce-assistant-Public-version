@@ -2,9 +2,9 @@
 
 V22.2.5 keeps the historical station contract while binding every full product
 bundle to the canonical product snapshot that supplied its facts. The station is
-the compatibility boundary: legacy signal construction may remain, but no Agent
-package leaves this station without a canonical parent hash when a matching
-product snapshot exists.
+the compatibility boundary: legacy signal construction may remain internally for
+baseline evidence compatibility, but no first-report bundle is exposed as a signal
+or allowed to reach Agent1.
 """
 from __future__ import annotations
 
@@ -160,13 +160,20 @@ def full_product_bundle_station(
         )
     packages = _packages(snapshot)
     lineage = snapshot.get("canonicalLineage") or {}
+    exposed_signals = [] if baseline_only else packages
     return {
         "version": STATION_ALIGNMENT_V225_VERSION,
         "stationId": "full_product_bundle_station",
-        "businessOutputType": "full_product_signal_snapshot",
+        "businessOutputType": (
+            "baseline_product_bundle" if baseline_only else "full_product_signal_snapshot"
+        ),
         "dataVersion": data_version,
-        "productSignalPackageCount": len(packages),
-        "productSignalCount": len(packages),
+        "productSignalPackageCount": len(exposed_signals),
+        "productSignalCount": len(exposed_signals),
+        "generatedSignalCount": len(exposed_signals),
+        "baselineProductBundleCount": len(packages) if baseline_only else 0,
+        "signalEligibility": not baseline_only,
+        "baselineGate": "closed_before_signal_engine" if baseline_only else "open_after_previous_snapshot",
         "baselineMode": "first_report" if baseline_only else "normal_delta",
         "baselineNoPrevious": baseline_only,
         "baseline": baseline,
@@ -174,11 +181,19 @@ def full_product_bundle_station(
         "evidenceVersion": OPERATING_EVIDENCE_CONTRACT_VERSION,
         "canonicalLineage": lineage,
         "contractValidation": validation,
-        "productSignalPackages": packages,
-        "signals": packages,
+        "baselineProductBundles": packages if baseline_only else [],
+        "productSignalPackages": exposed_signals,
+        "signals": exposed_signals,
+        # Internal validated snapshot remains available only as the next quality-gate
+        # input. Its baseline compatibility bundles are evidence, not Signal output.
         "result": snapshot,
         "outputRef": f"business_output_pending_artifact:full_product_bundle:{data_version or 'latest'}",
-        "rule": "The station returns one canonical business snapshot and preserves canonical productSnapshotHash into Agent-facing bundles.",
+        "rule": (
+            "First report materializes canonical baseline evidence only; Signal output "
+            "is zero until a strictly earlier active report exists."
+            if baseline_only
+            else "The station returns canonical delta evidence with productSnapshotHash lineage."
+        ),
     }
 
 
@@ -210,9 +225,10 @@ def bundle_validation_station(
             f"sample={','.join(str(value) for value in validation.get('sample') or [])}"
         )
     packages = _packages(snapshot)
+    exposed_signals = [] if baseline_only else packages
     attention = sum(
         1
-        for item in packages
+        for item in exposed_signals
         if ((item.get("crossValidation") or {}).get("decision") or {}).get("status")
         == "attention"
     )
@@ -220,12 +236,22 @@ def bundle_validation_station(
     return {
         "version": STATION_ALIGNMENT_V225_VERSION,
         "stationId": "bundle_validation_station",
-        "businessOutputType": "validated_product_signal_snapshot",
+        "businessOutputType": (
+            "validated_baseline_product_bundle"
+            if baseline_only
+            else "validated_product_signal_snapshot"
+        ),
         "dataVersion": data_version,
         "sourceArtifactRef": source_ref,
+        # bundleCount remains the quality-gate evidence count so the queue reaches the
+        # final admission station and records an explicit closed baseline gate.
         "bundleCount": len(packages),
+        "baselineProductBundleCount": len(packages) if baseline_only else 0,
+        "validatedSignalCount": len(exposed_signals),
         "attentionBundleCount": attention,
         "validationStatus": status,
+        "signalEligibility": not baseline_only,
+        "baselineGate": "closed_before_signal_engine" if baseline_only else "open_after_previous_snapshot",
         "baselineMode": "first_report" if baseline_only else "normal_delta",
         "baselineNoPrevious": baseline_only,
         "baseline": baseline,
@@ -233,10 +259,16 @@ def bundle_validation_station(
         "evidenceVersion": OPERATING_EVIDENCE_CONTRACT_VERSION,
         "canonicalLineage": snapshot.get("canonicalLineage") or {},
         "contractValidation": validation,
-        "validatedSignals": packages,
-        "productSignalPackages": packages,
+        "baselineProductBundles": packages if baseline_only else [],
+        "validatedSignals": exposed_signals,
+        "productSignalPackages": exposed_signals,
         "outputRef": f"business_output_pending_artifact:bundle_validation:{data_version or 'latest'}",
-        "rule": "Quality gate validates the Artifact content and keeps canonical productSnapshotHash attached to every Agent-facing bundle.",
+        "rule": (
+            "Baseline bundles are validated as evidence but are not Signals and cannot "
+            "enter Agent1."
+            if baseline_only
+            else "Quality gate validates delta Signals and keeps canonical productSnapshotHash lineage."
+        ),
     }
 
 

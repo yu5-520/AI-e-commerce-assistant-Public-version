@@ -1,0 +1,216 @@
+name: Competition Autonomous Worker Handoff
+
+on:
+  pull_request:
+    paths:
+      - 'src/api/**'
+      - 'src/services/station_agent_worker_v22514_service.py'
+      - 'src/services/station_agent_worker_v22515_service.py'
+      - 'src/services/station_agent_worker_v2259_service.py'
+      - 'src/services/agent_runtime_hard_interface_v22515_service.py'
+      - 'src/services/agent_token_runtime_hash_exact_v2259_service.py'
+      - 'scripts/run_competition_autonomous_worker_probe.py'
+      - 'scripts/run_competition_autonomous_worker_probe_stage_v2.py'
+      - 'scripts/run_competition_three_report_e2e.py'
+      - 'scripts/competition_e2e_compat_runtime/**'
+      - 'fixtures/competition/three_report_scenario.json'
+      - 'config/**'
+      - 'contracts/**'
+      - 'requirements.lock'
+      - '.github/workflows/competition-autonomous-worker-handoff.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-autonomous-worker-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  autonomous-single-worker:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
+      COMPETITION_AUTO_BASE: /opt/actions-runner-public/competition-autonomous-worker/ai-ecommerce-assistant-public
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Materialize exact source commit archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="${RUNNER_TEMP}/competition-auto-source-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/competition-auto-source-${COMPETITION_SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download attempt ${attempt}/8"
+            if curl --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${COMPETITION_SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/run_competition_autonomous_worker_probe_stage_v2.py"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > .competition-source-commit
+
+      - name: Verify toolchain and probe syntax
+        run: |
+          set -euo pipefail
+          [ -x "$COMPETITION_TOOL_PYTHON" ]
+          test "$($COMPETITION_TOOL_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          "$COMPETITION_TOOL_PYTHON" -m py_compile \
+            scripts/compile_competition_lineage.py \
+            scripts/build_competition_runtime_package.py \
+            scripts/verify_competition_runtime_package.py \
+            scripts/run_competition_three_report_e2e.py \
+            scripts/run_competition_autonomous_worker_probe.py \
+            scripts/run_competition_autonomous_worker_probe_stage_v2.py \
+            scripts/competition_e2e_compat_runtime/competition_contract_fixture_provider.py
+          "$COMPETITION_TOOL_PYTHON" -m json.tool fixtures/competition/three_report_scenario.json >/dev/null
+
+      - name: Build verified precise runtime package
+        run: |
+          set -euo pipefail
+          rm -rf dist/competition-lineage dist/competition-runtime dist/competition-autonomous-worker
+          mkdir -p dist/competition-autonomous-worker
+          "$COMPETITION_TOOL_PYTHON" scripts/compile_competition_lineage.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output-dir dist/competition-lineage \
+            2>&1 | tee dist/competition-autonomous-worker/lineage-summary.log
+          "$COMPETITION_TOOL_PYTHON" scripts/build_competition_runtime_package.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --lineage-dir dist/competition-lineage \
+            --output-dir dist/competition-runtime \
+            --archive-name "competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            2>&1 | tee dist/competition-autonomous-worker/package-build-summary.log
+          "$COMPETITION_TOOL_PYTHON" scripts/verify_competition_runtime_package.py \
+            "dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output dist/competition-runtime/competition-runtime-verification.json \
+            2>&1 | tee dist/competition-autonomous-worker/package-verification-summary.log
+
+      - name: Prepare cached exact application environment
+        run: |
+          set -euo pipefail
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_TOOL_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/dist/competition-autonomous-worker" \
+              | tee dist/competition-autonomous-worker/runtime-environment-summary.log | tail -n 1
+          )"
+          [ -x "$RUNTIME_PYTHON" ]
+          test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          "$RUNTIME_PYTHON" -c 'import uvicorn, fastapi, openpyxl'
+          RUNTIME_LAUNCHER="$GITHUB_WORKSPACE/dist/competition-autonomous-worker/runtime-python-launcher.sh"
+          cat > "$RUNTIME_LAUNCHER" <<EOF
+          #!/usr/bin/env bash
+          exec "$RUNTIME_PYTHON" "\$@"
+          EOF
+          chmod +x "$RUNTIME_LAUNCHER"
+          test "$($RUNTIME_LAUNCHER -c 'import uvicorn, platform; print(platform.python_version())')" = "3.11.9"
+          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_LAUNCHER" >> "$GITHUB_ENV"
+
+      - name: Run page-like autonomous worker probe
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" scripts/run_competition_autonomous_worker_probe_stage_v2.py \
+            "dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --scenario fixtures/competition/three_report_scenario.json \
+            --candidate-base "$COMPETITION_AUTO_BASE" \
+            --runtime-python "$COMPETITION_RUNTIME_PYTHON" \
+            --tool-python "$COMPETITION_TOOL_PYTHON" \
+            --app-port 39480 \
+            --provider-port 39400 \
+            --pre-agent-timeout 30 \
+            --agent-timeout 90 \
+            --output dist/competition-autonomous-worker/autonomous-worker-attestation.json \
+            2>&1 | tee dist/competition-autonomous-worker/autonomous-worker-summary.log
+
+      - name: Collect autonomous candidate diagnostics
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p dist/competition-autonomous-worker/runtime-diagnostics
+          CANDIDATE_ID="auto-${COMPETITION_SOURCE_COMMIT:0:12}-$(sha256sum fixtures/competition/three_report_scenario.json | awk '{print substr($1,1,10)}')"
+          EVIDENCE_DIR="$COMPETITION_AUTO_BASE/$CANDIDATE_ID/evidence"
+          echo "candidateId=$CANDIDATE_ID" | tee dist/competition-autonomous-worker/runtime-diagnostics/location.txt
+          echo "evidenceDir=$EVIDENCE_DIR" >> dist/competition-autonomous-worker/runtime-diagnostics/location.txt
+          if [ -d "$EVIDENCE_DIR" ]; then
+            cp -a "$EVIDENCE_DIR"/. dist/competition-autonomous-worker/runtime-diagnostics/ || true
+          fi
+          if [ -f dist/competition-autonomous-worker/runtime-diagnostics/candidate-app.log ]; then
+            echo '===== candidate-app.log tail ====='
+            tail -n 160 dist/competition-autonomous-worker/runtime-diagnostics/candidate-app.log || true
+          fi
+          if [ -f dist/competition-autonomous-worker/runtime-diagnostics/fixture-provider.log ]; then
+            echo '===== fixture-provider.log tail ====='
+            tail -n 80 dist/competition-autonomous-worker/runtime-diagnostics/fixture-provider.log || true
+          fi
+
+      - name: Verify autonomous handoff evidence boundary
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads(Path('dist/competition-autonomous-worker/autonomous-worker-attestation.json').read_text(encoding='utf-8'))
+          assert report.get('schema') == 'competition.autonomous_worker_handoff.v1', report
+          assert report.get('probeVersion') == 'stage-aware-v2', report
+          assert report.get('verified') is True, report.get('errors')
+          assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
+          assert report.get('manualPipelineTickCalls') == 0, report
+          pre = report.get('preAgentAutonomousHandoff') or {}
+          agent = report.get('agentAutonomousHandoff') or {}
+          assert pre.get('verified') is True, report
+          assert pre.get('probeMetric') == 'persisted_pipeline_stage_counts', report
+          assert int(pre.get('progressMarkerCount') or 0) > 0, report
+          assert agent.get('verified') is True, report
+          assert pre.get('seconds', 999) < 30, report
+          assert agent.get('secondsFromFirstImport', 999) < 90, report
+          assert report.get('modelQualityProof') is False, report
+          assert report.get('realBailianRunStillRequired') is True, report
+          print(json.dumps({
+              'verified': report['verified'],
+              'sourceCommit': report['sourceCommit'],
+              'preAgentAutonomousHandoff': pre,
+              'agentAutonomousHandoff': agent,
+              'manualPipelineTickCalls': report['manualPipelineTickCalls'],
+              'verificationHash': report['verificationHash'],
+          }, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Publish autonomous worker evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: competition-autonomous-worker-${{ env.COMPETITION_SOURCE_COMMIT }}
+          path: |
+            dist/competition-autonomous-worker
+            dist/competition-runtime/competition-runtime-verification.json
+            dist/competition-lineage/verification-report.json
+            fixtures/competition/three_report_scenario.json
+          if-no-files-found: warn
+          retention-days: 14
