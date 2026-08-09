@@ -11,7 +11,9 @@ enough for competition evidence credential reuse:
 
 Only the credential value is written to stdout for command substitution. The
 caller MUST mask it before any later shell output. This script never writes the
-credential to disk and never mutates the source.
+credential to disk and never mutates the source. It is also the explicit credential
+preflight used by the final competition Qwen evidence gate after deterministic
+single-worker recovery has passed.
 """
 from __future__ import annotations
 
