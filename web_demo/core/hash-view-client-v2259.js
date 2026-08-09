@@ -1,5 +1,5 @@
 (function () {
-  const VERSION = "22.5.9";
+  const VERSION = "22.5.10";
   const DEFAULT_VIEW_KEY = "operator-center";
   const memory = new Map();
   const inFlight = new Map();
@@ -42,14 +42,18 @@
     return payload;
   }
 
-  async function fetchJson(path, timeoutMs = 6000) {
+  async function fetchJson(path, timeoutMs = 6000, options = {}) {
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort("hash_view_timeout"), timeoutMs) : null;
     try {
       const response = await fetch(path, {
         method: "GET",
         signal: controller?.signal,
-        headers: { Accept: "application/json" },
+        cache: options.cache || "default",
+        headers: {
+          Accept: "application/json",
+          ...(options.noStore ? { "Cache-Control": "no-cache", Pragma: "no-cache" } : {}),
+        },
       });
       if (!response.ok) {
         let detail = `${response.status} ${response.statusText}`;
@@ -60,6 +64,19 @@
     } finally {
       if (timer) clearTimeout(timer);
     }
+  }
+
+  function headPath(viewKey, dataVersion = "") {
+    const query = new URLSearchParams();
+    if (dataVersion) query.set("dataVersion", dataVersion);
+    // Head is a mutable pointer. A nonce prevents intermediary/browser reuse while
+    // immutable manifest/module documents remain content-hash cacheable.
+    query.set("_headNonce", String(Date.now()));
+    return `/api/view/head/${encodeURIComponent(viewKey)}?${query.toString()}`;
+  }
+
+  async function fetchHead(viewKey = DEFAULT_VIEW_KEY, dataVersion = "") {
+    return fetchJson(headPath(viewKey, dataVersion), 5000, { cache: "no-store", noStore: true });
   }
 
   async function immutableArtifact(ref, expectedHash, viewKey = DEFAULT_VIEW_KEY) {
@@ -82,13 +99,16 @@
   async function moduleView(moduleKey, options = {}) {
     const viewKey = options.viewKey || DEFAULT_VIEW_KEY;
     const dataVersion = options.dataVersion || "";
-    const head = await fetchJson(`/api/view/head/${encodeURIComponent(viewKey)}${dataVersion ? `?dataVersion=${encodeURIComponent(dataVersion)}` : ""}`, 5000);
+    const head = await fetchHead(viewKey, dataVersion);
     if (!head?.manifestRef || !head?.manifestHash) {
       throw new Error(`view_manifest_not_ready:${viewKey}:${head?.status || "empty"}`);
     }
     const manifest = await immutableArtifact(head.manifestRef, head.manifestHash, viewKey);
     if (manifest?.scopeKey !== `${viewKey}::${userId()}`) {
       throw new Error(`view_manifest_scope_mismatch:${viewKey}`);
+    }
+    if (head?.status === "ready" && head?.runtimeStateHash && manifest?.runtimeStateHash !== head.runtimeStateHash) {
+      throw new Error(`view_manifest_runtime_hash_mismatch:${viewKey}`);
     }
     const module = manifest?.modules?.[moduleKey];
     if (!module?.artifactRef || !module?.contentHash) {
@@ -103,10 +123,13 @@
           viewKey,
           moduleKey,
           dataVersion: manifest?.dataVersion,
+          runtimeStateHash: manifest?.runtimeStateHash || head?.runtimeStateHash || null,
+          observedRuntimeStateHash: head?.observedRuntimeStateHash || null,
           manifestHash: head.manifestHash,
           moduleHash: module.contentHash,
           displayMode: head.displayMode || "current",
           pendingDataVersion: head.pendingDataVersion || null,
+          pendingRuntimeStateHash: head.pendingRuntimeStateHash || null,
         },
       };
     }
@@ -141,7 +164,7 @@
     const api = window.AppApi;
     if (!api) return false;
     api.hashViewVersion = VERSION;
-    api.viewHead = (viewKey = DEFAULT_VIEW_KEY, dataVersion = "") => fetchJson(`/api/view/head/${encodeURIComponent(viewKey)}${dataVersion ? `?dataVersion=${encodeURIComponent(dataVersion)}` : ""}`);
+    api.viewHead = (viewKey = DEFAULT_VIEW_KEY, dataVersion = "") => fetchHead(viewKey, dataVersion);
     api.dashboardView = () => moduleView("dashboard").catch((error) => fallback(error, { counts: {}, topTasks: [] }));
     api.productView = (params = {}) => moduleView("products", { dataVersion: params.dataVersion || "" }).then((payload) => filterProducts(payload, params)).catch((error) => fallback(error, { items: [], count: 0 }));
     api.taskView = (params = {}) => moduleView("tasks", { dataVersion: params.dataVersion || "" }).then((payload) => filterTasks(payload, params)).catch((error) => fallback(error, { items: [], tasks: [], count: 0 }));

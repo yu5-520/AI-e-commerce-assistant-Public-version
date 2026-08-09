@@ -1,0 +1,190 @@
+name: Competition Frontend Runtime Hash Lineage
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'web_demo/**'
+      - 'config/**'
+      - 'contracts/**'
+      - 'governance/frontend_runtime_hash_field_semantics_v1.json'
+      - 'scripts/verify_baseline_signal_field_lineage.py'
+      - 'scripts/verify_frontend_runtime_hash_behavior.py'
+      - '.github/workflows/competition-frontend-runtime-hash-lineage.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-frontend-runtime-hash-lineage-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-frontend-runtime-hash-lineage:
+    runs-on: self-hosted
+    timeout-minutes: 25
+    env:
+      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
+    steps:
+      - name: Materialize exact TARGET source archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SOURCE_COMMIT="$COMPETITION_SOURCE_COMMIT"
+          ARCHIVE="${RUNNER_TEMP}/competition-frontend-hash-${SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/competition-frontend-hash-${SOURCE_COMMIT}"
+          rm -f "$ARCHIVE"
+          rm -rf "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download ${SOURCE_COMMIT} attempt ${attempt}/8"
+            if curl \
+              --fail \
+              --location \
+              --silent \
+              --show-error \
+              --connect-timeout 20 \
+              --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/compile_competition_lineage.py"
+          test -f "$EXTRACTED/scripts/verify_baseline_signal_field_lineage.py"
+          test -f "$EXTRACTED/scripts/verify_frontend_runtime_hash_behavior.py"
+          test -f "$EXTRACTED/scripts/prepare_competition_runtime_venv.sh"
+          test -f "$EXTRACTED/governance/frontend_runtime_hash_field_semantics_v1.json"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
+
+      - name: Resolve ECS Python 3.10+
+        run: |
+          set -euo pipefail
+          CANDIDATES="${RUNNER_TEMP}/competition-frontend-hash-python.txt"
+          : > "$CANDIDATES"
+          for candidate in \
+            python3.13 python3.12 python3.11 python3.10 \
+            /usr/local/bin/python3.13 /usr/local/bin/python3.12 \
+            /usr/local/bin/python3.11 /usr/local/bin/python3.10 \
+            /usr/bin/python3.13 /usr/bin/python3.12 \
+            /usr/bin/python3.11 /usr/bin/python3.10; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              command -v "$candidate" >> "$CANDIDATES"
+            elif [ -x "$candidate" ]; then
+              printf '%s\n' "$candidate" >> "$CANDIDATES"
+            fi
+          done
+          for search_root in /opt /usr/local /home "$RUNNER_TOOL_CACHE"; do
+            [ -d "$search_root" ] || continue
+            find "$search_root" -maxdepth 7 -type f \
+              \( -name 'python3.13' -o -name 'python3.12' -o -name 'python3.11' -o -name 'python3.10' -o -name 'python' \) \
+              -perm -u+x -print 2>/dev/null >> "$CANDIDATES" || true
+          done
+          sort -u "$CANDIDATES" -o "$CANDIDATES"
+          while IFS= read -r candidate; do
+            [ -n "$candidate" ] || continue
+            if "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+              printf 'PYTHON_BIN=%s\n' "$candidate" >> "$GITHUB_ENV"
+              "$candidate" -c 'import platform; print("python=" + platform.python_version())'
+              exit 0
+            fi
+          done < "$CANDIDATES"
+          echo 'No usable Python 3.10+ runtime exists on ECS runner.' >&2
+          exit 1
+
+      - name: Compile TARGET competition hash lineage
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          rm -rf dist/competition-frontend-runtime-hash-lineage
+          "$PYTHON_BIN" -m py_compile \
+            scripts/compile_competition_lineage.py \
+            scripts/verify_baseline_signal_field_lineage.py \
+            scripts/verify_frontend_runtime_hash_behavior.py \
+            src/services/frontend_view_artifact_v2259_service.py
+          "$PYTHON_BIN" scripts/compile_competition_lineage.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output-dir dist/competition-frontend-runtime-hash-lineage
+
+      - name: Verify frontend runtime hash fields from TARGET lineage
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" scripts/verify_baseline_signal_field_lineage.py \
+            --lineage-graph dist/competition-frontend-runtime-hash-lineage/lineage-graph.json \
+            --overlay governance/frontend_runtime_hash_field_semantics_v1.json \
+            --output dist/frontend-runtime-hash-field-lineage-report.json
+          "$PYTHON_BIN" -m json.tool dist/frontend-runtime-hash-field-lineage-report.json >/dev/null
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('dist/frontend-runtime-hash-field-lineage-report.json').read_text(encoding='utf-8'))
+          assert report.get('verified') is True, report.get('findings')
+          assert report.get('registeredFieldCount') == 10, report.get('registeredFieldCount')
+          assert not report.get('stalePredicateHits'), report.get('stalePredicateHits')
+          consumers = set(report.get('consumerRuntimeFiles') or [])
+          required = {
+              'src/services/frontend_view_artifact_v2259_service.py',
+              'src/services/pipeline_live_read_model_v225_service.py',
+              'src/api/routes/frontend_views.py',
+              'web_demo/core/hash-view-client-v2259.js',
+          }
+          assert required.issubset(consumers), sorted(required - consumers)
+          print('frontendRuntimeHashLineageHash=' + str(report.get('verificationHash')))
+          print('consumerRuntimeFileCount=' + str(len(consumers)))
+          PY
+
+      - name: Prepare cached exact application environment
+        run: |
+          set -euo pipefail
+          mkdir -p dist/competition-frontend-runtime-hash-env
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$PYTHON_BIN" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" \
+              "$GITHUB_WORKSPACE/dist/competition-frontend-runtime-hash-env" \
+              | tee dist/competition-frontend-runtime-hash-env/runtime-environment-summary.log \
+              | tail -n 1
+          )"
+          [ -x "$RUNTIME_PYTHON" ]
+          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+
+      - name: Verify frontend runtime hash behavior
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          "$COMPETITION_RUNTIME_PYTHON" scripts/verify_frontend_runtime_hash_behavior.py \
+            | tee dist/frontend-runtime-hash-behavior-report.json
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('dist/frontend-runtime-hash-behavior-report.json').read_text(encoding='utf-8'))
+          assert report.get('verified') is True, report
+          assert report['runtime']['queuedHash'] != report['runtime']['completedHash'], report
+          assert report['head']['changedManifest'] != report['head']['reusedManifest'], report
+          assert report['client']['missing'] == [], report
+          print('frontendRuntimeHashBehavior=verified')
+          PY
