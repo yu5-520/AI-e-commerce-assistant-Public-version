@@ -2,9 +2,9 @@
 
 V22.2.5 keeps the historical station contract while binding every full product
 bundle to the canonical product snapshot that supplied its facts. The station is
-the compatibility boundary: legacy signal construction may remain internally for
-baseline evidence compatibility, but no first-report bundle is exposed as a signal
-or allowed to reach Agent1.
+the compatibility boundary: first-report baseline evidence is validated as canonical
+product evidence, not as a Signal contract, and therefore never requires Signal
+itemization or Agent1 execution.
 """
 from __future__ import annotations
 
@@ -20,8 +20,9 @@ from src.services.operating_evidence_contract_service import (
     validate_signal_snapshot,
 )
 
-STATION_ALIGNMENT_V225_VERSION = "22.2.5"
+STATION_ALIGNMENT_V225_VERSION = "22.2.6"
 CANONICAL_LINEAGE_CONTRACT = "canonicalProductSnapshot.lineage.v1"
+BASELINE_EVIDENCE_CONTRACT = "canonicalProductBaselineEvidence.v1"
 
 
 def _packages(snapshot: Dict[str, Any] | None) -> List[Dict[str, Any]]:
@@ -35,16 +36,24 @@ def _product_key(item: Dict[str, Any]) -> str:
     return str(item.get("objectId") or item.get("entityId") or item.get("productId") or "").strip()
 
 
-def _canonical_index(data_version: str | None) -> Dict[str, Dict[str, Any]]:
+def _canonical_products(data_version: str | None) -> List[Dict[str, Any]]:
     snapshot = get_product_snapshot(data_version)
+    return [
+        dict(item)
+        for item in (snapshot or {}).get("products") or []
+        if isinstance(item, dict)
+    ]
+
+
+def _canonical_index(data_version: str | None) -> Dict[str, Dict[str, Any]]:
     index: Dict[str, Dict[str, Any]] = {}
-    for product in (snapshot or {}).get("products") or []:
-        if not isinstance(product, dict):
-            continue
+    for product in _canonical_products(data_version):
         for value in [
             product.get("objectId"),
             product.get("productId"),
-            (product.get("profileSnapshot") or {}).get("skuId") if isinstance(product.get("profileSnapshot"), dict) else None,
+            (product.get("profileSnapshot") or {}).get("skuId")
+            if isinstance(product.get("profileSnapshot"), dict)
+            else None,
         ]:
             key = str(value or "").strip()
             if key:
@@ -63,8 +72,12 @@ def _bind_canonical_lineage(data_version: str | None, snapshot: Dict[str, Any]) 
         candidates = [
             package.get("entityId"),
             package.get("productId"),
-            (package.get("profileLayer") or {}).get("skuId") if isinstance(package.get("profileLayer"), dict) else None,
-            (package.get("productProfileSnapshot") or {}).get("skuId") if isinstance(package.get("productProfileSnapshot"), dict) else None,
+            (package.get("profileLayer") or {}).get("skuId")
+            if isinstance(package.get("profileLayer"), dict)
+            else None,
+            (package.get("productProfileSnapshot") or {}).get("skuId")
+            if isinstance(package.get("productProfileSnapshot"), dict)
+            else None,
         ]
         for candidate in candidates:
             key = str(candidate or "").strip()
@@ -109,6 +122,90 @@ def _bind_canonical_lineage(data_version: str | None, snapshot: Dict[str, Any]) 
     return next_snapshot
 
 
+def _canonical_baseline_bundle(product: Dict[str, Any], data_version: str | None) -> Dict[str, Any]:
+    profile = dict(product.get("profileSnapshot") or {})
+    metric = dict(product.get("metricSnapshot") or {})
+    parent_hash = product.get("productSnapshotHash") or product.get("snapshotHash")
+    object_id = product.get("objectId") or profile.get("objectId")
+    product_id = product.get("productId") or profile.get("productId")
+    store_id = product.get("storeId") or profile.get("storeId")
+    return {
+        "baselineEvidenceId": f"BASELINE::{object_id or store_id or 'GLOBAL'}::{product_id or 'PRODUCT'}",
+        "evidenceContract": BASELINE_EVIDENCE_CONTRACT,
+        "evidenceStatus": "baseline",
+        "baselineOnly": True,
+        "dataVersion": data_version,
+        "entityType": "product",
+        "entityId": object_id,
+        "objectId": object_id,
+        "productId": product_id,
+        "storeId": store_id,
+        "platform": product.get("platform") or profile.get("platform"),
+        "profileLayer": profile,
+        "metricLayer": metric,
+        "productSnapshotHash": parent_hash,
+        "parentSnapshotHash": parent_hash,
+        "factRefs": list(product.get("factRefs") or []),
+        "factHashRefs": list(product.get("factHashRefs") or []),
+        "sourceArtifactRefs": list(product.get("sourceArtifactRefs") or []),
+        "canonicalLineageContract": CANONICAL_LINEAGE_CONTRACT,
+        "rule": "First-report evidence is a canonical product baseline, not a Signal item.",
+    }
+
+
+def _baseline_evidence_bundles(
+    data_version: str | None,
+    snapshot: Dict[str, Any] | None,
+) -> List[Dict[str, Any]]:
+    """Return baseline evidence without requiring the Signal contract.
+
+    Existing full-product bundles are retained when available because they already
+    contain richer profile/metric evidence. If the compatibility Signal snapshot is
+    empty, canonical product snapshots are the authoritative fallback. In neither
+    case are these bundles exposed as Signals.
+    """
+    packages = _packages(snapshot)
+    if packages:
+        return packages
+    return [
+        _canonical_baseline_bundle(product, data_version)
+        for product in _canonical_products(data_version)
+    ]
+
+
+def _validate_baseline_evidence(
+    bundles: List[Dict[str, Any]],
+    data_version: str | None,
+) -> Dict[str, Any]:
+    invalid: List[Dict[str, Any]] = []
+    for item in bundles:
+        identity = _product_key(item)
+        parent_hash = item.get("productSnapshotHash") or item.get("parentSnapshotHash")
+        missing: List[str] = []
+        if not identity:
+            missing.append("productIdentity")
+        if not parent_hash:
+            missing.append("productSnapshotHash")
+        if missing:
+            invalid.append(
+                {
+                    "productId": item.get("productId") or item.get("entityId"),
+                    "missing": missing,
+                }
+            )
+    return {
+        "ok": bool(bundles) and not invalid,
+        "status": "passed" if bundles and not invalid else "failed",
+        "contract": BASELINE_EVIDENCE_CONTRACT,
+        "dataVersion": data_version,
+        "packageCount": len(bundles),
+        "invalidCount": len(invalid),
+        "invalid": invalid[:20],
+        "sample": [item.get("productId") for item in invalid[:5]],
+        "signalContractRequired": False,
+    }
+
+
 def _baseline_only(data_version: str | None, snapshot: Dict[str, Any] | None) -> tuple[bool, Dict[str, Any]]:
     baseline = is_first_report_baseline(data_version)
     value = bool(
@@ -147,12 +244,64 @@ def full_product_bundle_station(
     )
     raw = _bind_canonical_lineage(data_version, raw)
     baseline_only, baseline = _baseline_only(data_version, raw)
-    snapshot = normalize_signal_snapshot(raw, baseline_only=baseline_only)
+
+    if baseline_only:
+        packages = _baseline_evidence_bundles(data_version, raw)
+        validation = _validate_baseline_evidence(packages, data_version)
+        if validation.get("ok") is not True:
+            raise RuntimeError(
+                "baseline_product_bundle_contract_invalid_v22_2_6:"
+                f"dataVersion={data_version or 'latest'};"
+                f"packageCount={validation.get('packageCount')};"
+                f"invalidCount={validation.get('invalidCount')};"
+                f"sample={','.join(str(value) for value in validation.get('sample') or [])}"
+            )
+        lineage = raw.get("canonicalLineage") or {}
+        result = {
+            "baselineNoPrevious": True,
+            "baselineMode": "first_report",
+            "baselineProductBundleCount": len(packages),
+            "baselineProductBundles": packages,
+            "productSignalPackages": [],
+            "signals": [],
+            "canonicalLineage": lineage,
+            "signalEligibility": False,
+        }
+        return {
+            "version": STATION_ALIGNMENT_V225_VERSION,
+            "stationId": "full_product_bundle_station",
+            "businessOutputType": "baseline_product_bundle",
+            "dataVersion": data_version,
+            "productSignalPackageCount": 0,
+            "productSignalCount": 0,
+            "generatedSignalCount": 0,
+            "baselineProductBundleCount": len(packages),
+            "signalEligibility": False,
+            "baselineGate": "closed_before_signal_engine",
+            "baselineMode": "first_report",
+            "baselineNoPrevious": True,
+            "baseline": baseline,
+            "evidenceContract": BASELINE_EVIDENCE_CONTRACT,
+            "evidenceVersion": OPERATING_EVIDENCE_CONTRACT_VERSION,
+            "canonicalLineage": lineage,
+            "contractValidation": validation,
+            "baselineProductBundles": packages,
+            "productSignalPackages": [],
+            "signals": [],
+            "result": result,
+            "outputRef": f"business_output_pending_artifact:full_product_bundle:{data_version or 'latest'}",
+            "rule": (
+                "First report validates canonical product baseline evidence directly; "
+                "Signal output stays zero until a strictly earlier active report exists."
+            ),
+        }
+
+    snapshot = normalize_signal_snapshot(raw, baseline_only=False)
     snapshot = _bind_canonical_lineage(data_version, snapshot)
-    validation = validate_signal_snapshot(snapshot, baseline_only=baseline_only)
+    validation = validate_signal_snapshot(snapshot, baseline_only=False)
     if validation.get("ok") is not True:
         raise RuntimeError(
-            "full_product_bundle_contract_invalid_v22_2_5:"
+            "full_product_bundle_contract_invalid_v22_2_6:"
             f"dataVersion={data_version or 'latest'};"
             f"packageCount={validation.get('packageCount')};"
             f"invalidCount={validation.get('invalidCount')};"
@@ -160,40 +309,30 @@ def full_product_bundle_station(
         )
     packages = _packages(snapshot)
     lineage = snapshot.get("canonicalLineage") or {}
-    exposed_signals = [] if baseline_only else packages
     return {
         "version": STATION_ALIGNMENT_V225_VERSION,
         "stationId": "full_product_bundle_station",
-        "businessOutputType": (
-            "baseline_product_bundle" if baseline_only else "full_product_signal_snapshot"
-        ),
+        "businessOutputType": "full_product_signal_snapshot",
         "dataVersion": data_version,
-        "productSignalPackageCount": len(exposed_signals),
-        "productSignalCount": len(exposed_signals),
-        "generatedSignalCount": len(exposed_signals),
-        "baselineProductBundleCount": len(packages) if baseline_only else 0,
-        "signalEligibility": not baseline_only,
-        "baselineGate": "closed_before_signal_engine" if baseline_only else "open_after_previous_snapshot",
-        "baselineMode": "first_report" if baseline_only else "normal_delta",
-        "baselineNoPrevious": baseline_only,
+        "productSignalPackageCount": len(packages),
+        "productSignalCount": len(packages),
+        "generatedSignalCount": len(packages),
+        "baselineProductBundleCount": 0,
+        "signalEligibility": True,
+        "baselineGate": "open_after_previous_snapshot",
+        "baselineMode": "normal_delta",
+        "baselineNoPrevious": False,
         "baseline": baseline,
         "evidenceContract": "operatingEvidenceGraph.v1",
         "evidenceVersion": OPERATING_EVIDENCE_CONTRACT_VERSION,
         "canonicalLineage": lineage,
         "contractValidation": validation,
-        "baselineProductBundles": packages if baseline_only else [],
-        "productSignalPackages": exposed_signals,
-        "signals": exposed_signals,
-        # Internal validated snapshot remains available only as the next quality-gate
-        # input. Its baseline compatibility bundles are evidence, not Signal output.
+        "baselineProductBundles": [],
+        "productSignalPackages": packages,
+        "signals": packages,
         "result": snapshot,
         "outputRef": f"business_output_pending_artifact:full_product_bundle:{data_version or 'latest'}",
-        "rule": (
-            "First report materializes canonical baseline evidence only; Signal output "
-            "is zero until a strictly earlier active report exists."
-            if baseline_only
-            else "The station returns canonical delta evidence with productSnapshotHash lineage."
-        ),
+        "rule": "The station returns canonical delta evidence with productSnapshotHash lineage.",
     }
 
 
@@ -206,75 +345,113 @@ def bundle_validation_station(
 ) -> Dict[str, Any]:
     source_ref = full_product_bundle_ref or fullProductBundleRef
     upstream = _resolve_business_artifact(source_ref)
+    baseline_only, baseline = _baseline_only(data_version, upstream)
+
+    if baseline_only:
+        result = upstream.get("result") if isinstance(upstream.get("result"), dict) else {}
+        raw_bundles = (
+            upstream.get("baselineProductBundles")
+            or result.get("baselineProductBundles")
+            or []
+        )
+        packages = [item for item in raw_bundles if isinstance(item, dict)]
+        if not packages:
+            packages = _baseline_evidence_bundles(data_version, result)
+        validation = _validate_baseline_evidence(packages, data_version)
+        if validation.get("ok") is not True:
+            raise RuntimeError(
+                "baseline_bundle_validation_contract_invalid_v22_2_6:"
+                f"dataVersion={data_version or 'latest'};"
+                f"packageCount={validation.get('packageCount')};"
+                f"invalidCount={validation.get('invalidCount')};"
+                f"sample={','.join(str(value) for value in validation.get('sample') or [])}"
+            )
+        return {
+            "version": STATION_ALIGNMENT_V225_VERSION,
+            "stationId": "bundle_validation_station",
+            "businessOutputType": "validated_baseline_product_bundle",
+            "dataVersion": data_version,
+            "sourceArtifactRef": source_ref,
+            "bundleCount": len(packages),
+            "baselineProductBundleCount": len(packages),
+            "validatedSignalCount": 0,
+            "attentionBundleCount": 0,
+            "validationStatus": "passed",
+            "signalEligibility": False,
+            "baselineGate": "closed_before_signal_engine",
+            "baselineMode": "first_report",
+            "baselineNoPrevious": True,
+            "baseline": baseline,
+            "evidenceContract": BASELINE_EVIDENCE_CONTRACT,
+            "evidenceVersion": OPERATING_EVIDENCE_CONTRACT_VERSION,
+            "canonicalLineage": upstream.get("canonicalLineage") or result.get("canonicalLineage") or {},
+            "contractValidation": validation,
+            "baselineProductBundles": packages,
+            "validatedSignals": [],
+            "productSignalPackages": [],
+            "outputRef": f"business_output_pending_artifact:bundle_validation:{data_version or 'latest'}",
+            "rule": (
+                "Baseline bundles are canonical evidence, not Signals; validation passes "
+                "without Signal itemization and Agent1 remains closed."
+            ),
+        }
+
     snapshot = (
         upstream.get("result")
         if isinstance(upstream.get("result"), dict)
         else upstream
     )
     snapshot = _bind_canonical_lineage(data_version, snapshot)
-    baseline_only, baseline = _baseline_only(data_version, snapshot)
-    snapshot = normalize_signal_snapshot(snapshot, baseline_only=baseline_only)
+    snapshot = normalize_signal_snapshot(snapshot, baseline_only=False)
     snapshot = _bind_canonical_lineage(data_version, snapshot)
-    validation = validate_signal_snapshot(snapshot, baseline_only=baseline_only)
+    validation = validate_signal_snapshot(snapshot, baseline_only=False)
     if validation.get("ok") is not True:
         raise RuntimeError(
-            "bundle_validation_contract_invalid_v22_2_5:"
+            "bundle_validation_contract_invalid_v22_2_6:"
             f"dataVersion={data_version or 'latest'};"
             f"packageCount={validation.get('packageCount')};"
             f"invalidCount={validation.get('invalidCount')};"
             f"sample={','.join(str(value) for value in validation.get('sample') or [])}"
         )
     packages = _packages(snapshot)
-    exposed_signals = [] if baseline_only else packages
     attention = sum(
         1
-        for item in exposed_signals
+        for item in packages
         if ((item.get("crossValidation") or {}).get("decision") or {}).get("status")
         == "attention"
     )
-    status = "passed" if packages else "waiting"
     return {
         "version": STATION_ALIGNMENT_V225_VERSION,
         "stationId": "bundle_validation_station",
-        "businessOutputType": (
-            "validated_baseline_product_bundle"
-            if baseline_only
-            else "validated_product_signal_snapshot"
-        ),
+        "businessOutputType": "validated_product_signal_snapshot",
         "dataVersion": data_version,
         "sourceArtifactRef": source_ref,
-        # bundleCount remains the quality-gate evidence count so the queue reaches the
-        # final admission station and records an explicit closed baseline gate.
         "bundleCount": len(packages),
-        "baselineProductBundleCount": len(packages) if baseline_only else 0,
-        "validatedSignalCount": len(exposed_signals),
+        "baselineProductBundleCount": 0,
+        "validatedSignalCount": len(packages),
         "attentionBundleCount": attention,
-        "validationStatus": status,
-        "signalEligibility": not baseline_only,
-        "baselineGate": "closed_before_signal_engine" if baseline_only else "open_after_previous_snapshot",
-        "baselineMode": "first_report" if baseline_only else "normal_delta",
-        "baselineNoPrevious": baseline_only,
+        "validationStatus": "passed" if packages else "waiting",
+        "signalEligibility": True,
+        "baselineGate": "open_after_previous_snapshot",
+        "baselineMode": "normal_delta",
+        "baselineNoPrevious": False,
         "baseline": baseline,
         "evidenceContract": "operatingEvidenceGraph.v1",
         "evidenceVersion": OPERATING_EVIDENCE_CONTRACT_VERSION,
         "canonicalLineage": snapshot.get("canonicalLineage") or {},
         "contractValidation": validation,
-        "baselineProductBundles": packages if baseline_only else [],
-        "validatedSignals": exposed_signals,
-        "productSignalPackages": exposed_signals,
+        "baselineProductBundles": [],
+        "validatedSignals": packages,
+        "productSignalPackages": packages,
         "outputRef": f"business_output_pending_artifact:bundle_validation:{data_version or 'latest'}",
-        "rule": (
-            "Baseline bundles are validated as evidence but are not Signals and cannot "
-            "enter Agent1."
-            if baseline_only
-            else "Quality gate validates delta Signals and keeps canonical productSnapshotHash lineage."
-        ),
+        "rule": "Quality gate validates delta Signals and keeps canonical productSnapshotHash lineage.",
     }
 
 
 __all__ = [
     "STATION_ALIGNMENT_V225_VERSION",
     "CANONICAL_LINEAGE_CONTRACT",
+    "BASELINE_EVIDENCE_CONTRACT",
     "full_product_bundle_station",
     "bundle_validation_station",
 ]
