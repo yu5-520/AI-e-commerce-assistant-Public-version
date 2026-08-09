@@ -1,16 +1,16 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.09.5",
+  "version": "2026.08.09.6",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only the hash-lineage-selected first-report baseline/history and pipeline-live projection nodes; all other runtime membership, Registry, edge and special-hash changes remain fail-closed.",
+      "description": "Current repair gate: permit only the hash-lineage-selected first-report baseline/history and pipeline-live projection nodes. Graph edge changes are allowed only when at least one endpoint is inside the explicit runtime allowlist; Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
       "requireGraphHashStable": false,
       "allowRuntimeMembershipChange": false,
-      "allowEdgeChanges": false,
+      "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
         "src/services/system_product_snapshot_service.py",
@@ -45,13 +45,13 @@
       ]
     },
     "first_report_projection_repair": {
-      "description": "Exact scope for first-report canonical baseline evidence plus operator-center product-count projection. No Agent/Signal worker, Registry membership, graph edge or external-interface change is allowed.",
+      "description": "Exact scope for first-report canonical baseline evidence plus operator-center product-count projection. A direct pipeline-live to canonical-product-snapshot IMPORTS edge is allowed; no Agent/Signal worker, Registry membership or external-interface change is allowed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
       "requireGraphHashStable": false,
       "allowRuntimeMembershipChange": false,
-      "allowEdgeChanges": false,
+      "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
         "src/services/station_alignment_v225_service.py",
