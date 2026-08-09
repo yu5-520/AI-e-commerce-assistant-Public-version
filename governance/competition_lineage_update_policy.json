@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.09.9",
+  "version": "2026.08.09.10",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering and business-artifact semantic nodes. Graph edge changes are allowed only when at least one endpoint is inside the explicit runtime allowlist; Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics and frontend runtime-hash identity nodes. Graph edge changes are allowed only when at least one endpoint is inside the explicit runtime allowlist; Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -19,7 +19,9 @@
         "src/services/pipeline_live_read_model_v2258_service.py",
         "src/services/pipeline_live_read_model_v225_service.py",
         "src/services/station_contract_service.py",
-        "src/services/station_business_artifact_service.py"
+        "src/services/station_business_artifact_service.py",
+        "src/services/frontend_view_artifact_v2259_service.py",
+        "web_demo/core/hash-view-client-v2259.js"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
@@ -109,6 +111,23 @@
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
         "src/services/station_business_artifact_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "frontend_runtime_hash_invalidation": {
+      "description": "Field-registry anchored frontend cache repair. dataVersion remains data identity, runtimeStateHash becomes mutable execution identity, and immutable module/manifest Artifacts remain content-addressed. Only the frontend materializer and hash-view client may change in production Runtime.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/frontend_view_artifact_v2259_service.py",
+        "web_demo/core/hash-view-client-v2259.js"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
