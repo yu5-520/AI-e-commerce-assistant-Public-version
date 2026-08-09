@@ -203,13 +203,17 @@ jobs:
           test -n "$BASELINE_ROOT"
           test -f "$BASELINE_ROOT/scripts/compile_competition_lineage.py"
           "$PYTHON_BIN" -m py_compile "$BASELINE_ROOT/scripts/compile_competition_lineage.py"
+          BASE_OUTPUT="$BASELINE_ROOT/dist/competition-lineage-baseline"
+          rm -rf "$BASE_OUTPUT" dist/competition-lineage-baseline
           (
             cd "$BASELINE_ROOT"
             "$PYTHON_BIN" scripts/compile_competition_lineage.py \
               --root "$BASELINE_ROOT" \
               --source-commit "$COMPETITION_BASELINE_COMMIT" \
-              --output-dir "$GITHUB_WORKSPACE/dist/competition-lineage-baseline"
+              --output-dir dist/competition-lineage-baseline
           ) | tee dist/competition-lineage-baseline-summary.json
+          test -d "$BASE_OUTPUT"
+          cp -a "$BASE_OUTPUT" dist/competition-lineage-baseline
 
       - name: Verify BASE to TARGET hash-lineage update scope
         run: |
