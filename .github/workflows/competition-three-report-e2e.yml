@@ -19,6 +19,8 @@ on:
       - 'scripts/run_competition_three_report_e2e_compat.py'
       - 'scripts/run_competition_three_report_e2e_history_warmup.py'
       - 'scripts/verify_competition_recovery_behavior.py'
+      - 'scripts/verify_competition_era_recovery_contract.py'
+      - 'scripts/finalize_competition_recovery_verification.py'
       - 'release/**'
       - 'requirements.lock'
       - 'VERSION.md'
@@ -81,6 +83,8 @@ jobs:
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
           test -f "$EXTRACTED/scripts/run_competition_three_report_e2e_history_warmup.py"
           test -f "$EXTRACTED/scripts/verify_competition_recovery_behavior.py"
+          test -f "$EXTRACTED/scripts/verify_competition_era_recovery_contract.py"
+          test -f "$EXTRACTED/scripts/finalize_competition_recovery_verification.py"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
           printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
@@ -102,7 +106,9 @@ jobs:
             scripts/run_competition_three_report_e2e.py \
             scripts/run_competition_three_report_e2e_compat.py \
             scripts/run_competition_three_report_e2e_history_warmup.py \
-            scripts/verify_competition_recovery_behavior.py
+            scripts/verify_competition_recovery_behavior.py \
+            scripts/verify_competition_era_recovery_contract.py \
+            scripts/finalize_competition_recovery_verification.py
           "$COMPETITION_TOOL_PYTHON" -m json.tool fixtures/competition/three_report_scenario.json >/dev/null
           "$COMPETITION_TOOL_PYTHON" -m json.tool governance/competition_misrouted_fix_recovery_v1.json >/dev/null
 
@@ -149,7 +155,7 @@ jobs:
           )"
           [ -x "$RUNTIME_PYTHON" ]
           test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
-          "$RUNTIME_PYTHON" -c 'import uvicorn, fastapi'
+          "$RUNTIME_PYTHON" -c 'import uvicorn, fastapi, openpyxl'
           RUNTIME_LAUNCHER="$GITHUB_WORKSPACE/dist/competition-three-report-e2e/runtime-python-launcher.sh"
           cat > "$RUNTIME_LAUNCHER" <<EOF
           #!/usr/bin/env bash
@@ -159,6 +165,13 @@ jobs:
           test "$($RUNTIME_LAUNCHER -c 'import platform; print(platform.python_version())')" = "3.11.9"
           printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
           printf 'COMPETITION_RUNTIME_LAUNCHER=%s\n' "$RUNTIME_LAUNCHER" >> "$GITHUB_ENV"
+
+      - name: Verify ERA 10x3 sample and canonical history recovery
+        run: |
+          set -euo pipefail
+          "$COMPETITION_RUNTIME_PYTHON" scripts/verify_competition_era_recovery_contract.py \
+            --output dist/competition-three-report-e2e/era-recovery-contract.json \
+            2>&1 | tee dist/competition-three-report-e2e/era-recovery-summary.log
 
       - name: Run fixed three-report full business chain
         run: |
@@ -188,6 +201,15 @@ jobs:
             --output dist/competition-three-report-e2e/recovery-behavior-verification.json \
             2>&1 | tee dist/competition-three-report-e2e/recovery-behavior-summary.log
 
+      - name: Finalize complete recovery evidence
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" scripts/finalize_competition_recovery_verification.py \
+            --behavior dist/competition-three-report-e2e/recovery-behavior-verification.json \
+            --era dist/competition-three-report-e2e/era-recovery-contract.json \
+            --output dist/competition-three-report-e2e/recovery-complete-verification.json \
+            2>&1 | tee dist/competition-three-report-e2e/recovery-complete-summary.log
+
       - name: Verify E2E evidence boundary
         if: success()
         run: |
@@ -203,6 +225,12 @@ jobs:
           recovery = json.loads(
               Path('dist/competition-three-report-e2e/recovery-behavior-verification.json').read_text(encoding='utf-8')
           )
+          era = json.loads(
+              Path('dist/competition-three-report-e2e/era-recovery-contract.json').read_text(encoding='utf-8')
+          )
+          complete = json.loads(
+              Path('dist/competition-three-report-e2e/recovery-complete-verification.json').read_text(encoding='utf-8')
+          )
           assert report.get('schema') == 'competition.three_report_e2e.v1', report
           assert report.get('verified') is True, report.get('errors')
           assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
@@ -214,24 +242,28 @@ jobs:
           assert (report.get('replayCheck') or {}).get('additionalProviderCalls') == 0, report
           assert (report.get('freshUploadProbe') or {}).get('verified') is True, report.get('freshUploadProbe')
           assert (report.get('workerHandoffProbe') or {}).get('verified') is True, report.get('workerHandoffProbe')
-          assert recovery.get('schema') == 'competition.recovery_behavior_verification.v1', recovery
           assert recovery.get('verified') is True, recovery.get('failedRequirementIds')
-          assert recovery.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], recovery
+          assert era.get('verified') is True, era
+          assert [item.get('operatingUnitCount') for item in era.get('periods') or []] == [30, 30, 30], era
+          assert [item.get('globalProductCount') for item in era.get('periods') or []] == [10, 10, 10], era
+          assert [item.get('storeCount') for item in era.get('periods') or []] == [3, 3, 3], era
+          assert (era.get('canonicalHistory') or {}).get('verified') is True, era
+          assert complete.get('verified') is True, complete.get('failedRequirementIds')
+          assert complete.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], complete
+          assert complete.get('motherRepairCodeMigrationRequired') is False, complete
+          assert complete.get('motherDeploymentImplementationMigrationAllowed') is False, complete
           print(json.dumps({
-              'verified': report['verified'],
-              'sourceCommit': report['sourceCommit'],
-              'scenarioId': report['scenarioId'],
-              'latestDataVersion': report['latestDataVersion'],
-              'taskCount': report['views']['taskCount'],
-              'providerStageCounts': report['replayCheck']['before']['stageCounts'],
+              'verified': complete['verified'],
+              'sourceCommit': complete['sourceCommit'],
+              'decision': complete['decision'],
+              'recoveryCompleteHash': complete['recoveryCompleteHash'],
+              'eraRecoveryHash': era['eraRecoveryHash'],
               'freshUploadProbe': report['freshUploadProbe'],
               'workerHandoffProbe': report['workerHandoffProbe'],
-              'recoveryBehaviorHash': recovery['behaviorHash'],
-              'recoveryRequirements': {
+              'requirements': {
                   key: value.get('status')
-                  for key, value in recovery['requirements'].items()
+                  for key, value in complete['requirements'].items()
               },
-              'verificationHash': report['verificationHash'],
               'realBailianRunStillRequired': report['realBailianRunStillRequired'],
           }, ensure_ascii=False, sort_keys=True))
           PY
