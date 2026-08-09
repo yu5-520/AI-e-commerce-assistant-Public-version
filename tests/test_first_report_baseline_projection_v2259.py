@@ -184,3 +184,110 @@ def test_pipeline_live_current_projection_binds_to_active_import_runtime(monkeyp
     assert result["activeDataVersionGate"] == "open_active_import_runtime"
     assert result["requestedDataVersion"] == "DV-STALE-REQUEST"
     assert result["summary"]["productTotal"] == 30
+
+
+def test_baseline_bundle_contract_accepts_zero_signal_before_transport_artifact_exists():
+    from src.services.station_contract_service import validate_contract_payload
+
+    payload = {
+        "productSignalPackageCount": 0,
+        "baselineProductBundleCount": 30,
+        "signalEligibility": False,
+        "baselineGate": "closed_before_signal_engine",
+        "contractValidation": {
+            "ok": True,
+            "status": "passed",
+            "packageCount": 30,
+            "signalContractRequired": False,
+        },
+        "outputRef": "business_output_pending_artifact:full_product_bundle:DV-FIRST",
+    }
+    check = validate_contract_payload(
+        "full_product_bundle_station",
+        payload,
+        direction="output",
+    )
+
+    assert check["status"] == "passed"
+    assert check["missing"] == []
+    assert "fullProductBundleRef" not in check["required"]
+    assert "baselineProductBundleCount" in check["required"]
+
+
+def test_baseline_validation_contract_accepts_zero_validated_signal_before_transport_artifact_exists():
+    from src.services.station_contract_service import validate_contract_payload
+
+    payload = {
+        "bundleCount": 30,
+        "baselineProductBundleCount": 30,
+        "validatedSignalCount": 0,
+        "validationStatus": "passed",
+        "signalEligibility": False,
+        "baselineGate": "closed_before_signal_engine",
+        "contractValidation": {
+            "ok": True,
+            "status": "passed",
+            "packageCount": 30,
+            "signalContractRequired": False,
+        },
+        "outputRef": "business_output_pending_artifact:bundle_validation:DV-FIRST",
+    }
+    check = validate_contract_payload(
+        "bundle_validation_station",
+        payload,
+        direction="output",
+    )
+
+    assert check["status"] == "passed"
+    assert check["missing"] == []
+    assert "validatedBundleRef" not in check["required"]
+    assert "validatedSignalCount" in check["required"]
+
+
+def test_baseline_admission_contract_accepts_zero_signal_and_agent1_without_admission_ref():
+    from src.services.station_contract_service import validate_contract_payload
+
+    payload = {
+        "businessOutputType": "baseline_history_gate_closed",
+        "validatedBundleArtifactRef": "ART-VALIDATED-BASELINE",
+        "signalEligibility": False,
+        "baselineGate": "closed_before_signal_engine",
+        "fullSignalCount": 0,
+        "generatedSignalCount": 0,
+        "qualifiedSignalCount": 0,
+        "candidateProductCount": 0,
+        "admittedSignalCount": 0,
+        "observedSignalCount": 0,
+        "agent1PendingItemCount": 0,
+        "outputRef": "business_output_pending_artifact:baseline_admission:DV-FIRST",
+    }
+    check = validate_contract_payload(
+        "product_signal_admission_station",
+        payload,
+        direction="output",
+    )
+
+    assert check["status"] == "passed"
+    assert check["missing"] == []
+    assert "admissionRef" not in check["required"]
+    assert "agent1PendingItemCount" in check["required"]
+
+
+def test_bundle_contract_still_fails_closed_when_business_evidence_validation_is_missing():
+    from src.services.station_contract_service import validate_contract_payload
+
+    payload = {
+        "productSignalPackageCount": 0,
+        "baselineProductBundleCount": 30,
+        "signalEligibility": False,
+        "baselineGate": "closed_before_signal_engine",
+        "outputRef": "business_output_pending_artifact:full_product_bundle:DV-FIRST",
+    }
+    check = validate_contract_payload(
+        "full_product_bundle_station",
+        payload,
+        direction="output",
+    )
+
+    assert check["status"] == "failed"
+    assert check["missing"] == ["contractValidation"]

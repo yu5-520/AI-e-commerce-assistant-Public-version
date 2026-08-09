@@ -1,4 +1,10 @@
-"""V22 strict station contracts for the single governed runtime."""
+"""V22 strict station contracts for the single governed runtime.
+
+Business station contracts validate the adapter's business output. Immutable
+``ART-`` transport references are created by ``station_queue_service`` only after
+that business contract passes, so those post-contract transport refs must never be
+required as adapter output fields.
+"""
 from __future__ import annotations
 
 import importlib
@@ -57,15 +63,41 @@ DEFAULT_OUTPUTS = {
     "report_fact_station": ["productFactCount", "factNamespaceStatus", "factRef", "outputRef"],
     "product_master_station": ["productMasterCount", "productMasterRef", "outputRef"],
     "product_metric_snapshot_station": ["productMetricSnapshotCount", "productMetricSnapshotRef", "outputRef"],
-    "full_product_bundle_station": ["productSignalPackageCount", "fullProductBundleRef", "outputRef"],
-    "bundle_validation_station": ["bundleCount", "validationStatus", "validatedBundleRef", "outputRef"],
+    # The queue writes the immutable fullProductBundleRef only after this contract
+    # passes. Validate baseline/delta-neutral business fields instead.
+    "full_product_bundle_station": [
+        "productSignalPackageCount",
+        "baselineProductBundleCount",
+        "signalEligibility",
+        "baselineGate",
+        "contractValidation",
+        "outputRef",
+    ],
+    # validatedBundleRef is likewise a post-contract Artifact-Hub transport ref.
+    "bundle_validation_station": [
+        "bundleCount",
+        "baselineProductBundleCount",
+        "validatedSignalCount",
+        "validationStatus",
+        "signalEligibility",
+        "baselineGate",
+        "contractValidation",
+        "outputRef",
+    ],
+    # admissionRef is produced by the queue after admission business output passes;
+    # zero Signal/Agent counts are valid for a first-report historical gate closure.
     "product_signal_admission_station": [
+        "businessOutputType",
+        "validatedBundleArtifactRef",
+        "signalEligibility",
+        "baselineGate",
         "fullSignalCount",
+        "generatedSignalCount",
         "qualifiedSignalCount",
+        "candidateProductCount",
         "admittedSignalCount",
         "observedSignalCount",
         "agent1PendingItemCount",
-        "admissionRef",
         "outputRef",
     ],
     "product_judgment_agent_station": ["agentJudgmentCount", "pendingItemCount", "outputRef"],
@@ -171,7 +203,10 @@ def station_contract(station_id: str) -> Dict[str, Any]:
             "realAdapterSupported": sid in REAL_ADAPTERS,
             "diagnosticUsesSimulation": True,
         },
-        "rule": "V22 validates exact inputs and outputs; missing fields fail closed.",
+        "rule": (
+            "V22 validates exact business outputs; post-contract Artifact-Hub "
+            "transport refs are created by the station queue, never fabricated by adapters."
+        ),
     }
 
 
@@ -361,7 +396,7 @@ def run_station_contract(
         "adapterVersion": VERSION,
         "adapterError": adapter_error,
         "nextStation": station.get("nextStation"),
-        "rule": "V22 records completion only after the real adapter and strict output contract both pass.",
+        "rule": "V22 records completion only after the real adapter and strict business output contract both pass; transport Artifact refs are persisted afterward.",
     }
 
 
