@@ -1,13 +1,20 @@
-"""V22.5.8 pipeline-live projection with Agent1 failure truth and product de-duplication."""
+"""V22.5.9 pipeline-live projection with canonical inventory truth.
+
+Pipeline-item rows represent Signal/Agent work, not the complete operating inventory.
+The product total therefore comes from the canonical product snapshot while current
+Signal/Agent counts continue to come from persisted pipeline items. This keeps a
+first-report baseline visible as products without inventing Signals or Agent1 work.
+"""
 from __future__ import annotations
 
 from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect
 from src.services import pipeline_live_read_model_v208_service as legacy
+from src.services.canonical_product_snapshot_service import get_product_snapshot
 
 THREE_AGENT_PIPELINE_VERSION = "22.5.5"
-PIPELINE_LIVE_READ_MODEL_VERSION = "22.5.8"
+PIPELINE_LIVE_READ_MODEL_VERSION = "22.5.9"
 
 _NODE_CONTRACT = [
     ("data_platform", "数据中台"),
@@ -168,6 +175,25 @@ def _current_rows(data_version: str | None) -> List[Dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def _canonical_product_count(data_version: str | None) -> int:
+    """Return operating-unit truth from the canonical product snapshot.
+
+    Pipeline items are intentionally sparse because only admitted/observed Signals
+    become pipeline work. They must never redefine the complete product inventory.
+    """
+    try:
+        snapshot = get_product_snapshot(data_version)
+    except Exception:
+        snapshot = None
+    if not isinstance(snapshot, dict):
+        return 0
+    count = _int(snapshot.get("productCount"))
+    if count > 0:
+        return count
+    products = snapshot.get("products")
+    return len(products) if isinstance(products, list) else 0
+
+
 def _identity(row: Dict[str, Any]) -> str:
     return f"{str(row.get('store_id') or '')}::{str(row.get('product_id') or row.get('item_id') or '')}"
 
@@ -237,6 +263,8 @@ def read_pipeline_live_model(
     for row in rows:
         unique_rows.setdefault(_identity(row), row)
     current = list(unique_rows.values())
+    canonical_product_count = _canonical_product_count(resolved)
+    product_total = max(len(current), canonical_product_count)
 
     raw_stages = result.get("stages") if isinstance(result.get("stages"), list) else []
     stages: List[Dict[str, Any]] = []
@@ -284,12 +312,18 @@ def read_pipeline_live_model(
 
     summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
     summary.update(
-        productTotal=len(current),
+        totalItems=product_total,
+        productCount=product_total,
+        productTotal=product_total,
+        canonicalProductCount=canonical_product_count,
         observed=observed,
         actionCandidates=action_candidates,
         productFailed=product_failed,
         batchFailed=batch_failed,
         failed=product_failed + batch_failed,
+        baselineEstablished=(
+            product_total if result.get("baselineOnly") is True else _int(summary.get("baselineEstablished"))
+        ),
         agent1Failed=agent1_failed,
         agent1OutputInvalid=agent1_invalid,
         agent1DecisionUnresolved=agent1_unresolved,
@@ -311,17 +345,21 @@ def read_pipeline_live_model(
         items=_deduplicated_attention(rows, limit),
         pipelineNodes=[{"nodeCode": code, "label": label} for code, label in _NODE_CONTRACT],
         attentionDedupKey="dataVersion+storeId+productId",
+        productTruthSource="canonical_product_snapshot + pipeline_items artifactRefs",
+        countBasis="canonical inventory plus current sparse Signal/Agent work",
         countContract={
-            "productTotal": "unique current product identities",
-            "observed": "current legal observation products",
-            "productFailed": "unique current failed products",
+            "productTotal": "canonical current operating-unit identities",
+            "canonicalProductCount": "canonical product snapshot productCount",
+            "observed": "current legal observation Signal products",
+            "productFailed": "unique current failed Signal/Agent products",
             "agent1Failed": "current agent1_failed products",
             "agent1OutputInvalid": "current agent1_output_invalid products",
-            "attentionItems": "latest current row per storeId+productId",
+            "attentionItems": "latest current pipeline row per storeId+productId",
         },
         rule=(
-            "Provider, input evidence, output normalization and execution-lock failures "
-            "remain separate; attention items are unique current products."
+            "Canonical snapshot owns complete product inventory; pipeline items own only "
+            "Signal/Agent execution state. A first-report baseline may therefore show "
+            "products while Signal and Agent1 remain zero."
         ),
     )
     return result
