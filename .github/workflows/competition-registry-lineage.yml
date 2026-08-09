@@ -100,7 +100,9 @@ jobs:
 
           test -f "$TARGET_EXTRACTED/scripts/compile_competition_lineage.py"
           test -f "$TARGET_EXTRACTED/scripts/verify_competition_lineage_update.py"
+          test -f "$TARGET_EXTRACTED/scripts/plan_competition_recovery_scope.py"
           test -f "$TARGET_EXTRACTED/governance/competition_lineage_update_policy.json"
+          test -f "$TARGET_EXTRACTED/governance/competition_misrouted_fix_recovery_v1.json"
           test -f "$BASE_EXTRACTED/scripts/compile_competition_lineage.py"
 
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
@@ -173,14 +175,25 @@ jobs:
           rm -rf dist/competition-lineage dist/competition-lineage-baseline
           rm -f dist/competition-lineage-summary.json dist/competition-lineage-baseline-summary.json
           rm -f dist/competition-lineage-update-report.json dist/competition-lineage-update-summary.json
+          rm -f dist/competition-recovery-scope-plan.json dist/competition-recovery-scope-summary.json
           "$PYTHON_BIN" -m py_compile \
             scripts/compile_competition_lineage.py \
-            scripts/verify_competition_lineage_update.py
+            scripts/verify_competition_lineage_update.py \
+            scripts/plan_competition_recovery_scope.py
           mkdir -p dist
           "$PYTHON_BIN" scripts/compile_competition_lineage.py \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --output-dir dist/competition-lineage \
             | tee dist/competition-lineage-summary.json
+
+      - name: Plan misplaced competition fixes from TARGET lineage
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" scripts/plan_competition_recovery_scope.py \
+            --recovery governance/competition_misrouted_fix_recovery_v1.json \
+            --lineage-dir dist/competition-lineage \
+            --output dist/competition-recovery-scope-plan.json \
+            | tee dist/competition-recovery-scope-summary.json
 
       - name: Compile BASE registry and hash lineage
         env:
@@ -222,6 +235,7 @@ jobs:
             test -s "$evidence_dir/runtime-files.sha256"
           done
           "$PYTHON_BIN" -m json.tool dist/competition-lineage-update-report.json >/dev/null
+          "$PYTHON_BIN" -m json.tool dist/competition-recovery-scope-plan.json >/dev/null
           "$PYTHON_BIN" - <<'PY'
           import json
           import os
@@ -236,6 +250,9 @@ jobs:
           update = json.loads(
               Path('dist/competition-lineage-update-report.json').read_text(encoding='utf-8')
           )
+          recovery = json.loads(
+              Path('dist/competition-recovery-scope-plan.json').read_text(encoding='utf-8')
+          )
           assert target.get('verified') is True, target.get('findings')
           assert baseline.get('verified') is True, baseline.get('findings')
           assert target.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], target
@@ -244,6 +261,8 @@ jobs:
           assert target.get('registryModuleCount') == 9, target
           assert target.get('shadowEntrypoints') == [], target
           assert update.get('verified') is True, update.get('findings')
+          assert recovery.get('verified') is True, recovery.get('findings')
+          assert recovery.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], recovery
           print(json.dumps({
               'verified': update['verified'],
               'profile': update['profile'],
@@ -258,6 +277,15 @@ jobs:
               'changedRuntimeFiles': update['changedRuntimeFiles'],
               'changedRegistryModules': update['changedRegistryModules'],
               'updateHash': update['updateHash'],
+              'recoveryPlanHash': recovery['planHash'],
+              'recoveryRequirements': [
+                  {
+                      'id': item['id'],
+                      'status': item['structuralStatus'],
+                      'candidateRuntimePathCount': len(item['candidateRuntimePaths']),
+                  }
+                  for item in recovery['requirements']
+              ],
           }, ensure_ascii=False, sort_keys=True))
           PY
 
@@ -273,5 +301,7 @@ jobs:
             dist/competition-lineage-baseline-summary.json
             dist/competition-lineage-update-report.json
             dist/competition-lineage-update-summary.json
+            dist/competition-recovery-scope-plan.json
+            dist/competition-recovery-scope-summary.json
           if-no-files-found: error
           retention-days: 14
