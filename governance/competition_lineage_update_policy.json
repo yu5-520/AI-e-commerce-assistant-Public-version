@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.09.7",
+  "version": "2026.08.09.8",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only the hash-lineage-selected first-report baseline/history and pipeline-live projection nodes. Graph edge changes are allowed only when at least one endpoint is inside the explicit runtime allowlist; Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only the hash-lineage-selected first-report baseline/history, pipeline-live projection and strict station-contract ordering nodes. Graph edge changes are allowed only when at least one endpoint is inside the explicit runtime allowlist; Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -17,7 +17,8 @@
         "src/services/station_alignment_v225_service.py",
         "src/services/artifact_signal_admission_v225_service.py",
         "src/services/pipeline_live_read_model_v2258_service.py",
-        "src/services/pipeline_live_read_model_v225_service.py"
+        "src/services/pipeline_live_read_model_v225_service.py",
+        "src/services/station_contract_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
@@ -75,6 +76,22 @@
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
         "src/services/pipeline_live_read_model_v225_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "baseline_artifact_contract_ordering": {
+      "description": "Exact strict-contract ordering repair. Business station outputs are validated before station_queue persists immutable ART transport references. Only station_contract_service may change; no Runtime membership, Registry membership, graph edge, Signal/Agent worker or external-interface change is allowed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/station_contract_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
