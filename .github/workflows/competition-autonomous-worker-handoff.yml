@@ -121,7 +121,14 @@ jobs:
           [ -x "$RUNTIME_PYTHON" ]
           test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
           "$RUNTIME_PYTHON" -c 'import uvicorn, fastapi, openpyxl'
-          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+          RUNTIME_LAUNCHER="$GITHUB_WORKSPACE/dist/competition-autonomous-worker/runtime-python-launcher.sh"
+          cat > "$RUNTIME_LAUNCHER" <<EOF
+          #!/usr/bin/env bash
+          exec "$RUNTIME_PYTHON" "\$@"
+          EOF
+          chmod +x "$RUNTIME_LAUNCHER"
+          test "$($RUNTIME_LAUNCHER -c 'import uvicorn, platform; print(platform.python_version())')" = "3.11.9"
+          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_LAUNCHER" >> "$GITHUB_ENV"
 
       - name: Run page-like autonomous worker probe
         run: |
