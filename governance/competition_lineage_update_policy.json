@@ -1,0 +1,35 @@
+{
+  "schema": "competition.lineage_update_policy.v1",
+  "version": "2026.08.09.1",
+  "defaultProfile": "governance_bootstrap",
+  "profiles": {
+    "governance_bootstrap": {
+      "description": "Hash-lineage update-controller changes must not alter the competition runtime closure or graph.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": true,
+      "requireGraphHashStable": true,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "scoped_runtime_change": {
+      "description": "Fail-closed template for a future graph-scoped runtime update. Populate explicit runtime path/module/node allowlists before use.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": true,
+      "allowedRuntimePathPrefixes": [],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    }
+  }
+}
