@@ -8,6 +8,7 @@ on:
       - 'config/**'
       - 'contracts/**'
       - 'fixtures/competition/**'
+      - 'governance/competition_misrouted_fix_recovery_v1.json'
       - 'scripts/compile_competition_lineage.py'
       - 'scripts/build_competition_runtime_package.py'
       - 'scripts/verify_competition_runtime_package.py'
@@ -17,6 +18,7 @@ on:
       - 'scripts/run_competition_three_report_e2e.py'
       - 'scripts/run_competition_three_report_e2e_compat.py'
       - 'scripts/run_competition_three_report_e2e_history_warmup.py'
+      - 'scripts/verify_competition_recovery_behavior.py'
       - 'release/**'
       - 'requirements.lock'
       - 'VERSION.md'
@@ -78,6 +80,7 @@ jobs:
           test -s "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
           test -f "$EXTRACTED/scripts/run_competition_three_report_e2e_history_warmup.py"
+          test -f "$EXTRACTED/scripts/verify_competition_recovery_behavior.py"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
           printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
@@ -98,8 +101,10 @@ jobs:
             scripts/competition_e2e_compat_runtime/competition_contract_fixture_provider.py \
             scripts/run_competition_three_report_e2e.py \
             scripts/run_competition_three_report_e2e_compat.py \
-            scripts/run_competition_three_report_e2e_history_warmup.py
+            scripts/run_competition_three_report_e2e_history_warmup.py \
+            scripts/verify_competition_recovery_behavior.py
           "$COMPETITION_TOOL_PYTHON" -m json.tool fixtures/competition/three_report_scenario.json >/dev/null
+          "$COMPETITION_TOOL_PYTHON" -m json.tool governance/competition_misrouted_fix_recovery_v1.json >/dev/null
 
       - name: Compile registry and exact hash lineage
         run: |
@@ -173,6 +178,16 @@ jobs:
             --output dist/competition-three-report-e2e/three-report-e2e-attestation.json \
             2>&1 | tee dist/competition-three-report-e2e/three-report-e2e-summary.log
 
+      - name: Verify misplaced-fix recovery behavior
+        run: |
+          set -euo pipefail
+          "$COMPETITION_RUNTIME_PYTHON" scripts/verify_competition_recovery_behavior.py \
+            --attestation dist/competition-three-report-e2e/three-report-e2e-attestation.json \
+            --recovery governance/competition_misrouted_fix_recovery_v1.json \
+            --source-root "$GITHUB_WORKSPACE" \
+            --output dist/competition-three-report-e2e/recovery-behavior-verification.json \
+            2>&1 | tee dist/competition-three-report-e2e/recovery-behavior-summary.log
+
       - name: Verify E2E evidence boundary
         if: success()
         run: |
@@ -185,6 +200,9 @@ jobs:
           report = json.loads(
               Path('dist/competition-three-report-e2e/three-report-e2e-attestation.json').read_text(encoding='utf-8')
           )
+          recovery = json.loads(
+              Path('dist/competition-three-report-e2e/recovery-behavior-verification.json').read_text(encoding='utf-8')
+          )
           assert report.get('schema') == 'competition.three_report_e2e.v1', report
           assert report.get('verified') is True, report.get('errors')
           assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], report
@@ -194,6 +212,11 @@ jobs:
           assert len(report.get('imports') or []) == 3, report
           assert all((report.get('assertions') or {}).values()), report.get('assertions')
           assert (report.get('replayCheck') or {}).get('additionalProviderCalls') == 0, report
+          assert (report.get('freshUploadProbe') or {}).get('verified') is True, report.get('freshUploadProbe')
+          assert (report.get('workerHandoffProbe') or {}).get('verified') is True, report.get('workerHandoffProbe')
+          assert recovery.get('schema') == 'competition.recovery_behavior_verification.v1', recovery
+          assert recovery.get('verified') is True, recovery.get('failedRequirementIds')
+          assert recovery.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT'], recovery
           print(json.dumps({
               'verified': report['verified'],
               'sourceCommit': report['sourceCommit'],
@@ -201,6 +224,13 @@ jobs:
               'latestDataVersion': report['latestDataVersion'],
               'taskCount': report['views']['taskCount'],
               'providerStageCounts': report['replayCheck']['before']['stageCounts'],
+              'freshUploadProbe': report['freshUploadProbe'],
+              'workerHandoffProbe': report['workerHandoffProbe'],
+              'recoveryBehaviorHash': recovery['behaviorHash'],
+              'recoveryRequirements': {
+                  key: value.get('status')
+                  for key, value in recovery['requirements'].items()
+              },
               'verificationHash': report['verificationHash'],
               'realBailianRunStillRequired': report['realBailianRunStillRequired'],
           }, ensure_ascii=False, sort_keys=True))
@@ -219,5 +249,6 @@ jobs:
             dist/competition-lineage/evidence-manifest.json
             dist/competition-lineage/verification-report.json
             fixtures/competition/three_report_scenario.json
+            governance/competition_misrouted_fix_recovery_v1.json
           if-no-files-found: warn
           retention-days: 14
