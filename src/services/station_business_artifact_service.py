@@ -1,4 +1,15 @@
-"""Persist validated station business output as the pipeline's authoritative artifact."""
+"""Persist validated station business output as the pipeline's authoritative artifact.
+
+V22.2.6 closes the last first-report artifact gap by validating *semantic mode*
+rather than assuming every evidence bundle is already a Signal bundle. The field
+semantics are governed by the hash-anchored registry overlay used by the competition
+lineage gate:
+
+- first report: canonical baseline evidence is valid while Signal/Agent counts stay 0;
+- comparable report: Signal eligibility may open, but no positive minimum Signal
+  count is invented;
+- immutable ART references are still written only after this business validation.
+"""
 from __future__ import annotations
 
 from typing import Any, Dict, List
@@ -9,7 +20,7 @@ from src.services.pipeline_item_service import (
     upsert_pipeline_item,
 )
 
-STATION_BUSINESS_ARTIFACT_VERSION = "22.2.5"
+STATION_BUSINESS_ARTIFACT_VERSION = "22.2.6"
 
 STATION_TO_STAGE = {
     "report_receive_station": "data_received",
@@ -32,6 +43,15 @@ _RUNTIME_ONLY_FIELDS = {
     "pipelineInterfaceMode",
 }
 
+BASELINE_FULL_BUNDLE_TYPE = "baseline_product_bundle"
+DELTA_FULL_BUNDLE_TYPE = "full_product_signal_snapshot"
+BASELINE_VALIDATED_BUNDLE_TYPE = "validated_baseline_product_bundle"
+DELTA_VALIDATED_BUNDLE_TYPE = "validated_product_signal_snapshot"
+BASELINE_ADMISSION_TYPE = "baseline_history_gate_closed"
+DELTA_ADMISSION_TYPE = "artifact_signal_admission"
+BASELINE_GATE_CLOSED = "closed_before_signal_engine"
+DELTA_GATE_OPEN = "open_after_previous_snapshot"
+
 
 def business_output_payload(output: Dict[str, Any]) -> Dict[str, Any]:
     return {
@@ -41,42 +61,203 @@ def business_output_payload(output: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except Exception:
+        return 0
+
+
+def _require_list(output: Dict[str, Any], key: str, missing: List[str]) -> List[Any]:
+    value = output.get(key)
+    if not isinstance(value, list):
+        missing.append(key)
+        return []
+    return value
+
+
+def _require_contract_validation(output: Dict[str, Any], missing: List[str]) -> Dict[str, Any]:
+    validation = output.get("contractValidation") if isinstance(output.get("contractValidation"), dict) else {}
+    if validation.get("ok") is not True:
+        missing.append("contractValidation.ok")
+    return validation
+
+
+def _require_signal_gate(
+    output: Dict[str, Any],
+    *,
+    eligible: bool,
+    gate: str,
+    missing: List[str],
+) -> None:
+    if output.get("signalEligibility") is not eligible:
+        missing.append(f"signalEligibility={str(eligible).lower()}")
+    if output.get("baselineGate") != gate:
+        missing.append(f"baselineGate={gate}")
+
+
+def _validate_full_product_bundle(output: Dict[str, Any], missing: List[str]) -> None:
+    output_type = str(output.get("businessOutputType") or "")
+    _require_contract_validation(output, missing)
+
+    if output_type == BASELINE_FULL_BUNDLE_TYPE:
+        baseline_bundles = _require_list(output, "baselineProductBundles", missing)
+        signal_packages = _require_list(output, "productSignalPackages", missing)
+        baseline_count = _int(output.get("baselineProductBundleCount"))
+        signal_count = _int(output.get("productSignalPackageCount"))
+        if baseline_count <= 0:
+            missing.append("baselineProductBundleCount>0")
+        if len(baseline_bundles) != baseline_count:
+            missing.append("baselineProductBundles.count")
+        if signal_count != 0 or signal_packages:
+            missing.append("baseline.productSignalPackageCount=0")
+        _require_signal_gate(
+            output,
+            eligible=False,
+            gate=BASELINE_GATE_CLOSED,
+            missing=missing,
+        )
+        return
+
+    if output_type == DELTA_FULL_BUNDLE_TYPE:
+        signal_packages = _require_list(output, "productSignalPackages", missing)
+        signal_count = _int(output.get("productSignalPackageCount"))
+        if signal_count < 0:
+            missing.append("productSignalPackageCount>=0")
+        if len(signal_packages) != signal_count:
+            missing.append("productSignalPackages.count")
+        _require_signal_gate(
+            output,
+            eligible=True,
+            gate=DELTA_GATE_OPEN,
+            missing=missing,
+        )
+        return
+
+    missing.append(
+        "businessOutputType in {baseline_product_bundle,full_product_signal_snapshot}"
+    )
+
+
+def _validate_bundle_validation(output: Dict[str, Any], missing: List[str]) -> None:
+    output_type = str(output.get("businessOutputType") or "")
+    _require_contract_validation(output, missing)
+
+    if output_type == BASELINE_VALIDATED_BUNDLE_TYPE:
+        baseline_bundles = _require_list(output, "baselineProductBundles", missing)
+        validated = _require_list(output, "validatedSignals", missing)
+        baseline_count = _int(output.get("baselineProductBundleCount"))
+        bundle_count = _int(output.get("bundleCount"))
+        validated_count = _int(output.get("validatedSignalCount"))
+        if baseline_count <= 0:
+            missing.append("baselineProductBundleCount>0")
+        if bundle_count != baseline_count:
+            missing.append("bundleCount=baselineProductBundleCount")
+        if len(baseline_bundles) != baseline_count:
+            missing.append("baselineProductBundles.count")
+        if validated_count != 0 or validated:
+            missing.append("baseline.validatedSignalCount=0")
+        if output.get("validationStatus") != "passed":
+            missing.append("validationStatus=passed")
+        _require_signal_gate(
+            output,
+            eligible=False,
+            gate=BASELINE_GATE_CLOSED,
+            missing=missing,
+        )
+        return
+
+    if output_type == DELTA_VALIDATED_BUNDLE_TYPE:
+        validated = _require_list(output, "validatedSignals", missing)
+        bundle_count = _int(output.get("bundleCount"))
+        validated_count = _int(output.get("validatedSignalCount"))
+        if bundle_count < 0 or validated_count < 0:
+            missing.append("deltaCounts>=0")
+        if len(validated) != validated_count:
+            missing.append("validatedSignals.count")
+        if output.get("validationStatus") not in {"passed", "attention", "waiting"}:
+            missing.append("validationStatus")
+        _require_signal_gate(
+            output,
+            eligible=True,
+            gate=DELTA_GATE_OPEN,
+            missing=missing,
+        )
+        return
+
+    missing.append(
+        "businessOutputType in {validated_baseline_product_bundle,validated_product_signal_snapshot}"
+    )
+
+
+def _validate_signal_admission(output: Dict[str, Any], missing: List[str]) -> None:
+    output_type = str(output.get("businessOutputType") or "")
+    count_keys = (
+        "fullSignalCount",
+        "generatedSignalCount",
+        "qualifiedSignalCount",
+        "candidateProductCount",
+        "admittedSignalCount",
+        "observedSignalCount",
+        "agent1PendingItemCount",
+    )
+    for key in count_keys:
+        if output.get(key) is None:
+            missing.append(key)
+        elif _int(output.get(key)) < 0:
+            missing.append(f"{key}>=0")
+
+    if output_type == BASELINE_ADMISSION_TYPE:
+        _require_signal_gate(
+            output,
+            eligible=False,
+            gate=BASELINE_GATE_CLOSED,
+            missing=missing,
+        )
+        if _int(output.get("baselineProductBundleCount")) <= 0:
+            missing.append("baselineProductBundleCount>0")
+        for key in count_keys:
+            if _int(output.get(key)) != 0:
+                missing.append(f"baseline.{key}=0")
+        return
+
+    if output_type == DELTA_ADMISSION_TYPE:
+        _require_signal_gate(
+            output,
+            eligible=True,
+            gate=DELTA_GATE_OPEN,
+            missing=missing,
+        )
+        # Eligibility means permission to emit Signals, not a positive minimum.
+        return
+
+    missing.append(
+        "businessOutputType in {baseline_history_gate_closed,artifact_signal_admission}"
+    )
+
+
 def validate_business_output(station_id: str, output: Dict[str, Any]) -> Dict[str, Any]:
     missing: List[str] = []
     if not isinstance(output, dict) or not output:
         missing.append("businessOutput")
-    if station_id == "full_product_bundle_station":
-        if output.get("businessOutputType") != "full_product_signal_snapshot":
-            missing.append("businessOutputType=full_product_signal_snapshot")
-        if int(output.get("productSignalPackageCount") or 0) <= 0:
-            missing.append("productSignalPackageCount>0")
-        if not isinstance(output.get("productSignalPackages"), list):
-            missing.append("productSignalPackages")
-        validation = output.get("contractValidation") if isinstance(output.get("contractValidation"), dict) else {}
-        if validation.get("ok") is not True:
-            missing.append("contractValidation.ok")
+    elif station_id == "full_product_bundle_station":
+        _validate_full_product_bundle(output, missing)
     elif station_id == "bundle_validation_station":
-        if output.get("businessOutputType") != "validated_product_signal_snapshot":
-            missing.append("businessOutputType=validated_product_signal_snapshot")
-        if int(output.get("bundleCount") or 0) <= 0:
-            missing.append("bundleCount>0")
-        if output.get("validationStatus") not in {"passed", "attention"}:
-            missing.append("validationStatus")
-        if not isinstance(output.get("validatedSignals"), list):
-            missing.append("validatedSignals")
-        validation = output.get("contractValidation") if isinstance(output.get("contractValidation"), dict) else {}
-        if validation.get("ok") is not True:
-            missing.append("contractValidation.ok")
+        _validate_bundle_validation(output, missing)
     elif station_id == "product_signal_admission_station":
-        for key in ("fullSignalCount", "admittedSignalCount", "observedSignalCount"):
-            if output.get(key) is None:
-                missing.append(key)
+        _validate_signal_admission(output, missing)
     return {
         "version": STATION_BUSINESS_ARTIFACT_VERSION,
         "ok": not missing,
         "status": "passed" if not missing else "failed",
         "stationId": station_id,
+        "businessOutputType": output.get("businessOutputType") if isinstance(output, dict) else None,
         "missing": missing,
+        "rule": (
+            "Baseline and comparable-delta are distinct registered semantic modes; "
+            "zero Signal/Agent counts are valid when the historical gate is closed "
+            "or when an eligible comparable report produces no admissible Signal."
+        ),
     }
 
 
