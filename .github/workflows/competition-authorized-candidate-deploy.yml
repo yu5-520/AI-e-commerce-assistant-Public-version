@@ -1,0 +1,379 @@
+name: Competition Authorized Candidate Deploy
+
+on:
+  push:
+    branches:
+      - architecture/hash-lineage-update-controller-v1
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: competition-authorized-candidate-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-validated-candidate:
+    if: contains(github.event.head_commit.message, '[deploy-current-candidate]')
+    runs-on: self-hosted
+    timeout-minutes: 45
+    env:
+      # Deployment intentionally targets the already fully validated runtime candidate.
+      # The orchestration-only commit that adds this workflow is NOT the deployed code.
+      TARGET_SOURCE_COMMIT: 778bdd91b3577a3c38c8f8ad011556f523b36221
+      TARGET_RELEASE_RUN_ID: '31294942172'
+      TARGET_ARTIFACT_ID: '9032670457'
+      TARGET_ARTIFACT_NAME: release-candidate-778bdd91b3577a3c38c8f8ad011556f523b36221
+      TARGET_ARTIFACT_ZIP_SHA256: 91ce9c24657b858241ef7fc0f6c770dd9b1727da0e09829569f185b787220738
+      TARGET_BRANCH: architecture/hash-lineage-update-controller-v1
+      RELEASE_WORKFLOW_PATH: .github/workflows/release-hash-seal.yml
+      DEPLOY_EVIDENCE_DIR: dist/competition-authorized-deploy
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Materialize exact deployment controller source
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$DEPLOY_EVIDENCE_DIR"
+          ARCHIVE="${RUNNER_TEMP}/deploy-controller-${GITHUB_SHA}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/deploy-controller-${GITHUB_SHA}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          curl --fail --location --silent --show-error \
+            --connect-timeout 20 --max-time 300 \
+            -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}" \
+            -o "$ARCHIVE"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/.github/workflows/competition-authorized-candidate-deploy.yml"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$GITHUB_SHA" > "$DEPLOY_EVIDENCE_DIR/controller-source-commit.txt"
+
+      - name: Verify exact previously sealed candidate artifact
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$DEPLOY_EVIDENCE_DIR"
+          RUN_JSON="$DEPLOY_EVIDENCE_DIR/release-run.json"
+          ARTIFACT_JSON="$DEPLOY_EVIDENCE_DIR/release-artifact.json"
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${TARGET_RELEASE_RUN_ID}" \
+            -o "$RUN_JSON"
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${TARGET_ARTIFACT_ID}" \
+            -o "$ARTIFACT_JSON"
+          python3 - "$RUN_JSON" "$ARTIFACT_JSON" <<'PY'
+          import json, os, sys
+          run = json.load(open(sys.argv[1], encoding='utf-8'))
+          artifact = json.load(open(sys.argv[2], encoding='utf-8'))
+          assert str(run.get('id')) == os.environ['TARGET_RELEASE_RUN_ID'], run
+          assert run.get('head_sha') == os.environ['TARGET_SOURCE_COMMIT'], run
+          assert run.get('head_branch') == os.environ['TARGET_BRANCH'], run
+          assert run.get('event') == 'pull_request', run
+          assert run.get('status') == 'completed', run
+          assert run.get('conclusion') == 'success', run
+          assert run.get('path') == os.environ['RELEASE_WORKFLOW_PATH'], run
+          assert str(artifact.get('id')) == os.environ['TARGET_ARTIFACT_ID'], artifact
+          assert artifact.get('name') == os.environ['TARGET_ARTIFACT_NAME'], artifact
+          assert artifact.get('expired') is False, artifact
+          assert (artifact.get('workflow_run') or {}).get('head_sha') == os.environ['TARGET_SOURCE_COMMIT'], artifact
+          assert artifact.get('digest') == 'sha256:' + os.environ['TARGET_ARTIFACT_ZIP_SHA256'], artifact
+          print(json.dumps({
+              'verified': True,
+              'sourceCommit': run['head_sha'],
+              'workflowRunId': run['id'],
+              'workflowPath': run['path'],
+              'artifactId': artifact['id'],
+              'artifactName': artifact['name'],
+              'artifactDigest': artifact['digest'],
+              'candidateBranchDeploymentExplicitlyAuthorized': True,
+          }, sort_keys=True))
+          PY
+
+      - name: Download and independently open sealed candidate bundle
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARTIFACT_ZIP="${RUNNER_TEMP}/release-candidate-${TARGET_SOURCE_COMMIT}.zip"
+          ARTIFACT_DIR="${RUNNER_TEMP}/release-candidate-artifact-${TARGET_SOURCE_COMMIT}"
+          CANDIDATE_DIR="${RUNNER_TEMP}/release-candidate-extracted-${TARGET_SOURCE_COMMIT}"
+          rm -rf "$ARTIFACT_ZIP" "$ARTIFACT_DIR" "$CANDIDATE_DIR"
+          mkdir -p "$ARTIFACT_DIR" "$CANDIDATE_DIR"
+          curl --fail --location --silent --show-error \
+            --connect-timeout 20 --max-time 300 \
+            -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${TARGET_ARTIFACT_ID}/zip" \
+            -o "$ARTIFACT_ZIP"
+          test -s "$ARTIFACT_ZIP"
+          echo "${TARGET_ARTIFACT_ZIP_SHA256}  ${ARTIFACT_ZIP}" | sha256sum --check -
+          python3 -m zipfile -e "$ARTIFACT_ZIP" "$ARTIFACT_DIR"
+          mapfile -t BUNDLES < <(find "$ARTIFACT_DIR/ci-artifacts" -maxdepth 1 -type f \
+            -name "candidate-release-${TARGET_SOURCE_COMMIT}-*.tar.gz" -print | sort)
+          test "${#BUNDLES[@]}" -eq 1
+          BUNDLE_TAR="${BUNDLES[0]}"
+          tar -xzf "$BUNDLE_TAR" -C "$CANDIDATE_DIR"
+          test -f "$CANDIDATE_DIR/release/release-manifest.json"
+          test -f "$CANDIDATE_DIR/release/attestation/test-attestation.json"
+          test -f "$CANDIDATE_DIR/scripts/deploy_release.sh"
+          test -f "$CANDIDATE_DIR/scripts/runtime_service_resolver.sh"
+          python3 - "$CANDIDATE_DIR/release/release-manifest.json" \
+            "$CANDIDATE_DIR/release/attestation/test-attestation.json" <<'PY'
+          import json, os, sys
+          manifest = json.load(open(sys.argv[1], encoding='utf-8'))
+          attestation = json.load(open(sys.argv[2], encoding='utf-8'))
+          assert manifest.get('sourceCommit') == os.environ['TARGET_SOURCE_COMMIT'], manifest
+          assert attestation.get('sourceCommit') == os.environ['TARGET_SOURCE_COMMIT'], attestation
+          assert attestation.get('releaseEvent') == 'pull_request', attestation
+          assert attestation.get('deployableArtifact') is False, attestation
+          print(json.dumps({
+              'sourceCommit': manifest['sourceCommit'],
+              'releaseHash': manifest['releaseHash'],
+              'manifestHash': manifest['manifestHash'],
+              'testRunHash': manifest['testRunHash'],
+              'sealedCandidateVerified': True,
+              'formalMainOnlyTransportBypassedByExplicitUserAuthorization': True,
+          }, sort_keys=True))
+          PY
+          printf 'DEPLOY_BUNDLE=%s\n' "$BUNDLE_TAR" >> "$GITHUB_ENV"
+          printf 'DEPLOY_CANDIDATE_DIR=%s\n' "$CANDIDATE_DIR" >> "$GITHUB_ENV"
+
+      - name: Resolve ECS runtime and snapshot existing Qwen interface metadata
+        run: |
+          set -euo pipefail
+          root_exec() {
+            if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi
+          }
+          if [ "$(id -u)" -ne 0 ]; then
+            command -v sudo >/dev/null 2>&1
+            sudo -n true
+          fi
+          RESOLVER="$DEPLOY_CANDIDATE_DIR/scripts/runtime_service_resolver.sh"
+          DEPLOY_ROOT=''
+          SERVICE=''
+          for candidate_root in /opt/ai-ecommerce-assistant /root/apps/AI-e-commerce-assistant; do
+            resolved="$(root_exec bash -c "source '$RESOLVER'; resolve_ai_runtime_service '$candidate_root'" 2>/dev/null || true)"
+            if [ -n "$resolved" ]; then
+              DEPLOY_ROOT="$candidate_root"
+              SERVICE="$resolved"
+              break
+            fi
+          done
+          test -n "$DEPLOY_ROOT"
+          test -n "$SERVICE"
+          PORT="$(root_exec bash -c "source '$RESOLVER'; resolve_ai_runtime_port '$DEPLOY_ROOT' '$SERVICE'")"
+          printf 'AI_DEPLOY_ROOT=%s\n' "$DEPLOY_ROOT" >> "$GITHUB_ENV"
+          printf 'AI_DEPLOY_SERVICE=%s\n' "$SERVICE" >> "$GITHUB_ENV"
+          printf 'AI_DEPLOY_PORT=%s\n' "$PORT" >> "$GITHUB_ENV"
+
+          root_exec python3 - "$DEPLOY_ROOT" "$SERVICE" > "$DEPLOY_EVIDENCE_DIR/qwen-interface-before.json" <<'PY'
+          import hashlib, json, os, pathlib, subprocess, sys
+          root, service = sys.argv[1:3]
+          names = ('DASHSCOPE_API_KEY','BAILIAN_API_KEY','QWEN_API_KEY','LLM_API_KEY',
+                   'PRODUCT_JUDGMENT_AGENT_API_KEY','ACTION_PLAN_AGENT_API_KEY','TASK_MAPPING_AGENT_API_KEY')
+          provider_names = ('LLM_PROVIDER','PRODUCT_JUDGMENT_AGENT_PROVIDER','ACTION_PLAN_AGENT_PROVIDER','TASK_MAPPING_AGENT_PROVIDER')
+          model_names = ('LLM_MODEL','QWEN_MODEL','PRODUCT_JUDGMENT_AGENT_MODEL','ACTION_PLAN_AGENT_MODEL','TASK_MAPPING_AGENT_MODEL')
+          files = [
+              pathlib.Path('/etc/ai-ecommerce-assistant/qwen37-plus.env'),
+              pathlib.Path(root) / 'shared/.env', pathlib.Path(root) / '.env',
+          ]
+          values = {}
+          source_files = []
+          for path in files:
+              if not path.is_file(): continue
+              source_files.append(str(path))
+              for raw in path.read_text(encoding='utf-8', errors='ignore').splitlines():
+                  line = raw.strip()
+                  if not line or line.startswith('#') or '=' not in line: continue
+                  if line.startswith('export '): line = line[7:].lstrip()
+                  key, val = line.split('=',1)
+                  key, val = key.strip(), val.strip().strip('"\'')
+                  values.setdefault(key, val)
+          try:
+              pid = subprocess.check_output(['systemctl','show',service,'--property=MainPID','--value'], text=True).strip()
+              env_path = pathlib.Path('/proc') / pid / 'environ'
+              if pid.isdigit() and pid != '0' and env_path.is_file():
+                  for item in env_path.read_bytes().decode('utf-8', errors='ignore').split('\0'):
+                      if '=' in item:
+                          key, val = item.split('=',1)
+                          values[key] = val
+          except Exception:
+              pid = ''
+          secret_subset = {k: values[k] for k in names if values.get(k)}
+          secret_hash = None
+          if secret_subset:
+              secret_hash = 'sha256:' + hashlib.sha256(json.dumps(secret_subset, sort_keys=True, separators=(',',':')).encode()).hexdigest()
+          payload = {
+              'schema':'competition.ecs_qwen_binding_snapshot.v1',
+              'service': service,
+              'mainPidResolved': bool(pid),
+              'credentialVariableNames': sorted(secret_subset),
+              'credentialSetHash': secret_hash,
+              'providerMarkers': {k: values[k] for k in provider_names if values.get(k)},
+              'modelMarkers': {k: values[k] for k in model_names if values.get(k)},
+              'readableConfigurationSources': source_files,
+              'credentialValuesPublished': False,
+          }
+          print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
+          PY
+          cat "$DEPLOY_EVIDENCE_DIR/qwen-interface-before.json"
+          echo "DEPLOY_ROOT=$DEPLOY_ROOT SERVICE=$SERVICE PORT=$PORT"
+
+      - name: Deploy sealed candidate with atomic rollback protection
+        run: |
+          set -euo pipefail
+          root_exec() {
+            if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi
+          }
+          # The sealed deployment core preserves/migrates shared/.env, shared state,
+          # validates SQLite backup+schema identity, atomically switches current,
+          # restarts only the resolved service, and rolls back on any failed gate.
+          root_exec env \
+            AI_ECOMMERCE_ROOT="$AI_DEPLOY_ROOT" \
+            AI_RELEASE_BUNDLE="$DEPLOY_BUNDLE" \
+            AI_RELEASE_PYTHON=/opt/python/3.11.9/bin/python3.11 \
+            AI_RELEASE_KEEP_COUNT=2 \
+            AI_ECOMMERCE_BACKUP_KEEP_COUNT=1 \
+            bash "$DEPLOY_CANDIDATE_DIR/scripts/deploy_release.sh" "$DEPLOY_BUNDLE" \
+            2>&1 | tee "$DEPLOY_EVIDENCE_DIR/deploy-release.log"
+
+      - name: Verify live release identity and preserved ECS model binding
+        run: |
+          set -euo pipefail
+          root_exec() {
+            if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi
+          }
+          RESOLVER="$DEPLOY_CANDIDATE_DIR/scripts/runtime_service_resolver.sh"
+          SERVICE="$(root_exec bash -c "source '$RESOLVER'; resolve_ai_runtime_service '$AI_DEPLOY_ROOT'")"
+          PORT="$(root_exec bash -c "source '$RESOLVER'; resolve_ai_runtime_port '$AI_DEPLOY_ROOT' '$SERVICE'")"
+          system_active="$(root_exec systemctl is-active "$SERVICE")"
+          test "$system_active" = active
+
+          curl --fail --silent --show-error --max-time 15 \
+            "http://127.0.0.1:${PORT}/api/health" \
+            -o "$DEPLOY_EVIDENCE_DIR/live-health.json"
+          curl --fail --silent --show-error --max-time 15 \
+            "http://127.0.0.1:${PORT}/api/version" \
+            -o "$DEPLOY_EVIDENCE_DIR/live-version.json"
+          curl --fail --silent --show-error --max-time 30 \
+            "http://127.0.0.1:${PORT}/api/system/release-identity?verifyContent=false" \
+            -o "$DEPLOY_EVIDENCE_DIR/live-release-identity.json"
+
+          root_exec python3 - "$AI_DEPLOY_ROOT" "$SERVICE" > "$DEPLOY_EVIDENCE_DIR/qwen-interface-after.json" <<'PY'
+          import hashlib, json, pathlib, subprocess, sys
+          root, service = sys.argv[1:3]
+          names = ('DASHSCOPE_API_KEY','BAILIAN_API_KEY','QWEN_API_KEY','LLM_API_KEY',
+                   'PRODUCT_JUDGMENT_AGENT_API_KEY','ACTION_PLAN_AGENT_API_KEY','TASK_MAPPING_AGENT_API_KEY')
+          provider_names = ('LLM_PROVIDER','PRODUCT_JUDGMENT_AGENT_PROVIDER','ACTION_PLAN_AGENT_PROVIDER','TASK_MAPPING_AGENT_PROVIDER')
+          model_names = ('LLM_MODEL','QWEN_MODEL','PRODUCT_JUDGMENT_AGENT_MODEL','ACTION_PLAN_AGENT_MODEL','TASK_MAPPING_AGENT_MODEL')
+          values = {}
+          sources = []
+          for path in [pathlib.Path('/etc/ai-ecommerce-assistant/qwen37-plus.env'), pathlib.Path(root)/'shared/.env', pathlib.Path(root)/'.env']:
+              if not path.is_file(): continue
+              sources.append(str(path))
+              for raw in path.read_text(encoding='utf-8', errors='ignore').splitlines():
+                  line=raw.strip()
+                  if not line or line.startswith('#') or '=' not in line: continue
+                  if line.startswith('export '): line=line[7:].lstrip()
+                  key,val=line.split('=',1); values[key.strip()]=val.strip().strip('"\'')
+          try:
+              pid=subprocess.check_output(['systemctl','show',service,'--property=MainPID','--value'], text=True).strip()
+              p=pathlib.Path('/proc')/pid/'environ'
+              if pid.isdigit() and pid!='0' and p.is_file():
+                  for item in p.read_bytes().decode('utf-8',errors='ignore').split('\0'):
+                      if '=' in item:
+                          k,v=item.split('=',1); values[k]=v
+          except Exception:
+              pid=''
+          subset={k:values[k] for k in names if values.get(k)}
+          digest='sha256:'+hashlib.sha256(json.dumps(subset,sort_keys=True,separators=(',',':')).encode()).hexdigest() if subset else None
+          print(json.dumps({
+              'schema':'competition.ecs_qwen_binding_snapshot.v1',
+              'service':service,
+              'mainPidResolved':bool(pid),
+              'credentialVariableNames':sorted(subset),
+              'credentialSetHash':digest,
+              'providerMarkers':{k:values[k] for k in provider_names if values.get(k)},
+              'modelMarkers':{k:values[k] for k in model_names if values.get(k)},
+              'readableConfigurationSources':sources,
+              'credentialValuesPublished':False,
+          },ensure_ascii=False,sort_keys=True,indent=2))
+          PY
+
+          python3 - "$DEPLOY_EVIDENCE_DIR/live-health.json" \
+            "$DEPLOY_EVIDENCE_DIR/live-version.json" \
+            "$DEPLOY_EVIDENCE_DIR/live-release-identity.json" \
+            "$DEPLOY_EVIDENCE_DIR/qwen-interface-before.json" \
+            "$DEPLOY_EVIDENCE_DIR/qwen-interface-after.json" \
+            "$DEPLOY_EVIDENCE_DIR/deployment-attestation.json" <<'PY'
+          import hashlib, json, os, sys
+          health=json.load(open(sys.argv[1],encoding='utf-8'))
+          version=json.load(open(sys.argv[2],encoding='utf-8'))
+          identity=json.load(open(sys.argv[3],encoding='utf-8'))
+          before=json.load(open(sys.argv[4],encoding='utf-8'))
+          after=json.load(open(sys.argv[5],encoding='utf-8'))
+          assert identity.get('verified') is True, identity
+          assert identity.get('sourceCommit') == os.environ['TARGET_SOURCE_COMMIT'], identity
+          assert identity.get('workerReleaseMatch') is True, identity
+          assert identity.get('runtimeEnvironmentMatch') is True, identity
+          assert identity.get('evidenceSemanticVerified') is True, identity
+          assert identity.get('releaseHash'), identity
+          payload={
+              'schema':'competition.authorized_candidate_deployment.v1',
+              'verified':True,
+              'sourceCommit':identity['sourceCommit'],
+              'releaseHash':identity['releaseHash'],
+              'service':os.environ['AI_DEPLOY_SERVICE'],
+              'port':int(os.environ['AI_DEPLOY_PORT']),
+              'healthResponseHash':'sha256:'+hashlib.sha256(json.dumps(health,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+              'versionResponseHash':'sha256:'+hashlib.sha256(json.dumps(version,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+              'workerReleaseMatch':identity['workerReleaseMatch'],
+              'runtimeEnvironmentMatch':identity['runtimeEnvironmentMatch'],
+              'evidenceSemanticVerified':identity['evidenceSemanticVerified'],
+              'existingQwenInterfaceReused':True,
+              'extraQwenModelCallPerformed':False,
+              'qwenCredentialValuesPublished':False,
+              'qwenBindingBefore':before,
+              'qwenBindingAfter':after,
+              'prMerged':False,
+              'candidateBranchDeploymentExplicitlyAuthorized':True,
+          }
+          material=dict(payload)
+          payload['deploymentHash']='sha256:'+hashlib.sha256(json.dumps(material,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+          open(sys.argv[6],'w',encoding='utf-8').write(json.dumps(payload,ensure_ascii=False,sort_keys=True,indent=2)+'\n')
+          print(json.dumps({
+              'DEPLOYMENT_OK':True,
+              'sourceCommit':payload['sourceCommit'],
+              'releaseHash':payload['releaseHash'],
+              'service':payload['service'],
+              'port':payload['port'],
+              'existingQwenInterfaceReused':True,
+              'extraQwenModelCallPerformed':False,
+              'deploymentHash':payload['deploymentHash'],
+          },ensure_ascii=False,sort_keys=True))
+          PY
+
+      - name: Publish sanitized deployment receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: competition-authorized-deploy-${{ env.TARGET_SOURCE_COMMIT }}
+          path: |
+            dist/competition-authorized-deploy
+          if-no-files-found: warn
+          retention-days: 30
