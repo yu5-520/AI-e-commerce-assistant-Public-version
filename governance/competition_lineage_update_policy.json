@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.09.6",
+  "version": "2026.08.09.7",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
@@ -16,7 +16,8 @@
         "src/services/system_product_snapshot_service.py",
         "src/services/station_alignment_v225_service.py",
         "src/services/artifact_signal_admission_v225_service.py",
-        "src/services/pipeline_live_read_model_v2258_service.py"
+        "src/services/pipeline_live_read_model_v2258_service.py",
+        "src/services/pipeline_live_read_model_v225_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
@@ -62,6 +63,22 @@
       "allowedSpecialHashChanges": [
         "productBoundaryHash"
       ]
+    },
+    "active_dataversion_projection_gate": {
+      "description": "Exact current-run projection gate. The compatibility facade may read imported_report_rows to resolve the active dataVersion; when none exists it must project zero current products/Signals/Agents while preserving canonical history. No Agent worker, Signal generation, Registry membership or external-interface change is allowed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/pipeline_live_read_model_v225_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
     },
     "agent1_recovery": {
       "description": "Reserved H2 profile. Keep fail-closed until the recovery scope artifact names the exact Agent1 runtime paths/modules/nodes that still require behavioral repair.",

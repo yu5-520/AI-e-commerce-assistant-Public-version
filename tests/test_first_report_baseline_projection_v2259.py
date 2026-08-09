@@ -111,3 +111,76 @@ def test_pipeline_live_product_total_comes_from_canonical_inventory(monkeypatch)
     assert summary["agent1Current"] == 0
     assert result["productTruthSource"].startswith("canonical_product_snapshot")
     assert "Signal/Agent" in result["rule"]
+
+
+def test_pipeline_live_current_projection_closes_when_reset_has_no_active_dataversion(monkeypatch):
+    from src.services import pipeline_live_read_model_v225_service as live
+
+    monkeypatch.setattr(live, "_active_report_data_version", lambda: None)
+    monkeypatch.setattr(
+        live.base,
+        "read_pipeline_live_model",
+        lambda **_: {
+            "dataVersion": "DV-STALE-HISTORY",
+            "summary": {
+                "totalItems": 30,
+                "productCount": 30,
+                "productTotal": 30,
+                "canonicalProductCount": 30,
+                "baselineEstablished": 30,
+            },
+            "stages": [
+                {
+                    "label": "Agent1 研判",
+                    "queued": 2,
+                    "completed": 3,
+                    "current": {"queued": 2, "completed": 3},
+                }
+            ],
+            "items": [{"productId": "OLD-P1"}],
+        },
+    )
+
+    result = live.read_pipeline_live_model()
+    summary = result["summary"]
+
+    assert result["dataVersion"] is None
+    assert result["activeDataVersion"] is None
+    assert result["activeDataVersionGate"] == "closed_no_active_import_runtime"
+    assert summary["productTotal"] == 0
+    assert summary["productCount"] == 0
+    assert summary["totalItems"] == 0
+    assert summary["canonicalProductCount"] == 0
+    assert summary["baselineEstablished"] == 0
+    assert summary["agent1Current"] == 0
+    assert result["items"] == []
+    assert result["stages"][0]["queued"] == 0
+    assert result["stages"][0]["completed"] == 0
+    assert result["stages"][0]["current"]["queued"] == 0
+
+
+def test_pipeline_live_current_projection_binds_to_active_import_runtime(monkeypatch):
+    from src.services import pipeline_live_read_model_v225_service as live
+
+    calls = []
+    monkeypatch.setattr(live, "_active_report_data_version", lambda: "DV-ACTIVE")
+
+    def fake_read_pipeline_live_model(**kwargs):
+        calls.append(kwargs)
+        return {
+            "dataVersion": kwargs.get("data_version"),
+            "summary": {"productTotal": 30},
+            "stages": [],
+            "items": [],
+        }
+
+    monkeypatch.setattr(live.base, "read_pipeline_live_model", fake_read_pipeline_live_model)
+
+    result = live.read_pipeline_live_model("DV-STALE-REQUEST")
+
+    assert calls == [{"data_version": "DV-ACTIVE", "limit": 80}]
+    assert result["dataVersion"] == "DV-ACTIVE"
+    assert result["activeDataVersion"] == "DV-ACTIVE"
+    assert result["activeDataVersionGate"] == "open_active_import_runtime"
+    assert result["requestedDataVersion"] == "DV-STALE-REQUEST"
+    assert result["summary"]["productTotal"] == 30
