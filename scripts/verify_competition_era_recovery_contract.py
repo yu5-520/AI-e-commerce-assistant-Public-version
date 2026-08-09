@@ -1,47 +1,41 @@
 #!/usr/bin/env python3
-"""Verify the ERA 10x3 operating-unit and canonical-history recovery contract.
-
-This is the dedicated behavior evidence for REC-001. The three-report Agent fixture is
-intentionally only three signal products, so it must never be used to claim the 30-unit
-ERA inventory contract. This probe reads the real competition sample generators and the
-canonical trend bridge without mutating the runtime database.
-"""
+"""Attest REC-001: ERA 10x3 operating units plus canonical multi-DV history."""
 from __future__ import annotations
 
 import argparse
 import hashlib
 import io
 import json
+import sys
 from pathlib import Path
 from typing import Any, Sequence
 
-from openpyxl import load_workbook
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-from src.services import canonical_product_trend_v2_service as trend_bridge
-from src.services.competition_era_sample_payload_v2 import sample_contract
-from src.services.competition_sample_report_service import (
+from openpyxl import load_workbook  # noqa: E402
+from src.services import canonical_product_trend_v2_service as trend_bridge  # noqa: E402
+from src.services.competition_era_sample_payload_v2 import sample_contract  # noqa: E402
+from src.services.competition_sample_report_service import (  # noqa: E402
     SAMPLE_REPORTS,
     SAMPLE_SHEET_ORDER,
     build_competition_sample_xlsx,
 )
 
 SCHEMA = "competition.era_recovery_contract.v1"
-EXPECTED_SHEET_ROWS = {
-    "商品经营明细": 30,
-    "店铺经营汇总": 3,
-    "流量来源明细": 150,
-}
+EXPECTED_ROWS = {"商品经营明细": 30, "店铺经营汇总": 3, "流量来源明细": 150}
+
+
+def _dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
 
 
 def _hash(value: Any) -> str:
-    payload = json.dumps(
-        value,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-        default=str,
+    raw = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str
     ).encode("utf-8")
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
 def _write(path: Path, value: Any) -> None:
@@ -52,11 +46,54 @@ def _write(path: Path, value: Any) -> None:
     )
 
 
+def _period(period: int) -> dict[str, Any]:
+    first = build_competition_sample_xlsx(period)
+    second = build_competition_sample_xlsx(period)
+    workbook = load_workbook(io.BytesIO(first), read_only=True, data_only=True)
+    rows = list(workbook["商品经营明细"].iter_rows(values_only=True))
+    header = list(rows[0])
+    s, p, k = header.index("店铺ID"), header.index("商品ID"), header.index("SKU ID")
+    units = {(row[s], row[p], row[k]) for row in rows[1:]}
+    products = {row[p] for row in rows[1:]}
+    stores = {row[s] for row in rows[1:]}
+    sheet_rows = {
+        name: max(0, int(workbook[name].max_row or 0) - 1) for name in SAMPLE_SHEET_ORDER
+    }
+    contract = sample_contract(period)
+    signals = SAMPLE_REPORTS.get(period) or []
+    assertions = {
+        "byteDeterministic": first == second,
+        "xlsxMagic": first.startswith(b"PK"),
+        "sheetOrder": list(workbook.sheetnames) == list(SAMPLE_SHEET_ORDER),
+        "sheetRows": sheet_rows == EXPECTED_ROWS,
+        "operatingUnits30": len(units) == 30,
+        "globalProducts10": len(products) == 10,
+        "stores3": len(stores) == 3,
+        "contractOperatingUnits30": contract.get("operatingProductUnitCount") == 30,
+        "contractGlobalProducts10": contract.get("globalProductCount") == 10,
+        "contractStores3": contract.get("storeCount") == 3,
+        "rows183": sum(sheet_rows.values()) == 183,
+        "signalFixtureIsThreeOnly": len(signals) == 3,
+        "signalFixtureCannotOwnInventory": 30 > len(signals),
+    }
+    return {
+        "period": period,
+        "verified": all(assertions.values()),
+        "xlsxSha256": "sha256:" + hashlib.sha256(first).hexdigest(),
+        "operatingUnitCount": len(units),
+        "globalProductCount": len(products),
+        "storeCount": len(stores),
+        "signalFixtureCount": len(signals),
+        "sheetRows": sheet_rows,
+        "assertions": assertions,
+    }
+
+
 def _product(
     object_id: str,
-    store_id: str,
-    product_id: str,
-    sku_id: str,
+    store: str,
+    product: str,
+    sku: str,
     date: str,
     payment: float,
     roi: float,
@@ -64,14 +101,14 @@ def _product(
 ) -> dict[str, Any]:
     return {
         "objectId": object_id,
-        "storeId": store_id,
-        "productId": product_id,
-        "skuId": sku_id,
+        "storeId": store,
+        "productId": product,
+        "skuId": sku,
         "profileSnapshot": {
             "objectId": object_id,
-            "storeId": store_id,
-            "productId": product_id,
-            "skuId": sku_id,
+            "storeId": store,
+            "productId": product,
+            "skuId": sku,
             "title": "通勤防泼水背包",
             "platform": "天猫",
         },
@@ -86,57 +123,7 @@ def _product(
     }
 
 
-def _sample_period_probe(period: int) -> dict[str, Any]:
-    first = build_competition_sample_xlsx(period)
-    second = build_competition_sample_xlsx(period)
-    workbook = load_workbook(io.BytesIO(first), read_only=True, data_only=True)
-    sheet_names = list(workbook.sheetnames)
-    product_rows = list(workbook["商品经营明细"].iter_rows(values_only=True))
-    headers = list(product_rows[0])
-    store_idx = headers.index("店铺ID")
-    product_idx = headers.index("商品ID")
-    sku_idx = headers.index("SKU ID")
-    operating_units = {
-        (row[store_idx], row[product_idx], row[sku_idx]) for row in product_rows[1:]
-    }
-    global_products = {row[product_idx] for row in product_rows[1:]}
-    stores = {row[store_idx] for row in product_rows[1:]}
-    contract = sample_contract(period)
-    actual_sheet_rows = {
-        name: max(0, int(workbook[name].max_row or 0) - 1) for name in SAMPLE_SHEET_ORDER
-    }
-    assertions = {
-        "byteDeterministic": first == second,
-        "xlsxMagic": first.startswith(b"PK"),
-        "threeSheets": sheet_names == list(SAMPLE_SHEET_ORDER),
-        "sheetRows": actual_sheet_rows == EXPECTED_SHEET_ROWS,
-        "operatingUnits30": len(operating_units) == 30,
-        "globalProducts10": len(global_products) == 10,
-        "stores3": len(stores) == 3,
-        "contractOperatingUnits30": contract.get("operatingProductUnitCount") == 30,
-        "contractGlobalProducts10": contract.get("globalProductCount") == 10,
-        "contractStores3": contract.get("storeCount") == 3,
-        "contractRows183": sum(int(value) for value in actual_sheet_rows.values()) == 183,
-        "signalFixtureStill3Only": len(SAMPLE_REPORTS.get(period) or []) == 3,
-        "signalFixtureDoesNotOwnInventory": contract.get("operatingProductUnitCount")
-        > len(SAMPLE_REPORTS.get(period) or []),
-    }
-    return {
-        "period": period,
-        "verified": all(assertions.values()),
-        "xlsxSha256": "sha256:" + hashlib.sha256(first).hexdigest(),
-        "byteSize": len(first),
-        "sheetNames": sheet_names,
-        "sheetRows": actual_sheet_rows,
-        "operatingUnitCount": len(operating_units),
-        "globalProductCount": len(global_products),
-        "storeCount": len(stores),
-        "signalFixtureCount": len(SAMPLE_REPORTS.get(period) or []),
-        "assertions": assertions,
-    }
-
-
-def _canonical_history_probe() -> dict[str, Any]:
+def _history() -> dict[str, Any]:
     object_id = "product::tianmao::TB-SH-001::P10004::SKU10004-A"
     sibling_id = "product::jingdong::JD-SH-002::P10004::SKU10004-B"
     versions = [
@@ -145,33 +132,15 @@ def _canonical_history_probe() -> dict[str, Any]:
         ("DV-1", "2026-06-25", 3555.09, 3.35, 0.0438),
     ]
     snapshots: dict[str, dict[str, Any]] = {}
-    for version, date, payment, roi, conversion in versions:
-        snapshots[version] = {
-            "snapshotId": f"SNAP-{version}",
-            "dataVersion": version,
+    for dv, date, payment, roi, conversion in versions:
+        snapshots[dv] = {
+            "snapshotId": f"SNAP-{dv}",
+            "dataVersion": dv,
             "createdAt": f"{date}T23:10:00",
             "updatedAt": f"{date}T23:10:00",
             "products": [
-                _product(
-                    object_id,
-                    "TB-SH-001",
-                    "P10004",
-                    "SKU10004-A",
-                    date,
-                    payment,
-                    roi,
-                    conversion,
-                ),
-                _product(
-                    sibling_id,
-                    "JD-SH-002",
-                    "P10004",
-                    "SKU10004-B",
-                    date,
-                    payment * 2,
-                    roi + 1,
-                    conversion + 0.01,
-                ),
+                _product(object_id, "TB-SH-001", "P10004", "SKU10004-A", date, payment, roi, conversion),
+                _product(sibling_id, "JD-SH-002", "P10004", "SKU10004-B", date, payment * 2, roi + 1, conversion + 0.01),
             ],
         }
 
@@ -180,51 +149,39 @@ def _canonical_history_probe() -> dict[str, Any]:
     try:
         trend_bridge.product_snapshot_history = lambda limit=120: [
             {
-                "dataVersion": version,
-                "snapshotId": f"SNAP-{version}",
-                "createdAt": snapshots[version]["createdAt"],
+                "dataVersion": dv,
+                "snapshotId": f"SNAP-{dv}",
+                "createdAt": snapshots[dv]["createdAt"],
             }
-            for version, *_ in versions
+            for dv, *_ in versions
         ]
-        trend_bridge.get_product_snapshot = (
-            lambda data_version=None, user_id=None: snapshots.get(data_version)
-        )
+        trend_bridge.get_product_snapshot = lambda data_version=None, user_id=None: snapshots.get(data_version)
         trend_bridge._CACHE.clear()
         trend = trend_bridge.read_canonical_product_trend(
-            object_id,
-            store_id="TB-SH-001",
-            user_id="competition-recovery-probe",
+            object_id, store_id="TB-SH-001", user_id="competition-recovery-probe"
         )
 
         trend_bridge.product_snapshot_history = lambda limit=120: []
         trend_bridge.get_product_snapshot = lambda data_version=None, user_id=None: None
         trend_bridge._CACHE.clear()
         missing = trend_bridge.read_canonical_product_trend(
-            "missing",
-            store_id="TB-SH-001",
-            user_id="competition-recovery-probe",
+            "missing", store_id="TB-SH-001", user_id="competition-recovery-probe"
         )
     finally:
         trend_bridge.product_snapshot_history = original_history
         trend_bridge.get_product_snapshot = original_get
         trend_bridge._CACHE.clear()
 
-    recent = trend.get("recentSnapshots") if isinstance(trend, dict) else []
-    recent = recent if isinstance(recent, list) else []
+    recent = trend.get("recentSnapshots") if isinstance(trend.get("recentSnapshots"), list) else []
     assertions = {
         "ready": trend.get("ready") is True,
-        "canonicalAuthority": trend.get("snapshotAuthority")
-        == "canonical_product_snapshot_sets_v1",
+        "canonicalAuthority": trend.get("snapshotAuthority") == "canonical_product_snapshot_sets_v1",
         "legacyFallbackDisabled": trend.get("legacySnapshotFallbackUsed") is False,
-        "threeValidSnapshots": _dict(trend.get("observationSummary")).get(
-            "validSnapshotCount"
-        )
-        == 3,
-        "threeDataVersions": [item.get("dataVersion") for item in recent]
-        == ["DV-1", "DV-2", "DV-3"],
+        "threeValidSnapshots": _dict(trend.get("observationSummary")).get("validSnapshotCount") == 3,
+        "threeDataVersions": [item.get("dataVersion") for item in recent] == ["DV-1", "DV-2", "DV-3"],
         "sameStoreOnly": _dict(trend.get("product")).get("storeId") == "TB-SH-001",
         "sameSkuOnly": _dict(trend.get("product")).get("skuId") == "SKU10004-A",
-        "noFabricatedMissingSnapshots": missing.get("recentSnapshots") == []
+        "noFabrication": missing.get("recentSnapshots") == []
         and _dict(missing.get("observationSummary")).get("validSnapshotCount") == 0,
     }
     return {
@@ -238,26 +195,16 @@ def _canonical_history_probe() -> dict[str, Any]:
     }
 
 
-def _dict(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}
-
-
 def build_report() -> dict[str, Any]:
-    periods = [_sample_period_probe(period) for period in (1, 2, 3)]
-    history = _canonical_history_probe()
+    periods = [_period(period) for period in (1, 2, 3)]
+    history = _history()
     assertions = {
-        "allThreeSamplePeriodsVerified": all(item["verified"] for item in periods),
-        "sameOperatingUnitShapeEveryPeriod": len(
-            {
-                (
-                    item["operatingUnitCount"],
-                    item["globalProductCount"],
-                    item["storeCount"],
-                )
-                for item in periods
-            }
-        )
-        == 1,
+        "allPeriodsVerified": all(item["verified"] for item in periods),
+        "shapeStableAcrossPeriods": {
+            (item["operatingUnitCount"], item["globalProductCount"], item["storeCount"])
+            for item in periods
+        }
+        == {(30, 10, 3)},
         "canonicalHistoryVerified": history.get("verified") is True,
     }
     material = {
@@ -266,17 +213,11 @@ def build_report() -> dict[str, Any]:
         "canonicalHistory": history,
         "assertions": assertions,
     }
-    return {
-        **material,
-        "verified": all(assertions.values()),
-        "eraRecoveryHash": _hash(material),
-    }
+    return {**material, "verified": all(assertions.values()), "eraRecoveryHash": _hash(material)}
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Verify ERA 10x3 sample inventory and canonical history recovery."
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--output",
         default="dist/competition-three-report-e2e/era-recovery-contract.json",
