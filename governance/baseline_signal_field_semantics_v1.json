@@ -1,0 +1,71 @@
+{
+  "schema": "competition.registry_field_semantics_overlay.v1",
+  "version": "2026.08.09.1",
+  "registrationMode": "hash_anchored_semantic_overlay",
+  "baseSourceCommit": "61688ae3335c0f31b0bfa40dfa3dcb5368ba3e02",
+  "registryAuthority": "contracts/registry/fields.json",
+  "sourceRegistryManifestRoot": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0",
+  "sealedRuntimeRegistryRoot": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+  "rootRotationAllowed": false,
+  "fields": [
+    {"fieldId":"runtime_semantics.business_output_type","canonicalPath":"businessOutputType","dataType":"string","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission","frontend_view"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:04394d3fdda445d840cb0458faf0b2713d70934a2f0fed6bfdf396fb57cae107","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.baseline_no_previous","canonicalPath":"baselineNoPrevious","dataType":"boolean","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission","frontend_view"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:15bcf4aaa8f1bbfb633b25a6a9fb55c7cb7fda1a931ceba9b88a2038db03d10e","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.baseline_mode","canonicalPath":"baselineMode","dataType":"enum:first_report|normal_delta","ownerModule":"pipeline_runtime","readers":["artifact_transport","frontend_view"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:f21d0bf8dbc8f0f01af4d904ab14610ef2f91f46c711c413dbe6aa20886c1886","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.baseline_gate","canonicalPath":"baselineGate","dataType":"enum:closed_before_signal_engine|open_after_previous_snapshot","ownerModule":"signal_admission","readers":["pipeline_runtime","artifact_transport","agent1_runtime","frontend_view"],"writers":["signal_admission"],"fieldDefinitionHash":"sha256:a59f7dc7c5b034ec2ccbb7e5c11c88414d8ecaf96cfa79e474a873fb058f9e17","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.signal_eligibility","canonicalPath":"signalEligibility","dataType":"boolean","ownerModule":"signal_admission","readers":["pipeline_runtime","artifact_transport","agent1_runtime","frontend_view"],"writers":["signal_admission"],"fieldDefinitionHash":"sha256:66b3d281975a88e3d2fd94a4289a66d755b1a28dd22f37585e234d5d7718f046","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.baseline_product_bundle_count","canonicalPath":"baselineProductBundleCount","dataType":"integer","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission","frontend_view"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:d21d733b55d9b678d5d492ea0cda68654a629e5fafc9d69bc9c10a16dff0d884","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.baseline_product_bundles","canonicalPath":"baselineProductBundles","dataType":"array:object","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:5f72960e3d294db1fa3ef66e44b4d2a81d53f8591097be1960c1baf536b1464a","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.product_signal_package_count","canonicalPath":"productSignalPackageCount","dataType":"integer","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission","frontend_view"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:99c799ae931e3266e53ef8b8c9faa49d4c0fada313427d88141f0c523cbebcc9","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.product_signal_packages","canonicalPath":"productSignalPackages","dataType":"array:object","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:cbef9b98f2c32483c0b4dc0b7dc7ac540bc2c5dd68c76b24084ffa938f78ca14","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.bundle_count","canonicalPath":"bundleCount","dataType":"integer","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission","frontend_view"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:91aa093f3303dfd6d5de8681cff960b718dae147fd84e39124e09e9d8fd10457","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.validated_signal_count","canonicalPath":"validatedSignalCount","dataType":"integer","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission","frontend_view"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:a922f434090bcca5fd91044936c3b75cf876964ed46ea0b03069960686a376dc","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.validated_signals","canonicalPath":"validatedSignals","dataType":"array:object","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:c60aaaf9442d44c0bdd70ab44838c8b37016dc4dd35fbd97d9ef9c5e588e25c0","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.generated_signal_count","canonicalPath":"generatedSignalCount","dataType":"integer","ownerModule":"signal_admission","readers":["pipeline_runtime","artifact_transport","frontend_view"],"writers":["signal_admission"],"fieldDefinitionHash":"sha256:238d91250b7730a4a7a470319e700d21a21ebb5a8fbabee4c44de5dc7415a75c","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.admitted_signal_count","canonicalPath":"admittedSignalCount","dataType":"integer","ownerModule":"signal_admission","readers":["pipeline_runtime","agent1_runtime","frontend_view"],"writers":["signal_admission"],"fieldDefinitionHash":"sha256:96a2797ee68d51591fd778dfbefd066aaa9cc065ba250c3948093b25d773754f","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.agent1_pending_item_count","canonicalPath":"agent1PendingItemCount","dataType":"integer","ownerModule":"signal_admission","readers":["pipeline_runtime","agent1_runtime","frontend_view"],"writers":["signal_admission"],"fieldDefinitionHash":"sha256:a9246d0c229159ccedd1bbc37aa99420c3952408eba98b82e6e36a31cde550c4","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.contract_validation","canonicalPath":"contractValidation","dataType":"object","ownerModule":"pipeline_runtime","readers":["artifact_transport"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:4d420dd3c60ddfbb0014d98ea182105449994fd88cda94b34c7e02c0e8d38790","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"},
+    {"fieldId":"runtime_semantics.validation_status","canonicalPath":"validationStatus","dataType":"enum:passed|attention|waiting|failed","ownerModule":"pipeline_runtime","readers":["artifact_transport","signal_admission","frontend_view"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:15dc205fcd30d7781d9a22f46d340b7bd3de94256d7f3a227475ef27665db7f7","hashRole":"payload_content","identityRole":"runtime_semantics","layer":"pre_agent_evidence","status":"ACTIVE_OVERLAY"}
+  ],
+  "semanticModes": {
+    "first_report_baseline": {
+      "businessOutputTypes": ["baseline_product_bundle","validated_baseline_product_bundle","baseline_history_gate_closed"],
+      "signalEligibility": false,
+      "baselineGate": "closed_before_signal_engine",
+      "zeroAllowedFields": ["productSignalPackageCount","validatedSignalCount","generatedSignalCount","admittedSignalCount","agent1PendingItemCount"],
+      "positiveEvidenceFields": ["baselineProductBundleCount"],
+      "contractValidationOk": true,
+      "validationStatus": ["passed"]
+    },
+    "comparable_delta": {
+      "businessOutputTypes": ["full_product_signal_snapshot","validated_product_signal_snapshot","artifact_signal_admission"],
+      "signalEligibility": true,
+      "baselineGate": "open_after_previous_snapshot",
+      "zeroAllowedFields": ["productSignalPackageCount","bundleCount","validatedSignalCount","generatedSignalCount","admittedSignalCount","agent1PendingItemCount"],
+      "rule": "Signal eligibility opens permission to emit Signals; it never creates a minimum Signal count."
+    }
+  },
+  "requiredRuntimeAnchors": [
+    "src/services/station_alignment_v225_service.py",
+    "src/services/station_contract_service.py",
+    "src/services/station_business_artifact_service.py",
+    "src/services/station_queue_service.py",
+    "src/services/artifact_signal_admission_v225_service.py",
+    "src/services/system_product_snapshot_service.py",
+    "src/services/pipeline_live_read_model_v225_service.py"
+  ],
+  "forbiddenStalePredicates": [
+    {"id":"signal_only_full_bundle_type","literal":"output.get(\"businessOutputType\") != \"full_product_signal_snapshot\""},
+    {"id":"signal_only_validated_bundle_type","literal":"output.get(\"businessOutputType\") != \"validated_product_signal_snapshot\""},
+    {"id":"positive_signal_package_minimum","literal":"int(output.get(\"productSignalPackageCount\") or 0) <= 0"},
+    {"id":"legacy_full_bundle_error_token","literal":"businessOutputType=full_product_signal_snapshot"},
+    {"id":"legacy_signal_count_error_token","literal":"productSignalPackageCount>0"}
+  ],
+  "rules": [
+    "Scan only files present in TARGET competition runtime hash-lineage closure.",
+    "Every field hit is recorded with exact runtime path and SHA-256 content hash.",
+    "A first-report baseline is valid evidence with zero Signal and zero Agent1 work.",
+    "Comparable history opens Signal eligibility but never implies a positive minimum Signal count.",
+    "Canonical V23 registry root is not rotated by this hotfix; this overlay is a migration proof anchored to that authority."
+  ],
+  "overlayHash": "sha256:0fbdecb6cfce74c51759b62b3b935c1b2b084f041fc853777e710d86ebf6db29"
+}
