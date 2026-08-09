@@ -111,6 +111,21 @@ print(json.dumps({
 }, sort_keys=True))
 PY
 
+# Return a regular executable launcher instead of the venv's python symlink. Several
+# evidence runners normalize their --runtime-python path with pathlib.Path.resolve();
+# resolving the symlink would silently escape the verified venv and execute the base
+# interpreter without locked application dependencies. The launcher is a normal file,
+# so path normalization preserves the verified venv boundary for every competition
+# workflow (candidate smoke, three-report E2E, autonomous worker and real Qwen).
+RUNTIME_LAUNCHER="$EVIDENCE_DIR/runtime-python-launcher.sh"
+printf '#!/usr/bin/env bash\nexec %q "$@"\n' "$VENV_PYTHON" > "$RUNTIME_LAUNCHER"
+chmod 0755 "$RUNTIME_LAUNCHER"
+
+timeout 30 "$RUNTIME_LAUNCHER" -c \
+  'import platform,fastapi,uvicorn,sqlalchemy,pydantic,openpyxl; assert platform.python_version()=="3.11.9"'
+printf '%s\n' "$VENV_PYTHON" > "$EVIDENCE_DIR/runtime-python-venv-target.txt"
+printf '%s\n' "$RUNTIME_LAUNCHER" > "$EVIDENCE_DIR/runtime-python-launcher.txt"
+
 # The self-hosted runner executes JavaScript actions with its bundled Node runtime,
 # but that binary is not necessarily exported to shell-step PATH. Resolve the same
 # trusted runner-owned executable and expose only its directory to later steps.
@@ -145,4 +160,4 @@ else
   echo "Runner-owned Node executable was not found; later JavaScript syntax checks may fail." >&2
 fi
 
-printf '%s\n' "$VENV_PYTHON"
+printf '%s\n' "$RUNTIME_LAUNCHER"
