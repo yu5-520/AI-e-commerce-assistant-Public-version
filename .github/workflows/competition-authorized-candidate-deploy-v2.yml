@@ -33,6 +33,24 @@ jobs:
       PYTHONDONTWRITEBYTECODE: '1'
 
     steps:
+      - name: Stage exact branch source on ECS runner
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Publish bootstrap source location
+        run: |
+          set -euo pipefail
+          ACTUAL_HEAD="$(git rev-parse HEAD)"
+          test "$ACTUAL_HEAD" = "$GITHUB_SHA"
+          test -f config/deployment/competition_authorized_deploy_v2_controller.sh
+          test -f config/deployment/install_competition_authorized_deploy_v2_controller.sh
+          echo "BOOTSTRAP_SOURCE_ROOT=$GITHUB_WORKSPACE"
+          echo "BOOTSTRAP_SOURCE_HEAD=$ACTUAL_HEAD"
+          echo "CONTROLLER_BLOB=$(git hash-object config/deployment/competition_authorized_deploy_v2_controller.sh)"
+          echo "INSTALLER_BLOB=$(git hash-object config/deployment/install_competition_authorized_deploy_v2_controller.sh)"
+
       - name: Download exact validated sealed candidate
         env:
           GH_READ_TOKEN: ${{ github.token }}
@@ -89,7 +107,9 @@ jobs:
           LOG="$EVIDENCE_DIR/controller.log"
           if [ ! -x "$CONTROLLER" ]; then
             echo "ERROR: immutable root controller is not installed: $CONTROLLER" | tee "$LOG" >&2
-            echo "Run the one-time root bootstrap: config/deployment/install_competition_authorized_deploy_v2_controller.sh" | tee -a "$LOG" >&2
+            echo "BOOTSTRAP_SOURCE_ROOT=$GITHUB_WORKSPACE" | tee -a "$LOG" >&2
+            echo "BOOTSTRAP_SOURCE_HEAD=$GITHUB_SHA" | tee -a "$LOG" >&2
+            echo "Run the one-time root bootstrap from the staged checkout: config/deployment/install_competition_authorized_deploy_v2_controller.sh" | tee -a "$LOG" >&2
             exit 78
           fi
 
