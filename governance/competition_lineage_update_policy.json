@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.09.4",
+  "version": "2026.08.09.5",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current PR default gate: permit only the three hash-lineage-selected first-report baseline repair nodes; all other runtime membership, Registry, edge and special-hash changes remain fail-closed.",
+      "description": "Current repair gate: permit only the hash-lineage-selected first-report baseline/history and pipeline-live projection nodes; all other runtime membership, Registry, edge and special-hash changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -15,7 +15,8 @@
       "allowedRuntimePathPrefixes": [
         "src/services/system_product_snapshot_service.py",
         "src/services/station_alignment_v225_service.py",
-        "src/services/artifact_signal_admission_v225_service.py"
+        "src/services/artifact_signal_admission_v225_service.py",
+        "src/services/pipeline_live_read_model_v2258_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
@@ -36,6 +37,25 @@
         "src/services/system_product_snapshot_service.py",
         "src/services/station_alignment_v225_service.py",
         "src/services/artifact_signal_admission_v225_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": [
+        "productBoundaryHash"
+      ]
+    },
+    "first_report_projection_repair": {
+      "description": "Exact scope for first-report canonical baseline evidence plus operator-center product-count projection. No Agent/Signal worker, Registry membership, graph edge or external-interface change is allowed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/station_alignment_v225_service.py",
+        "src/services/pipeline_live_read_model_v2258_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
