@@ -4,7 +4,7 @@ Task 的 created_at 是冻结证据的时间边界。创建 TaskSnapshot 前必�
 active dataVersion 已经固化 canonical 商品快照，然后再执行严格哈希绑定。
 
 这个屏障只修复写入顺序，不放宽证据规则：
-- 非 active dataVersion 不允许被重新物化；
+- 非 active dataVersion 不允许被重新物化或从陈旧 canonical 行恢复；
 - 已绑定但不存在的 productSnapshotHash 仍然保持 lineage_broken；
 - 真实历史不足两次时，Evidence Gate 仍然保持不可执行。
 """
@@ -68,20 +68,21 @@ def prepare_task_product_lineage(
         return bind_task_product_lineage(prepared)
 
     if not _active_data_version_exists(data_version):
-        result = bind_task_product_lineage(prepared)
-        lineage = dict(result.get("productSnapshotLineage") or {})
-        if not bool(lineage.get("ready")):
-            lineage.update(
-                {
-                    "version": TASK_SNAPSHOT_LINEAGE_GUARD_VERSION,
-                    "ready": False,
-                    "status": "lineage_broken",
-                    "reason": "task_data_version_not_active",
-                    "dataVersion": data_version,
-                    "strictHash": bool(str(result.get("productSnapshotHash") or "").strip()),
-                }
-            )
-            result["productSnapshotLineage"] = lineage
+        # Never let a stale canonical row resurrect an inactive report version.
+        # Keep any explicitly bound hash for diagnostics, but remove fact payloads
+        # that could otherwise be mistaken for executable evidence downstream.
+        result = dict(prepared)
+        result["productSnapshot"] = {}
+        result["productSnapshotStatus"] = "lineage_broken"
+        result["productSnapshotLineage"] = {
+            "version": TASK_SNAPSHOT_LINEAGE_GUARD_VERSION,
+            "ready": False,
+            "status": "lineage_broken",
+            "reason": "task_data_version_not_active",
+            "dataVersion": data_version,
+            "strictHash": bool(str(result.get("productSnapshotHash") or "").strip()),
+            "writeBarrier": "active_import_required_before_task_timestamp",
+        }
         return result
 
     # Pre-persistence barrier: materialization commits before TaskSnapshot creates
