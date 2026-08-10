@@ -1,0 +1,68 @@
+{
+  "schema": "competition.agent1_ready_first_runtime.v1",
+  "version": "23.1.5",
+  "objective": "Keep the competition single-worker exact-hash Agent1 runtime, but make the configured eight-item batch size a capacity ceiling instead of the UI running-state claim unit. Claim only the first immediately executable Provider char-budget batch so remaining Agent1-ready items stay pending until their actual turn.",
+  "baseRuntime": {
+    "activeFacade": "src.services.agent_runtime_hard_interface_v22515_service",
+    "agent1StageOwner": "src.services.agent_runtime_hard_interface_v2257_service",
+    "inputContract": "agent_input.agent1.v3",
+    "inputProjectionVersion": "22.5.8",
+    "tokenRuntime": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
+    "executionIdentity": "itemExecutionId+inputContentHash",
+    "singleWorkerRequired": true
+  },
+  "targetRuntime": {
+    "readyFirstFacadeOwner": "src.services.agent_runtime_hard_interface_v22515_service",
+    "agent1StageOwner": "src.services.agent_runtime_hard_interface_v2257_service",
+    "batchPolicy": "ready_first_dynamic_char_budget",
+    "configuredCapacityItems": 8,
+    "batchCharBudgetSource": "AGENT1_MAX_BATCH_CHARS",
+    "claimScope": "current_provider_subbatch_only",
+    "waitForFullCapacity": false,
+    "partialCompletionVisible": true
+  },
+  "allowedRuntimeChanges": [
+    "src/services/agent_runtime_hard_interface_v22515_service.py"
+  ],
+  "verificationOnlyChanges": [
+    "tests/test_agent1_ready_first_runtime_v1.py",
+    "governance/agent1_ready_first_runtime_v1.json",
+    "scripts/verify_agent1_ready_first_runtime.py",
+    "governance/competition_lineage_update_policy.json"
+  ],
+  "invariants": {
+    "registryRootRotated": false,
+    "runtimeMembershipChanged": false,
+    "agent1StageOwnerChanged": false,
+    "signalAdmissionChanged": false,
+    "providerChanged": false,
+    "modelChanged": false,
+    "promptChanged": false,
+    "temperatureChanged": false,
+    "thinkingChanged": false,
+    "tokenBudgetChanged": false,
+    "secondWorkerAllowed": false,
+    "exactExecutionHashChanged": false,
+    "cachedOutputRebindingEnabled": false,
+    "agent2Changed": false,
+    "agent3Changed": false,
+    "taskMappingChanged": false,
+    "taskPoolChanged": false
+  },
+  "acceptanceCriteria": [
+    "If fewer than eight Agent1 items are ready, all currently ready items may run immediately without waiting for capacity to fill.",
+    "If the candidate window exceeds the Agent1 batch char budget, only the first char-budget prefix is claimed as agent1_running.",
+    "Items outside the current Provider subbatch remain agent1_pending and are not displayed as already running.",
+    "The existing V22.5.7 Agent1 stage owner and V22.5.9 exact hash token runtime remain unchanged.",
+    "The existing single station worker remains the only worker and no ThreadPool or asyncio fan-out is introduced.",
+    "Each completed Provider subbatch returns to the worker loop before the next Agent1 prefix is selected, allowing progressive frontend runtime-state refresh.",
+    "Input preparation failures in the selected prefix remain owned by the existing hard runtime and cannot be starved in pending state."
+  ],
+  "registryPolicy": {
+    "registryRootRotationRequired": false,
+    "runtimeProjectionUpdateRequired": false,
+    "runtimeMembershipChangeRequired": false,
+    "activeBindingOwnerUpdateRequired": false,
+    "lineageUpdateProfile": "governance_bootstrap"
+  }
+}
