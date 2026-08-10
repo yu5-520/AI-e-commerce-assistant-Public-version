@@ -59,26 +59,13 @@
       "identityRole": "business_reference",
       "layer": "business_identity",
       "status": "ACTIVE_OVERLAY"
-    },
-    {
-      "fieldId": "frontend.manifest_hash",
-      "canonicalPath": "manifestHash",
-      "dataType": "sha256",
-      "ownerModule": "frontend_view",
-      "readers": ["frontend_client"],
-      "writers": ["frontend_view"],
-      "fieldDefinitionHash": "sha256:2eb94271e58fcbfd4783e1879d3bec50cabd1442acc7aa47125d31d72fc5b8b0",
-      "hashRole": "frontend_manifest",
-      "identityRole": "view_head_identity",
-      "layer": "frontend_projection",
-      "status": "ACTIVE_OVERLAY"
     }
   ],
   "semanticModes": {
     "current_state_attention_projection": {
       "identityFields": ["dataVersion", "storeId", "productId"],
       "signalReferenceField": "signalId",
-      "publicationField": "manifestHash",
+      "publicationField": "view.head.get",
       "rule": "For each dataVersion+storeId+productId, resolve exactly one newest pipeline row before deciding whether the item belongs in attention. observed_soft_gate is a terminal observation projection for the current row and may never fall back to an older Agent1 row."
     }
   },
@@ -103,7 +90,7 @@
   ],
   "rules": [
     "Scan only files present in the exact TARGET competition Hash Lineage runtime closure.",
-    "Recall every consumer of registered dataVersion/storeId/productId/signalId/manifestHash fields with exact runtime path and file SHA-256.",
+    "Recall every consumer of registered dataVersion/storeId/productId/signalId fields with exact runtime path and file SHA-256.",
     "Current attention identity is dataVersion+storeId+productId and must be resolved latest-row-first.",
     "observed_soft_gate is excluded only after latest-row identity resolution; filtering it may not reveal an older Agent1 state.",
     "The operator-center view.head.get interface is verified against the unified interface registry and both route/client anchors must stay in TARGET Hash Lineage.",
@@ -128,5 +115,5 @@
       ]
     }
   ],
-  "overlayHash": "sha256:51b4862025810301d64b063c4475891c275123ccd40c06ba771bb291b90a0fc2"
+  "overlayHash": "sha256:ef843c7f12f4e4dda684997cb167573e004b688a5c79e0cebea40a916e5b3d6d"
 }
