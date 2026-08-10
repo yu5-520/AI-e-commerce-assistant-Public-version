@@ -1,4 +1,9 @@
-"""V22.5 contracts for judgment, action draft, company SOP and task mapping."""
+"""V22.5 contracts for judgment, action draft, company SOP and task mapping.
+
+V23 operational compatibility additions keep provider-declared Agent3 status separate
+from system contract violations, surface root violations before generic admission
+errors, and fail closed when coexisting Agent2 proof aliases disagree.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -27,6 +32,7 @@ AGENT_RUNTIME_CONTRACT_VERSION = THREE_AGENT_PIPELINE_VERSION
 AGENT2_DRAFT_CONTRACT_VERSION = THREE_AGENT_PIPELINE_VERSION
 AGENT3_SOP_CONTRACT_VERSION = THREE_AGENT_PIPELINE_VERSION
 TASK_MAPPING_CONTRACT_VERSION = THREE_AGENT_PIPELINE_VERSION
+CONTRACT_LINEAGE_COMPAT_VERSION = "2026.08.11.1"
 
 
 def _dict(value: Any) -> Dict[str, Any]:
@@ -41,6 +47,55 @@ def _proof(provider: Dict[str, Any], package_id: str, key: str = "itemProvenance
     return _dict(_dict(provider.get(key)).get(package_id))
 
 
+def _proof_core(value: Any) -> tuple[Any, ...] | None:
+    proof = _dict(value)
+    if not proof:
+        return None
+    return (
+        proof.get("resultMatched"),
+        proof.get("providerCallExecuted"),
+        proof.get("exactReplayValidated"),
+        proof.get("semanticReplayValidated"),
+        proof.get("semanticCallId"),
+        proof.get("fallbackUsed"),
+        proof.get("passed"),
+        proof.get("executionHash"),
+        proof.get("inputContentHash"),
+    )
+
+
+def _agent2_proof_alias_conflict(package: Dict[str, Any]) -> bool:
+    """Return True only when simultaneously populated proof aliases disagree."""
+
+    draft = _dict(package.get("agent2ActionDraft"))
+    task_plan = _dict(package.get("taskPlan"))
+    action_plan = _dict(package.get("agent2ActionPlan"))
+    package_id = str(
+        package.get("packageId")
+        or draft.get("packageId")
+        or package.get("itemId")
+        or ""
+    )
+    candidates = [
+        package.get("agent2DraftExecutionProof"),
+        draft.get("agent2DraftExecutionProof"),
+        package.get("agent2ExecutionProof"),
+        task_plan.get("agent2DraftExecutionProof"),
+        task_plan.get("agent2ExecutionProof"),
+        action_plan.get("agent2DraftExecutionProof"),
+        action_plan.get("agent2ExecutionProof"),
+        _dict(_dict(package.get("agent2DraftProvider")).get("itemProvenance")).get(package_id),
+        _dict(_dict(package.get("agent2Provider")).get("itemProvenance")).get(package_id),
+    ]
+    cores = [core for core in (_proof_core(item) for item in candidates) if core is not None]
+    return len(set(cores)) > 1
+
+
+def _locked_family(package: Dict[str, Any], fallback: Any = None) -> str:
+    value = str(package.get("lockedActionFamily") or "").strip()
+    return value or str(fallback or "").strip()
+
+
 def normalize_agent2_draft_completed_contract(
     package: Dict[str, Any],
     draft: Dict[str, Any],
@@ -53,15 +108,17 @@ def normalize_agent2_draft_completed_contract(
         or ""
     )
     proof = _dict(draft.get("agent2DraftExecutionProof")) or _proof(provider, package_id)
+    family = _locked_family(package, draft.get("actionFamily"))
     return {
         **package,
         "version": THREE_AGENT_PIPELINE_VERSION,
         "contractVersion": THREE_AGENT_PIPELINE_VERSION,
+        "contractLineageCompatVersion": CONTRACT_LINEAGE_COMPAT_VERSION,
         "packageId": package_id,
         "productId": package.get("productId") or draft.get("productId"),
         "storeId": package.get("storeId") or draft.get("storeId"),
-        "actionFamily": package.get("lockedActionFamily") or draft.get("actionFamily"),
-        "lockedActionFamily": package.get("lockedActionFamily") or draft.get("actionFamily"),
+        "actionFamily": family,
+        "lockedActionFamily": family,
         "agent2ActionDraft": draft,
         "agent2DraftExecutionProof": proof,
         "agent2DraftProvider": provider,
@@ -85,6 +142,12 @@ def missing_agent2_draft_completed_contract(package: Dict[str, Any]) -> List[str
     missing.extend(missing_agent2_draft_contract(draft))
     if draft.get("draftStatus") != DRAFT_READY:
         missing.append("agent2ActionDraft.draftStatus_ready")
+    locked = str(package.get("lockedActionFamily") or "").strip()
+    draft_family = str(draft.get("actionFamily") or "").strip()
+    if locked and draft_family and draft_family != locked:
+        missing.append("agent2ActionDraft.actionFamily_matches_lockedActionFamily")
+    if _agent2_proof_alias_conflict(package):
+        missing.append("agent2DraftExecutionProof.alias_conflict")
     proof = _dict(package.get("agent2DraftExecutionProof"))
     if not (
         proof.get("resultMatched") is True
@@ -111,19 +174,43 @@ def normalize_agent3_sop_completed_contract(
         or ""
     )
     proof = _dict(sop.get("agent3ExecutionProof")) or _proof(provider, package_id)
+    validation = _dict(sop.get("contractValidation"))
+    provider_declared_status = (
+        sop.get("providerDeclaredStatus")
+        or validation.get("evaluatedStatus")
+        or sop.get("sopStatus")
+    )
+    system_violations = list(
+        dict.fromkeys(
+            str(item)
+            for item in (
+                sop.get("systemContractViolations")
+                or validation.get("missing")
+                or sop.get("semanticContractMissing")
+                or []
+            )
+            if str(item)
+        )
+    )
+    family = _locked_family(package, sop.get("actionFamily"))
     return {
         **package,
         "version": THREE_AGENT_PIPELINE_VERSION,
         "contractVersion": THREE_AGENT_PIPELINE_VERSION,
+        "contractLineageCompatVersion": CONTRACT_LINEAGE_COMPAT_VERSION,
         "packageId": package_id,
         "productId": package.get("productId") or sop.get("productId"),
         "storeId": package.get("storeId") or sop.get("storeId"),
-        "actionFamily": package.get("lockedActionFamily") or sop.get("actionFamily"),
-        "lockedActionFamily": package.get("lockedActionFamily") or sop.get("actionFamily"),
+        "actionFamily": family,
+        "lockedActionFamily": family,
         "agent3Sop": sop,
         "agent3ExecutionProof": proof,
         "agent3Provider": provider,
         "agent3SopStatus": sop.get("sopStatus"),
+        "providerDeclaredStatus": provider_declared_status,
+        "systemContractViolations": system_violations,
+        "systemContractPassed": validation.get("passed") is True and not system_violations,
+        "pipelineAdmissionErrors": [],
         "taskAdmissionAllowed": False,
         "fallbackAllowed": False,
         "outputContract": "V22.5.agent3_sop_ready",
@@ -156,13 +243,40 @@ def _valid_agent3_execution_proof(proof: Dict[str, Any]) -> bool:
 
 
 def missing_agent3_sop_completed_contract(package: Dict[str, Any]) -> List[str]:
+    """Return root contract violations before derivative admission/status errors."""
+
     missing = missing_agent2_draft_completed_contract(package)
     sop = _dict(package.get("agent3Sop"))
     if not sop:
         missing.append("agent3Sop")
         return list(dict.fromkeys(missing))
+
+    locked = str(package.get("lockedActionFamily") or "").strip()
+    sop_family = str(sop.get("actionFamily") or "").strip()
+    if locked and sop_family and sop_family != locked:
+        missing.append("agent3Sop.actionFamily_matches_lockedActionFamily")
+
+    validation = _dict(sop.get("contractValidation"))
+    root_violations = [
+        str(item)
+        for item in (
+            package.get("systemContractViolations")
+            or sop.get("systemContractViolations")
+            or validation.get("missing")
+            or sop.get("semanticContractMissing")
+            or []
+        )
+        if str(item)
+    ]
+    missing.extend(root_violations)
+
+    # Keep the complete validator for compatibility, but avoid masking a known
+    # semantic root cause with the derivative status downgrade.
     missing.extend(missing_agent3_sop_contract(sop, package))
-    if sop.get("sopStatus") not in {SOP_READY, SOP_REQUIRES_APPROVAL}:
+    if (
+        sop.get("sopStatus") not in {SOP_READY, SOP_REQUIRES_APPROVAL}
+        and not root_violations
+    ):
         missing.append("agent3Sop.sopStatus_ready_or_requires_approval")
     proof = _dict(package.get("agent3ExecutionProof"))
     if not _valid_agent3_execution_proof(proof):
@@ -178,12 +292,7 @@ def build_task_mapping_decision(
     sop = _dict(package.get("agent3Sop"))
     draft = _dict(package.get("agent2ActionDraft"))
     product = _dict(package.get("productIdentity"))
-    family = str(
-        package.get("lockedActionFamily")
-        or sop.get("actionFamily")
-        or draft.get("actionFamily")
-        or ""
-    )
+    family = _locked_family(package, sop.get("actionFamily") or draft.get("actionFamily"))
     title = str(sop.get("finalTaskTitle") or "").strip()
     steps = [
         str(item).strip()
@@ -362,6 +471,7 @@ __all__ = [
     "AGENT2_DRAFT_CONTRACT_VERSION",
     "AGENT3_SOP_CONTRACT_VERSION",
     "TASK_MAPPING_CONTRACT_VERSION",
+    "CONTRACT_LINEAGE_COMPAT_VERSION",
     "normalize_agent1_completed_contract",
     "normalize_action_pack_ready_contract",
     "missing_agent1_contract",
