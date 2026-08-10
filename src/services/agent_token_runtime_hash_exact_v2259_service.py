@@ -1,16 +1,24 @@
-"""V22.5.9 strict Agent1 hash runtime over the existing downstream runtime.
+"""V22.5.9 strict Agent1 hash runtime with V23.1.6 dual identity.
 
-Agent1 keeps the current up-to-eight-item microbatch. Every item is matched only by
-``itemExecutionId + inputContentHash``. A singleton retry is allowed only when the
-provider raw response contains no item for that execution id. Contract-invalid,
-duplicate, extra or hash-mismatched outputs are never treated as missing products.
+ExecutionHash remains the immutable execution/audit authority. SemanticHash is a
+secondary per-item result-cache identity built only from business-semantic input plus
+the current prompt/policy/provider/model/generation contract. A semantic hit never
+reuses an old execution identity or old output Artifact directly: the cached business
+body is rebound to the current exact input identity, written as a new immutable output
+Artifact, and accepted under the current ExecutionHash.
+
+Provider output matching remains strictly ``itemExecutionId + inputContentHash``.
+Contract-invalid, duplicate, extra or hash-mismatched outputs are never treated as
+missing products, and singleton retry remains limited to true missing exact identities.
 """
 from __future__ import annotations
 
 import os
 import time
+from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
+from src.repositories.sqlite_repository import connect, loads
 from src.services import agent_token_runtime_v2259_service as downstream
 from src.services import agent_token_runtime_v230_service as helpers
 from src.services.agent_input_contract_v2258_service import (
@@ -19,11 +27,13 @@ from src.services.agent_input_contract_v2258_service import (
     split_envelopes_by_budget,
 )
 from src.services.hash_directed_artifact_runtime_v2259_service import (
+    HASH_DIRECTED_ARTIFACT_RUNTIME_VERSION,
     accepted_execution,
     build_execution_descriptor,
     claim_execution,
     complete_execution,
     create_batch_manifest,
+    ensure_hash_directed_runtime_tables,
     fail_execution,
     finalize_batch,
     hash_value,
@@ -33,12 +43,18 @@ from src.services.hash_directed_artifact_runtime_v2259_service import (
 )
 from src.services.llm_gateway_hash_directed_v2259_service import call_json_exact_artifact
 from src.services.llm_gateway_v196_service import provider_runtime_config
-from src.services.artifact_transport_service import store_artifact
+from src.services.artifact_transport_service import (
+    resolve_artifact,
+    store_artifact,
+    validate_artifact,
+)
 from src.services.pipeline_artifact_contract_service import attach_pipeline_artifact_ref
 
 THREE_AGENT_PIPELINE_VERSION = downstream.THREE_AGENT_PIPELINE_VERSION
 AGENT_TOKEN_RUNTIME_VERSION = "22.5.9"
 AGENT1_SAFE_RETRY_VERSION = "23.1.3"
+AGENT1_SEMANTIC_RESULT_CACHE_VERSION = "23.1.6"
+AGENT1_SEMANTIC_IDENTITY_SCHEMA = "agent1.semantic_identity.v1"
 AGENT2_REQUEST_CACHE_IDENTITY_HOTFIX_VERSION = (
     downstream.AGENT2_REQUEST_CACHE_IDENTITY_HOTFIX_VERSION
 )
@@ -51,7 +67,6 @@ def _dict(value: Any) -> Dict[str, Any]:
 
 def _text(value: Any, limit: int = 300) -> str:
     return " ".join(str(value or "").split())[:limit]
-
 
 
 def _returned_identity(raw: Any) -> Dict[str, Any]:
@@ -175,6 +190,274 @@ def _artifact_business_output(replay: Dict[str, Any] | None) -> Dict[str, Any] |
     return dict(output) if isinstance(output, dict) else None
 
 
+def _semantic_business_payload(envelope: Dict[str, Any]) -> Dict[str, Any]:
+    """Return only model-relevant Agent1 business semantics.
+
+    Execution transport identity is deliberately excluded: correlationId, signalId,
+    dataVersion, source Artifact refs/hashes and source data-version ids. Business dates,
+    facts, metrics, trends, product/store identity, RAG policy and lineage quality remain.
+    """
+
+    payload = deepcopy(_dict(envelope.get("payload")))
+    for key in ("correlationId", "signalId", "dataVersion"):
+        payload.pop(key, None)
+
+    lineage = deepcopy(_dict(payload.get("sourceLineageValidation")))
+    if lineage:
+        for key in ("sourceArtifactRefs", "sourceContentHash", "dataVersions"):
+            lineage.pop(key, None)
+        payload["sourceLineageValidation"] = lineage
+
+    contract = deepcopy(_dict(payload.get("inputContract")))
+    if contract:
+        for key in ("sourceRef", "sourceContentHash", "sourceLineageHash"):
+            contract.pop(key, None)
+        payload["inputContract"] = contract
+
+    return payload
+
+
+def build_agent1_semantic_identity(
+    envelope: Dict[str, Any],
+    descriptor: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Build the secondary semantic identity without weakening ExecutionHash."""
+
+    from src.services import real_product_judgment_agent_v2259_service as core
+
+    semantic_payload = _semantic_business_payload(envelope)
+    semantic_input_hash = hash_value(semantic_payload)
+    contract = {
+        "semanticCacheVersion": AGENT1_SEMANTIC_RESULT_CACHE_VERSION,
+        "stage": descriptor.get("stage") or _AGENT1_STAGE,
+        "inputSchema": descriptor.get("inputSchema") or AGENT1_INPUT_SCHEMA,
+        "projectionVersion": descriptor.get("projectionVersion"),
+        "promptVersion": descriptor.get("promptVersion"),
+        "promptContractVersion": getattr(
+            core,
+            "REAL_PRODUCT_AGENT_V2259_VERSION",
+            "unknown",
+        ),
+        "policyHash": descriptor.get("policyHash"),
+        "provider": descriptor.get("provider"),
+        "model": descriptor.get("model"),
+        "generationParametersHash": descriptor.get("generationParametersHash"),
+    }
+    semantic_contract_hash = hash_value(contract)
+    semantic_hash = hash_value(
+        {
+            "schema": AGENT1_SEMANTIC_IDENTITY_SCHEMA,
+            "semanticInputHash": semantic_input_hash,
+            "semanticContractHash": semantic_contract_hash,
+        }
+    )
+    return {
+        "schema": AGENT1_SEMANTIC_IDENTITY_SCHEMA,
+        "version": AGENT1_SEMANTIC_RESULT_CACHE_VERSION,
+        "semanticHash": semantic_hash,
+        "semanticInputHash": semantic_input_hash,
+        "semanticContractHash": semantic_contract_hash,
+        "executionIdentityExcluded": [
+            "correlationId",
+            "signalId",
+            "dataVersion",
+            "sourceArtifactRefs",
+            "sourceContentHash",
+            "sourceDataVersions",
+        ],
+        "crossProductReuseAllowed": False,
+    }
+
+
+def _accepted_semantic_execution(
+    semantic_hash: str,
+    *,
+    exclude_execution_hash: str | None = None,
+) -> Dict[str, Any] | None:
+    """Resolve a validated prior accepted execution by SemanticHash.
+
+    No new cache table is introduced. The existing exact execution ledger remains the
+    authority; SemanticHash is stored inside its immutable descriptor metadata and used
+    only as a secondary lookup key.
+    """
+
+    semantic_hash = _text(semantic_hash, 160)
+    if not semantic_hash:
+        return None
+    ensure_hash_directed_runtime_tables()
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT * FROM artifact_execution_index_v2259
+            WHERE stage=? AND status='accepted' AND metadata_json LIKE ?
+            ORDER BY updated_at DESC
+            LIMIT 64
+            """,
+            (_AGENT1_STAGE, f"%{semantic_hash}%"),
+        ).fetchall()
+    for row in rows:
+        record = dict(row)
+        execution_hash = str(record.get("execution_hash") or "")
+        if exclude_execution_hash and execution_hash == exclude_execution_hash:
+            continue
+        metadata = loads(record.get("metadata_json")) if record.get("metadata_json") else {}
+        if not isinstance(metadata, dict):
+            continue
+        if _text(metadata.get("semanticHash"), 160) != semantic_hash:
+            continue
+        if metadata.get("semanticCacheContractVersion") != AGENT1_SEMANTIC_RESULT_CACHE_VERSION:
+            continue
+        artifact_id = str(record.get("accepted_output_ref") or "")
+        if not artifact_id.startswith("ART-"):
+            continue
+        validation = validate_artifact(artifact_id, expected_type="agent1_model_output.v2259")
+        if validation.get("ok") is not True:
+            continue
+        value = resolve_artifact(artifact_id)
+        artifact_value = _dict(value)
+        if not isinstance(artifact_value.get("output"), dict):
+            continue
+        return {
+            "execution": record,
+            "semanticDescriptor": metadata,
+            "outputArtifactRef": artifact_id,
+            "outputContentHash": record.get("accepted_output_hash"),
+            "output": artifact_value,
+        }
+    return None
+
+
+_SEMANTIC_REBIND_KEYS = {
+    "dataVersion",
+    "correlationId",
+    "productId",
+    "storeId",
+    "signalId",
+    "itemExecutionId",
+    "executionHash",
+    "inputArtifactRef",
+    "inputContentHash",
+    "outputArtifactRef",
+    "outputContentHash",
+    "rawBatchOutputRef",
+    "resultOrigin",
+    "hashIdentityMatched",
+    "fallbackIdentityMatchingUsed",
+    "cachedOutputRebound",
+    "legacyItemCacheUsed",
+    "secondProjectionApplied",
+    "hashDirectedRuntimeVersion",
+    "artifactRefs",
+    "signal",
+    "agent1ApiCallCount",
+    "semanticHash",
+    "semanticResultCacheHit",
+    "semanticCacheSourceExecutionHash",
+    "semanticCacheSourceOutputRef",
+    "semanticCacheContractVersion",
+}
+
+
+def _semantic_business_body(output: Dict[str, Any]) -> Dict[str, Any]:
+    result = deepcopy(output)
+    for key in _SEMANTIC_REBIND_KEYS:
+        result.pop(key, None)
+    return result
+
+
+def _rebind_semantic_output(
+    cached: Dict[str, Any],
+    *,
+    descriptor: Dict[str, Any],
+    product: Dict[str, Any],
+    source: Dict[str, Any],
+) -> Dict[str, Any]:
+    result = _semantic_business_body(cached)
+    source_execution = _dict(source.get("execution"))
+    result.update(
+        dataVersion=product.get("dataVersion") or descriptor.get("dataVersion"),
+        correlationId=product.get("correlationId"),
+        productId=product.get("productId") or descriptor.get("productId"),
+        storeId=product.get("storeId") or descriptor.get("storeId"),
+        signalId=product.get("signalId"),
+        signal=product,
+        itemExecutionId=descriptor.get("itemExecutionId"),
+        executionHash=descriptor.get("executionHash"),
+        inputArtifactRef=descriptor.get("inputArtifactRef"),
+        inputContentHash=descriptor.get("inputContentHash"),
+        agent1ApiCallCount=0,
+        semanticHash=descriptor.get("semanticHash"),
+        semanticResultCacheHit=True,
+        semanticCacheSourceExecutionHash=source_execution.get("execution_hash"),
+        semanticCacheSourceOutputRef=source.get("outputArtifactRef"),
+        semanticCacheContractVersion=AGENT1_SEMANTIC_RESULT_CACHE_VERSION,
+        cachedOutputRebound=True,
+        fallbackIdentityMatchingUsed=False,
+    )
+    identity_resolution = dict(_dict(result.get("identityResolution")))
+    identity_resolution.update(
+        mode="semanticHash_then_currentExecutionHash",
+        canonical=True,
+        semanticCacheRebound=True,
+        legacyIdentityRematchUsed=False,
+    )
+    result["identityResolution"] = identity_resolution
+    return result
+
+
+def _store_semantic_rebound_output(
+    *,
+    descriptor: Dict[str, Any],
+    product: Dict[str, Any],
+    output: Dict[str, Any],
+    source: Dict[str, Any],
+) -> Dict[str, Any]:
+    source_output_ref = str(source.get("outputArtifactRef") or "")
+    value = {
+        "schema": "agent1_model_output.v2259",
+        "version": HASH_DIRECTED_ARTIFACT_RUNTIME_VERSION,
+        "itemExecutionId": descriptor.get("itemExecutionId"),
+        "executionHash": descriptor.get("executionHash"),
+        "inputArtifactRef": descriptor.get("inputArtifactRef"),
+        "inputContentHash": descriptor.get("inputContentHash"),
+        "rawBatchOutputRef": None,
+        "stage": descriptor.get("stage"),
+        "dataVersion": product.get("dataVersion") or descriptor.get("dataVersion"),
+        "semanticHash": descriptor.get("semanticHash"),
+        "semanticCacheSourceOutputRef": source_output_ref or None,
+        "output": output,
+    }
+    parents = [
+        ref
+        for ref in (
+            descriptor.get("inputArtifactRef"),
+            source_output_ref,
+        )
+        if str(ref or "").startswith("ART-")
+    ]
+    return store_artifact(
+        artifact_type="agent1_model_output.v2259",
+        value=value,
+        schema_version=HASH_DIRECTED_ARTIFACT_RUNTIME_VERSION,
+        tenant_id=descriptor.get("tenantId"),
+        store_id=product.get("storeId") or descriptor.get("storeId"),
+        product_id=product.get("productId") or descriptor.get("productId"),
+        data_version=product.get("dataVersion") or descriptor.get("dataVersion"),
+        created_by="agent_token_runtime_hash_exact_v2259_semantic_rebind",
+        parent_refs=parents,
+        metadata={
+            "stage": descriptor.get("stage"),
+            "itemExecutionId": descriptor.get("itemExecutionId"),
+            "executionHash": descriptor.get("executionHash"),
+            "inputContentHash": descriptor.get("inputContentHash"),
+            "semanticHash": descriptor.get("semanticHash"),
+            "semanticCacheContractVersion": AGENT1_SEMANTIC_RESULT_CACHE_VERSION,
+            "semanticCacheSourceOutputRef": source_output_ref or None,
+            "cachedOutputRebound": True,
+        },
+    )
+
+
 def _wait_for_accepted(
     execution_hash: str,
     *,
@@ -199,6 +482,7 @@ def _decorate(
     origin: str,
 ) -> Dict[str, Any]:
     result = dict(output)
+    semantic_rebound = origin == "semantic_result_cache_rebound"
     result.update(
         itemExecutionId=descriptor.get("itemExecutionId"),
         executionHash=descriptor.get("executionHash"),
@@ -210,7 +494,10 @@ def _decorate(
         resultOrigin=origin,
         hashIdentityMatched=True,
         fallbackIdentityMatchingUsed=False,
-        cachedOutputRebound=False,
+        semanticHash=descriptor.get("semanticHash"),
+        semanticCacheContractVersion=AGENT1_SEMANTIC_RESULT_CACHE_VERSION,
+        semanticResultCacheHit=semantic_rebound,
+        cachedOutputRebound=semantic_rebound,
         legacyItemCacheUsed=False,
         secondProjectionApplied=False,
         hashDirectedRuntimeVersion=AGENT_TOKEN_RUNTIME_VERSION,
@@ -220,6 +507,9 @@ def _decorate(
     refs["agentExecutionOutputRef"] = output_ref
     if raw_batch_ref:
         refs["agentRawBatchOutputRef"] = raw_batch_ref
+    semantic_source_ref = str(result.get("semanticCacheSourceOutputRef") or "")
+    if semantic_source_ref.startswith("ART-"):
+        refs["agentSemanticCacheSourceRef"] = semantic_source_ref
     result["artifactRefs"] = refs
     return result
 
@@ -264,6 +554,14 @@ def _entry(
         pipelineItemId=_dict(binding.get("metadata")).get("pipelineItemId")
         or product.get("correlationId"),
     )
+    semantic = build_agent1_semantic_identity(envelope, descriptor)
+    descriptor.update(
+        semanticHash=semantic.get("semanticHash"),
+        semanticInputHash=semantic.get("semanticInputHash"),
+        semanticContractHash=semantic.get("semanticContractHash"),
+        semanticIdentitySchema=semantic.get("schema"),
+        semanticCacheContractVersion=AGENT1_SEMANTIC_RESULT_CACHE_VERSION,
+    )
     product["_hashExecution"] = descriptor
     return {
         "envelope": envelope,
@@ -291,6 +589,8 @@ def _policy(core: Any, product: Dict[str, Any]) -> Dict[str, Any]:
         "itemExecutionIdRequired": True,
         "inputContentHashRequired": True,
         "fallbackIdentityMatchingAllowed": False,
+        "semanticCacheMayRebindBusinessBodyOnly": True,
+        "semanticCacheMustCreateNewExactOutputArtifact": True,
     }
     return merged
 
@@ -414,9 +714,12 @@ def _provider_batch(
         retryAttempt=retry_attempt,
         retryMode=("singleton_true_missing_hash" if retry_attempt else "microbatch_exact_hash"),
         requestCacheEnabled=False,
-        itemResultCacheEnabled=False,
+        itemResultCacheEnabled=True,
+        semanticResultCacheEnabled=True,
+        semanticCacheContractVersion=AGENT1_SEMANTIC_RESULT_CACHE_VERSION,
         secondProjectionApplied=False,
-        cachedOutputRebindingAllowed=False,
+        cachedOutputRebindingAllowed=True,
+        cachedOutputRebindingScope="semantic_business_body_to_new_exact_output_artifact_only",
     )
     return accepted, diagnostics, usage
 
@@ -438,7 +741,8 @@ def run_agent1_projected_inputs(
             "normalizationStatus": "not_started",
             "completenessStatus": "no_projected_inputs",
             "actualCalls": 0,
-            "runtimeSource": "exact_agent1InputRef_content_hash",
+            "runtimeSource": "semanticHash+exact_agent1InputRef_content_hash",
+            "semanticResultCacheEnabled": True,
             "fallbackAllowed": False,
         }
 
@@ -448,10 +752,14 @@ def run_agent1_projected_inputs(
     diagnostics: List[Dict[str, Any]] = []
     usages: List[Dict[str, Any]] = []
     errors: List[str] = []
+    semantic_cache_errors: List[str] = []
     replay_count = 0
     waited_count = 0
     busy_count = 0
     claimed_count = 0
+    semantic_hit_count = 0
+    semantic_miss_count = 0
+    semantic_rebound_count = 0
     true_missing_count = 0
     contract_invalid_count = 0
     retry_count = 0
@@ -534,9 +842,71 @@ def run_agent1_projected_inputs(
                     f"execution_claim_invalid:{descriptor.get('itemExecutionId')}:{status}"
                 )
                 continue
+
             entry["claim"] = claim
-            claimed_entries.append(entry)
             claimed_count += 1
+            semantic_source: Dict[str, Any] | None = None
+            try:
+                semantic_source = _accepted_semantic_execution(
+                    str(descriptor.get("semanticHash") or ""),
+                    exclude_execution_hash=str(descriptor.get("executionHash") or ""),
+                )
+            except Exception as exc:
+                semantic_cache_errors.append(
+                    f"lookup:{descriptor.get('itemExecutionId')}:{str(exc)[:420]}"
+                )
+
+            semantic_cached = _artifact_business_output(semantic_source)
+            if semantic_cached and semantic_source:
+                try:
+                    rebound = _rebind_semantic_output(
+                        semantic_cached,
+                        descriptor=descriptor,
+                        product=entry["product"],
+                        source=semantic_source,
+                    )
+                    artifact = _store_semantic_rebound_output(
+                        descriptor=descriptor,
+                        product=entry["product"],
+                        output=rebound,
+                        source=semantic_source,
+                    )
+                    completion = complete_execution(
+                        descriptor,
+                        claim_id=str(claim.get("claimId") or ""),
+                        output_artifact_ref=str(artifact["artifactId"]),
+                        output_content_hash=str(artifact["contentHash"]),
+                        raw_batch_output_ref=None,
+                    )
+                    judgments = helpers._merge_agent1_judgments(
+                        judgments,
+                        [
+                            _decorate(
+                                rebound,
+                                descriptor=descriptor,
+                                output_ref=str(
+                                    completion.get("outputArtifactRef")
+                                    or artifact["artifactId"]
+                                ),
+                                output_hash=str(
+                                    completion.get("outputContentHash")
+                                    or artifact["contentHash"]
+                                ),
+                                raw_batch_ref=None,
+                                origin="semantic_result_cache_rebound",
+                            )
+                        ],
+                    )
+                    semantic_hit_count += 1
+                    semantic_rebound_count += 1
+                    continue
+                except Exception as exc:
+                    semantic_cache_errors.append(
+                        f"rebind:{descriptor.get('itemExecutionId')}:{str(exc)[:420]}"
+                    )
+
+            semantic_miss_count += 1
+            claimed_entries.append(entry)
         except Exception as exc:
             errors.append(f"prepare:{str(exc)[:500]}")
 
@@ -577,8 +947,6 @@ def run_agent1_projected_inputs(
                 if item_execution_id in accepted_ids:
                     continue
                 if item_execution_id in raw_returned:
-                    # Raw output exists, so this is an output contract failure—not a
-                    # missing product. Never call the model again for this execution.
                     contract_invalid_count += 1
                     claim_id = _text(
                         _dict(entry.get("claim")).get("claimId"), 160
@@ -609,7 +977,6 @@ def run_agent1_projected_inputs(
                 retry_entries.append(entry)
         except Exception as exc:
             errors.append(f"batch_{batch_index}:provider:{str(exc)[:500]}")
-            # A provider-call failure is retryable for each exact claimed execution.
             retry_entries.extend(entries)
 
     retry_limit = helpers._env_int(
@@ -682,17 +1049,29 @@ def run_agent1_projected_inputs(
 
     summary = helpers._usage_summary(usages, stage=_AGENT1_STAGE)
     missing_count = max(0, len(valid) - len(judgments))
+    all_from_semantic_cache = bool(
+        valid
+        and semantic_hit_count == len(valid)
+        and replay_count == 0
+        and waited_count == 0
+        and not batches
+        and not errors
+    )
     summary.update(
         version=AGENT_TOKEN_RUNTIME_VERSION,
         providerStatus=(
-            "provider_succeeded"
+            "semantic_cache_replay"
+            if all_from_semantic_cache
+            else "provider_succeeded"
             if missing_count == 0 and not errors
             else "provider_partial"
             if judgments
             else "provider_failed"
         ),
         normalizationStatus=(
-            "exact_hash_matched"
+            "semantic_cache_rebound"
+            if all_from_semantic_cache
+            else "exact_hash_matched"
             if missing_count == 0
             else "partial"
             if judgments
@@ -712,6 +1091,10 @@ def run_agent1_projected_inputs(
         waitedExecutionReplayCount=waited_count,
         alreadyRunningCount=busy_count,
         claimedExecutionCount=claimed_count,
+        semanticResultCacheHitCount=semantic_hit_count,
+        semanticResultCacheMissCount=semantic_miss_count,
+        semanticReboundOutputCount=semantic_rebound_count,
+        semanticCacheErrors=semantic_cache_errors,
         providerBatchCount=len(batches),
         trueMissingItemCount=true_missing_count,
         singletonRetryCount=retry_count,
@@ -719,13 +1102,23 @@ def run_agent1_projected_inputs(
         normalizationRejectionArtifactRefs=sorted(set(rejection_refs)),
         batchDiagnostics=diagnostics,
         errors=errors,
-        runtimeSource="exact_agent1InputRef_content_hash",
-        matchingContract="itemExecutionId+inputContentHash",
+        runtimeSource="semanticHash+exact_agent1InputRef_content_hash",
+        matchingContract=(
+            "exactExecutionHash_replay_or_semanticHash_then_currentExecutionHash_rebind"
+        ),
+        providerOutputMatchingContract="itemExecutionId+inputContentHash",
         batchBoundary="up_to_8_independent_input_hashes",
+        semanticIdentitySchema=AGENT1_SEMANTIC_IDENTITY_SCHEMA,
+        semanticCacheContractVersion=AGENT1_SEMANTIC_RESULT_CACHE_VERSION,
+        semanticResultCacheEnabled=True,
+        semanticCacheUsesExistingExecutionLedger=True,
+        semanticCacheCreatesNewOutputArtifact=True,
+        semanticCacheCrossProductReuseAllowed=False,
         requestCacheEnabled=False,
-        itemResultCacheEnabled=False,
+        itemResultCacheEnabled=True,
         secondProjectionApplied=False,
-        cachedOutputRebindingAllowed=False,
+        cachedOutputRebindingAllowed=True,
+        cachedOutputRebindingScope="semantic_business_body_to_new_exact_output_artifact_only",
         fallbackIdentityMatchingAllowed=False,
         fallbackAllowed=False,
     )
@@ -740,7 +1133,10 @@ __all__ = [
     "THREE_AGENT_PIPELINE_VERSION",
     "AGENT_TOKEN_RUNTIME_VERSION",
     "AGENT1_SAFE_RETRY_VERSION",
+    "AGENT1_SEMANTIC_RESULT_CACHE_VERSION",
+    "AGENT1_SEMANTIC_IDENTITY_SCHEMA",
     "AGENT2_REQUEST_CACHE_IDENTITY_HOTFIX_VERSION",
+    "build_agent1_semantic_identity",
     "run_agent1_projected_inputs",
     "run_agent2_draft_projected_inputs",
     "run_agent2_projected_inputs",
