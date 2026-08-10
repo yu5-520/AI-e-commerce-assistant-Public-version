@@ -1,0 +1,145 @@
+name: Competition Runtime Verification Pilot
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'config/**'
+      - '.github/workflows/competition-runtime-verification-pilot.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-runtime-verification-pilot-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-and-ecs-candidate-gates:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHON_BIN: /opt/python/3.11.9/bin/python3.11
+      AI_RELEASE_PYTHON: /opt/python/3.11.9/bin/python3.11
+      AI_ECOMMERCE_ROOT: /opt/ai-ecommerce-assistant
+      PILOT_GATE: config/deployment/competition_execution_gate.py
+    steps:
+      - name: Materialize exact TARGET source
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="${RUNNER_TEMP}/runtime-verification-pilot-${TARGET_SHA}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/runtime-verification-pilot-${TARGET_SHA}"
+          rm -f "$ARCHIVE"
+          rm -rf "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            if curl \
+              --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${TARGET_SHA}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/$PILOT_GATE"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+
+      - name: Repository Gate
+        run: |
+          set -euo pipefail
+          [ -x "$PYTHON_BIN" ]
+          mkdir -p dist/runtime-verification-pilot
+          "$PYTHON_BIN" -m py_compile "$PILOT_GATE"
+          "$PYTHON_BIN" "$PILOT_GATE" \
+            --mode repository \
+            --root "$GITHUB_WORKSPACE" \
+            --expected-source-commit "$TARGET_SHA" \
+            --output dist/runtime-verification-pilot/repository-gate.json \
+            >/tmp/repository-gate.out
+          cat /tmp/repository-gate.out
+          REPOSITORY_GATE_HASH="$(
+            "$PYTHON_BIN" -c 'import json; print(json.load(open("dist/runtime-verification-pilot/repository-gate.json"))["repository"]["repositoryGateHash"])'
+          )"
+          printf 'REPOSITORY_GATE_HASH=%s\n' "$REPOSITORY_GATE_HASH" >> "$GITHUB_ENV"
+          echo "repositoryGateHash=$REPOSITORY_GATE_HASH"
+
+      - name: Prepare isolated DB for unprivileged ECS gate self-test
+        run: |
+          set -euo pipefail
+          PILOT_DB="${RUNNER_TEMP}/runtime-verification-pilot-${TARGET_SHA}.sqlite3"
+          rm -f "$PILOT_DB"
+          "$PYTHON_BIN" - "$PILOT_DB" <<'PY'
+          import sqlite3,sys
+          conn=sqlite3.connect(sys.argv[1])
+          try:
+              conn.executescript('''
+              CREATE TABLE imported_report_rows(id INTEGER PRIMARY KEY, data_version TEXT, updated_at TEXT);
+              CREATE TABLE pipeline_jobs(id INTEGER PRIMARY KEY, status TEXT, updated_at TEXT);
+              CREATE TABLE station_queue(id INTEGER PRIMARY KEY, station_id TEXT, status TEXT, updated_at TEXT);
+              CREATE TABLE pipeline_items(id INTEGER PRIMARY KEY, stage TEXT, status TEXT, updated_at TEXT);
+              CREATE TABLE artifact_registry(id INTEGER PRIMARY KEY, artifact_id TEXT, created_at TEXT);
+              CREATE TABLE frontend_view_head_v2259(scope_key TEXT PRIMARY KEY, data_version TEXT, updated_at TEXT);
+              ''')
+              conn.commit()
+          finally:
+              conn.close()
+          PY
+          printf 'PILOT_DB=%s\n' "$PILOT_DB" >> "$GITHUB_ENV"
+          echo "CI uses isolated SQLite because production shared DB is root-only."
+          echo "Formal deploy_release runs the same gate as deployment authority against the real shared DB."
+
+      - name: ECS Candidate Gate engine self-test using same verifier
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" "$PILOT_GATE" \
+            --mode ecs-candidate \
+            --root "$GITHUB_WORKSPACE" \
+            --deploy-root "$AI_ECOMMERCE_ROOT" \
+            --database "$PILOT_DB" \
+            --expected-source-commit "$TARGET_SHA" \
+            --expected-repository-gate-hash "$REPOSITORY_GATE_HASH" \
+            --output dist/runtime-verification-pilot/ecs-candidate-gate.json \
+            >/tmp/ecs-candidate-gate.out
+          cat /tmp/ecs-candidate-gate.out
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          repo=json.load(open('dist/runtime-verification-pilot/repository-gate.json'))
+          ecs=json.load(open('dist/runtime-verification-pilot/ecs-candidate-gate.json'))
+          assert repo['verified'] is True, repo['findings']
+          assert ecs['verified'] is True, ecs['findings']
+          assert repo['repository']['repositoryGateHash'] == ecs['repository']['repositoryGateHash']
+          assert (ecs.get('database') or {}).get('quickCheck') == 'ok'
+          print('doubleGateMatch=true')
+          print('repositoryGateHash=' + repo['repository']['repositoryGateHash'])
+          print('ecsExecutionIdentityHash=' + ecs['executionIdentityHash'])
+          print('databaseSchemaHash=' + str((ecs.get('database') or {}).get('databaseSchemaHash')))
+          print('databaseStateHash=' + str((ecs.get('database') or {}).get('databaseStateHash')))
+          print('ciDatabaseMode=isolated_self_test')
+          PY
+
+      - name: Upload pilot gate reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-verification-pilot-${{ env.TARGET_SHA }}
+          path: dist/runtime-verification-pilot
+          if-no-files-found: warn
+          retention-days: 7

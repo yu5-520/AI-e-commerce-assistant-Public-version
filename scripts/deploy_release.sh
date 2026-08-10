@@ -24,6 +24,7 @@ VERIFIER="${AI_RELEASE_VERIFIER_PATH:-/usr/local/sbin/ai-release-verifier}"
 # workerReleaseMatch
 # evidenceSemanticVerified
 # V23 registry gray receipt hard gate
+# config/deployment/competition_execution_gate.py repository -> ECS candidate -> ECS runtime pilot
 
 fail() {
   printf '\nERROR: %s\n' "$1" >&2
@@ -121,9 +122,6 @@ GRAY_RECEIPT="$GRAY_RECEIPT_ROOT/gray-${SOURCE_COMMIT}.json"
 GRAY_REPORT="$GRAY_RECEIPT_ROOT/gray-${SOURCE_COMMIT}-gate.json"
 (
   cd "$GRAY_ROOT"
-  # Execute the stdlib-only receipt gate by file path. Using ``python -m src...``
-  # imports src/__init__.py first, which installs the full business runtime and
-  # incorrectly requires FastAPI before the sealed production venv is prepared.
   AI_RELEASE_ROOT="$GRAY_ROOT" \
     "$BOOTSTRAP_PYTHON" \
     "$GRAY_ROOT/src/services/registry_runtime_receipt_v23_service.py" \
@@ -139,8 +137,88 @@ GRAY_REPORT="$GRAY_RECEIPT_ROOT/gray-${SOURCE_COMMIT}-gate.json"
 [ -s "$GRAY_REPORT" ] || fail "Gray hard-gate report was not persisted"
 printf 'GRAY_RECEIPT=%s\nGRAY_GATE_REPORT=%s\n' "$GRAY_RECEIPT" "$GRAY_REPORT"
 
+printf '\n=== Runtime Verification Pilot: repository + ECS candidate ===\n'
+PILOT_GATE="$GRAY_ROOT/config/deployment/competition_execution_gate.py"
+[ -f "$PILOT_GATE" ] || fail "Runtime verification pilot gate is missing from release bundle"
+PILOT_REPORT_ROOT="${AI_RUNTIME_VERIFICATION_REPORT_ROOT:-$DEPLOY_ROOT/shared/outputs/runtime-verification-pilot}"
+mkdir -p "$PILOT_REPORT_ROOT"
+REPOSITORY_GATE_REPORT="$PILOT_REPORT_ROOT/repository-${SOURCE_COMMIT}.json"
+ECS_CANDIDATE_GATE_REPORT="$PILOT_REPORT_ROOT/ecs-candidate-${SOURCE_COMMIT}.json"
+ECS_RUNTIME_GATE_REPORT="$PILOT_REPORT_ROOT/ecs-runtime-${SOURCE_COMMIT}.json"
+
+"$BOOTSTRAP_PYTHON" "$PILOT_GATE" \
+  --mode repository \
+  --root "$GRAY_ROOT" \
+  --expected-source-commit "$SOURCE_COMMIT" \
+  --release-hash "$RELEASE_HASH" \
+  --output "$REPOSITORY_GATE_REPORT" \
+  >/tmp/ai-runtime-verification-repository.out || {
+    cat /tmp/ai-runtime-verification-repository.out >&2 || true
+    fail "Repository Gate failed inside the sealed ECS candidate"
+  }
+cat /tmp/ai-runtime-verification-repository.out
+REPOSITORY_GATE_HASH="$(
+  "$BOOTSTRAP_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1]))["repository"]["repositoryGateHash"])' \
+    "$REPOSITORY_GATE_REPORT"
+)"
+[ -n "$REPOSITORY_GATE_HASH" ] || fail "Repository Gate did not emit repositoryGateHash"
+
+"$BOOTSTRAP_PYTHON" "$PILOT_GATE" \
+  --mode ecs-candidate \
+  --root "$GRAY_ROOT" \
+  --deploy-root "$DEPLOY_ROOT" \
+  --expected-source-commit "$SOURCE_COMMIT" \
+  --expected-repository-gate-hash "$REPOSITORY_GATE_HASH" \
+  --release-hash "$RELEASE_HASH" \
+  --output "$ECS_CANDIDATE_GATE_REPORT" \
+  >/tmp/ai-runtime-verification-candidate.out || {
+    cat /tmp/ai-runtime-verification-candidate.out >&2 || true
+    fail "ECS Candidate Gate blocked production switch"
+  }
+cat /tmp/ai-runtime-verification-candidate.out
+printf 'REPOSITORY_GATE_HASH=%s\nECS_CANDIDATE_GATE_REPORT=%s\n' \
+  "$REPOSITORY_GATE_HASH" "$ECS_CANDIDATE_GATE_REPORT"
+
 set +e
 /bin/bash "$CORE" "$@"
 status=$?
 set -e
-exit "$status"
+if [ "$status" -ne 0 ]; then
+  exit "$status"
+fi
+
+printf '\n=== Runtime Verification Pilot: ECS post-switch runtime ===\n'
+CURRENT_ROOT="$(readlink -f "$DEPLOY_ROOT/current" 2>/dev/null || true)"
+[ -n "$CURRENT_ROOT" ] && [ -d "$CURRENT_ROOT" ] || fail "Post-switch current release is missing"
+LIVE_GATE="$CURRENT_ROOT/config/deployment/competition_execution_gate.py"
+[ -f "$LIVE_GATE" ] || fail "Post-switch runtime gate is missing from current release"
+
+RUNTIME_GATE_OK=0
+for attempt in $(seq 1 20); do
+  printf 'ECS runtime gate attempt %s/20\n' "$attempt"
+  if "$BOOTSTRAP_PYTHON" "$LIVE_GATE" \
+      --mode ecs-runtime \
+      --root "$CURRENT_ROOT" \
+      --deploy-root "$DEPLOY_ROOT" \
+      --expected-source-commit "$SOURCE_COMMIT" \
+      --expected-repository-gate-hash "$REPOSITORY_GATE_HASH" \
+      --release-hash "$RELEASE_HASH" \
+      --output "$ECS_RUNTIME_GATE_REPORT" \
+      >/tmp/ai-runtime-verification-live.out 2>&1; then
+    RUNTIME_GATE_OK=1
+    cat /tmp/ai-runtime-verification-live.out
+    break
+  fi
+  cat /tmp/ai-runtime-verification-live.out >&2 || true
+  sleep 2
+done
+
+[ "$RUNTIME_GATE_OK" = "1" ] || {
+  printf '\nCRITICAL: release switched but ECS post-switch Runtime Gate did not converge.\n' >&2
+  printf 'Inspect: %s\n' "$ECS_RUNTIME_GATE_REPORT" >&2
+  exit 90
+}
+
+printf 'ECS_RUNTIME_GATE_REPORT=%s\n' "$ECS_RUNTIME_GATE_REPORT"
+printf 'RUNTIME_VERIFICATION_PILOT=passed\n'
+exit 0
