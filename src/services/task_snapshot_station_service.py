@@ -7,6 +7,11 @@ contract exactly enough for TaskPool strict validation:
 - productJudgmentPackage / RAG context / taskPlan / dataVersion
 
 Observation and evidence-collection are formal lifecycle tasks.
+
+Competition lineage rule:
+- productRegistryKey identifies the product entity.
+- productSnapshotHash identifies the immutable fact version frozen into the Task.
+- an existing productSnapshotHash is strict and never falls back to another id.
 """
 
 from __future__ import annotations
@@ -17,6 +22,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 from src.repositories.sqlite_repository import connect, ensure_columns
+from src.services.product_snapshot_lineage_service import bind_task_product_lineage
 
 TASK_SNAPSHOT_STATION_VERSION = "18.0"
 VALID_DECISIONS = {"create_task_snapshot", "manager_review_required", "observe_only", "ignore_noise"}
@@ -107,7 +113,42 @@ def _row_to_snapshot(row: Any) -> Dict[str, Any]:
     payload = _loads(row["payload"], {})
     system_facts = payload.get("systemFacts") if isinstance(payload.get("systemFacts"), dict) else {}
     decision = _decision_from_system_facts(system_facts)
-    return {"version": TASK_SNAPSHOT_STATION_VERSION, "taskSnapshotId": row["task_snapshot_id"], "handoffId": row["handoff_id"], "dataVersion": row["data_version"], "entityType": row["entity_type"], "entityId": row["entity_id"], "decision": row["decision"], "status": row["status"], "confidence": float(row["confidence"] or 0), "trendType": row["trend_type"], "priority": row["priority"], "taskType": row["task_type"], "actionType": row["action_type"], "needManagerReview": bool(row["need_manager_review"]), "signalRef": row["signal_ref"], "ragContext": _loads(row["rag_context"], {}), "agentJudgment": _loads(row["agent_judgment"], {}), "taskPlan": _loads(row["task_plan"], {}), "evidenceRequirements": _loads(row["evidence_requirements"], []), "payload": payload, "taskMappingAgentEvidence": payload.get("taskMappingAgentEvidence") or decision.get("taskMappingAgentEvidence") or {}, "fallbackForbidden": bool(payload.get("fallbackForbidden") or decision.get("fallbackForbidden")), "businessNoTaskForbidden": bool(payload.get("businessNoTaskForbidden") or decision.get("businessNoTaskForbidden")), "taskPoolStatus": row["task_pool_status"], "createdBy": row["created_by"], "createdAt": row["created_at"], "updatedAt": row["updated_at"]}
+    return {
+        "version": TASK_SNAPSHOT_STATION_VERSION,
+        "taskSnapshotId": row["task_snapshot_id"],
+        "handoffId": row["handoff_id"],
+        "dataVersion": row["data_version"],
+        "entityType": row["entity_type"],
+        "entityId": row["entity_id"],
+        "decision": row["decision"],
+        "status": row["status"],
+        "confidence": float(row["confidence"] or 0),
+        "trendType": row["trend_type"],
+        "priority": row["priority"],
+        "taskType": row["task_type"],
+        "actionType": row["action_type"],
+        "needManagerReview": bool(row["need_manager_review"]),
+        "signalRef": row["signal_ref"],
+        "ragContext": _loads(row["rag_context"], {}),
+        "agentJudgment": _loads(row["agent_judgment"], {}),
+        "taskPlan": _loads(row["task_plan"], {}),
+        "evidenceRequirements": _loads(row["evidence_requirements"], []),
+        "payload": payload,
+        "productIdentity": payload.get("productIdentity") or {},
+        "productRegistryKey": payload.get("productRegistryKey"),
+        "productSnapshotHash": payload.get("productSnapshotHash"),
+        "productSnapshot": payload.get("productSnapshot") or {},
+        "productSnapshotLineage": payload.get("productSnapshotLineage") or {},
+        "operatorExecutionSop": payload.get("operatorExecutionSop") or [],
+        "sopSteps": payload.get("sopSteps") or [],
+        "taskMappingAgentEvidence": payload.get("taskMappingAgentEvidence") or decision.get("taskMappingAgentEvidence") or {},
+        "fallbackForbidden": bool(payload.get("fallbackForbidden") or decision.get("fallbackForbidden")),
+        "businessNoTaskForbidden": bool(payload.get("businessNoTaskForbidden") or decision.get("businessNoTaskForbidden")),
+        "taskPoolStatus": row["task_pool_status"],
+        "createdBy": row["created_by"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
 
 
 def _existing_snapshot_for_signal(data_version: str | None, signal_ref: str | None, decision: str) -> Dict[str, Any] | None:
@@ -129,16 +170,27 @@ def _update_handoff_for_snapshot(snapshot: Dict[str, Any]) -> None:
         if not row:
             return
         payload = _loads(row["payload"], {})
-        payload["taskSnapshot"] = {"taskSnapshotId": snapshot.get("taskSnapshotId"), "decision": decision, "status": snapshot.get("status"), "confidence": snapshot.get("confidence")}
+        payload["taskSnapshot"] = {"taskSnapshotId": snapshot.get("taskSnapshotId"), "decision": decision, "status": snapshot.get("status"), "confidence": snapshot.get("confidence"), "productSnapshotHash": snapshot.get("productSnapshotHash")}
         conn.execute("UPDATE station_handoffs SET status = ?, decision_status = ?, output_ref = ?, task_snapshot_count = task_snapshot_count + 1, payload = ?, updated_at = ? WHERE handoff_id = ?", ("task_snapshot_ready" if decision in READY_DECISIONS else "agent_judgment_recorded", decision, f"task_snapshot:{snapshot.get('taskSnapshotId')}", _json(payload), now_iso(), handoff_id))
         conn.commit()
 
 
 def create_task_snapshot(body: Dict[str, Any] | None = None, *, created_by: str | None = None, force: bool = False) -> Dict[str, Any]:
-    body = body or {}
+    body = bind_task_product_lineage(dict(body or {}))
     ensure_task_snapshot_tables()
     decision = _normalize_decision(body.get("decision") or (body.get("agentJudgment") or {}).get("decision"))
-    task_plan = body.get("taskPlan") if isinstance(body.get("taskPlan"), dict) else {}
+    task_plan = dict(body.get("taskPlan")) if isinstance(body.get("taskPlan"), dict) else {}
+    product_identity = body.get("productIdentity") if isinstance(body.get("productIdentity"), dict) else task_plan.get("productIdentity") if isinstance(task_plan.get("productIdentity"), dict) else {}
+    product_registry_key = body.get("productRegistryKey") or product_identity.get("productRegistryKey") or product_identity.get("objectId")
+    product_snapshot_hash = body.get("productSnapshotHash") or product_identity.get("productSnapshotHash")
+    product_snapshot = body.get("productSnapshot") if isinstance(body.get("productSnapshot"), dict) else {}
+    product_snapshot_lineage = body.get("productSnapshotLineage") if isinstance(body.get("productSnapshotLineage"), dict) else {}
+    if product_identity:
+        task_plan["productIdentity"] = product_identity
+    if product_registry_key:
+        task_plan["productRegistryKey"] = product_registry_key
+    if product_snapshot_hash:
+        task_plan["productSnapshotHash"] = product_snapshot_hash
     agent_judgment = body.get("agentJudgment") if isinstance(body.get("agentJudgment"), dict) else {}
     rag_context = body.get("ragContext") if isinstance(body.get("ragContext"), dict) else {}
     data_version = body.get("dataVersion") or body.get("data_version")
@@ -159,9 +211,40 @@ def create_task_snapshot(body: Dict[str, Any] | None = None, *, created_by: str 
     generation_decision = _decision_from_system_facts(system_facts)
     task_mapping_evidence = body.get("taskMappingAgentEvidence") if isinstance(body.get("taskMappingAgentEvidence"), dict) else generation_decision.get("taskMappingAgentEvidence") if isinstance(generation_decision.get("taskMappingAgentEvidence"), dict) else {}
     product_package = body.get("productJudgmentPackage") or generation_decision.get("productJudgmentPackage") or system_facts.get("sceneDataJudgmentPackage") or {}
+    operator_sop = body.get("operatorExecutionSop") or task_plan.get("operatorExecutionSop") or body.get("sopSteps") or task_plan.get("sopSteps") or []
+    if not isinstance(operator_sop, list):
+        operator_sop = []
     snapshot_id = make_snapshot_id()
     created_at = now_iso()
-    payload = {"version": TASK_SNAPSHOT_STATION_VERSION, "taskSnapshotId": snapshot_id, "handoffId": body.get("handoffId") or body.get("handoff_id"), "dataVersion": data_version, "decision": decision, "stationId": "task_snapshot_station", "source": body.get("source") or "task_mapping_agent_station", "systemFacts": system_facts, "ragContext": rag_context, "agentJudgment": agent_judgment, "taskPlan": task_plan, "evidenceRequirements": evidence, "taskMappingAgentEvidence": task_mapping_evidence, "fallbackForbidden": bool(body.get("fallbackForbidden") or generation_decision.get("fallbackForbidden")), "businessNoTaskForbidden": bool(body.get("businessNoTaskForbidden") or generation_decision.get("businessNoTaskForbidden")), "productJudgmentPackage": product_package, "rawTaskGenerationDecision": generation_decision, "taskPoolStatus": "not_entered", "rule": "V18.0 TaskSnapshot preserves task mapping Agent evidence for strict pool admission."}
+    payload = {
+        "version": TASK_SNAPSHOT_STATION_VERSION,
+        "taskSnapshotId": snapshot_id,
+        "handoffId": body.get("handoffId") or body.get("handoff_id"),
+        "dataVersion": data_version,
+        "decision": decision,
+        "stationId": "task_snapshot_station",
+        "source": body.get("source") or "task_mapping_agent_station",
+        "systemFacts": system_facts,
+        "ragContext": rag_context,
+        "agentJudgment": agent_judgment,
+        "taskPlan": task_plan,
+        "evidenceRequirements": evidence,
+        "taskMappingAgentEvidence": task_mapping_evidence,
+        "fallbackForbidden": bool(body.get("fallbackForbidden") or generation_decision.get("fallbackForbidden")),
+        "businessNoTaskForbidden": bool(body.get("businessNoTaskForbidden") or generation_decision.get("businessNoTaskForbidden")),
+        "productJudgmentPackage": product_package,
+        "productIdentity": product_identity,
+        "productRegistryKey": product_registry_key,
+        "productSnapshotHash": product_snapshot_hash,
+        "productSnapshot": product_snapshot,
+        "productSnapshotLineage": product_snapshot_lineage,
+        "productSnapshotStatus": body.get("productSnapshotStatus"),
+        "operatorExecutionSop": operator_sop,
+        "sopSteps": operator_sop,
+        "rawTaskGenerationDecision": generation_decision,
+        "taskPoolStatus": "not_entered",
+        "rule": "V18.0 TaskSnapshot preserves Agent evidence and freezes canonical productSnapshotHash for downstream Task/SOP detail.",
+    }
     with connect() as conn:
         conn.execute(
             """
@@ -174,7 +257,7 @@ def create_task_snapshot(body: Dict[str, Any] | None = None, *, created_by: str 
         row = conn.execute("SELECT * FROM task_snapshots WHERE task_snapshot_id = ?", (snapshot_id,)).fetchone()
     snapshot = _row_to_snapshot(row)
     _update_handoff_for_snapshot(snapshot)
-    snapshot["rule"] = "V18.0 snapshot package preserves Agent evidence; pool entry is handled by task_pool_station."
+    snapshot["rule"] = "V18.0 snapshot package preserves Agent evidence and canonical product lineage; pool entry is handled by task_pool_station."
     return snapshot
 
 
@@ -206,4 +289,4 @@ def task_snapshot_summary(limit: int = 50) -> Dict[str, Any]:
     for item in items:
         by_decision[item["decision"]] = by_decision.get(item["decision"], 0) + 1
         by_status[item["status"]] = by_status.get(item["status"], 0) + 1
-    return {"version": TASK_SNAPSHOT_STATION_VERSION, "total": len(items), "byDecision": by_decision, "byStatus": by_status, "latest": items[0] if items else None, "items": items, "rule": "V18.0 snapshots are idempotent by signalRef + decision + dataVersion and preserve Agent evidence."}
+    return {"version": TASK_SNAPSHOT_STATION_VERSION, "total": len(items), "byDecision": by_decision, "byStatus": by_status, "latest": items[0] if items else None, "items": items, "rule": "V18.0 snapshots are idempotent by signalRef + decision + dataVersion and preserve Agent evidence plus canonical product lineage."}
