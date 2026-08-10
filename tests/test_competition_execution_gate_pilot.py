@@ -98,3 +98,18 @@ def test_source_identity_contains_gate_and_deployment_controller():
     assert "scripts/deploy_release.sh" in paths
     assert "config/deployment/runtime_callable_authority_v1.json" in paths
     assert "contracts/registry/fields.json" not in paths
+
+
+def test_sealed_callable_projection_matches_governance_authority():
+    governance = json.loads(
+        (ROOT / "governance/runtime_callable_authority_v1.json").read_text(encoding="utf-8")
+    )
+    sealed = json.loads(
+        (ROOT / "config/deployment/runtime_callable_authority_v1.json").read_text(encoding="utf-8")
+    )
+
+    assert sealed["schema"] == governance["schema"]
+    assert sealed["authorityMode"] == governance["authorityMode"]
+    assert sealed["callables"] == governance["callables"]
+    assert sealed["legacyOverlay"] == governance["legacyOverlay"]
+    assert sealed["requiredRuntimeAnchors"] == governance["requiredRuntimeAnchors"]
