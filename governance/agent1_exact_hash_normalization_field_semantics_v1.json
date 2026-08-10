@@ -1,0 +1,234 @@
+{
+  "schema": "competition.registry_field_semantics_overlay.v1",
+  "version": "2026.08.10.1",
+  "registrationMode": "hash_anchored_semantic_overlay",
+  "baseSourceCommit": "f3d7c81373fcd1619bf2f7f708d4547b4d664db1",
+  "registryAuthority": "contracts/registry/fields.json",
+  "moduleRegistryAuthority": "contracts/registry/modules.json",
+  "sourceRegistryManifestRoot": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0",
+  "sealedRuntimeRegistryRoot": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+  "rootRotationAllowed": false,
+  "fields": [
+    {
+      "fieldId": "execution.pipeline_item_id",
+      "canonicalPath": "pipelineItemId",
+      "dataType": "string",
+      "ownerModule": "pipeline_runtime",
+      "readers": ["agent1_runtime", "agent2_runtime", "agent3_runtime", "task_mapping"],
+      "writers": ["pipeline_runtime"],
+      "fieldDefinitionHash": "sha256:235044a54bbbaaf3f287de889694527d06ae3cca415879b73b255578defe7cd7",
+      "hashRole": "execution_binding",
+      "identityRole": "writeback_authority",
+      "layer": "execution_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "execution.item_execution_id",
+      "canonicalPath": "itemExecutionId",
+      "dataType": "string",
+      "ownerModule": "artifact_execution_runtime",
+      "readers": ["agent1_runtime", "agent2_runtime", "agent3_runtime"],
+      "writers": ["artifact_execution_runtime"],
+      "fieldDefinitionHash": "sha256:116559f0d13833567fe4d822dddbe91a6b83abe7e559a5e566f74e333768bb0d",
+      "hashRole": "execution",
+      "identityRole": "execution_identity",
+      "layer": "execution_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "execution.input_content_hash",
+      "canonicalPath": "inputContentHash",
+      "dataType": "sha256",
+      "ownerModule": "artifact_transport",
+      "readers": ["artifact_execution_runtime", "agent1_runtime", "agent2_runtime", "agent3_runtime"],
+      "writers": ["artifact_transport"],
+      "fieldDefinitionHash": "sha256:ce6cae62c4b0d3858ca5c86eb34b2eab5555d9f146d5b4bf1998b2a3272d7b57",
+      "hashRole": "execution",
+      "identityRole": "input_identity",
+      "layer": "execution_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "execution.output_artifact_ref",
+      "canonicalPath": "outputArtifactRef",
+      "dataType": "artifact_ref",
+      "ownerModule": "artifact_execution_runtime",
+      "readers": ["pipeline_runtime", "downstream_projection"],
+      "writers": ["artifact_execution_runtime"],
+      "fieldDefinitionHash": "sha256:b6b74fddea1517700181cfd77e1fb45161e8eebfeb6f4b0302dd8ac54a76c648",
+      "hashRole": "execution_result",
+      "identityRole": "output_reference",
+      "layer": "execution_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "entity.store_id",
+      "canonicalPath": "storeId",
+      "dataType": "string",
+      "ownerModule": "product_identity",
+      "readers": ["pipeline_runtime", "agent1_runtime", "action_pack", "agent2_runtime", "agent3_runtime", "frontend_view"],
+      "writers": ["product_identity"],
+      "fieldDefinitionHash": "sha256:0a0fecf5ed184e58d82b3e96e5963116d6473dda1e40f28d9d66e9e0174a849e",
+      "hashRole": "payload_content",
+      "identityRole": "business_reference",
+      "layer": "business_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "entity.product_id",
+      "canonicalPath": "productId",
+      "dataType": "string",
+      "ownerModule": "product_identity",
+      "readers": ["pipeline_runtime", "agent1_runtime", "action_pack", "agent2_runtime", "agent3_runtime", "frontend_view"],
+      "writers": ["product_identity"],
+      "fieldDefinitionHash": "sha256:28b67d3cbbbdfdc4cdd99f938dbc382816872bea9a1cde42c0215f663925da2e",
+      "hashRole": "payload_content",
+      "identityRole": "business_reference",
+      "layer": "business_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "entity.signal_id",
+      "canonicalPath": "signalId",
+      "dataType": "string",
+      "ownerModule": "signal_admission",
+      "readers": ["pipeline_runtime", "agent1_runtime"],
+      "writers": ["signal_admission"],
+      "fieldDefinitionHash": "sha256:1981c447653cdcc7e910c031c7951d4498bd1848e1565d7754612b59ecdffba5",
+      "hashRole": "payload_content",
+      "identityRole": "business_reference",
+      "layer": "business_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "agent1.operating_judgment",
+      "canonicalPath": "agent1OperatingJudgment",
+      "dataType": "object",
+      "ownerModule": "agent1_runtime",
+      "readers": ["action_pack", "agent2_input_projection", "audit_read_model"],
+      "writers": ["agent1_runtime"],
+      "fieldDefinitionHash": "sha256:266bbdf4b227be175b73fe6062df62ab7e44e330d68963f0322902b4f5abe372",
+      "hashRole": "payload_content",
+      "identityRole": "none",
+      "layer": "agent_business",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "agent1.decision_type",
+      "canonicalPath": "decisionType",
+      "dataType": "enum:act|observe",
+      "ownerModule": "agent1_runtime",
+      "readers": ["pipeline_runtime", "action_pack"],
+      "writers": ["agent1_runtime"],
+      "fieldDefinitionHash": "sha256:701da4a86cfc0ebee7421061d099c8409d3dcb0d03ff8727368c7632df16fa42",
+      "hashRole": "payload_content",
+      "identityRole": "none",
+      "layer": "agent_business",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "agent1.execution_lock",
+      "canonicalPath": "executionLock",
+      "dataType": "object",
+      "ownerModule": "agent1_runtime",
+      "readers": ["action_pack", "agent2_runtime"],
+      "writers": ["agent1_runtime"],
+      "fieldDefinitionHash": "sha256:1ef948af376a5306dbd3d1df7ac1818212538a10866e71c15d30cfd11f353b9b",
+      "hashRole": "payload_content",
+      "identityRole": "none",
+      "layer": "agent_business",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "agent1.locked_action_family",
+      "canonicalPath": "lockedActionFamily",
+      "dataType": "string",
+      "ownerModule": "agent1_runtime",
+      "readers": ["action_pack", "agent2_runtime", "agent3_runtime"],
+      "writers": ["agent1_runtime"],
+      "fieldDefinitionHash": "sha256:4672a3cd215088cf6e4a29a138c51c4e969c1b056c9bb51ba3ddee9c173d3688",
+      "hashRole": "payload_content",
+      "identityRole": "none",
+      "layer": "agent_business",
+      "status": "ACTIVE_OVERLAY"
+    }
+  ],
+  "semanticModes": {
+    "agent1_exact_hash_native_normalization": {
+      "identityFields": ["itemExecutionId", "inputContentHash"],
+      "businessReferenceFields": ["storeId", "productId", "signalId"],
+      "businessOutputFields": ["decisionType", "agent1OperatingJudgment", "executionLock", "lockedActionFamily"],
+      "writebackField": "pipelineItemId",
+      "rule": "Once itemExecutionId+inputContentHash matches, that exact input Artifact owns the judgment identity. Legacy business identity matching and legacy hard-coded action-family whitelists may not delete or rebind the judgment. Decision alias canonicalization and execution-lock shaping remain allowed as non-identity formatting/guardrail steps; downstream Action Matrix/capability boundaries decide executability."
+    }
+  },
+  "requiredRuntimeAnchors": [
+    "src/services/agent_input_transport_v2258_service.py",
+    "src/services/hash_directed_artifact_runtime_v2259_service.py",
+    "src/services/agent_token_runtime_hash_exact_v2259_service.py",
+    "src/services/real_product_judgment_agent_v2259_service.py",
+    "src/services/real_product_judgment_agent_v2258_service.py",
+    "src/services/real_product_judgment_agent_v2255_service.py",
+    "src/services/real_product_judgment_agent_v196_service.py",
+    "src/services/agent_execution_lock_v2255_service.py",
+    "src/services/agent_pipeline_item_worker_v2010_service.py"
+  ],
+  "requiredModuleContracts": [
+    {
+      "moduleId": "agent1_runtime",
+      "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
+      "reads": ["execution.item_execution_id", "execution.input_content_hash", "entity.data_version", "entity.product_id", "entity.store_id", "entity.signal_id"],
+      "writes": ["agent1.operating_judgment", "agent1.decision_type", "agent1.execution_lock", "agent1.locked_action_family", "agent1.decision_ir"]
+    }
+  ],
+  "forbiddenPathPredicates": [
+    {
+      "id": "v2259_calls_legacy_full_normalizer",
+      "path": "src/services/real_product_judgment_agent_v2259_service.py",
+      "literal": "legacy._normalize_judgments("
+    },
+    {
+      "id": "v2259_rebuilds_legacy_source_maps",
+      "path": "src/services/real_product_judgment_agent_v2259_service.py",
+      "literal": "legacy._source_maps(products)"
+    },
+    {
+      "id": "v2259_owns_legacy_action_family_whitelist",
+      "path": "src/services/real_product_judgment_agent_v2259_service.py",
+      "literal": "ALLOWED_ACTION_FAMILIES"
+    }
+  ],
+  "requiredPathPredicates": [
+    {
+      "id": "exact_hash_authority",
+      "path": "src/services/real_product_judgment_agent_v2259_service.py",
+      "literal": "NORMALIZATION_AUTHORITY = \"itemExecutionId+inputContentHash\""
+    },
+    {
+      "id": "legacy_identity_rematch_disabled",
+      "path": "src/services/real_product_judgment_agent_v2259_service.py",
+      "literal": "LEGACY_IDENTITY_REMATCH_ALLOWED = False"
+    },
+    {
+      "id": "legacy_family_whitelist_disabled",
+      "path": "src/services/real_product_judgment_agent_v2259_service.py",
+      "literal": "LEGACY_ACTION_FAMILY_WHITELIST_ALLOWED = False"
+    },
+    {
+      "id": "execution_lock_shaping_only",
+      "path": "src/services/real_product_judgment_agent_v2259_service.py",
+      "literal": "execution_contract._apply_execution_lock(item, canonical)"
+    }
+  ],
+  "rules": [
+    "Scan only files present in the exact TARGET competition Hash Lineage runtime closure.",
+    "Recall every TARGET runtime consumer of the registered execution identity, business reference, Agent1 business-output, and writeback fields with exact path and SHA-256.",
+    "itemExecutionId+inputContentHash is the only Agent1 output binding authority after the hash gate.",
+    "storeId/productId/signalId remain business references projected from the exact input Artifact; they cannot re-own execution matching.",
+    "Legacy V22.5.8 may canonicalize decision aliases and V22.5.5 may shape executionLock, but neither may delete an exact-hash-matched judgment by business rematching or an old action-family whitelist.",
+    "Unknown/new action-family intent may remain in Agent1 output; current downstream Action Matrix/capability boundaries decide whether it is executable.",
+    "Canonical V23 Registry roots remain sealed; this hotfix uses a hash-anchored semantic overlay."
+  ],
+  "interfaces": [],
+  "overlayHash": "sha256:ce464013ba3afce241adbd73d1b723198b12263a170bb27c0452eed168f8fa45"
+}
