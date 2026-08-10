@@ -10,7 +10,7 @@ on:
       - 'governance/current_state_attention_field_semantics_v1.json'
       - 'governance/competition_lineage_update_policy.json'
       - 'scripts/compile_competition_lineage.py'
-      - 'scripts/verify_baseline_signal_field_lineage.py'
+      - 'scripts/verify_current_state_attention_lineage.py'
       - 'tests/test_current_state_attention_projection_v22512.py'
       - '.github/workflows/competition-current-state-attention-lineage.yml'
   push:
@@ -34,6 +34,7 @@ jobs:
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       OVERLAY: governance/current_state_attention_field_semantics_v1.json
       LINEAGE_DIR: dist/competition-current-state-attention-lineage
+      REPORT: dist/current-state-attention-lineage-report.json
     steps:
       - name: Materialize exact TARGET source
         env:
@@ -66,7 +67,7 @@ jobs:
           test -s "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
           test -f "$EXTRACTED/scripts/compile_competition_lineage.py"
-          test -f "$EXTRACTED/scripts/verify_baseline_signal_field_lineage.py"
+          test -f "$EXTRACTED/scripts/verify_current_state_attention_lineage.py"
           test -f "$EXTRACTED/$OVERLAY"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
@@ -105,79 +106,50 @@ jobs:
           rm -rf "$LINEAGE_DIR"
           "$PYTHON_BIN" -m py_compile \
             scripts/compile_competition_lineage.py \
-            scripts/verify_baseline_signal_field_lineage.py \
+            scripts/verify_current_state_attention_lineage.py \
             src/services/pipeline_live_read_model_v225_service.py
           "$PYTHON_BIN" scripts/compile_competition_lineage.py \
             --source-commit "$TARGET_SHA" \
             --output-dir "$LINEAGE_DIR"
 
-      - name: Recall all registered field consumers from TARGET lineage
+      - name: Verify unified Registry and recall all TARGET consumers
         env:
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
           set -euo pipefail
-          "$PYTHON_BIN" scripts/verify_baseline_signal_field_lineage.py \
+          "$PYTHON_BIN" scripts/verify_current_state_attention_lineage.py \
             --lineage-graph "$LINEAGE_DIR/lineage-graph.json" \
             --overlay "$OVERLAY" \
-            --output dist/current-state-attention-field-lineage-report.json
+            --output "$REPORT"
           "$PYTHON_BIN" - <<'PY'
           import json
           from pathlib import Path
-          report=json.loads(Path('dist/current-state-attention-field-lineage-report.json').read_text(encoding='utf-8'))
+
+          report=json.loads(Path('dist/current-state-attention-lineage-report.json').read_text(encoding='utf-8'))
           assert report.get('verified') is True, report.get('findings')
           assert report.get('registeredFieldCount') == 4, report.get('registeredFieldCount')
+          assert report.get('registeredInterfaceCount') == 1, report.get('registeredInterfaceCount')
           assert not report.get('stalePredicateHits'), report.get('stalePredicateHits')
-          print('currentStateAttentionFieldLineageHash=' + str(report.get('verificationHash')))
+          print('currentStateAttentionLineageHash=' + str(report.get('verificationHash')))
           print('consumerRuntimeFileCount=' + str(len(report.get('consumerRuntimeFiles') or [])))
           for field_id, lineage in sorted((report.get('fieldLineage') or {}).items()):
-              print('FIELD ' + field_id)
+              print('FIELD ' + field_id + ' aliases=' + ','.join(lineage.get('aliases') or []))
               for hit in lineage.get('runtimeHits') or []:
-                  print('  ' + str(hit.get('path')) + ' ' + str(hit.get('contentHash')) + ' hits=' + str(hit.get('occurrenceCount')))
+                  aliases=','.join(f'{key}:{value}' for key,value in sorted((hit.get('aliases') or {}).items()))
+                  print('  ' + str(hit.get('path')) + ' ' + str(hit.get('contentHash')) + ' hits=' + str(hit.get('occurrenceCount')) + ' aliases=' + aliases)
+          for interface_id, lineage in sorted((report.get('interfaceLineage') or {}).items()):
+              print('INTERFACE ' + interface_id)
+              for anchor in lineage.get('runtimeAnchors') or []:
+                  print('  ' + str(anchor.get('path')) + ' ' + str(anchor.get('contentHash')))
           PY
 
-      - name: Verify unified Registry fields and interface authority
+      - name: Verify current-state facade contract
         env:
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
           set -euo pipefail
           "$PYTHON_BIN" - <<'PY'
-          import hashlib
-          import json
           from pathlib import Path
-
-          overlay=json.loads(Path('governance/current_state_attention_field_semantics_v1.json').read_text(encoding='utf-8'))
-          fields=json.loads(Path('contracts/registry/fields.json').read_text(encoding='utf-8'))['fields']
-          interfaces=json.loads(Path('contracts/registry/interfaces.json').read_text(encoding='utf-8'))['interfaces']
-          graph=json.loads(Path('dist/competition-current-state-attention-lineage/lineage-graph.json').read_text(encoding='utf-8'))
-          runtime_paths={str(node.get('path')) for node in graph.get('nodes') or [] if isinstance(node,dict) and node.get('type')=='file' and node.get('path')}
-
-          field_index={str(item.get('fieldId')):item for item in fields if isinstance(item,dict)}
-          field_keys=('fieldId','canonicalPath','dataType','ownerModule','readers','writers')
-          for declared in overlay.get('fields') or []:
-              field_id=str(declared['fieldId'])
-              actual=field_index.get(field_id)
-              assert actual is not None, 'field_not_in_unified_registry:' + field_id
-              for key in field_keys:
-                  assert actual.get(key) == declared.get(key), f'field_registry_mismatch:{field_id}:{key}'
-              material={key:declared.get(key) for key in field_keys}
-              digest='sha256:' + hashlib.sha256(json.dumps(material,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode('utf-8')).hexdigest()
-              assert digest == declared.get('fieldDefinitionHash'), f'field_definition_hash_mismatch:{field_id}'
-
-          interface_index={str(item.get('interfaceId')):item for item in interfaces if isinstance(item,dict)}
-          interface_keys=('interfaceId','method','ownerModule','path','requestSchema','responseSchema','status')
-          for declared in overlay.get('interfaces') or []:
-              interface_id=str(declared['interfaceId'])
-              actual=interface_index.get(interface_id)
-              assert actual is not None, 'interface_not_in_unified_registry:' + interface_id
-              for key in interface_keys:
-                  assert actual.get(key) == declared.get(key), f'interface_registry_mismatch:{interface_id}:{key}'
-              anchors=[str(value) for value in declared.get('runtimeAnchors') or []]
-              for anchor in anchors:
-                  assert anchor in runtime_paths, 'interface_anchor_not_in_target_lineage:' + anchor
-              source='\n'.join(Path(anchor).read_text(encoding='utf-8',errors='replace') for anchor in anchors)
-              for literal in declared.get('runtimeLiterals') or []:
-                  assert str(literal) in source, f'interface_runtime_literal_missing:{interface_id}:{literal}'
-
           facade=Path('src/services/pipeline_live_read_model_v225_service.py').read_text(encoding='utf-8')
           required=[
               'ATTENTION_IDENTITY = "dataVersion+storeId+productId"',
@@ -188,8 +160,6 @@ jobs:
           ]
           missing=[literal for literal in required if literal not in facade]
           assert not missing, 'current_state_facade_contract_missing:' + ','.join(missing)
-          print('unifiedRegistryFieldCount=' + str(len(overlay.get('fields') or [])))
-          print('unifiedRegistryInterfaceCount=' + str(len(overlay.get('interfaces') or [])))
           print('currentStateFacadeContract=verified')
           PY
 
@@ -225,7 +195,7 @@ jobs:
         with:
           name: current-state-attention-lineage-${{ env.TARGET_SHA }}
           path: |
-            dist/current-state-attention-field-lineage-report.json
+            dist/current-state-attention-lineage-report.json
             dist/competition-current-state-attention-lineage
             dist/current-state-attention-env/runtime-environment-summary.log
           if-no-files-found: warn
