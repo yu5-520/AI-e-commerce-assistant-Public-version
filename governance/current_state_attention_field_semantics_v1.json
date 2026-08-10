@@ -93,12 +93,12 @@
   ],
   "forbiddenStalePredicates": [
     {
-      "id": "attention_re_reads_raw_history_rows",
-      "literal": "items=_deduplicated_attention(rows, limit)"
+      "id": "attention_history_fallback_enabled",
+      "literal": "attentionHistoryFallbackAllowed\"] = True"
     },
     {
-      "id": "attention_history_fallback_rule",
-      "literal": "attention items are unique current products"
+      "id": "attention_projects_unscoped_active_rows",
+      "literal": "result[\"items\"] = base._deduplicated_attention(base._current_rows(active), limit)"
     }
   ],
   "rules": [
@@ -128,5 +128,5 @@
       ]
     }
   ],
-  "overlayHash": "sha256:8eb76aede82047fbad146604b08eadbaf6a1b74c40e6eff3d59b110b6aeaaeab"
+  "overlayHash": "sha256:51b4862025810301d64b063c4475891c275123ccd40c06ba771bb291b90a0fc2"
 }
