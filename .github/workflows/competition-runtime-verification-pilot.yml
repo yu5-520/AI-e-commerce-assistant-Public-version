@@ -1,0 +1,122 @@
+name: Competition Runtime Verification Pilot
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'config/**'
+      - 'contracts/**'
+      - 'governance/**'
+      - '.github/workflows/competition-runtime-verification-pilot.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-runtime-verification-pilot-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-and-ecs-candidate-gates:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHON_BIN: /opt/python/3.11.9/bin/python3.11
+      AI_RELEASE_PYTHON: /opt/python/3.11.9/bin/python3.11
+      AI_ECOMMERCE_ROOT: /opt/ai-ecommerce-assistant
+    steps:
+      - name: Materialize exact TARGET source
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="${RUNNER_TEMP}/runtime-verification-pilot-${TARGET_SHA}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/runtime-verification-pilot-${TARGET_SHA}"
+          rm -f "$ARCHIVE"
+          rm -rf "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            if curl \
+              --fail \
+              --location \
+              --silent \
+              --show-error \
+              --connect-timeout 20 \
+              --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${TARGET_SHA}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/competition_execution_gate.py"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+
+      - name: Repository Gate
+        run: |
+          set -euo pipefail
+          [ -x "$PYTHON_BIN" ]
+          mkdir -p dist/runtime-verification-pilot
+          "$PYTHON_BIN" -m py_compile scripts/competition_execution_gate.py
+          "$PYTHON_BIN" scripts/competition_execution_gate.py \
+            --mode repository \
+            --root "$GITHUB_WORKSPACE" \
+            --expected-source-commit "$TARGET_SHA" \
+            --output dist/runtime-verification-pilot/repository-gate.json \
+            >/tmp/repository-gate.out
+          cat /tmp/repository-gate.out
+          REPOSITORY_GATE_HASH="$(
+            "$PYTHON_BIN" -c 'import json; print(json.load(open("dist/runtime-verification-pilot/repository-gate.json"))["repository"]["repositoryGateHash"])'
+          )"
+          printf 'REPOSITORY_GATE_HASH=%s\n' "$REPOSITORY_GATE_HASH" >> "$GITHUB_ENV"
+          echo "repositoryGateHash=$REPOSITORY_GATE_HASH"
+
+      - name: ECS Candidate Gate using same verifier
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" scripts/competition_execution_gate.py \
+            --mode ecs-candidate \
+            --root "$GITHUB_WORKSPACE" \
+            --deploy-root "$AI_ECOMMERCE_ROOT" \
+            --expected-source-commit "$TARGET_SHA" \
+            --expected-repository-gate-hash "$REPOSITORY_GATE_HASH" \
+            --output dist/runtime-verification-pilot/ecs-candidate-gate.json \
+            >/tmp/ecs-candidate-gate.out
+          cat /tmp/ecs-candidate-gate.out
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          repo=json.load(open('dist/runtime-verification-pilot/repository-gate.json'))
+          ecs=json.load(open('dist/runtime-verification-pilot/ecs-candidate-gate.json'))
+          assert repo['verified'] is True, repo['findings']
+          assert ecs['verified'] is True, ecs['findings']
+          assert repo['repository']['repositoryGateHash'] == ecs['repository']['repositoryGateHash']
+          print('doubleGateMatch=true')
+          print('repositoryGateHash=' + repo['repository']['repositoryGateHash'])
+          print('ecsExecutionIdentityHash=' + ecs['executionIdentityHash'])
+          print('databaseSchemaHash=' + str((ecs.get('database') or {}).get('databaseSchemaHash')))
+          print('databaseStateHash=' + str((ecs.get('database') or {}).get('databaseStateHash')))
+          PY
+
+      - name: Upload pilot gate reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-verification-pilot-${{ env.TARGET_SHA }}
+          path: dist/runtime-verification-pilot
+          if-no-files-found: warn
+          retention-days: 7
