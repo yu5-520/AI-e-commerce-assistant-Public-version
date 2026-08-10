@@ -1,0 +1,132 @@
+{
+  "schema": "competition.registry_field_semantics_overlay.v1",
+  "version": "2026.08.10.1",
+  "registrationMode": "hash_anchored_semantic_overlay",
+  "baseSourceCommit": "7e418686c9a33a7f4ada4cd5a1ce0043323d47a4",
+  "registryAuthority": "contracts/registry/fields.json",
+  "sourceRegistryManifestRoot": "sha256:e1bbee3ef7b78805ed32a917f304c5585e2cca3195e59856e973a051e2a713b0",
+  "sealedRuntimeRegistryRoot": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+  "rootRotationAllowed": false,
+  "fields": [
+    {
+      "fieldId": "entity.data_version",
+      "canonicalPath": "dataVersion",
+      "dataType": "string",
+      "ownerModule": "data_platform",
+      "readers": ["pipeline_runtime", "agent1_runtime", "action_pack", "agent2_runtime", "agent3_runtime", "frontend_view"],
+      "writers": ["data_platform"],
+      "fieldDefinitionHash": "sha256:8ad940e7f2ee2ed2c14b97e9e9bc6b90808962d79f588fbe74fb7faa320c1122",
+      "hashRole": "payload_content",
+      "identityRole": "business_batch_reference",
+      "layer": "business_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "entity.store_id",
+      "canonicalPath": "storeId",
+      "dataType": "string",
+      "ownerModule": "product_identity",
+      "readers": ["pipeline_runtime", "agent1_runtime", "action_pack", "agent2_runtime", "agent3_runtime", "frontend_view"],
+      "writers": ["product_identity"],
+      "fieldDefinitionHash": "sha256:0a0fecf5ed184e58d82b3e96e5963116d6473dda1e40f28d9d66e9e0174a849e",
+      "hashRole": "payload_content",
+      "identityRole": "business_reference",
+      "layer": "business_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "entity.product_id",
+      "canonicalPath": "productId",
+      "dataType": "string",
+      "ownerModule": "product_identity",
+      "readers": ["pipeline_runtime", "agent1_runtime", "action_pack", "agent2_runtime", "agent3_runtime", "frontend_view"],
+      "writers": ["product_identity"],
+      "fieldDefinitionHash": "sha256:28b67d3cbbbdfdc4cdd99f938dbc382816872bea9a1cde42c0215f663925da2e",
+      "hashRole": "payload_content",
+      "identityRole": "business_reference",
+      "layer": "business_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "entity.signal_id",
+      "canonicalPath": "signalId",
+      "dataType": "string",
+      "ownerModule": "signal_admission",
+      "readers": ["pipeline_runtime", "agent1_runtime"],
+      "writers": ["signal_admission"],
+      "fieldDefinitionHash": "sha256:1981c447653cdcc7e910c031c7951d4498bd1848e1565d7754612b59ecdffba5",
+      "hashRole": "payload_content",
+      "identityRole": "business_reference",
+      "layer": "business_identity",
+      "status": "ACTIVE_OVERLAY"
+    },
+    {
+      "fieldId": "frontend.manifest_hash",
+      "canonicalPath": "manifestHash",
+      "dataType": "sha256",
+      "ownerModule": "frontend_view",
+      "readers": ["frontend_client"],
+      "writers": ["frontend_view"],
+      "fieldDefinitionHash": "sha256:2eb94271e58fcbfd4783e1879d3bec50cabd1442acc7aa47125d31d72fc5b8b0",
+      "hashRole": "frontend_manifest",
+      "identityRole": "view_head_identity",
+      "layer": "frontend_projection",
+      "status": "ACTIVE_OVERLAY"
+    }
+  ],
+  "semanticModes": {
+    "current_state_attention_projection": {
+      "identityFields": ["dataVersion", "storeId", "productId"],
+      "signalReferenceField": "signalId",
+      "publicationField": "manifestHash",
+      "rule": "For each dataVersion+storeId+productId, resolve exactly one newest pipeline row before deciding whether the item belongs in attention. observed_soft_gate is a terminal observation projection for the current row and may never fall back to an older Agent1 row."
+    }
+  },
+  "requiredRuntimeAnchors": [
+    "src/services/artifact_signal_admission_v225_service.py",
+    "src/services/pipeline_item_service.py",
+    "src/services/pipeline_live_read_model_v2258_service.py",
+    "src/services/pipeline_live_read_model_v225_service.py",
+    "src/services/frontend_view_artifact_v2259_service.py",
+    "src/api/routes/frontend_views.py",
+    "web_demo/core/hash-view-client-v2259.js"
+  ],
+  "forbiddenStalePredicates": [
+    {
+      "id": "attention_re_reads_raw_history_rows",
+      "literal": "items=_deduplicated_attention(rows, limit)"
+    },
+    {
+      "id": "attention_history_fallback_rule",
+      "literal": "attention items are unique current products"
+    }
+  ],
+  "rules": [
+    "Scan only files present in the exact TARGET competition Hash Lineage runtime closure.",
+    "Recall every consumer of registered dataVersion/storeId/productId/signalId/manifestHash fields with exact runtime path and file SHA-256.",
+    "Current attention identity is dataVersion+storeId+productId and must be resolved latest-row-first.",
+    "observed_soft_gate is excluded only after latest-row identity resolution; filtering it may not reveal an older Agent1 state.",
+    "The operator-center view.head.get interface is verified against the unified interface registry and both route/client anchors must stay in TARGET Hash Lineage.",
+    "Canonical V23 Registry roots remain sealed; this hotfix uses a hash-anchored semantic overlay."
+  ],
+  "interfaces": [
+    {
+      "interfaceId": "view.head.get",
+      "method": "GET",
+      "ownerModule": "frontend_view",
+      "path": "/api/view/head/{view_key}",
+      "requestSchema": null,
+      "responseSchema": "frontend_view.manifest.v2259",
+      "status": "ACTIVE",
+      "runtimeAnchors": [
+        "src/api/routes/frontend_views.py",
+        "web_demo/core/hash-view-client-v2259.js"
+      ],
+      "runtimeLiterals": [
+        "@router.get(\"/head/{view_key}\")",
+        "/api/view/head/"
+      ]
+    }
+  ],
+  "overlayHash": "sha256:8eb76aede82047fbad146604b08eadbaf6a1b74c40e6eff3d59b110b6aeaaeab"
+}
