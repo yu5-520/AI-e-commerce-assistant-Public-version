@@ -38,6 +38,7 @@ echo "[1/5] Syntax-check repaired Python files"
   src/services/agent_token_runtime_v225_service.py \
   src/services/agent_runtime_contract_v225_service.py \
   src/services/artifact_transport_service.py \
+  src/services/pipeline_live_read_model_v225_service.py \
   scripts/verify_runtime_contract_lineage.py \
   scripts/compile_runtime_contract_lineage_overlay.py \
   scripts/compile_competition_lineage.py
