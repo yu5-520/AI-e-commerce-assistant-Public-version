@@ -107,7 +107,8 @@
       "consumers": [
         "src/services/agent3_semantic_path_repair_v1_service.py",
         "src/services/agent_runtime_contract_v225_service.py",
-        "src/services/pipeline_agent3_sop_v225_service.py"
+        "src/services/pipeline_agent3_sop_v225_service.py",
+        "src/services/pipeline_live_read_model_v225_service.py"
       ],
       "legacyAliases": [
         "agent3Sop.semanticContractMissing",
@@ -125,7 +126,8 @@
       ],
       "consumers": [
         "src/services/pipeline_agent3_sop_v225_service.py",
-        "src/services/pipeline_live_read_model_v2258_service.py"
+        "src/services/pipeline_live_read_model_v2258_service.py",
+        "src/services/pipeline_live_read_model_v225_service.py"
       ],
       "legacyAliases": [
         "missing"
@@ -157,11 +159,13 @@
     "agent3.failure_class": {
       "owner": "src.services.agent3_semantic_path_repair_v1_service:classify_contract_violations",
       "producers": [
-        "src/services/agent3_semantic_path_repair_v1_service.py"
+        "src/services/agent3_semantic_path_repair_v1_service.py",
+        "src/services/pipeline_agent3_sop_v225_service.py"
       ],
       "consumers": [
         "src/services/pipeline_agent3_sop_v225_service.py",
-        "src/services/pipeline_live_read_model_v2258_service.py"
+        "src/services/pipeline_live_read_model_v2258_service.py",
+        "src/services/pipeline_live_read_model_v225_service.py"
       ],
       "legacyAliases": [
         "frontendFailureLabel",
