@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 from src.repositories.sqlite_repository import connect, ensure_columns
-from src.services.system_product_snapshot_service import bind_task_product_lineage
+from src.services.task_snapshot_lineage_guard_service import prepare_task_product_lineage
 
 TASK_SNAPSHOT_STATION_VERSION = "18.0"
 VALID_DECISIONS = {"create_task_snapshot", "manager_review_required", "observe_only", "ignore_noise"}
@@ -176,7 +176,7 @@ def _update_handoff_for_snapshot(snapshot: Dict[str, Any]) -> None:
 
 
 def create_task_snapshot(body: Dict[str, Any] | None = None, *, created_by: str | None = None, force: bool = False) -> Dict[str, Any]:
-    body = bind_task_product_lineage(dict(body or {}))
+    body = prepare_task_product_lineage(dict(body or {}), user_id=created_by)
     ensure_task_snapshot_tables()
     decision = _normalize_decision(body.get("decision") or (body.get("agentJudgment") or {}).get("decision"))
     task_plan = dict(body.get("taskPlan")) if isinstance(body.get("taskPlan"), dict) else {}
