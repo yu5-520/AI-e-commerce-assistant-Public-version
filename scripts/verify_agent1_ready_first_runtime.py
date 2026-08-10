@@ -72,11 +72,22 @@ def main() -> int:
         if literal in facade_source:
             findings.append(f"ready_first_forbidden_runtime_behavior:{literal}")
 
-    # This patch fixes claim granularity first. Semantic replay remains disabled until
-    # the separate dual-hash cache update is introduced and verified.
-    for literal in ("requestCacheEnabled=False", "itemResultCacheEnabled=False"):
-        if literal not in exact_source:
-            findings.append(f"exact_runtime_cache_policy_changed:{literal}")
+    # Ready-first owns claim granularity, not the later per-item semantic-cache policy.
+    # Request-level caching must stay disabled. If a later verified item cache is active,
+    # it may only rebind a business body into a new current exact output Artifact.
+    if "requestCacheEnabled=False" not in exact_source:
+        findings.append("exact_runtime_request_cache_policy_changed")
+    if "itemResultCacheEnabled=True" in exact_source:
+        for literal in (
+            "semanticCacheCreatesNewOutputArtifact=True",
+            "semanticCacheCrossProductReuseAllowed=False",
+            'cachedOutputRebindingScope="semantic_business_body_to_new_exact_output_artifact_only"',
+            'providerOutputMatchingContract="itemExecutionId+inputContentHash"',
+        ):
+            if literal not in exact_source:
+                findings.append(f"semantic_cache_breaks_ready_first_boundary:{literal}")
+    elif "itemResultCacheEnabled=False" not in exact_source:
+        findings.append("agent1_item_cache_policy_not_explicit")
 
     if "secondWorkerAllowed=False" not in worker_source:
         findings.append("single_worker_contract_missing")
