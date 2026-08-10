@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.10.5",
+  "version": "2026.08.10.6",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse inside the existing exact execution ledger, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -26,6 +26,7 @@
         "src/services/station_truth_contract_v225_service.py",
         "src/services/real_product_judgment_agent_v2259_service.py",
         "src/services/agent_runtime_hard_interface_v22515_service.py",
+        "src/services/agent_token_runtime_hash_exact_v2259_service.py",
         "scripts/deploy_release.sh"
       ],
       "allowedRegistryModules": [],
@@ -198,6 +199,22 @@
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
         "src/services/real_product_judgment_agent_v2259_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "agent1_semantic_result_cache": {
+      "description": "Agent1-only dual-identity cache scope. The existing exact-hash token runtime may derive SemanticHash, search only accepted rows in the existing exact execution ledger, and create a new exact output Artifact for the current ExecutionHash. Registry membership, exact execution hash definition, Provider configuration, request cache, all downstream Agents and Worker count remain sealed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/agent_token_runtime_hash_exact_v2259_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
