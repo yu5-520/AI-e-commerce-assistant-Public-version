@@ -17,10 +17,10 @@ from src.services.artifact_registry_service import (
     validate_artifact,
 )
 
-ARTIFACT_TRANSPORT_VERSION = "22.3.0"
+ARTIFACT_TRANSPORT_VERSION = "22.3.1"
 
 # These keys describe business-stage outputs. Agent input refs are created only by
-# agent_input_transport_v230_service and are never aliases for full stage payloads.
+# agent_input_transport services and are never aliases for full stage payloads.
 _STAGE_REF_KEYS = {
     "data_received": "reportRef",
     "schema_ready": "schemaRef",
@@ -45,7 +45,15 @@ _STAGE_REF_KEYS = {
     "agent2_output_invalid": "agent2FailureRef",
     "agent2_failed": "agent2FailureRef",
     "agent2_dead_letter": "agent2FailureRef",
+    "agent2_draft_ready": "agent2DraftRef",
+    "agent2_draft_output_invalid": "agent2DraftFailureRef",
+    "agent2_draft_failed": "agent2DraftFailureRef",
+    "agent3_sop_running": "agent3SopRuntimeReceiptRef",
+    "agent3_sop_ready": "agent3SopRef",
+    "agent3_sop_output_invalid": "agent3SopFailureRef",
+    "agent3_sop_failed": "agent3SopFailureRef",
     "sop_mapped": "sopRef",
+    "task_mapped": "taskMappingRef",
     "task_admitted": "taskRef",
     "read_model_ready": "readModelRef",
     "task_loop_ready": "acceptanceRef",
