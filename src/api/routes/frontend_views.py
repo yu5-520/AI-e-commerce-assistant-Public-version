@@ -8,8 +8,6 @@ from src.repositories.sqlite_repository import connect, loads
 from src.runtime_version import THREE_AGENT_PIPELINE_VERSION, VERSION
 from src.services.frontend_read_model_service import (
     read_dashboard_view,
-    read_product_detail,
-    read_product_views,
     read_system_status_view,
     refresh_all_read_models,
 )
@@ -20,6 +18,11 @@ from src.services.frontend_view_artifact_v2259_service import (
     read_frontend_view_artifact_v2259,
 )
 from src.services.pipeline_live_read_model_v225_service import read_pipeline_live_model
+from src.services.system_product_snapshot_service import (
+    bind_task_product_lineage,
+    read_canonical_product_detail,
+    read_canonical_product_views,
+)
 from src.services.product_trend_read_model_v217_service import read_product_trend
 from src.services.public_task_dto_service import (
     PUBLIC_TASK_DTO_VERSION,
@@ -103,6 +106,33 @@ def _overlay_current_task_status(result: Dict[str, Any], task_id: str) -> Dict[s
     return result
 
 
+def _publish_task_product_lineage(result: Dict[str, Any], internal: Dict[str, Any]) -> Dict[str, Any]:
+    """Publish the frozen canonical product parent without exposing Agent internals."""
+    lineage = _dict(internal.get("productSnapshotLineage"))
+    if lineage:
+        result["productSnapshotLineage"] = lineage
+    snapshot_hash = internal.get("productSnapshotHash")
+    registry_key = internal.get("productRegistryKey")
+    product_snapshot = _dict(internal.get("productSnapshot"))
+    if snapshot_hash:
+        result["productSnapshotHash"] = snapshot_hash
+    if registry_key:
+        result["productRegistryKey"] = registry_key
+    if product_snapshot:
+        result["productSnapshot"] = product_snapshot
+    product = _dict(result.get("productIdentity"))
+    if registry_key:
+        product["objectId"] = product.get("objectId") or registry_key
+        product["productRegistryKey"] = registry_key
+    if snapshot_hash:
+        product["productSnapshotHash"] = snapshot_hash
+    result["productIdentity"] = product
+    if not result.get("operatorExecutionSop") and internal.get("operatorExecutionSop"):
+        result["operatorExecutionSop"] = internal.get("operatorExecutionSop")
+    result["productSnapshotStatus"] = internal.get("productSnapshotStatus")
+    return result
+
+
 @router.get("/dashboard")
 def dashboard_view() -> Dict[str, Any]:
     return _align(read_dashboard_view(), "V22 read-only dashboard projection; no Agent or task recompute")
@@ -115,8 +145,8 @@ def product_view(
     limit: int = Query(default=100, ge=1, le=300),
 ) -> Dict[str, Any]:
     return _align(
-        read_product_views(store_id=storeId, data_version=dataVersion, limit=limit),
-        "V22 read-only product projection",
+        read_canonical_product_views(store_id=storeId, data_version=dataVersion, limit=limit),
+        "Canonical product registry projection; every registered product is visible independent of signal admission",
     )
 
 
@@ -131,10 +161,10 @@ def product_trend_view(product_id: str, storeId: str | None = None) -> Dict[str,
 
 
 @router.get("/products/{product_id}")
-def product_detail_view(product_id: str, storeId: str | None = None) -> Dict[str, Any]:
+def product_detail_view(product_id: str, storeId: str | None = None, dataVersion: str | None = None) -> Dict[str, Any]:
     return _align(
-        read_product_detail(product_id, store_id=storeId),
-        "V22 read-only product detail projection",
+        read_canonical_product_detail(product_id, store_id=storeId, data_version=dataVersion),
+        "Canonical product detail resolves ProductRegistryKey to immutable ProductSnapshotHash; signal packages are not a product source",
     )
 
 
@@ -154,11 +184,14 @@ def task_view(
 
 @router.get("/tasks/{task_id}")
 def task_detail_view(task_id: str, dataVersion: str | None = None) -> Dict[str, Any]:
-    internal = _overlay_current_task_status(
-        read_task_detail_snapshot(task_id, data_version=dataVersion),
-        task_id,
+    internal = bind_task_product_lineage(
+        _overlay_current_task_status(
+            read_task_detail_snapshot(task_id, data_version=dataVersion),
+            task_id,
+        )
     )
     result = project_task_detail(internal)
+    result = _publish_task_product_lineage(result, internal)
     result["version"] = PUBLIC_TASK_DTO_VERSION
     return result
 
@@ -225,7 +258,7 @@ def task_pool_acceptance_view(dataVersion: str | None = None) -> Dict[str, Any]:
 
 @router.get("/stores")
 def store_view() -> Dict[str, Any]:
-    products = read_product_views(limit=300)
+    products = read_canonical_product_views(limit=300)
     stores: Dict[str, Dict[str, Any]] = {}
     for item in products.get("items") or []:
         store_id = item.get("storeId")
@@ -245,7 +278,7 @@ def store_view() -> Dict[str, Any]:
         store["productCount"] += 1
     return _align(
         {"ready": bool(stores), "items": list(stores.values())},
-        "V22 store read model",
+        "Canonical store projection counted from registered products, not signal-qualified products",
     )
 
 
