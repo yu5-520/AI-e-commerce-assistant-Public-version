@@ -12,6 +12,7 @@ Competition lineage rule:
 - productRegistryKey identifies the product entity.
 - productSnapshotHash identifies the immutable fact version frozen into the Task.
 - an existing productSnapshotHash is strict and never falls back to another id.
+- canonical snapshot materialization must commit before TaskSnapshot created_at.
 """
 
 from __future__ import annotations
@@ -22,9 +23,13 @@ from datetime import datetime
 from typing import Any, Dict
 
 from src.repositories.sqlite_repository import connect, ensure_columns
-from src.services.system_product_snapshot_service import bind_task_product_lineage
+from src.services.system_product_snapshot_service import (
+    bind_task_product_lineage,
+    materialize_system_product_snapshot,
+)
 
 TASK_SNAPSHOT_STATION_VERSION = "18.0"
+TASK_SNAPSHOT_LINEAGE_GUARD_VERSION = "1.0"
 VALID_DECISIONS = {"create_task_snapshot", "manager_review_required", "observe_only", "ignore_noise"}
 READY_DECISIONS = {"create_task_snapshot", "manager_review_required"}
 
@@ -35,6 +40,74 @@ def now_iso() -> str:
 
 def make_snapshot_id() -> str:
     return f"TS-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}"
+
+
+def _first_non_empty(*values: Any) -> str:
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _active_data_version_exists(data_version: str) -> bool:
+    """Only active imported-report dataVersions may feed a newly frozen Task."""
+    with connect() as conn:
+        table_exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='imported_report_rows' LIMIT 1"
+        ).fetchone()
+        if not table_exists:
+            return False
+        row = conn.execute(
+            "SELECT 1 FROM imported_report_rows WHERE data_version = ? LIMIT 1",
+            (str(data_version),),
+        ).fetchone()
+    return bool(row)
+
+
+def _prepare_task_product_lineage(
+    task: Dict[str, Any] | None,
+    *,
+    user_id: str | None = None,
+) -> Dict[str, Any]:
+    """Commit canonical facts before TaskSnapshot establishes its time boundary."""
+    prepared: Dict[str, Any] = dict(task or {})
+    data_version = _first_non_empty(
+        prepared.get("dataVersion"),
+        prepared.get("data_version"),
+        prepared.get("workflowRunId"),
+        prepared.get("workflow_run_id"),
+    )
+
+    if not data_version:
+        return bind_task_product_lineage(prepared)
+
+    if not _active_data_version_exists(data_version):
+        result = dict(prepared)
+        result["productSnapshot"] = {}
+        result["productSnapshotStatus"] = "lineage_broken"
+        result["productSnapshotLineage"] = {
+            "version": TASK_SNAPSHOT_LINEAGE_GUARD_VERSION,
+            "ready": False,
+            "status": "lineage_broken",
+            "reason": "task_data_version_not_active",
+            "dataVersion": data_version,
+            "strictHash": bool(str(result.get("productSnapshotHash") or "").strip()),
+            "writeBarrier": "active_import_required_before_task_timestamp",
+        }
+        return result
+
+    materialize_system_product_snapshot(
+        data_version,
+        user_id=str(user_id or "task_snapshot_station"),
+        force=False,
+    )
+    result = bind_task_product_lineage(prepared)
+    lineage = dict(result.get("productSnapshotLineage") or {})
+    lineage.setdefault("writeBarrierVersion", TASK_SNAPSHOT_LINEAGE_GUARD_VERSION)
+    lineage.setdefault("writeBarrier", "canonical_snapshot_before_task_timestamp")
+    result["productSnapshotLineage"] = lineage
+    return result
 
 
 def ensure_task_snapshot_tables() -> None:
@@ -176,7 +249,7 @@ def _update_handoff_for_snapshot(snapshot: Dict[str, Any]) -> None:
 
 
 def create_task_snapshot(body: Dict[str, Any] | None = None, *, created_by: str | None = None, force: bool = False) -> Dict[str, Any]:
-    body = bind_task_product_lineage(dict(body or {}))
+    body = _prepare_task_product_lineage(dict(body or {}), user_id=created_by)
     ensure_task_snapshot_tables()
     decision = _normalize_decision(body.get("decision") or (body.get("agentJudgment") or {}).get("decision"))
     task_plan = dict(body.get("taskPlan")) if isinstance(body.get("taskPlan"), dict) else {}
