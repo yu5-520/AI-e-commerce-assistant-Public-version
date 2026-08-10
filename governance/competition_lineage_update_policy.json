@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.10.9",
+  "version": "2026.08.10.10",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, canonical product snapshot lineage convergence, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse, Agent2 familyPayload semantic reuse, Agent3 clean SOP semantic reuse plus compatible initial microbatching, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, canonical product snapshot lineage convergence, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse, Agent2 familyPayload semantic reuse, Agent3 clean SOP semantic reuse plus compatible initial microbatching, Agent3 operator/supporting-coordination contract separation, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -33,13 +33,12 @@
         "src/services/agent_token_runtime_v225_service.py",
         "src/services/agent3_runtime_v23215_service.py",
         "src/services/agent_runtime_contract_v225_service.py",
+        "src/services/agent3_system_constraint_v23215_service.py",
         "scripts/deploy_release.sh"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
-      "allowedSpecialHashChanges": [
-        "productBoundaryHash"
-      ]
+      "allowedSpecialHashChanges": ["productBoundaryHash"]
     },
     "baseline_history_gate": {
       "description": "Exact H2 repair scope for first-report baseline semantics. Only the Signal/Agent history facade and the two artifact station boundaries may change; Agent1 runtime, identity binding and downstream action stages remain sealed.",
@@ -50,16 +49,10 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": false,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/system_product_snapshot_service.py",
-        "src/services/station_alignment_v225_service.py",
-        "src/services/artifact_signal_admission_v225_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/system_product_snapshot_service.py", "src/services/station_alignment_v225_service.py", "src/services/artifact_signal_admission_v225_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
-      "allowedSpecialHashChanges": [
-        "productBoundaryHash"
-      ]
+      "allowedSpecialHashChanges": ["productBoundaryHash"]
     },
     "first_report_projection_repair": {
       "description": "Exact scope for first-report canonical baseline evidence plus operator-center product-count projection. A direct pipeline-live to canonical-product-snapshot IMPORTS edge is allowed; no Agent/Signal worker, Registry membership or external-interface change is allowed.",
@@ -70,15 +63,10 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/station_alignment_v225_service.py",
-        "src/services/pipeline_live_read_model_v2258_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/station_alignment_v225_service.py", "src/services/pipeline_live_read_model_v2258_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
-      "allowedSpecialHashChanges": [
-        "productBoundaryHash"
-      ]
+      "allowedSpecialHashChanges": ["productBoundaryHash"]
     },
     "active_dataversion_projection_gate": {
       "description": "Exact current-run projection gate. The compatibility facade may read imported_report_rows to resolve the active dataVersion; when none exists it must project zero current products/Signals/Agents while preserving canonical history. No Agent worker, Signal generation, Registry membership or external-interface change is allowed.",
@@ -89,9 +77,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/pipeline_live_read_model_v225_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/pipeline_live_read_model_v225_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -105,9 +91,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": false,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/pipeline_live_read_model_v225_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/pipeline_live_read_model_v225_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -121,9 +105,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": false,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/station_contract_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/station_contract_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -137,9 +119,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": false,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/station_business_artifact_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/station_business_artifact_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -153,10 +133,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": false,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/frontend_view_artifact_v2259_service.py",
-        "web_demo/core/hash-view-client-v2259.js"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/frontend_view_artifact_v2259_service.py", "web_demo/core/hash-view-client-v2259.js"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -170,10 +147,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": false,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/hard_interface_bridge_v2301_service.py",
-        "src/services/station_truth_contract_v225_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/hard_interface_bridge_v2301_service.py", "src/services/station_truth_contract_v225_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -187,9 +161,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": false,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "scripts/deploy_release.sh"
-      ],
+      "allowedRuntimePathPrefixes": ["scripts/deploy_release.sh"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -203,9 +175,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/real_product_judgment_agent_v2259_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/real_product_judgment_agent_v2259_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -219,9 +189,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/agent_token_runtime_hash_exact_v2259_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/agent_token_runtime_hash_exact_v2259_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -235,10 +203,7 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/agent_token_runtime_v22520_service.py",
-        "src/services/agent_token_runtime_v225_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/agent_token_runtime_v22520_service.py", "src/services/agent_token_runtime_v225_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
@@ -252,11 +217,21 @@
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
-      "allowedRuntimePathPrefixes": [
-        "src/services/agent3_runtime_v23215_service.py",
-        "src/services/agent_token_runtime_v225_service.py",
-        "src/services/agent_runtime_contract_v225_service.py"
-      ],
+      "allowedRuntimePathPrefixes": ["src/services/agent3_runtime_v23215_service.py", "src/services/agent_token_runtime_v225_service.py", "src/services/agent_runtime_contract_v225_service.py"],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "agent3_cross_department_coordination": {
+      "description": "Unified-Registry/Hash-Lineage scoped Agent3 contract-layer repair. Only the registered active Agent3 system-constraint wrapper may change Runtime behavior. Operator execution remains locked to its action family and retains all cross-family blocked terms; crossDepartmentActions is validated separately as structured supporting coordination and continues downstream as taskPlan.supportingCoordination. Stable V23.2.14 base, Registry membership, Agent3 runner, Agent1/2, Provider config, semantic-cache ownership, Worker count and auxiliary repair scope remain sealed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": ["src/services/agent3_system_constraint_v23215_service.py"],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []

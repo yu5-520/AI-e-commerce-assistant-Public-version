@@ -115,10 +115,11 @@ def main() -> int:
             findings.append(f"agent3_core_contract_missing:{literal}")
 
     for literal in (
-        'AGENT3_SYSTEM_CONSTRAINT_VERSION = "23.2.15"',
+        'AGENT3_SYSTEM_CONSTRAINT_VERSION = "23.2.18"',
         "def compile_agent3_provider_package(",
         "def validate_agent3_sop_system_contract(",
         '"maxFieldRepairAttempts": policy["maxAuxiliaryRepairAttempts"]',
+        '"crossDepartmentCoordinationContract"',
     ):
         if literal not in system_constraint:
             findings.append(f"agent3_system_constraint_missing:{literal}")
@@ -172,6 +173,7 @@ def main() -> int:
         "agent3Runner": agent3.get("runner"),
         "semanticIdentitySchema": semantic.get("semanticIdentitySchema"),
         "cacheContractVersion": semantic.get("cacheContractVersion"),
+        "activeSystemConstraintVersion": "23.2.18",
         "defaultMicrobatchCapacity": microbatch.get("defaultCapacity"),
         "parallelProviderCallsAllowed": microbatch.get("parallelProviderCallsAllowed"),
         "findings": findings,
