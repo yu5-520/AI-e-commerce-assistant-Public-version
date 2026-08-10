@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from src.services import product_snapshot_lineage_service as lineage
+from src.services import system_product_snapshot_service as lineage
 
 
 def _product(product_id: str = "P-1", sku_id: str = "SKU-1", snapshot_hash: str = "sha256:good"):
