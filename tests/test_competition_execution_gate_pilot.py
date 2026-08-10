@@ -33,6 +33,7 @@ def test_repository_gate_is_deterministic_for_same_source_identity():
     assert second_findings == []
     assert first["repositoryGateHash"] == second["repositoryGateHash"]
     assert first["sourceIdentityHash"] == second["sourceIdentityHash"]
+    assert first["configHash"] == second["configHash"]
     assert first["runtimeCallableAuthority"]["verified"] is True
 
 
@@ -68,6 +69,41 @@ def test_database_schema_hash_is_separate_from_mutable_state_hash(tmp_path):
     assert before["databaseStateHash"] != after["databaseStateHash"]
 
 
+def test_database_identity_exposes_active_data_version_and_migration_head(tmp_path):
+    gate = _load_gate()
+    db = tmp_path / "identity.sqlite3"
+    conn = sqlite3.connect(db)
+    try:
+        conn.execute(
+            "CREATE TABLE imported_report_rows (id INTEGER PRIMARY KEY, data_version TEXT, updated_at TEXT)"
+        )
+        conn.execute("PRAGMA user_version=7")
+        conn.execute(
+            "INSERT INTO imported_report_rows(data_version,updated_at) VALUES (?,?)",
+            ("DV-OLD", "2026-08-09T00:00:00"),
+        )
+        conn.execute(
+            "INSERT INTO imported_report_rows(data_version,updated_at) VALUES (?,?)",
+            ("DV-NEW", "2026-08-10T00:00:00"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    findings = []
+    identity = gate.database_identity(
+        db,
+        ["imported_report_rows"],
+        findings,
+        _config()["database"],
+    )
+
+    assert findings == []
+    assert identity["dataVersion"] == "DV-NEW"
+    assert identity["migrationHead"] == "sqlite:user_version:7"
+    assert identity["migrationHeadSource"] == "pragma:user_version"
+
+
 def test_secret_values_are_not_in_environment_identity():
     gate = _load_gate()
     env = {
@@ -89,15 +125,40 @@ def test_runtime_authority_pilot_does_not_import_application_runtime():
     assert "databaseSchemaHash" in source
     assert "databaseStateHash" in source
     assert "repositoryGateHash" in source
+    assert "identityVector" in source
+    assert "migrationHead" in source
+    assert "dataVersion" in source
+    assert "configHash" in source
 
 
 def test_source_identity_contains_gate_and_deployment_controller():
     config = _config()
     paths = set(config["sourceIdentityFiles"])
+    config_paths = set(config["runtimeConfigFiles"])
     assert "config/deployment/competition_execution_gate.py" in paths
     assert "scripts/deploy_release.sh" in paths
     assert "config/deployment/runtime_callable_authority_v1.json" in paths
+    assert config_paths.issubset(paths)
     assert "contracts/registry/fields.json" not in paths
+
+
+def test_execution_identity_contract_has_breakpoint_order():
+    config = _config()
+    order = config["identity"]["order"]
+    assert order == [
+        "sourceCommit",
+        "releaseHash",
+        "dataVersion",
+        "repositoryGateHash",
+        "pythonIdentityHash",
+        "dependencyHash",
+        "runtimeEnvHash",
+        "configHash",
+        "runtimeCallableAuthorityHash",
+        "databaseSchemaHash",
+        "migrationHead",
+        "databaseStateHash",
+    ]
 
 
 def test_sealed_callable_projection_matches_governance_authority():
