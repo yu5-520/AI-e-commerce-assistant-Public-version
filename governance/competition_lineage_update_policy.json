@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.10.3",
+  "version": "2026.08.10.4",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -24,6 +24,7 @@
         "web_demo/core/hash-view-client-v2259.js",
         "src/services/hard_interface_bridge_v2301_service.py",
         "src/services/station_truth_contract_v225_service.py",
+        "src/services/real_product_judgment_agent_v2259_service.py",
         "scripts/deploy_release.sh"
       ],
       "allowedRegistryModules": [],
@@ -186,15 +187,17 @@
       "allowedSpecialHashChanges": []
     },
     "agent1_recovery": {
-      "description": "Reserved H2 profile. Keep fail-closed until the recovery scope artifact names the exact Agent1 runtime paths/modules/nodes that still require behavioral repair.",
+      "description": "Unified-Registry/Hash-Lineage scoped Agent1 recovery. Only real_product_judgment_agent_v2259_service may change Runtime behavior; itemExecutionId+inputContentHash remains the exact execution authority, legacy identity rematching/action-family whitelist deletion is forbidden, Registry membership remains sealed, and a direct import edge to the execution-lock shaper is allowed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
       "requireGraphHashStable": false,
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": true,
-      "allowRegistryModuleChanges": true,
-      "allowedRuntimePathPrefixes": [],
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/real_product_judgment_agent_v2259_service.py"
+      ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
