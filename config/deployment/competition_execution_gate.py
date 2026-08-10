@@ -14,7 +14,7 @@ import sys
 import time
 from pathlib import Path
 
-VERSION = "2026.08.10.5"
+VERSION = "2026.08.10.6"
 DEFAULT_CONFIG = "config/deployment/runtime_verification_pilot_v1.json"
 AUTHORITY_CONFIG = "config/deployment/runtime_callable_authority_v1.json"
 
@@ -108,9 +108,25 @@ def repository_identity(root, config, expected_commit, findings):
     source_hashes(root, config.get("requiredSourceFiles") or [], findings)
     hashes = source_hashes(root, config.get("sourceIdentityFiles") or [], findings)
     authority = callable_authority(root, findings)
+
+    config_paths = [str(value) for value in (config.get("runtimeConfigFiles") or [])]
+    config_hashes = {}
+    for rel in config_paths:
+        value = hashes.get(rel)
+        if value is None:
+            path = root / rel
+            if path.is_file():
+                value = hfile(path)
+            else:
+                findings.append("config_identity_file_missing:{0}".format(rel))
+                continue
+        config_hashes[rel] = value
+    config_hash = hvalue(config_hashes)
+
     source = {
         "expectedSourceCommit": expected_commit or None,
         "files": hashes,
+        "configHash": config_hash,
         "runtimeCallableAuthorityHash": authority["hash"],
     }
     source_hash = hvalue(source)
@@ -118,42 +134,79 @@ def repository_identity(root, config, expected_commit, findings):
         "schema": "competition.repository_gate.v1",
         "sourceIdentityHash": source_hash,
         "sourceIdentityFileCount": len(hashes),
+        "configHash": config_hash,
         "runtimeCallableAuthorityHash": authority["hash"],
     })
     return {
         "sourceIdentityHash": source_hash,
         "repositoryGateHash": repo_hash,
+        "configHash": config_hash,
+        "configFileHashes": config_hashes,
         "fileHashes": hashes,
         "runtimeCallableAuthority": authority,
     }
 
 
-def database_identity(path, tables, findings):
+def _empty_database_identity(path, quick, marker):
+    return {
+        "path": str(path),
+        "exists": quick not in ("missing",),
+        "quickCheck": quick,
+        "dataVersion": None,
+        "migrationHead": None,
+        "migrationHeadSource": None,
+        "databaseSchemaHash": hvalue({marker: True}),
+        "databaseStateHash": hvalue({marker: True}),
+        "state": {},
+    }
+
+
+def _active_data_version(conn, known, database_config):
+    table = str((database_config or {}).get("activeDataVersionTable") or "imported_report_rows")
+    column = str((database_config or {}).get("activeDataVersionColumn") or "data_version")
+    if table not in known or not re.match(r"^[A-Za-z0-9_]+$", table) or not re.match(r"^[A-Za-z0-9_]+$", column):
+        return None
+    columns = {str(row[1]) for row in conn.execute("PRAGMA table_info({0})".format(table)).fetchall()}
+    if column not in columns:
+        return None
+    row = conn.execute(
+        "SELECT {0} AS data_version, MAX(rowid) AS last_rowid FROM {1} "
+        "WHERE {0} IS NOT NULL AND TRIM({0}) != '' GROUP BY {0} "
+        "ORDER BY last_rowid DESC LIMIT 1".format(column, table)
+    ).fetchone()
+    return str(row["data_version"]) if row and row["data_version"] else None
+
+
+def _migration_head(conn, known, database_config):
+    table = str((database_config or {}).get("migrationTable") or "alembic_version")
+    column = str((database_config or {}).get("migrationColumn") or "version_num")
+    if table in known and re.match(r"^[A-Za-z0-9_]+$", table) and re.match(r"^[A-Za-z0-9_]+$", column):
+        columns = {str(row[1]) for row in conn.execute("PRAGMA table_info({0})".format(table)).fetchall()}
+        if column in columns:
+            row = conn.execute("SELECT {0} FROM {1} ORDER BY rowid DESC LIMIT 1".format(column, table)).fetchone()
+            if row and row[0] is not None:
+                return str(row[0]), "table:{0}.{1}".format(table, column)
+    if (database_config or {}).get("sqliteUserVersionFallback", True):
+        row = conn.execute("PRAGMA user_version").fetchone()
+        value = int(row[0] if row else 0)
+        return "sqlite:user_version:{0}".format(value), "pragma:user_version"
+    return None, None
+
+
+def database_identity(path, tables, findings, database_config=None):
     try:
         exists = path.is_file()
     except OSError as exc:
         findings.append("database_permission_denied:{0}".format(type(exc).__name__))
-        return {
-            "path": str(path), "exists": True, "quickCheck": "permission_denied",
-            "databaseSchemaHash": hvalue({"permissionDenied": True}),
-            "databaseStateHash": hvalue({"permissionDenied": True}), "state": {},
-        }
+        return _empty_database_identity(path, "permission_denied", "permissionDenied")
     if not exists:
         findings.append("database_missing:{0}".format(path))
-        return {
-            "path": str(path), "exists": False, "quickCheck": "missing",
-            "databaseSchemaHash": hvalue({"missing": True}),
-            "databaseStateHash": hvalue({"missing": True}), "state": {},
-        }
+        return _empty_database_identity(path, "missing", "missing")
     try:
         conn = sqlite3.connect("file:{0}?mode=ro".format(path.resolve()), uri=True, timeout=20)
     except Exception as exc:
         findings.append("database_open_failed:{0}".format(type(exc).__name__))
-        return {
-            "path": str(path), "exists": True, "quickCheck": "open_failed",
-            "databaseSchemaHash": hvalue({"openFailed": True}),
-            "databaseStateHash": hvalue({"openFailed": True}), "state": {},
-        }
+        return _empty_database_identity(path, "open_failed", "openFailed")
     conn.row_factory = sqlite3.Row
     try:
         row = conn.execute("PRAGMA quick_check").fetchone()
@@ -164,15 +217,15 @@ def database_identity(path, tables, findings):
             "SELECT type,name,tbl_name,COALESCE(sql,'') AS sql FROM sqlite_master "
             "WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name,tbl_name,sql"
         ).fetchall()
-        schema = [dict(row) for row in schema_rows]
-        known = {str(row["name"]) for row in schema_rows if str(row["type"]) == "table"}
+        schema = [dict(item) for item in schema_rows]
+        known = {str(item["name"]) for item in schema_rows if str(item["type"]) == "table"}
         state = {}
         for raw in tables:
             table = str(raw)
             if table not in known or not re.match(r"^[A-Za-z0-9_]+$", table):
                 continue
             count = int(conn.execute("SELECT COUNT(*) FROM {0}".format(table)).fetchone()[0])
-            columns = {str(row[1]) for row in conn.execute("PRAGMA table_info({0})".format(table)).fetchall()}
+            columns = {str(item[1]) for item in conn.execute("PRAGMA table_info({0})".format(table)).fetchall()}
             latest = None
             for candidate in ("updated_at", "created_at", "id"):
                 if candidate in columns:
@@ -180,10 +233,23 @@ def database_identity(path, tables, findings):
                     latest = latest_row[0] if latest_row else None
                     break
             state[table] = {"count": count, "latest": latest}
+
+        data_version = _active_data_version(conn, known, database_config or {})
+        migration_head, migration_source = _migration_head(conn, known, database_config or {})
+        state_identity = {
+            "dataVersion": data_version,
+            "tables": state,
+        }
         return {
-            "path": str(path), "exists": True, "quickCheck": quick,
+            "path": str(path),
+            "exists": True,
+            "quickCheck": quick,
+            "dataVersion": data_version,
+            "migrationHead": migration_head,
+            "migrationHeadSource": migration_source,
             "databaseSchemaHash": hvalue(schema),
-            "databaseStateHash": hvalue(state), "state": state,
+            "databaseStateHash": hvalue(state_identity),
+            "state": state,
         }
     finally:
         conn.close()
@@ -290,7 +356,7 @@ def choose_python(live, fallback):
     return fallback
 
 
-def runtime_identity(mode, root, config, deploy_root, findings):
+def runtime_identity(mode, root, config, deploy_root, findings, config_hash=None):
     live = None
     env = dict(os.environ)
     if mode == "ecs-runtime":
@@ -325,6 +391,7 @@ def runtime_identity(mode, root, config, deploy_root, findings):
         "dependencyProbeError": dependency.get("dependencyProbeError"),
         "runtimeEnv": values,
         "runtimeEnvHash": hvalue(values),
+        "configHash": config_hash,
         "secretPresence": secret_presence,
         "liveProcess": {
             "pid": live.get("pid") if live else None,
@@ -341,9 +408,29 @@ def runtime_identity(mode, root, config, deploy_root, findings):
     payload["runtimeIdentityHash"] = hvalue({
         "pythonIdentityHash": payload["pythonIdentityHash"],
         "runtimeEnvHash": payload["runtimeEnvHash"],
+        "configHash": payload["configHash"],
         "liveProcess": payload["liveProcess"],
     })
     return payload
+
+
+def _identity_vector(config, args, repository, runtime, database):
+    values = {
+        "sourceCommit": args.expected_source_commit or None,
+        "releaseHash": args.release_hash or None,
+        "dataVersion": database.get("dataVersion") if database else None,
+        "repositoryGateHash": repository["repositoryGateHash"],
+        "pythonIdentityHash": runtime.get("pythonIdentityHash") if runtime else None,
+        "dependencyHash": runtime.get("dependencyHash") if runtime else None,
+        "runtimeEnvHash": runtime.get("runtimeEnvHash") if runtime else None,
+        "configHash": repository.get("configHash"),
+        "runtimeCallableAuthorityHash": repository["runtimeCallableAuthority"]["hash"],
+        "databaseSchemaHash": database.get("databaseSchemaHash") if database else None,
+        "migrationHead": database.get("migrationHead") if database else None,
+        "databaseStateHash": database.get("databaseStateHash") if database else None,
+    }
+    order = [str(value) for value in ((config.get("identity") or {}).get("order") or values.keys())]
+    return order, {name: values.get(name) for name in order}
 
 
 def build_report(args):
@@ -360,29 +447,16 @@ def build_report(args):
     database = None
     if args.mode in ("ecs-candidate", "ecs-runtime"):
         deploy_root = Path(args.deploy_root).resolve()
-        runtime = runtime_identity(args.mode, root, config, deploy_root, findings)
-        relative = str((config.get("database") or {}).get("defaultRelativePath") or "shared/logs/product_workbench.sqlite3")
+        runtime = runtime_identity(args.mode, root, config, deploy_root, findings, repository.get("configHash"))
+        database_config = config.get("database") or {}
+        relative = str(database_config.get("defaultRelativePath") or "shared/logs/product_workbench.sqlite3")
         db_path = Path(args.database).resolve() if args.database else (deploy_root / relative)
-        database = database_identity(db_path, (config.get("database") or {}).get("stateTables") or [], findings)
+        database = database_identity(db_path, database_config.get("stateTables") or [], findings, database_config)
 
-    execution = hvalue({
-        "source": {
-            "expectedSourceCommit": args.expected_source_commit or None,
-            "sourceIdentityHash": repository["sourceIdentityHash"],
-            "repositoryGateHash": repository["repositoryGateHash"],
-        },
-        "runtime": {
-            "runtimeIdentityHash": runtime.get("runtimeIdentityHash") if runtime else None,
-            "pythonIdentityHash": runtime.get("pythonIdentityHash") if runtime else None,
-            "dependencyHash": runtime.get("dependencyHash") if runtime else None,
-            "runtimeEnvHash": runtime.get("runtimeEnvHash") if runtime else None,
-            "runtimeCallableAuthorityHash": repository["runtimeCallableAuthority"]["hash"],
-        },
-        "database": {
-            "databaseSchemaHash": database.get("databaseSchemaHash") if database else None,
-            "databaseStateHash": database.get("databaseStateHash") if database else None,
-        },
-    })
+    identity_order, identity_vector = _identity_vector(config, args, repository, runtime, database)
+    execution = hvalue([(name, identity_vector.get(name)) for name in identity_order])
+    identity_vector["executionIdentityHash"] = execution
+
     report = {
         "schema": "competition.execution_identity_gate.report.v1",
         "version": VERSION,
@@ -394,6 +468,8 @@ def build_report(args):
         "repository": repository,
         "runtime": runtime,
         "database": database,
+        "identityOrder": identity_order,
+        "identityVector": identity_vector,
         "executionIdentityHash": execution,
         "verified": not findings,
         "findings": findings,
@@ -401,13 +477,8 @@ def build_report(args):
     }
     report["gateReportHash"] = hvalue({
         "mode": report["mode"],
-        "sourceCommit": report["expectedSourceCommit"],
-        "releaseHash": report["releaseHash"],
-        "repositoryGateHash": repository["repositoryGateHash"],
-        "runtimeIdentityHash": runtime.get("runtimeIdentityHash") if runtime else None,
-        "databaseSchemaHash": database.get("databaseSchemaHash") if database else None,
-        "databaseStateHash": database.get("databaseStateHash") if database else None,
-        "executionIdentityHash": execution,
+        "identityOrder": identity_order,
+        "identityVector": identity_vector,
         "verified": report["verified"],
         "findings": findings,
     })
