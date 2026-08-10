@@ -1,0 +1,63 @@
+{
+  "schema": "competition.runtime_callable_authority.v1",
+  "version": "2026.08.10.1",
+  "baseSourceCommit": "4a95fa980d20ea146d2293704e59ba74d17a36e8",
+  "authorityMode": "static_hash_plus_import_binding_gate",
+  "callables": [
+    {
+      "callableId": "station.product_signal_admission",
+      "publicSymbol": "product_signal_admission_station_v225",
+      "ownerPath": "src/services/artifact_signal_admission_v225_service.py",
+      "ownerFunction": "product_signal_admission_station_v225",
+      "adapterConsumerPath": "src/services/station_adapter_service.py",
+      "contractAuthorityPath": "src/services/station_contract_service.py",
+      "businessValidatorPath": "src/services/station_business_artifact_service.py",
+      "allowedProducerHook": "_seed_signal_item",
+      "forbiddenRebinds": [
+        "admission.product_signal_admission_station_v225 =",
+        "admission.ARTIFACT_SIGNAL_ADMISSION_VERSION ="
+      ],
+      "requiredOutputFields": [
+        "businessOutputType",
+        "validatedBundleArtifactRef",
+        "signalEligibility",
+        "baselineGate",
+        "fullSignalCount",
+        "generatedSignalCount",
+        "qualifiedSignalCount",
+        "candidateProductCount",
+        "admittedSignalCount",
+        "observedSignalCount",
+        "agent1PendingItemCount",
+        "outputRef"
+      ],
+      "allowedBusinessOutputTypes": [
+        "baseline_history_gate_closed",
+        "artifact_signal_admission"
+      ]
+    }
+  ],
+  "legacyOverlay": {
+    "path": "src/services/station_truth_contract_v225_service.py",
+    "mutationAllowed": false,
+    "forbiddenMutationLiteral": "contracts.DEFAULT_OUTPUTS[",
+    "mode": "verification_only"
+  },
+  "requiredRuntimeAnchors": [
+    "src/__init__.py",
+    "src/services/hard_interface_bridge_v2301_service.py",
+    "src/services/station_truth_contract_v225_service.py",
+    "src/services/station_adapter_service.py",
+    "src/services/artifact_signal_admission_v225_service.py",
+    "src/services/station_contract_service.py",
+    "src/services/station_business_artifact_service.py",
+    "src/services/station_queue_service.py"
+  ],
+  "rules": [
+    "Public Station callable ownership is immutable after source import binding.",
+    "Private producer hooks may be decorated only when the public Station callable remains owned by its registered module.",
+    "Station contract DEFAULT_OUTPUTS has exactly one runtime authority and may not be rewritten by compatibility binders.",
+    "TARGET Hash Lineage must contain every required runtime anchor before merge.",
+    "Any forbidden rebind or contract mutation fails closed."
+  ]
+}
