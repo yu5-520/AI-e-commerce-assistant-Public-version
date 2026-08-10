@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.10.7",
+  "version": "2026.08.10.8",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse, Agent2 familyPayload semantic reuse inside the existing exact execution ledger, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse, Agent2 familyPayload semantic reuse, Agent3 clean SOP semantic reuse plus compatible initial microbatching, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -29,6 +29,8 @@
         "src/services/agent_token_runtime_hash_exact_v2259_service.py",
         "src/services/agent_token_runtime_v22520_service.py",
         "src/services/agent_token_runtime_v225_service.py",
+        "src/services/agent3_runtime_v23215_service.py",
+        "src/services/agent_runtime_contract_v225_service.py",
         "scripts/deploy_release.sh"
       ],
       "allowedRegistryModules": [],
@@ -234,6 +236,24 @@
       "allowedRuntimePathPrefixes": [
         "src/services/agent_token_runtime_v22520_service.py",
         "src/services/agent_token_runtime_v225_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "agent3_semantic_sop_microbatch": {
+      "description": "Agent3-only performance scope. Existing Agent3 runtime may derive a separate SemanticHash, reuse only clean Provider-generated current-contract SOP business bodies, re-run current SOP normalization/system validation, create a new current output Artifact, and batch compatible initial Provider calls up to capacity two and the existing char budget. Agent3 completion proof may accept semanticReplayValidated without faking providerCallExecuted. Registry membership, Hash-Routed RAG route, Agent1/2, Provider configuration, request cache, Worker count and auxiliary repair limit remain sealed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/agent3_runtime_v23215_service.py",
+        "src/services/agent_token_runtime_v225_service.py",
+        "src/services/agent_runtime_contract_v225_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
