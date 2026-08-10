@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.10.1",
+  "version": "2026.08.10.2",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, and runtime-callable authority nodes. Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -23,7 +23,8 @@
         "src/services/frontend_view_artifact_v2259_service.py",
         "web_demo/core/hash-view-client-v2259.js",
         "src/services/hard_interface_bridge_v2301_service.py",
-        "src/services/station_truth_contract_v225_service.py"
+        "src/services/station_truth_contract_v225_service.py",
+        "scripts/deploy_release.sh"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
@@ -147,6 +148,22 @@
       "allowedRuntimePathPrefixes": [
         "src/services/hard_interface_bridge_v2301_service.py",
         "src/services/station_truth_contract_v225_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "runtime_verification_pilot": {
+      "description": "Competition-only pilot profile. Only the sealed deployment controller may change Runtime behavior; the verifier/config probes remain under config/**/* and do not change runtime membership.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "scripts/deploy_release.sh"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
