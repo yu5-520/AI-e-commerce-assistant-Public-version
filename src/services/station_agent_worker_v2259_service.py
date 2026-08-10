@@ -3,12 +3,20 @@
 No second queue, thread or state machine is created here.  The active worker keeps
 V22.5.9 exact Artifact-hash execution, V22.5.14 Agent2 evidence slices and adds the
 V22.5.15 accepted-output hash-proof bridge.
+
+Competition mode additionally performs one idempotent registry-driven handoff from
+formal signalRef artifacts to ``agent1_pending`` before each hard Agent tick.  This
+removes the legacy station queue from the competition critical edge without creating
+a second worker or changing Agent1/2/3 ownership.
 """
 from __future__ import annotations
 
 from typing import Any, Dict
 
 from src.services import station_agent_worker_v22515_service as legacy
+from src.services.competition_signal_handoff_service import (
+    seed_ready_competition_handoffs,
+)
 
 THREE_AGENT_PIPELINE_VERSION = legacy.THREE_AGENT_PIPELINE_VERSION
 STATION_AGENT_WORKER_VERSION = "22.5.15"
@@ -71,6 +79,10 @@ def worker_config() -> Dict[str, Any]:
         acceptedHashOutputBlindRetryAllowed=False,
         providerRequestIdReconstructionAllowed=False,
         cachedOutputRebindingAllowed=False,
+        competitionSignalHandoff="registered_signalRef_to_agent1_pending_v1",
+        competitionLegacyStationQueueCriticalPath=False,
+        competitionHandoffRegeneratesIdentity=False,
+        competitionHandoffProviderCalls=False,
         secondWorkerAllowed=False,
         fallbackAllowed=False,
     )
@@ -89,6 +101,8 @@ def worker_status(include_queue: bool = True) -> Dict[str, Any]:
             "hash_directed_agent1_audit_then_agent2_evidence_slice_then_hash_proof"
         ),
         executionIndex="artifact_execution_index_v2259",
+        competitionSignalHandoff="registered_signalRef_to_agent1_pending_v1",
+        competitionLegacyStationQueueCriticalPath=False,
         secondWorkerAllowed=False,
         fallbackAllowed=False,
     )
@@ -111,12 +125,19 @@ def run_worker_tick(
     worker_id: str = "manual-three-agent-tick",
     limit: int | None = None,
 ) -> Dict[str, Any]:
-    return _upgrade(
+    handoff = seed_ready_competition_handoffs(
+        limit_versions=max(1, min(8, int(limit or 4))),
+    )
+    result = _upgrade(
         legacy.run_worker_tick(
             worker_id=worker_id,
             limit=limit,
         )
     )
+    if isinstance(result, dict):
+        result["competitionSignalHandoff"] = handoff
+        result["competitionLegacyStationQueueCriticalPath"] = False
+    return result
 
 
 __all__ = [
