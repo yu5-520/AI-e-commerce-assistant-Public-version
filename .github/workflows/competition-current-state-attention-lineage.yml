@@ -107,7 +107,8 @@ jobs:
           "$PYTHON_BIN" -m py_compile \
             scripts/compile_competition_lineage.py \
             scripts/verify_current_state_attention_lineage.py \
-            src/services/pipeline_live_read_model_v225_service.py
+            src/services/pipeline_live_read_model_v225_service.py \
+            tests/test_current_state_attention_projection_v22512.py
           "$PYTHON_BIN" scripts/compile_competition_lineage.py \
             --source-commit "$TARGET_SHA" \
             --output-dir "$LINEAGE_DIR"
@@ -185,9 +186,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
           set -euo pipefail
-          "$COMPETITION_RUNTIME_PYTHON" -m pytest \
-            tests/test_current_state_attention_projection_v22512.py \
-            -q
+          "$COMPETITION_RUNTIME_PYTHON" tests/test_current_state_attention_projection_v22512.py
 
       - name: Upload lineage evidence
         if: always()
