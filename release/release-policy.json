@@ -7,8 +7,6 @@
     "src/**/*",
     "web_demo/**/*",
     "config/**/*",
-    "governance/runtime_callable_authority_v1.json",
-    "governance/runtime_verification_pilot_v1.json",
     "scripts/start_server.sh",
     "scripts/runtime_service_resolver.sh",
     "scripts/runtime_exclusivity_guard.sh",
@@ -17,7 +15,6 @@
     "scripts/release_verifier.py",
     "scripts/install_release_verifier.sh",
     "scripts/deploy_release.sh",
-    "scripts/competition_execution_gate.py",
     "scripts/check_dependency_lock.py",
     "requirements.txt",
     "requirements.lock",
@@ -34,7 +31,6 @@
     "scripts/deploy_github_artifact.sh",
     ".github/workflows/release-hash-seal.yml",
     ".github/workflows/historical-contract-audit.yml",
-    ".github/workflows/competition-runtime-verification-pilot.yml",
     "README.md",
     "VERSION.md",
     "docs/V22.4.0_RELEASE_HASH_SEAL.md",
@@ -89,9 +85,6 @@
     "sharedStateMigrationRequiredOnFirstSeal": true,
     "singleActiveRepositoryServiceRequired": true,
     "strayRepositoryProcessAllowed": false,
-    "legacyMutableWorkingTreeAllowedAfterSuccess": false,
-    "runtimeVerificationPilotRequired": true,
-    "repositoryGateMustMatchEcsCandidateGate": true,
-    "postSwitchExecutionIdentityRequired": true
+    "legacyMutableWorkingTreeAllowedAfterSuccess": false
   }
 }
