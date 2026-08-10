@@ -1,13 +1,12 @@
 {
   "schema": "competition.runtime_verification_pilot.v1",
-  "version": "2026.08.10.3",
+  "version": "2026.08.10.4",
   "pilotOnly": true,
   "extractionToMotherArchitectureAllowed": false,
   "modes": ["repository", "ecs-candidate", "ecs-runtime"],
   "requiredSourceFiles": [
     "requirements.lock",
-    "contracts/registry/fields.json",
-    "contracts/registry/interfaces.json",
+    "config/competition_runtime_scope.json",
     "config/v23_registry_runtime.json",
     "config/deployment/runtime_callable_authority_v1.json",
     "config/deployment/runtime_verification_pilot_v1.json",
@@ -17,9 +16,6 @@
   ],
   "sourceIdentityFiles": [
     "requirements.lock",
-    "contracts/registry/fields.json",
-    "contracts/registry/interfaces.json",
-    "contracts/registry/migrations.json",
     "config/competition_runtime_scope.json",
     "config/v23_registry_runtime.json",
     "config/deployment/runtime_callable_authority_v1.json",
@@ -75,6 +71,7 @@
   "rules": [
     "The same verifier implementation runs in repository, ECS candidate and ECS live-runtime contexts.",
     "RepositoryGateHash must remain identical when the same sealed source candidate is revalidated on ECS.",
+    "Source Identity contains only release-shipped files so repository and sealed-candidate identities are comparable.",
     "Gate controller, deployment controller and callable-authority projection are inside the sealed config/source identity boundary.",
     "Secret values are never emitted or hashed; only configured secret presence booleans are recorded.",
     "Database schema identity and mutable database state identity are separate hashes.",
