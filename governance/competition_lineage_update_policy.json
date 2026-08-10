@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.10.6",
+  "version": "2026.08.10.7",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse inside the existing exact execution ledger, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse, Agent2 familyPayload semantic reuse inside the existing exact execution ledger, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -27,6 +27,8 @@
         "src/services/real_product_judgment_agent_v2259_service.py",
         "src/services/agent_runtime_hard_interface_v22515_service.py",
         "src/services/agent_token_runtime_hash_exact_v2259_service.py",
+        "src/services/agent_token_runtime_v22520_service.py",
+        "src/services/agent_token_runtime_v225_service.py",
         "scripts/deploy_release.sh"
       ],
       "allowedRegistryModules": [],
@@ -215,6 +217,23 @@
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
         "src/services/agent_token_runtime_hash_exact_v2259_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "agent2_family_payload_semantic_cache": {
+      "description": "Agent2-only semantic cache scope. The existing V22.5.20 exact runtime may derive SemanticHash from compact business input, reuse only draft_ready familyPayload from reusable outputs already validated under compiler 23.2.8, re-run the system compiler, and create a new current output Artifact. The active token facade may expose the existing no-provider replay proof compatibility bit. Registry membership, Provider configuration, request cache, Agent1, Agent3 and Worker count remain sealed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/agent_token_runtime_v22520_service.py",
+        "src/services/agent_token_runtime_v225_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
