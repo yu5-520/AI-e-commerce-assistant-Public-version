@@ -6,8 +6,6 @@ on:
       - 'src/**'
       - 'scripts/**'
       - 'config/**'
-      - 'contracts/**'
-      - 'governance/**'
       - '.github/workflows/competition-runtime-verification-pilot.yml'
   push:
     branches:
@@ -30,6 +28,7 @@ jobs:
       PYTHON_BIN: /opt/python/3.11.9/bin/python3.11
       AI_RELEASE_PYTHON: /opt/python/3.11.9/bin/python3.11
       AI_ECOMMERCE_ROOT: /opt/ai-ecommerce-assistant
+      PILOT_GATE: config/deployment/competition_execution_gate.py
     steps:
       - name: Materialize exact TARGET source
         env:
@@ -44,12 +43,8 @@ jobs:
           downloaded=0
           for attempt in $(seq 1 8); do
             if curl \
-              --fail \
-              --location \
-              --silent \
-              --show-error \
-              --connect-timeout 20 \
-              --max-time 300 \
+              --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
               -H "Authorization: Bearer ${GH_READ_TOKEN}" \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
@@ -63,7 +58,7 @@ jobs:
           done
           test "$downloaded" = "1"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
-          test -f "$EXTRACTED/scripts/competition_execution_gate.py"
+          test -f "$EXTRACTED/$PILOT_GATE"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
 
@@ -72,8 +67,8 @@ jobs:
           set -euo pipefail
           [ -x "$PYTHON_BIN" ]
           mkdir -p dist/runtime-verification-pilot
-          "$PYTHON_BIN" -m py_compile scripts/competition_execution_gate.py
-          "$PYTHON_BIN" scripts/competition_execution_gate.py \
+          "$PYTHON_BIN" -m py_compile "$PILOT_GATE"
+          "$PYTHON_BIN" "$PILOT_GATE" \
             --mode repository \
             --root "$GITHUB_WORKSPACE" \
             --expected-source-commit "$TARGET_SHA" \
@@ -93,8 +88,7 @@ jobs:
           rm -f "$PILOT_DB"
           "$PYTHON_BIN" - "$PILOT_DB" <<'PY'
           import sqlite3,sys
-          db=sys.argv[1]
-          conn=sqlite3.connect(db)
+          conn=sqlite3.connect(sys.argv[1])
           try:
               conn.executescript('''
               CREATE TABLE imported_report_rows(id INTEGER PRIMARY KEY, data_version TEXT, updated_at TEXT);
@@ -109,13 +103,13 @@ jobs:
               conn.close()
           PY
           printf 'PILOT_DB=%s\n' "$PILOT_DB" >> "$GITHUB_ENV"
-          echo "CI uses isolated SQLite because the production shared DB is intentionally root-only."
-          echo "The real deploy_release gate runs as deployment authority against the live shared DB."
+          echo "CI uses isolated SQLite because production shared DB is root-only."
+          echo "Formal deploy_release runs the same gate as deployment authority against the real shared DB."
 
       - name: ECS Candidate Gate engine self-test using same verifier
         run: |
           set -euo pipefail
-          "$PYTHON_BIN" scripts/competition_execution_gate.py \
+          "$PYTHON_BIN" "$PILOT_GATE" \
             --mode ecs-candidate \
             --root "$GITHUB_WORKSPACE" \
             --deploy-root "$AI_ECOMMERCE_ROOT" \
