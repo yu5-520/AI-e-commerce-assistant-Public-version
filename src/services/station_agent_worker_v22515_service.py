@@ -1,9 +1,10 @@
 """V22.5.15 binding for the existing single station worker.
 
-This module does not create a second thread or queue. It replaces the two runtime
-callables imported by the V22.5.14 worker before that worker is started, then reuses the
-same state, loop and lifecycle owner. V23.1.4 checks the canonical Agent1 binding before
-that existing thread is started.
+This module does not create a second thread or queue. It replaces runtime callables
+imported by the V22.5.14 worker before that worker is started, then reuses the same
+state, loop and lifecycle owner.  Competition mode also injects the registered
+formal-signal handoff into that same loop, so signalRef reaches Agent1 without making
+the legacy station queue a critical dependency.
 """
 from __future__ import annotations
 
@@ -17,6 +18,9 @@ from src.services.agent_runtime_hard_interface_v22515_service import (
     run_agent_pipeline_tick_hard,
     select_runnable_data_version_v225,
 )
+from src.services.competition_signal_handoff_service import (
+    seed_ready_competition_handoffs,
+)
 
 THREE_AGENT_PIPELINE_VERSION = legacy.THREE_AGENT_PIPELINE_VERSION
 STATION_AGENT_WORKER_VERSION = "22.5.15"
@@ -25,6 +29,23 @@ STATION_AGENT_WORKER_VERSION = "22.5.15"
 # Rebinding them before start preserves one thread and one state owner.
 legacy.run_agent_pipeline_tick_hard = run_agent_pipeline_tick_hard
 legacy.select_runnable_data_version_v225 = select_runnable_data_version_v225
+_original_run_one = legacy._run_one
+
+
+def _competition_run_one(worker_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    """Seed exact formal signalRefs, then delegate to the existing single worker."""
+
+    handoff = seed_ready_competition_handoffs(
+        limit_versions=max(1, min(8, int(config.get("maxJobsPerTick") or 4))),
+    )
+    result = _original_run_one(worker_id, config)
+    if isinstance(result, dict):
+        result["competitionSignalHandoff"] = handoff
+        result["competitionLegacyStationQueueCriticalPath"] = False
+    return result
+
+
+legacy._run_one = _competition_run_one
 
 
 def _upgrade(value: Any) -> Any:
@@ -57,8 +78,10 @@ def worker_config() -> Dict[str, Any]:
         agent2HashProofBridgeVersion="22.5.15",
         activeAgent1RuntimeBinding=active_agent1_runtime_binding(),
         dataVersionSelection=(
-            "oldest_highest_priority_after_agent2_hash_reconciliation"
+            "oldest_highest_priority_after_registered_signal_handoff_and_agent2_hash_reconciliation"
         ),
+        competitionSignalHandoff="registered_signalRef_to_agent1_pending_v1",
+        competitionLegacyStationQueueCriticalPath=False,
         agent2RuntimeSource=(
             "agent2DraftInputRef.v22514+acceptedHashOutput.v22515"
         ),
@@ -90,6 +113,8 @@ def worker_status(include_queue: bool = True) -> Dict[str, Any]:
         executionMode=(
             "agent1_full_audit_then_agent2_evidence_slice_then_hash_proof"
         ),
+        competitionSignalHandoff="registered_signalRef_to_agent1_pending_v1",
+        competitionLegacyStationQueueCriticalPath=False,
         secondWorkerAllowed=False,
         fallbackAllowed=False,
     )
@@ -100,6 +125,7 @@ def start_station_queue_worker(
     worker_id: str = "fastapi-three-agent-worker",
 ) -> Dict[str, Any]:
     assert_active_agent1_runtime_binding()
+    seed_ready_competition_handoffs(limit_versions=8)
     legacy.start_station_queue_worker(worker_id=worker_id)
     return worker_status(include_queue=False)
 
@@ -114,6 +140,9 @@ def run_worker_tick(
     limit: int | None = None,
 ) -> Dict[str, Any]:
     assert_active_agent1_runtime_binding()
+    seed_ready_competition_handoffs(
+        limit_versions=max(1, min(8, int(limit or 4))),
+    )
     return _upgrade(
         legacy.run_worker_tick(
             worker_id=worker_id,
