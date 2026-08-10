@@ -1,6 +1,6 @@
 {
   "schema": "competition.runtime_verification_pilot.v1",
-  "version": "2026.08.10.1",
+  "version": "2026.08.10.2",
   "pilotOnly": true,
   "extractionToMotherArchitectureAllowed": false,
   "modes": ["repository", "ecs-candidate", "ecs-runtime"],
@@ -10,7 +10,10 @@
     "contracts/registry/interfaces.json",
     "config/v23_registry_runtime.json",
     "governance/runtime_callable_authority_v1.json",
-    "scripts/competition_execution_gate.py"
+    "governance/runtime_verification_pilot_v1.json",
+    "scripts/competition_execution_gate.py",
+    "scripts/deploy_release.sh",
+    "release/release-policy.json"
   ],
   "sourceIdentityFiles": [
     "requirements.lock",
@@ -20,7 +23,15 @@
     "config/competition_runtime_scope.json",
     "config/v23_registry_runtime.json",
     "governance/runtime_callable_authority_v1.json",
-    "governance/runtime_verification_pilot_v1.json"
+    "governance/runtime_verification_pilot_v1.json",
+    "release/release-policy.json",
+    "scripts/competition_execution_gate.py",
+    "scripts/deploy_release.sh",
+    "src/services/hard_interface_bridge_v2301_service.py",
+    "src/services/station_truth_contract_v225_service.py",
+    "src/services/artifact_signal_admission_v225_service.py",
+    "src/services/station_contract_service.py",
+    "src/services/station_business_artifact_service.py"
   ],
   "runtimeEnvironmentKeys": [
     "AI_ECOMMERCE_ROOT",
@@ -64,6 +75,7 @@
   "rules": [
     "The same gate implementation must run in repository, ECS candidate and ECS live-runtime contexts.",
     "RepositoryGateHash must remain identical when the same source candidate is revalidated on ECS.",
+    "The gate implementation, deployment controller, release policy and runtime authority files are part of Source Identity; the verifier cannot sit outside its own attested source boundary.",
     "Secret values are never emitted or hashed; only configured secret presence booleans may be recorded.",
     "Database schema identity and mutable database state identity are separate hashes.",
     "ECS runtime mode must bind identity to the actual uvicorn process cwd, process environment and current symlink.",
