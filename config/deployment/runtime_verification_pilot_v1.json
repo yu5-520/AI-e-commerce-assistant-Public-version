@@ -1,6 +1,6 @@
 {
   "schema": "competition.runtime_verification_pilot.v1",
-  "version": "2026.08.10.4",
+  "version": "2026.08.10.6",
   "pilotOnly": true,
   "extractionToMotherArchitectureAllowed": false,
   "modes": ["repository", "ecs-candidate", "ecs-runtime"],
@@ -29,6 +29,13 @@
     "src/services/station_contract_service.py",
     "src/services/station_business_artifact_service.py"
   ],
+  "runtimeConfigFiles": [
+    "config/competition_runtime_scope.json",
+    "config/v23_registry_runtime.json",
+    "config/deployment/runtime_callable_authority_v1.json",
+    "config/deployment/runtime_verification_pilot_v1.json",
+    "release/release-policy.json"
+  ],
   "runtimeEnvironmentKeys": [
     "AI_ECOMMERCE_ROOT",
     "AI_RELEASE_REQUIRED",
@@ -54,6 +61,11 @@
       "artifact_registry",
       "frontend_view_head_v2259"
     ],
+    "activeDataVersionTable": "imported_report_rows",
+    "activeDataVersionColumn": "data_version",
+    "migrationTable": "alembic_version",
+    "migrationColumn": "version_num",
+    "sqliteUserVersionFallback": true,
     "quickCheckRequired": true,
     "hashSchemaSeparatelyFromState": true
   },
@@ -63,10 +75,24 @@
     "currentSymlinkMustMatchLiveCwd": true
   },
   "identity": {
-    "source": ["expectedSourceCommit", "sourceIdentityHash", "repositoryGateHash"],
-    "runtime": ["pythonIdentityHash", "dependencyHash", "runtimeEnvHash", "runtimeCallableAuthorityHash"],
-    "database": ["databaseSchemaHash", "databaseStateHash"],
-    "execution": "sha256(source + runtime + database)"
+    "source": ["sourceCommit", "releaseHash", "sourceIdentityHash", "repositoryGateHash"],
+    "runtime": ["pythonIdentityHash", "dependencyHash", "runtimeEnvHash", "configHash", "runtimeCallableAuthorityHash"],
+    "database": ["dataVersion", "databaseSchemaHash", "migrationHead", "databaseStateHash"],
+    "execution": "sha256(ordered identity vector)",
+    "order": [
+      "sourceCommit",
+      "releaseHash",
+      "dataVersion",
+      "repositoryGateHash",
+      "pythonIdentityHash",
+      "dependencyHash",
+      "runtimeEnvHash",
+      "configHash",
+      "runtimeCallableAuthorityHash",
+      "databaseSchemaHash",
+      "migrationHead",
+      "databaseStateHash"
+    ]
   },
   "rules": [
     "The same verifier implementation runs in repository, ECS candidate and ECS live-runtime contexts.",
@@ -75,7 +101,10 @@
     "Gate controller, deployment controller and callable-authority projection are inside the sealed config/source identity boundary.",
     "Secret values are never emitted or hashed; only configured secret presence booleans are recorded.",
     "Database schema identity and mutable database state identity are separate hashes.",
+    "Active dataVersion follows the same newest-rowid semantics as the current-run pipeline-live projection without importing application runtime.",
+    "migrationHead prefers the configured migration table and falls back to SQLite PRAGMA user_version when no migration table exists.",
     "ECS runtime mode binds identity to the actual uvicorn process cwd, process environment and current symlink.",
+    "Identity reports expose an ordered vector so the first divergent field can be treated as the execution breakpoint.",
     "This remains a competition-repository pilot until repeated real deployments demonstrate low false positives and missed-breakpoint rates."
   ]
 }
