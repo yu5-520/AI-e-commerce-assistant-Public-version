@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.services import task_snapshot_lineage_guard_service as guard
+from src.services import task_snapshot_station_service as guard
 
 
 def test_active_data_version_materializes_before_strict_bind(monkeypatch):
@@ -22,7 +22,7 @@ def test_active_data_version_materializes_before_strict_bind(monkeypatch):
     monkeypatch.setattr(guard, "materialize_system_product_snapshot", fake_materialize)
     monkeypatch.setattr(guard, "bind_task_product_lineage", fake_bind)
 
-    result = guard.prepare_task_product_lineage(
+    result = guard._prepare_task_product_lineage(
         {"dataVersion": "dv-current", "productRegistryKey": "sku-1"},
         user_id="operator-1",
     )
@@ -47,7 +47,7 @@ def test_inactive_data_version_cannot_resurrect_stale_canonical_lineage(monkeypa
     monkeypatch.setattr(guard, "materialize_system_product_snapshot", forbidden_materialize)
     monkeypatch.setattr(guard, "bind_task_product_lineage", forbidden_bind)
 
-    result = guard.prepare_task_product_lineage(
+    result = guard._prepare_task_product_lineage(
         {
             "dataVersion": "dv-stale",
             "productSnapshotHash": "hash-stale",
@@ -78,7 +78,7 @@ def test_missing_data_version_keeps_existing_strict_binding_behavior(monkeypatch
 
     monkeypatch.setattr(guard, "bind_task_product_lineage", fake_bind)
 
-    result = guard.prepare_task_product_lineage({"productRegistryKey": "sku-1"})
+    result = guard._prepare_task_product_lineage({"productRegistryKey": "sku-1"})
 
     assert events == ["bind"]
     assert result["productSnapshotLineage"]["status"] == "unbound"
