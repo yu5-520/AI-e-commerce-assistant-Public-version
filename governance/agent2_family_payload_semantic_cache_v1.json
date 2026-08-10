@@ -1,0 +1,144 @@
+{
+  "schema": "competition.agent2_family_payload_semantic_cache.v1",
+  "version": "23.1.7",
+  "objective": "Reuse only previously accepted Agent2 draft_ready familyPayload content when the compact business input and current generation contract have the same SemanticHash, then recompile all system-owned fields and accept a new output Artifact under the current ExecutionHash.",
+  "baseRuntime": {
+    "activeTokenFacade": "src.services.agent_token_runtime_v225_service",
+    "tokenRuntime": "src.services.agent_token_runtime_v22520_service:run_agent2_draft_projected_inputs",
+    "systemCompiler": "src.services.agent2_action_draft_core_v225_service:_normalize_draft",
+    "executionLedger": "artifact_execution_index_v2259",
+    "executionAuthority": "itemExecutionId+inputContentHash+ExecutionHash",
+    "singleWorkerRequired": true
+  },
+  "targetRuntime": {
+    "semanticIdentitySchema": "agent2.family_payload_semantic_identity.v1",
+    "semanticCacheContractVersion": "23.1.7",
+    "cachedChannel": "familyPayload",
+    "nonReadyChannelsCached": false,
+    "lookupRequiresStatus": "accepted",
+    "lookupRequiresReusable": true,
+    "lookupRequiresAcceptedContractVersion": "23.2.8",
+    "newCacheTableAllowed": false,
+    "requestCacheEnabled": false,
+    "itemResultCacheEnabled": true,
+    "exactExecutionReplayPriority": 1,
+    "semanticFamilyPayloadPriority": 2,
+    "providerCallPriority": 3,
+    "semanticHitProviderCalls": 0,
+    "semanticHitMustClaimCurrentExecution": true,
+    "semanticHitMustRecompileSystemFields": true,
+    "semanticHitMustCreateNewOutputArtifact": true,
+    "semanticHitMustCompleteCurrentExecution": true,
+    "sourceOutputMayBecomeCurrentOutputRefDirectly": false,
+    "crossProductReuseAllowed": false,
+    "repairCacheAllowed": false,
+    "regenerationCacheAllowed": false
+  },
+  "semanticIdentity": {
+    "excludedRuntimeFields": [
+      "packageId",
+      "dataVersion",
+      "itemExecutionId",
+      "executionHash",
+      "inputArtifactRef",
+      "inputContentHash"
+    ],
+    "requiredBusinessSemantics": [
+      "productId",
+      "storeId",
+      "selectedActionFamily",
+      "immutableContext",
+      "actionContext.decisiveFacts",
+      "actionContext.recentFiveOrLatestFacts",
+      "actionContext.actionParameterPack",
+      "actionContext.verticalActionRag",
+      "familyContract"
+    ],
+    "requiredGenerationContract": [
+      "inputSchema",
+      "projectionVersion",
+      "promptVersion",
+      "actionDraftCoreVersion",
+      "generationCompilerVersion",
+      "familyPayloadSchema",
+      "policyHash",
+      "provider",
+      "model",
+      "generationParametersHash"
+    ]
+  },
+  "rebindContract": {
+    "sourceDraftStatusRequired": "draft_ready",
+    "sourceFamilyPayloadRequired": true,
+    "sourceCurrentContractValidRequired": true,
+    "modelOwnedFieldsReused": ["familyPayload"],
+    "systemOwnedFieldsCopiedFromSource": false,
+    "systemCompilerRerunRequired": true,
+    "currentIdentityReboundRequired": true,
+    "semanticHitAgent2ApiCallCount": 0,
+    "outputArtifactParents": [
+      "current inputArtifactRef",
+      "semantic source outputArtifactRef"
+    ],
+    "rawBatchOutputRefOnSemanticHit": null
+  },
+  "proofCompatibility": {
+    "existingProofBridgeSchemaChanged": false,
+    "existingNoProviderProofSlot": "exactReplayValidated",
+    "semanticMarkerRetained": true,
+    "compatibilityMode": "no_provider_replay_through_existing_exactReplayValidated_slot",
+    "providerCallExecutedForCurrentResult": false
+  },
+  "allowedRuntimeChanges": [
+    "src/services/agent_token_runtime_v22520_service.py",
+    "src/services/agent_token_runtime_v225_service.py"
+  ],
+  "verificationOnlyChanges": [
+    "tests/test_agent2_family_payload_semantic_cache_v1.py",
+    "scripts/verify_agent2_family_payload_semantic_cache.py",
+    "governance/agent2_family_payload_semantic_cache_v1.json",
+    "governance/competition_lineage_update_policy.json",
+    ".github/workflows/competition-agent2-semantic-cache.yml"
+  ],
+  "invariants": {
+    "registryRootRotated": false,
+    "runtimeMembershipChanged": false,
+    "registryRunnerChanged": false,
+    "signalAdmissionChanged": false,
+    "agent1Changed": false,
+    "agent3Changed": false,
+    "providerConfiguredByThisPatch": false,
+    "modelConfiguredByThisPatch": false,
+    "promptChanged": false,
+    "temperatureChanged": false,
+    "thinkingChanged": false,
+    "tokenBudgetChanged": false,
+    "requestCacheEnabled": false,
+    "secondWorkerAllowed": false,
+    "exactExecutionHashDefinitionChanged": false,
+    "providerOutputMatchingChanged": false,
+    "systemCompilerAuthorityChanged": false,
+    "taskMappingChanged": false,
+    "taskPoolChanged": false
+  },
+  "acceptanceCriteria": [
+    "Package/dataVersion/execution transport changes may change ExecutionHash while preserving SemanticHash when compact business semantics are identical.",
+    "Product/store/action family/facts/parameters/RAG/family contract changes must change SemanticHash.",
+    "Provider/model/policy/generation/prompt/compiler contract changes must change SemanticHash.",
+    "Exact accepted ExecutionHash replay is checked before semantic lookup.",
+    "Only reusable accepted outputs validated under generation compiler 23.2.8 may seed semantic reuse.",
+    "Only draft_ready familyPayload is reusable; missingData/conflictReasons/rejectedReason are never cached.",
+    "Repair and invalid-replay regeneration envelopes cannot use semantic cache.",
+    "A semantic hit invokes no Provider and creates a new current output Artifact.",
+    "The current system compiler re-runs _normalize_draft on the cached familyPayload; old locks/owners/status/identity are never copied.",
+    "The old output Artifact is a lineage parent only and never becomes the current outputArtifactRef.",
+    "No new Worker, queue, cache table, Registry member or request cache is introduced."
+  ],
+  "registryPolicy": {
+    "registryRootRotationRequired": false,
+    "runtimeProjectionUpdateRequired": false,
+    "runtimeMembershipChangeRequired": false,
+    "activeBindingOwnerUpdateRequired": false,
+    "lineageUpdateProfile": "governance_bootstrap"
+  }
+}
