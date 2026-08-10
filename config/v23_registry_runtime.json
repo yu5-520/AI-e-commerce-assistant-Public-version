@@ -176,6 +176,7 @@
         "src/services/frontend_view_artifact_v2259_service.py",
         "src/services/public_task_dto_service.py",
         "src/services/pipeline_live_read_model_v2258_service.py",
+        "src/services/pipeline_live_read_model_v225_service.py",
         "web_demo/index.html",
         "web_demo/bootstrap.js",
         "web_demo/core/router.js",
