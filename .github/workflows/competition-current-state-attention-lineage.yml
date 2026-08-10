@@ -1,0 +1,203 @@
+name: Competition Current-State Attention Lineage
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'web_demo/**'
+      - 'config/**'
+      - 'contracts/**'
+      - 'governance/current_state_attention_field_semantics_v1.json'
+      - 'governance/competition_lineage_update_policy.json'
+      - 'scripts/compile_competition_lineage.py'
+      - 'scripts/verify_current_state_attention_lineage.py'
+      - 'tests/test_current_state_attention_projection_v22512.py'
+      - '.github/workflows/competition-current-state-attention-lineage.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-current-state-attention-lineage-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-current-state-attention-lineage:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
+      OVERLAY: governance/current_state_attention_field_semantics_v1.json
+      LINEAGE_DIR: dist/competition-current-state-attention-lineage
+      REPORT: dist/current-state-attention-lineage-report.json
+    steps:
+      - name: Materialize exact TARGET source
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="${RUNNER_TEMP}/current-state-attention-${TARGET_SHA}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/current-state-attention-${TARGET_SHA}"
+          rm -f "$ARCHIVE"
+          rm -rf "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download ${TARGET_SHA} attempt ${attempt}/8"
+            if curl \
+              --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${TARGET_SHA}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/compile_competition_lineage.py"
+          test -f "$EXTRACTED/scripts/verify_current_state_attention_lineage.py"
+          test -f "$EXTRACTED/$OVERLAY"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+
+      - name: Resolve ECS Python 3.10+
+        run: |
+          set -euo pipefail
+          for candidate in \
+            /opt/python/3.11.9/bin/python3.11 \
+            python3.13 python3.12 python3.11 python3.10 \
+            /usr/local/bin/python3.13 /usr/local/bin/python3.12 \
+            /usr/local/bin/python3.11 /usr/local/bin/python3.10 \
+            /usr/bin/python3.13 /usr/bin/python3.12 \
+            /usr/bin/python3.11 /usr/bin/python3.10; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              resolved="$(command -v "$candidate")"
+            elif [ -x "$candidate" ]; then
+              resolved="$candidate"
+            else
+              continue
+            fi
+            if "$resolved" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+              printf 'PYTHON_BIN=%s\n' "$resolved" >> "$GITHUB_ENV"
+              "$resolved" -c 'import platform; print("python=" + platform.python_version())'
+              exit 0
+            fi
+          done
+          echo 'No usable Python 3.10+ runtime exists on ECS runner.' >&2
+          exit 1
+
+      - name: Compile exact TARGET Hash Lineage
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          rm -rf "$LINEAGE_DIR"
+          "$PYTHON_BIN" -m py_compile \
+            scripts/compile_competition_lineage.py \
+            scripts/verify_current_state_attention_lineage.py \
+            src/services/pipeline_live_read_model_v225_service.py \
+            tests/test_current_state_attention_projection_v22512.py
+          "$PYTHON_BIN" scripts/compile_competition_lineage.py \
+            --source-commit "$TARGET_SHA" \
+            --output-dir "$LINEAGE_DIR"
+
+      - name: Verify unified Registry and recall all TARGET consumers
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" scripts/verify_current_state_attention_lineage.py \
+            --lineage-graph "$LINEAGE_DIR/lineage-graph.json" \
+            --overlay "$OVERLAY" \
+            --output "$REPORT"
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          from pathlib import Path
+
+          report=json.loads(Path('dist/current-state-attention-lineage-report.json').read_text(encoding='utf-8'))
+          assert report.get('verified') is True, report.get('findings')
+          assert report.get('registeredFieldCount') == 4, report.get('registeredFieldCount')
+          assert report.get('registeredInterfaceCount') == 1, report.get('registeredInterfaceCount')
+          assert not report.get('stalePredicateHits'), report.get('stalePredicateHits')
+          print('currentStateAttentionLineageHash=' + str(report.get('verificationHash')))
+          print('consumerRuntimeFileCount=' + str(len(report.get('consumerRuntimeFiles') or [])))
+          for field_id, lineage in sorted((report.get('fieldLineage') or {}).items()):
+              print('FIELD ' + field_id + ' aliases=' + ','.join(lineage.get('aliases') or []))
+              for hit in lineage.get('runtimeHits') or []:
+                  aliases=','.join(f'{key}:{value}' for key,value in sorted((hit.get('aliases') or {}).items()))
+                  print('  ' + str(hit.get('path')) + ' ' + str(hit.get('contentHash')) + ' hits=' + str(hit.get('occurrenceCount')) + ' aliases=' + aliases)
+          for interface_id, lineage in sorted((report.get('interfaceLineage') or {}).items()):
+              print('INTERFACE ' + interface_id)
+              for anchor in lineage.get('runtimeAnchors') or []:
+                  print('  ' + str(anchor.get('path')) + ' ' + str(anchor.get('contentHash')))
+          PY
+
+      - name: Verify current-state facade contract
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" - <<'PY'
+          from pathlib import Path
+          facade=Path('src/services/pipeline_live_read_model_v225_service.py').read_text(encoding='utf-8')
+          required=[
+              'ATTENTION_IDENTITY = "dataVersion+storeId+productId"',
+              'result["items"] = _current_attention_items(active, limit)',
+              'attentionHistoryFallbackAllowed',
+              'latest_pipeline_item_row_per_current_product',
+              'observed_soft_gate never falls back to older Agent1 history',
+          ]
+          missing=[literal for literal in required if literal not in facade]
+          assert not missing, 'current_state_facade_contract_missing:' + ','.join(missing)
+          print('currentStateFacadeContract=verified')
+          PY
+
+      - name: Prepare cached exact application environment
+        run: |
+          set -euo pipefail
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          mkdir -p dist/current-state-attention-env
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$PYTHON_BIN" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" \
+              "$GITHUB_WORKSPACE/dist/current-state-attention-env" \
+              | tee dist/current-state-attention-env/runtime-environment-summary.log \
+              | tail -n 1
+          )"
+          [ -x "$RUNTIME_PYTHON" ]
+          printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+
+      - name: Verify current-state attention behavior
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          "$COMPETITION_RUNTIME_PYTHON" tests/test_current_state_attention_projection_v22512.py
+
+      - name: Upload lineage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-state-attention-lineage-${{ env.TARGET_SHA }}
+          path: |
+            dist/current-state-attention-lineage-report.json
+            dist/competition-current-state-attention-lineage
+            dist/current-state-attention-env/runtime-environment-summary.log
+          if-no-files-found: warn
+          retention-days: 7
