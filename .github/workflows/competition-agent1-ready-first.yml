@@ -100,8 +100,8 @@ jobs:
       - name: Run ready-first behavior regression
         run: |
           set -euo pipefail
-          "$RUNTIME_PYTHON" -m pytest -q tests/test_agent1_ready_first_runtime_v1.py \
-            | tee dist/agent1-ready-first/pytest.txt
+          "$RUNTIME_PYTHON" -m unittest -q tests.test_agent1_ready_first_runtime_v1 \
+            | tee dist/agent1-ready-first/unittest.txt
 
       - name: Assert exact source identity
         run: |
