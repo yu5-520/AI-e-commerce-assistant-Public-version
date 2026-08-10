@@ -4,27 +4,23 @@ The underlying V22.5.9 model can read historical latest state when called withou
 dataVersion. That behavior is useful for generic history/debug reads, but it is not
 valid for the operator-center *current run* projection after Reset. This facade
 binds the live view to the active imported-report runtime and also closes a stale
-attention fallback:
-
-- no active imported dataVersion => current product/Signal/Agent counts are zero;
-- active imported dataVersion => delegate to V22.5.9 with that exact dataVersion;
-- attention resolves one newest pipeline row per dataVersion+storeId+productId before
-  deciding whether the row is actionable;
-- an observed_soft_gate current row is observation sediment only and can never expose
-  an older Agent1 queued/running row as the current attention state;
-- historical canonical snapshots remain preserved for audit/history and cannot leak
-  into the empty current-run UI.
+attention fallback. V22.5.13 additionally projects structured Agent3 contract root
+causes instead of collapsing every ``output_invalid`` state into a generic format
+error label.
 """
 from __future__ import annotations
 
+import json
+import re
 from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect
 from src.services import pipeline_live_read_model_v2258_service as base
 
-PIPELINE_LIVE_READ_MODEL_VERSION = "22.5.12"
+PIPELINE_LIVE_READ_MODEL_VERSION = "22.5.13"
 THREE_AGENT_PIPELINE_VERSION = base.THREE_AGENT_PIPELINE_VERSION
 ATTENTION_IDENTITY = "dataVersion+storeId+productId"
+_JSON_PATH_RE = re.compile(r"\$\.[A-Za-z_][A-Za-z0-9_]*(?:\[[0-9]+\]|\.[A-Za-z_][A-Za-z0-9_]*)*")
 
 
 def _table_exists(conn: Any, table_name: str) -> bool:
@@ -58,12 +54,7 @@ def _active_report_data_version() -> str | None:
 
 
 def _latest_current_rows(data_version: str) -> List[Dict[str, Any]]:
-    """Resolve exactly one newest persisted row for each current product identity.
-
-    ``base._current_rows`` is ordered newest-first. Identity is therefore claimed by
-    the first row only. This must happen *before* attention filtering; otherwise an
-    observed current row can be skipped and an older Agent1 row can reappear.
-    """
+    """Resolve exactly one newest persisted row for each current product identity."""
     rows = base._current_rows(data_version)
     latest: Dict[str, Dict[str, Any]] = {}
     for row in rows:
@@ -71,10 +62,104 @@ def _latest_current_rows(data_version: str) -> List[Dict[str, Any]]:
     return list(latest.values())
 
 
+def _row_business_payload(row: Dict[str, Any]) -> Dict[str, Any]:
+    raw = row.get("payload")
+    if isinstance(raw, dict):
+        wrapper = raw
+    else:
+        try:
+            wrapper = json.loads(str(raw or "{}"))
+        except Exception:
+            wrapper = {}
+    if not isinstance(wrapper, dict):
+        return {}
+    payload = wrapper.get("payload")
+    return payload if isinstance(payload, dict) else wrapper
+
+
+def _contract_violations(row: Dict[str, Any]) -> List[str]:
+    payload = _row_business_payload(row)
+    sop = payload.get("agent3Sop") if isinstance(payload.get("agent3Sop"), dict) else {}
+    validation = sop.get("contractValidation") if isinstance(sop.get("contractValidation"), dict) else {}
+    values = (
+        payload.get("systemContractViolations")
+        or sop.get("systemContractViolations")
+        or validation.get("missing")
+        or sop.get("semanticContractMissing")
+        or []
+    )
+    return [str(item) for item in values if str(item)] if isinstance(values, list) else []
+
+
+def _failure_projection(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Return one machine class + human label from the persisted root cause."""
+    violations = _contract_violations(row)
+    classes: List[str] = []
+    paths: List[str] = []
+    for value in violations:
+        if value.startswith("agent3_sop_cross_family_contamination:"):
+            classes.append("cross_family_contamination")
+        if value.startswith("agent3_system_fact_converted_to_action:"):
+            classes.append("system_fact_converted_to_action")
+        for path in _JSON_PATH_RE.findall(value):
+            if path not in paths:
+                paths.append(path)
+
+    explicit = str(row.get("failure_class") or "").strip()
+    if explicit and explicit not in classes:
+        classes.append(explicit)
+    error_text = " ".join(
+        str(value or "")
+        for value in (
+            row.get("last_error_code"),
+            row.get("error_reason"),
+        )
+    ).lower()
+
+    if "cross_family_contamination" in classes and "system_fact_converted_to_action" in classes:
+        failure_class = "agent3_semantic_contract_violation"
+        label = "SOP语义合同未通过：动作域越界且系统事实被重复转为人工动作"
+    elif "cross_family_contamination" in classes:
+        failure_class = "cross_family_contamination"
+        label = "SOP动作域越界"
+    elif "system_fact_converted_to_action" in classes:
+        failure_class = "system_fact_converted_to_action"
+        label = "系统事实被重复转为人工动作"
+    elif explicit in {"transient_provider_or_protocol", "provider_failure"} or any(
+        marker in error_text for marker in ("provider", "timeout", "http", "429", "500", "502", "503", "504")
+    ):
+        failure_class = explicit or "provider_failure"
+        label = "模型接口失败"
+    elif violations:
+        failure_class = explicit or "agent3_semantic_contract_violation"
+        label = "SOP语义合同未通过"
+    else:
+        return {}
+
+    return {
+        "failureClass": failure_class,
+        "failureType": label,
+        "failurePaths": paths,
+        "systemContractViolations": violations,
+        "failureOwner": "agent3_system_contract" if violations else None,
+    }
+
+
 def _current_attention_items(data_version: str, limit: int) -> List[Dict[str, Any]]:
-    """Project attention from current identity rows only; history fallback is forbidden."""
+    """Project attention from current identity rows and preserve structured failures."""
     current = _latest_current_rows(data_version)
-    return base._deduplicated_attention(current, limit)
+    by_identity = {base._identity(row): row for row in current}
+    items = base._deduplicated_attention(current, limit)
+    result: List[Dict[str, Any]] = []
+    for raw in items:
+        item = dict(raw)
+        row = by_identity.get(str(item.get("identityKey") or "")) or {}
+        projection = _failure_projection(row)
+        if projection:
+            item.update({key: value for key, value in projection.items() if value is not None})
+            item["stageLabel"] = projection["failureType"]
+        result.append(item)
+    return result
 
 
 def _zero_current_projection(result: Dict[str, Any]) -> Dict[str, Any]:
@@ -133,6 +218,7 @@ def _zero_current_projection(result: Dict[str, Any]) -> Dict[str, Any]:
         attentionIdentity=ATTENTION_IDENTITY,
         productTruthSource="none_current_runtime",
         countBasis="active imported dataVersion required for current-run projection",
+        failureProjectionContract="structured_root_cause_first.v1",
         rule=(
             "Historical canonical snapshots are preserved, but current operator-center "
             "counts and attention are zero until imported_report_rows establishes an active dataVersion."
@@ -155,10 +241,6 @@ def read_pipeline_live_model(
     # The live operator-center follows the active import runtime, never a stale
     # caller/history dataVersion. Historical reads belong to dedicated history APIs.
     result = base.read_pipeline_live_model(data_version=active, limit=limit)
-
-    # The base V22.5.9 summary already resolves latest rows correctly, but its
-    # attention list used raw history rows. Re-project the list from the same newest
-    # identity rows so observation cannot reveal an older Agent1 state.
     result["items"] = _current_attention_items(active, limit)
     result["version"] = PIPELINE_LIVE_READ_MODEL_VERSION
     result["activeDataVersion"] = active
@@ -171,6 +253,7 @@ def read_pipeline_live_model(
         "Resolve newest row by dataVersion+storeId+productId before filtering; "
         "observed_soft_gate never falls back to older Agent1 history."
     )
+    result["failureProjectionContract"] = "structured_root_cause_first.v1"
     result["countBasis"] = "canonical inventory scoped to active imported dataVersion"
     return result
 
