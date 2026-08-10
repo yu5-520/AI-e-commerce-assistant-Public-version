@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Verify unified field/interface ownership without importing business runtime.
 
-Stdlib only.  Intended for ECS/CI environments and deliberately does not create,
-activate or install a virtual environment.
+Stdlib only. Intended for ECS/CI environments and deliberately does not create,
+activate or install a virtual environment. Canonical ownership may be declared at
+module level for semantic fields or at module:symbol level for executable interfaces.
 """
 from __future__ import annotations
 
 import ast
 import json
-import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
@@ -36,10 +36,15 @@ def module_path(module: str) -> Path:
 
 
 def owner_parts(owner: str) -> tuple[str, str]:
-    module, sep, symbol = str(owner or "").partition(":")
-    if not sep or not module or not symbol:
+    raw = str(owner or "").strip()
+    if not raw:
         raise VerificationError(f"owner_invalid:{owner}")
-    return module, symbol
+    module, sep, symbol = raw.partition(":")
+    if not module:
+        raise VerificationError(f"owner_invalid:{owner}")
+    if sep and not symbol:
+        raise VerificationError(f"owner_symbol_empty:{owner}")
+    return module, symbol if sep else ""
 
 
 def top_level_symbols(path: Path) -> set[str]:
@@ -71,7 +76,7 @@ def function_source(path: Path, name: str) -> str:
 def assert_owner(owner: str) -> None:
     module, symbol = owner_parts(owner)
     path = module_path(module)
-    if symbol not in top_level_symbols(path):
+    if symbol and symbol not in top_level_symbols(path):
         raise VerificationError(f"owner_symbol_missing:{owner}")
 
 
@@ -126,6 +131,8 @@ def verify() -> Dict[str, Any]:
         findings.append("runtime_guard_must_install_before_agent3_runtime_import")
     if "install_agent3_semantic_path_repair" not in facade:
         findings.append("active_token_facade_semantic_path_repair_missing")
+    if "core.AGENT3_SOP_CORE_VERSION = AGENT3_SEMANTIC_PATH_REPAIR_VERSION" not in facade:
+        findings.append("agent3_execution_identity_not_rotated_for_repair_contract")
 
     repair_path = ROOT / "src/services/agent3_semantic_path_repair_v1_service.py"
     repair_text = repair_path.read_text(encoding="utf-8")
