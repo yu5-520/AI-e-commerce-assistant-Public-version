@@ -18,7 +18,7 @@ from src.services.frontend_view_artifact_v2259_service import (
     read_frontend_view_artifact_v2259,
 )
 from src.services.pipeline_live_read_model_v225_service import read_pipeline_live_model
-from src.services.product_snapshot_lineage_service import (
+from src.services.system_product_snapshot_service import (
     bind_task_product_lineage,
     read_canonical_product_detail,
     read_canonical_product_views,
