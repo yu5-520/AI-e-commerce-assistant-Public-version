@@ -43,6 +43,7 @@ jobs:
       COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       COMPETITION_BASELINE_COMMIT: ${{ github.event.pull_request.base.sha || inputs.baseline_commit || github.event.before || github.sha }}
       LINEAGE_UPDATE_PROFILE: ${{ inputs.profile || 'governance_bootstrap' }}
+      LINEAGE_UPDATE_POLICY: governance/competition_lineage_update_policy.json
     steps:
       - name: Materialize exact BASE and TARGET source archives
         env:
@@ -102,8 +103,22 @@ jobs:
           test -f "$TARGET_EXTRACTED/scripts/verify_competition_lineage_update.py"
           test -f "$TARGET_EXTRACTED/scripts/plan_competition_recovery_scope.py"
           test -f "$TARGET_EXTRACTED/governance/competition_lineage_update_policy.json"
+          test -f "$TARGET_EXTRACTED/governance/runtime_contract_lineage_repair_policy.json"
           test -f "$TARGET_EXTRACTED/governance/competition_misrouted_fix_recovery_v1.json"
           test -f "$BASE_EXTRACTED/scripts/compile_competition_lineage.py"
+
+          PROFILE="$LINEAGE_UPDATE_PROFILE"
+          POLICY="$LINEAGE_UPDATE_POLICY"
+          TARGET_CONTRACT_REGISTRY="$TARGET_EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
+          BASE_CONTRACT_REGISTRY="$BASE_EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
+          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ] && [ -f "$TARGET_CONTRACT_REGISTRY" ]; then
+            if [ ! -f "$BASE_CONTRACT_REGISTRY" ] || ! cmp -s "$BASE_CONTRACT_REGISTRY" "$TARGET_CONTRACT_REGISTRY"; then
+              PROFILE="runtime_contract_lineage_repair"
+              POLICY="governance/runtime_contract_lineage_repair_policy.json"
+            fi
+          fi
+          printf 'LINEAGE_UPDATE_PROFILE=%s\n' "$PROFILE" >> "$GITHUB_ENV"
+          printf 'LINEAGE_UPDATE_POLICY=%s\n' "$POLICY" >> "$GITHUB_ENV"
 
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$TARGET_EXTRACTED"/. "$GITHUB_WORKSPACE"/
@@ -112,7 +127,8 @@ jobs:
           printf 'BASELINE_ROOT=%s\n' "$BASE_EXTRACTED" >> "$GITHUB_ENV"
           echo "competitionBaselineCommit=$BASE_COMMIT"
           echo "competitionSourceCommit=$SOURCE_COMMIT"
-          echo "lineageUpdateProfile=$LINEAGE_UPDATE_PROFILE"
+          echo "lineageUpdateProfile=$PROFILE"
+          echo "lineageUpdatePolicy=$POLICY"
 
       - name: Resolve ECS Python 3.10+
         run: |
@@ -221,7 +237,7 @@ jobs:
           "$PYTHON_BIN" scripts/verify_competition_lineage_update.py \
             --baseline-dir dist/competition-lineage-baseline \
             --target-dir dist/competition-lineage \
-            --policy governance/competition_lineage_update_policy.json \
+            --policy "$LINEAGE_UPDATE_POLICY" \
             --profile "$LINEAGE_UPDATE_PROFILE" \
             --output dist/competition-lineage-update-report.json \
             | tee dist/competition-lineage-update-summary.json

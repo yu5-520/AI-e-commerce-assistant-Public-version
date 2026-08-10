@@ -1,0 +1,38 @@
+{
+  "schema": "competition.lineage_update_policy.v1",
+  "version": "2026.08.11.1",
+  "defaultProfile": "runtime_contract_lineage_repair",
+  "profiles": {
+    "runtime_contract_lineage_repair": {
+      "description": "Exact Unified-Registry -> Hash-Lineage -> runtime-contract repair scope. It permits only the canonical contract registry, its active runtime projection, strict hash/interface guards, Agent3 exact-path semantic repair, completed-contract projection, Agent stage Artifact refs and structured current-state failure projection. Runtime membership may change only when the added/removed file is explicitly allowlisted or owned by an explicitly allowed registry module. All unrelated production files, modules, nodes and special hashes remain fail-closed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": true,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": true,
+      "allowedRuntimePathPrefixes": [
+        "config/runtime_contract_lineage_registry_v1.json",
+        "config/v23_registry_runtime.json",
+        "src/services/runtime_contract_guard_v1_service.py",
+        "src/services/agent3_semantic_path_repair_v1_service.py",
+        "src/services/agent_token_runtime_v225_service.py",
+        "src/services/agent_runtime_contract_v225_service.py",
+        "src/services/artifact_transport_service.py",
+        "src/services/pipeline_live_read_model_v225_service.py"
+      ],
+      "allowedRegistryModules": [
+        "agent2_runtime",
+        "agent3_input_projection",
+        "agent3_runtime",
+        "frontend_view",
+        "release_governance",
+        "task_mapping",
+        "task_pool"
+      ],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    }
+  }
+}

@@ -2,9 +2,10 @@
 
 Agent1 keeps the strict V22.5.9 exact runtime, Agent2 keeps V22.5.20 exact output
 acceptance plus the V23.1.7 familyPayload semantic cache, and Agent3 keeps the
-V23.2.15 system/repair contract while adding V23.2.17 semantic SOP reuse and
-compatible two-item initial Provider microbatching. Hash-routed RAG is installed at
-the deterministic provider boundary for Agent2/Agent3.
+V23.2.18 system contract while adding V23.2.17 semantic SOP reuse/microbatching and
+V23.2.19 exact-path semantic repair. Unified runtime guards fail closed on provider
+identity and keep the hash-table interface owned by the hash-directed Artifact
+runtime.
 """
 from src.services.agent_token_runtime_v22520_service import *
 from src.services.agent_token_runtime_v22520_service import (
@@ -13,7 +14,13 @@ from src.services.agent_token_runtime_v22520_service import (
 from src.services.agent_hash_routed_rag_bridge_v1_service import (
     install_agent_hash_routed_rag_bridge,
 )
+from src.services.runtime_contract_guard_v1_service import (
+    install_runtime_contract_guards,
+)
 
+# Install the fail-closed identity/interface contract before the active Agent3
+# runtime imports the historical token-runtime module object.
+RUNTIME_CONTRACT_GUARDS = install_runtime_contract_guards()
 AGENT_HASH_ROUTED_RAG_BRIDGE = install_agent_hash_routed_rag_bridge()
 
 
@@ -34,19 +41,37 @@ def run_agent2_draft_projected_inputs(*args, **kwargs):
 
 run_agent2_projected_inputs = run_agent2_draft_projected_inputs
 
-from src.services.agent3_runtime_v23215_service import (
-    run_agent3_sop_projected_inputs as _run_agent3_sop_projected_inputs_v23217,
+from src.services import agent3_runtime_v23215_service as _agent3_runtime_v23215
+from src.services.agent3_semantic_path_repair_v1_service import (
+    AGENT3_SEMANTIC_PATH_REPAIR_VERSION,
+    install_agent3_semantic_path_repair,
+)
+
+# Rotate Agent3 prompt/execution identity with the new validation+repair contract.
+# Otherwise a previously accepted-but-pipeline-invalid V23.2.15 Artifact could exact-
+# replay forever and bypass the new repair boundary. The active runtime reads this
+# constant when building the ExecutionHash, so V23.2.19 creates a fresh auditable
+# execution lineage rather than rebinding an old output.
+_agent3_runtime_v23215.core.AGENT3_SOP_CORE_VERSION = AGENT3_SEMANTIC_PATH_REPAIR_VERSION
+
+# Patch the provider boundary, not the pipeline return value. This guarantees any
+# repaired SOP is revalidated before the hash-directed output Artifact is accepted.
+AGENT3_SEMANTIC_PATH_REPAIR = install_agent3_semantic_path_repair(
+    _agent3_runtime_v23215
+)
+_run_agent3_sop_projected_inputs_v23217 = (
+    _agent3_runtime_v23215.run_agent3_sop_projected_inputs
 )
 
 
 def run_agent3_sop_projected_inputs(envelopes, *args, **kwargs):
-    """Activate the competition Agent3 compatible microbatch capacity.
+    """Activate compatible microbatching plus exact-path semantic self-repair.
 
     The historical pipeline still passes ``max_items_per_call=1`` because V23.2.15
-    discarded that argument. V23.2.17 makes it real, so the active facade promotes the
-    old disabled-batching sentinel to capacity 2. Character budget and compatibility
-    grouping inside Agent3 remain the final authority; this does not create parallel
-    Provider calls or a second Worker.
+    discarded that argument. V23.2.17 makes it real, so the active facade promotes
+    the old disabled-batching sentinel to capacity 2. Character budget and
+    compatibility grouping inside Agent3 remain the final authority; the V23.2.19
+    repair layer is singleton and may only modify validator-named JSON paths.
     """
 
     requested = kwargs.get("max_items_per_call")
