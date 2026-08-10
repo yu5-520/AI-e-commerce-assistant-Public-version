@@ -1,0 +1,110 @@
+{
+  "schema": "competition.agent3_cross_department_coordination_contract.v1",
+  "version": "23.2.18",
+  "objective": "Separate operator-owned Agent3 action-family execution from cross-department supporting coordination so warehouse/inventory/replenishment language is forbidden in roas_scale operator steps but allowed in structured crossDepartmentActions without mutating the locked action family.",
+  "registrySelection": {
+    "registryRootRotationRequired": false,
+    "runtimeMembershipChangeRequired": false,
+    "agent3RunnerChangeRequired": false,
+    "activeSystemConstraintOwner": "src.services.agent3_system_constraint_v23215_service",
+    "stableBase": "src.services.agent3_system_constraint_base_v23214_service",
+    "stableBaseMutationAllowed": false
+  },
+  "fieldLineage": [
+    {
+      "field": "agent3Sop.executionSteps",
+      "semanticRole": "operator_primary_execution",
+      "actionFamilyAuthority": "lockedActionFamily",
+      "crossFamilyTermsAllowed": false
+    },
+    {
+      "field": "agent3Sop.crossDepartmentActions",
+      "semanticRole": "supporting_coordination",
+      "requiredFields": ["department", "action", "reason"],
+      "crossDepartmentDomainTermsAllowed": true,
+      "mayMutateLockedActionFamily": false
+    },
+    {
+      "field": "taskPlan.supportingCoordination",
+      "source": "agent3Sop.crossDepartmentActions",
+      "semanticRole": "downstream_supporting_coordination",
+      "systemProjectionRequired": true
+    }
+  ],
+  "interfaceLineage": {
+    "producerContract": "src.services.agent3_system_constraint_v23215_service:compile_agent3_provider_package",
+    "validatorContract": "src.services.agent3_system_constraint_v23215_service:validate_agent3_sop_system_contract",
+    "normalizer": "src.services.agent3_sop_core_v225_service:_normalize_sop",
+    "taskMapping": "src.services.agent_runtime_contract_v225_service:build_task_mapping_decision",
+    "semanticIdentity": "src.services.agent3_runtime_v23215_service:build_agent3_semantic_identity"
+  },
+  "operatorSurface": {
+    "strictCrossFamilyContaminationStillRequired": true,
+    "roasScaleBlockedTermsStillRequired": ["仓储", "仓库", "库存", "补货"],
+    "crossDepartmentActionsExcludedFromOperatorContaminationScan": true
+  },
+  "coordinationSurface": {
+    "field": "crossDepartmentActions",
+    "downstreamAlias": "supportingCoordination",
+    "structured": true,
+    "requiredFields": ["department", "action", "reason"],
+    "actionFamilyOverrideForbidden": true,
+    "mayBecomeOperatorExecutionSteps": false,
+    "emptyListAllowed": true
+  },
+  "semanticCache": {
+    "systemConstraintVersion": "23.2.18",
+    "semanticIdentityIncludesSystemConstraintVersion": true,
+    "oldSystemConstraintSemanticEntriesRemainReusable": false,
+    "agent3PerformanceVersionChanged": false,
+    "requestCacheEnabled": false
+  },
+  "allowedRuntimeChanges": [
+    "src/services/agent3_system_constraint_v23215_service.py"
+  ],
+  "verificationOnlyChanges": [
+    "governance/agent3_cross_department_coordination_contract_v1.json",
+    "governance/competition_lineage_update_policy.json",
+    "scripts/verify_agent3_cross_department_coordination_contract.py",
+    "scripts/verify_agent3_semantic_sop_microbatch.py",
+    "tests/test_agent3_cross_department_coordination_contract_v1.py",
+    ".github/workflows/competition-agent3-cross-department-contract.yml"
+  ],
+  "invariants": {
+    "registryRootRotated": false,
+    "runtimeMembershipChanged": false,
+    "registryRunnerChanged": false,
+    "stableBaseChanged": false,
+    "agent1Changed": false,
+    "agent2Changed": false,
+    "agent3PromptVersionChanged": false,
+    "agent3PerformanceVersionChanged": false,
+    "providerChanged": false,
+    "modelChanged": false,
+    "temperatureChanged": false,
+    "thinkingChanged": false,
+    "tokenBudgetChanged": false,
+    "requestCacheEnabled": false,
+    "secondWorkerAllowed": false,
+    "parallelProviderCallsAllowed": false,
+    "exactExecutionHashDefinitionChanged": false,
+    "auxiliaryRepairScopeExpanded": false,
+    "auxiliaryRepairAttemptCountIncreased": false,
+    "taskMappingBusinessLogicChanged": false,
+    "taskPoolChanged": false
+  },
+  "acceptanceCriteria": [
+    "A roas_scale operator execution step mentioning warehouse/inventory/replenishment still fails cross-family contamination.",
+    "A structured crossDepartmentActions entry may mention warehouse/inventory/replenishment without cross-family contamination.",
+    "Every crossDepartmentActions entry requires department, action and reason.",
+    "A crossDepartmentActions actionFamily value, when supplied, may not differ from the locked operator family.",
+    "Task mapping continues to project agent3Sop.crossDepartmentActions into taskPlan.supportingCoordination without rewriting it into operatorActionSteps.",
+    "Agent3 SemanticHash continues to include the active system constraint version, so V23.2.18 invalidates results accepted under the previous constraint contract.",
+    "Registry runner, runtime membership, Provider configuration, single Worker and auxiliary-repair maximum remain unchanged."
+  ],
+  "registryPolicy": {
+    "lineageUpdateProfile": "agent3_cross_department_coordination",
+    "runtimeProjectionUpdateRequired": false,
+    "activeBindingOwnerUpdateRequired": false
+  }
+}
