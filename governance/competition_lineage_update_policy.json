@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.10.8",
+  "version": "2026.08.10.9",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse, Agent2 familyPayload semantic reuse, Agent3 clean SOP semantic reuse plus compatible initial microbatching, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, canonical product snapshot lineage convergence, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse, Agent2 familyPayload semantic reuse, Agent3 clean SOP semantic reuse plus compatible initial microbatching, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -14,6 +14,8 @@
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
         "src/services/system_product_snapshot_service.py",
+        "src/api/routes/frontend_views.py",
+        "src/services/task_snapshot_station_service.py",
         "src/services/station_alignment_v225_service.py",
         "src/services/artifact_signal_admission_v225_service.py",
         "src/services/pipeline_live_read_model_v2258_service.py",
