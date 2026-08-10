@@ -24,7 +24,7 @@ VERIFIER="${AI_RELEASE_VERIFIER_PATH:-/usr/local/sbin/ai-release-verifier}"
 # workerReleaseMatch
 # evidenceSemanticVerified
 # V23 registry gray receipt hard gate
-# competition_execution_gate.py repository -> ECS candidate -> ECS runtime pilot
+# config/deployment/competition_execution_gate.py repository -> ECS candidate -> ECS runtime pilot
 
 fail() {
   printf '\nERROR: %s\n' "$1" >&2
@@ -122,9 +122,6 @@ GRAY_RECEIPT="$GRAY_RECEIPT_ROOT/gray-${SOURCE_COMMIT}.json"
 GRAY_REPORT="$GRAY_RECEIPT_ROOT/gray-${SOURCE_COMMIT}-gate.json"
 (
   cd "$GRAY_ROOT"
-  # Execute the stdlib-only receipt gate by file path. Using ``python -m src...``
-  # imports src/__init__.py first, which installs the full business runtime and
-  # incorrectly requires FastAPI before the sealed production venv is prepared.
   AI_RELEASE_ROOT="$GRAY_ROOT" \
     "$BOOTSTRAP_PYTHON" \
     "$GRAY_ROOT/src/services/registry_runtime_receipt_v23_service.py" \
@@ -141,7 +138,7 @@ GRAY_REPORT="$GRAY_RECEIPT_ROOT/gray-${SOURCE_COMMIT}-gate.json"
 printf 'GRAY_RECEIPT=%s\nGRAY_GATE_REPORT=%s\n' "$GRAY_RECEIPT" "$GRAY_REPORT"
 
 printf '\n=== Runtime Verification Pilot: repository + ECS candidate ===\n'
-PILOT_GATE="$GRAY_ROOT/scripts/competition_execution_gate.py"
+PILOT_GATE="$GRAY_ROOT/config/deployment/competition_execution_gate.py"
 [ -f "$PILOT_GATE" ] || fail "Runtime verification pilot gate is missing from release bundle"
 PILOT_REPORT_ROOT="${AI_RUNTIME_VERIFICATION_REPORT_ROOT:-$DEPLOY_ROOT/shared/outputs/runtime-verification-pilot}"
 mkdir -p "$PILOT_REPORT_ROOT"
@@ -193,7 +190,7 @@ fi
 printf '\n=== Runtime Verification Pilot: ECS post-switch runtime ===\n'
 CURRENT_ROOT="$(readlink -f "$DEPLOY_ROOT/current" 2>/dev/null || true)"
 [ -n "$CURRENT_ROOT" ] && [ -d "$CURRENT_ROOT" ] || fail "Post-switch current release is missing"
-LIVE_GATE="$CURRENT_ROOT/scripts/competition_execution_gate.py"
+LIVE_GATE="$CURRENT_ROOT/config/deployment/competition_execution_gate.py"
 [ -f "$LIVE_GATE" ] || fail "Post-switch runtime gate is missing from current release"
 
 RUNTIME_GATE_OK=0
