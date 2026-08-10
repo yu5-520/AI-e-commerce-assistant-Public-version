@@ -135,6 +135,26 @@ def normalize_agent3_sop_completed_contract(
     }
 
 
+def _valid_agent3_execution_proof(proof: Dict[str, Any]) -> bool:
+    provider_validated = bool(
+        proof.get("providerCallExecuted") is True
+        and proof.get("providerRequestId")
+    )
+    exact_replay_validated = proof.get("exactReplayValidated") is True
+    semantic_replay_validated = proof.get("semanticReplayValidated") is True
+    return bool(
+        proof.get("resultMatched") is True
+        and (
+            provider_validated
+            or exact_replay_validated
+            or semantic_replay_validated
+        )
+        and proof.get("semanticCallId")
+        and proof.get("fallbackUsed") is not True
+        and proof.get("passed") is not False
+    )
+
+
 def missing_agent3_sop_completed_contract(package: Dict[str, Any]) -> List[str]:
     missing = missing_agent2_draft_completed_contract(package)
     sop = _dict(package.get("agent3Sop"))
@@ -145,13 +165,7 @@ def missing_agent3_sop_completed_contract(package: Dict[str, Any]) -> List[str]:
     if sop.get("sopStatus") not in {SOP_READY, SOP_REQUIRES_APPROVAL}:
         missing.append("agent3Sop.sopStatus_ready_or_requires_approval")
     proof = _dict(package.get("agent3ExecutionProof"))
-    if not (
-        proof.get("resultMatched") is True
-        and proof.get("providerCallExecuted") is True
-        and proof.get("providerRequestId")
-        and proof.get("semanticCallId")
-        and proof.get("fallbackUsed") is not True
-    ):
+    if not _valid_agent3_execution_proof(proof):
         missing.append("agent3ExecutionProof")
     return list(dict.fromkeys(missing))
 
@@ -301,6 +315,7 @@ def build_task_mapping_decision(
             "noLegacyRuntimeSource": True,
             "agent2ProviderTracePassed": True,
             "agent3ProviderTracePassed": True,
+            "agent3SemanticReplayTraceAllowed": proof.get("semanticReplayValidated") is True,
             "compilerAddedStepCount": 0,
             "fallbackAllowed": False,
         },
