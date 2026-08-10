@@ -7,13 +7,14 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import sqlite3
 import subprocess
 import sys
 import time
 from pathlib import Path
 
-VERSION = "2026.08.10.4"
+VERSION = "2026.08.10.5"
 DEFAULT_CONFIG = "config/deployment/runtime_verification_pilot_v1.json"
 AUTHORITY_CONFIG = "config/deployment/runtime_callable_authority_v1.json"
 
@@ -138,6 +139,7 @@ def database_identity(path, tables, findings):
             "databaseStateHash": hvalue({"permissionDenied": True}), "state": {},
         }
     if not exists:
+        findings.append("database_missing:{0}".format(path))
         return {
             "path": str(path), "exists": False, "quickCheck": "missing",
             "databaseSchemaHash": hvalue({"missing": True}),
@@ -249,15 +251,42 @@ def locate_live(config):
     return matches[0] if matches else None
 
 
+def executable(path):
+    return bool(path and Path(path).is_file() and os.access(str(path), os.X_OK))
+
+
 def choose_python(live, fallback):
-    if live:
-        venv = str((live.get("env") or {}).get("VIRTUAL_ENV") or "")
+    if not live:
+        return fallback
+    env = live.get("env") or {}
+    venv = str(env.get("VIRTUAL_ENV") or "").strip()
+    if venv:
         for name in ("python", "python3", "python3.11"):
-            candidate = Path(venv) / "bin" / name if venv else None
-            if candidate and candidate.is_file() and os.access(str(candidate), os.X_OK):
-                return str(candidate)
-        if live.get("exe"):
-            return str(live["exe"])
+            candidate = str(Path(venv) / "bin" / name)
+            if executable(candidate):
+                return candidate
+
+    try:
+        argv0 = shlex.split(str(live.get("cmdline") or ""))[0]
+    except Exception:
+        argv0 = ""
+    if argv0:
+        if "/" in argv0 and executable(argv0):
+            return argv0
+        process_path = str(env.get("PATH") or "")
+        for directory in process_path.split(":"):
+            candidate = str(Path(directory) / argv0) if directory else ""
+            if executable(candidate):
+                return candidate
+
+    process_path = str(env.get("PATH") or "")
+    for directory in process_path.split(":"):
+        for name in ("python", "python3", "python3.11"):
+            candidate = str(Path(directory) / name) if directory else ""
+            if executable(candidate):
+                return candidate
+    if live.get("exe"):
+        return str(live["exe"])
     return fallback
 
 
@@ -282,6 +311,8 @@ def runtime_identity(mode, root, config, deploy_root, findings):
     required = str((config.get("runtime") or {}).get("requiredPythonMajorMinor") or "")
     if required and not str(dependency.get("pythonVersion") or "").startswith(required + "."):
         findings.append("runtime_python_version_mismatch:{0}:{1}".format(required, dependency.get("pythonVersion")))
+    if mode == "ecs-runtime" and dependency.get("dependencyProbeError"):
+        findings.append("live_dependency_probe_failed:{0}".format(dependency["dependencyProbeError"]))
     values, secret_presence = env_identity(config, env)
     requirements = root / "requirements.lock"
     payload = {
