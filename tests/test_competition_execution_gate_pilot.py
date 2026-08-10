@@ -113,3 +113,19 @@ def test_sealed_callable_projection_matches_governance_authority():
     assert sealed["callables"] == governance["callables"]
     assert sealed["legacyOverlay"] == governance["legacyOverlay"]
     assert sealed["requiredRuntimeAnchors"] == governance["requiredRuntimeAnchors"]
+
+
+def test_live_python_prefers_process_path_over_proc_exe(tmp_path):
+    gate = _load_gate()
+    bin_dir = tmp_path / "venv" / "bin"
+    bin_dir.mkdir(parents=True)
+    python = bin_dir / "python"
+    python.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    python.chmod(0o755)
+
+    live = {
+        "env": {"PATH": f"{bin_dir}:/usr/bin"},
+        "cmdline": "python -m uvicorn src.api.main:app --port 3000",
+        "exe": "/usr/bin/python3.11",
+    }
+    assert gate.choose_python(live, "/fallback/python") == str(python)
