@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.10.2",
+  "version": "2026.08.10.3",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, runtime-callable authority, current-state attention projection, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -79,6 +79,22 @@
       "requireGraphHashStable": false,
       "allowRuntimeMembershipChange": false,
       "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/pipeline_live_read_model_v225_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "current_state_attention_projection": {
+      "description": "Unified-Registry/Hash-Lineage scoped repair for operator-center attention. dataVersion+storeId+productId defines current identity; the newest row must be selected before observed/action filtering so observed_soft_gate can never expose an older Agent1 state. Only the active pipeline-live facade may change in production Runtime; Signal Admission and Agent workers remain sealed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
         "src/services/pipeline_live_read_model_v225_service.py"
