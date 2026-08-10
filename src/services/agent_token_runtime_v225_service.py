@@ -2,8 +2,8 @@
 
 Agent1 keeps the strict V22.5.9 exact runtime, Agent2 keeps V22.5.20 exact output
 acceptance plus the V23.1.7 familyPayload semantic cache, and Agent3 keeps the
-V23.2.15 system contract while adding V23.2.17 semantic SOP reuse/microbatching and
-V23.2.19 exact-path semantic repair.  Unified runtime guards fail closed on provider
+V23.2.18 system contract while adding V23.2.17 semantic SOP reuse/microbatching and
+V23.2.19 exact-path semantic repair. Unified runtime guards fail closed on provider
 identity and keep the hash-table interface owned by the hash-directed Artifact
 runtime.
 """
@@ -43,10 +43,18 @@ run_agent2_projected_inputs = run_agent2_draft_projected_inputs
 
 from src.services import agent3_runtime_v23215_service as _agent3_runtime_v23215
 from src.services.agent3_semantic_path_repair_v1_service import (
+    AGENT3_SEMANTIC_PATH_REPAIR_VERSION,
     install_agent3_semantic_path_repair,
 )
 
-# Patch the provider boundary, not the pipeline return value.  This guarantees any
+# Rotate Agent3 prompt/execution identity with the new validation+repair contract.
+# Otherwise a previously accepted-but-pipeline-invalid V23.2.15 Artifact could exact-
+# replay forever and bypass the new repair boundary. The active runtime reads this
+# constant when building the ExecutionHash, so V23.2.19 creates a fresh auditable
+# execution lineage rather than rebinding an old output.
+_agent3_runtime_v23215.core.AGENT3_SOP_CORE_VERSION = AGENT3_SEMANTIC_PATH_REPAIR_VERSION
+
+# Patch the provider boundary, not the pipeline return value. This guarantees any
 # repaired SOP is revalidated before the hash-directed output Artifact is accepted.
 AGENT3_SEMANTIC_PATH_REPAIR = install_agent3_semantic_path_repair(
     _agent3_runtime_v23215
