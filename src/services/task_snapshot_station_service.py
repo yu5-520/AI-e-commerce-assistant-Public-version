@@ -22,7 +22,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 from src.repositories.sqlite_repository import connect, ensure_columns
-from src.services.product_snapshot_lineage_service import bind_task_product_lineage
+from src.services.system_product_snapshot_service import bind_task_product_lineage
 
 TASK_SNAPSHOT_STATION_VERSION = "18.0"
 VALID_DECISIONS = {"create_task_snapshot", "manager_review_required", "observe_only", "ignore_noise"}
