@@ -1,0 +1,149 @@
+{
+  "schema": "competition.agent1_semantic_result_cache.v1",
+  "version": "23.1.6",
+  "objective": "Reuse a prior accepted Agent1 business judgment only when business semantics and the model execution contract are identical, while preserving a new current ExecutionHash, current inputContentHash and a new immutable output Artifact for every new execution identity.",
+  "baseRuntime": {
+    "activeFacade": "src.services.agent_runtime_hard_interface_v22515_service",
+    "agent1StageOwner": "src.services.agent_runtime_hard_interface_v2257_service",
+    "tokenRuntime": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
+    "executionAuthority": "itemExecutionId+inputContentHash+ExecutionHash",
+    "executionLedger": "artifact_execution_index_v2259",
+    "singleWorkerRequired": true
+  },
+  "targetRuntime": {
+    "semanticIdentitySchema": "agent1.semantic_identity.v1",
+    "semanticCacheContractVersion": "23.1.6",
+    "lookupAuthority": "accepted artifact_execution_index_v2259 rows only",
+    "lookupIndexStorage": "existing metadata_json descriptor",
+    "newSemanticCacheTableAllowed": false,
+    "requestCacheEnabled": false,
+    "itemResultCacheEnabled": true,
+    "exactExecutionReplayPriority": 1,
+    "semanticResultCachePriority": 2,
+    "providerCallPriority": 3,
+    "semanticHitProviderCalls": 0,
+    "semanticHitMustClaimCurrentExecution": true,
+    "semanticHitMustCreateNewOutputArtifact": true,
+    "semanticHitMustCompleteCurrentExecution": true,
+    "cachedSourceOutputMayBecomeCurrentOutputRefDirectly": false,
+    "crossProductReuseAllowed": false,
+    "fallbackIdentityMatchingAllowed": false
+  },
+  "semanticIdentity": {
+    "excludedExecutionTransportFields": [
+      "correlationId",
+      "signalId",
+      "dataVersion",
+      "sourceArtifactRefs",
+      "sourceContentHash",
+      "sourceLineageValidation.dataVersions",
+      "sourceLineageValidation.sourceArtifactRefs",
+      "sourceLineageValidation.sourceContentHash",
+      "inputContract.sourceRef",
+      "inputContract.sourceContentHash",
+      "inputContract.sourceLineageHash"
+    ],
+    "requiredBusinessSemantics": [
+      "productId",
+      "storeId",
+      "productIdentity",
+      "profileLayer",
+      "snapshotLayer.fieldSignals",
+      "metricLayer",
+      "trendContext",
+      "sourceLineageValidation.businessDates",
+      "sourceLineageValidation.qualityAndCountFields",
+      "strongRelations",
+      "crossValidation",
+      "factLayerValidation",
+      "dataFingerprint",
+      "diagnosticRag"
+    ],
+    "requiredExecutionContractSemantics": [
+      "stage",
+      "inputSchema",
+      "projectionVersion",
+      "promptVersion",
+      "promptContractVersion",
+      "policyHash",
+      "provider",
+      "model",
+      "generationParametersHash"
+    ]
+  },
+  "rebindContract": {
+    "businessBodyReuseOnly": true,
+    "currentIdentityFields": [
+      "dataVersion",
+      "correlationId",
+      "productId",
+      "storeId",
+      "signalId",
+      "signal",
+      "itemExecutionId",
+      "executionHash",
+      "inputArtifactRef",
+      "inputContentHash"
+    ],
+    "semanticHitAgent1ApiCallCount": 0,
+    "outputArtifactParents": [
+      "current inputArtifactRef",
+      "semantic source outputArtifactRef"
+    ],
+    "rawBatchOutputRefOnSemanticHit": null,
+    "sourceArtifactValidationRequired": true
+  },
+  "allowedRuntimeChanges": [
+    "src/services/agent_token_runtime_hash_exact_v2259_service.py"
+  ],
+  "verificationOnlyChanges": [
+    "tests/test_agent1_semantic_result_cache_v1.py",
+    "scripts/verify_agent1_semantic_result_cache.py",
+    "scripts/verify_agent1_ready_first_runtime.py",
+    "governance/agent1_semantic_result_cache_v1.json",
+    "governance/competition_lineage_update_policy.json",
+    ".github/workflows/competition-agent1-semantic-cache.yml"
+  ],
+  "invariants": {
+    "registryRootRotated": false,
+    "runtimeMembershipChanged": false,
+    "registryRunnerChanged": false,
+    "agent1StageOwnerChanged": false,
+    "tokenRuntimeOwnerChanged": false,
+    "signalAdmissionChanged": false,
+    "providerChanged": false,
+    "modelConfiguredByThisPatch": false,
+    "promptChanged": false,
+    "temperatureChanged": false,
+    "thinkingChanged": false,
+    "tokenBudgetChanged": false,
+    "requestCacheEnabled": false,
+    "secondWorkerAllowed": false,
+    "exactExecutionHashDefinitionChanged": false,
+    "providerOutputMatchingChanged": false,
+    "agent2Changed": false,
+    "agent3Changed": false,
+    "taskMappingChanged": false,
+    "taskPoolChanged": false
+  },
+  "acceptanceCriteria": [
+    "Execution-only transport changes may change ExecutionHash while preserving SemanticHash when business semantics are identical.",
+    "Any business metric/trend/fact change must change SemanticHash.",
+    "Any policy/model/provider/generation/prompt contract change must change SemanticHash.",
+    "Exact accepted ExecutionHash replay must be checked before semantic cache lookup.",
+    "A semantic hit must never invoke the Provider.",
+    "A semantic hit must create a new current output Artifact and complete the current exact ExecutionHash.",
+    "The prior output Artifact is a lineage parent/cache source and is never directly reused as the current outputArtifactRef.",
+    "Current dataVersion/signalId/correlationId/itemExecutionId/inputContentHash are restored only from the current input/execution descriptor.",
+    "ProductId and storeId remain semantic identity and therefore prevent cross-product reuse.",
+    "If semantic lookup or rebind validation fails, execution falls through to the existing Provider path instead of accepting an unverifiable cache hit.",
+    "No new Worker, queue, cache database table or Registry runtime member is introduced."
+  ],
+  "registryPolicy": {
+    "registryRootRotationRequired": false,
+    "runtimeProjectionUpdateRequired": false,
+    "runtimeMembershipChangeRequired": false,
+    "activeBindingOwnerUpdateRequired": false,
+    "lineageUpdateProfile": "governance_bootstrap"
+  }
+}
