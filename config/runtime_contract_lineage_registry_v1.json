@@ -1,0 +1,240 @@
+{
+  "schema": "runtime.contract_lineage.registry.v1",
+  "version": "2026.08.11.1",
+  "mode": "fail_closed",
+  "description": "比赛生产链字段与接口统一注册表。以 canonicalId 为唯一语义身份，legacyAliases 仅作兼容读取；owner 是唯一写入/实现所有者；hashLineage 定义跨 Agent/Artifact/任务链的不可漂移约束。",
+  "fields": {
+    "execution.item_execution_id": {
+      "owner": "src.services.hash_directed_artifact_runtime_v2259_service:build_execution_descriptor",
+      "producers": [
+        "src/services/hash_directed_artifact_runtime_v2259_service.py"
+      ],
+      "consumers": [
+        "src/services/agent_token_runtime_v2259_service.py",
+        "src/services/agent3_runtime_v23215_service.py"
+      ],
+      "legacyAliases": [],
+      "invariants": [
+        "model_output_must_return_exact_value",
+        "cannot_be_reconstructed_from_product_or_store_identity"
+      ]
+    },
+    "execution.input_content_hash": {
+      "owner": "src.services.hash_directed_artifact_runtime_v2259_service:resolve_input_binding",
+      "producers": [
+        "src/services/artifact_registry_service.py",
+        "src/services/hash_directed_artifact_runtime_v2259_service.py"
+      ],
+      "consumers": [
+        "src/services/agent_token_runtime_v2259_service.py",
+        "src/services/agent3_runtime_v23215_service.py"
+      ],
+      "legacyAliases": [],
+      "invariants": [
+        "must_equal_registered_immutable_artifact_content_hash",
+        "must_match_item_execution_id_on_provider_return"
+      ]
+    },
+    "agent1.locked_action_family": {
+      "owner": "src.services.real_product_judgment_agent_v2259_service",
+      "producers": [
+        "src/services/real_product_judgment_agent_v2259_service.py"
+      ],
+      "consumers": [
+        "src/services/agent2_action_draft_core_v225_service.py",
+        "src/services/agent3_system_constraint_base_v23214_service.py",
+        "src/services/agent3_sop_core_v225_service.py",
+        "src/services/agent_runtime_contract_v225_service.py",
+        "src/services/pipeline_task_mapping_v225_service.py"
+      ],
+      "legacyAliases": [
+        "selectedActionFamilyHint",
+        "selectedActionFamily",
+        "actionFamily"
+      ],
+      "invariants": [
+        "after_agent1_lock_consumers_must_not_choose_a_different_family",
+        "downstream_actionFamily_is_a_projection_not_an_authority"
+      ]
+    },
+    "agent2.draft_execution_proof": {
+      "owner": "src.services.agent3_system_constraint_v23215_service:canonicalize_agent2_draft_proof",
+      "producers": [
+        "src/services/agent2_hash_proof_bridge_v22515_service.py",
+        "src/services/agent3_system_constraint_v23215_service.py"
+      ],
+      "consumers": [
+        "src/services/agent3_system_constraint_v23215_service.py",
+        "src/services/agent_runtime_contract_v225_service.py"
+      ],
+      "legacyAliases": [
+        "agent2ExecutionProof",
+        "taskPlan.agent2ExecutionProof",
+        "agent2ActionPlan.agent2ExecutionProof",
+        "agent2DraftProvider.itemProvenance",
+        "agent2Provider.itemProvenance"
+      ],
+      "invariants": [
+        "canonical_field_is_agent2DraftExecutionProof",
+        "coexisting_aliases_must_not_conflict"
+      ]
+    },
+    "agent3.provider_declared_status": {
+      "owner": "src.services.agent3_sop_core_v225_service:_normalize_status",
+      "producers": [
+        "src/services/agent3_sop_core_v225_service.py"
+      ],
+      "consumers": [
+        "src/services/agent3_semantic_path_repair_v1_service.py",
+        "src/services/agent_runtime_contract_v225_service.py"
+      ],
+      "legacyAliases": [
+        "agent3Sop.sopStatus",
+        "agent3Sop.contractValidation.evaluatedStatus"
+      ],
+      "invariants": [
+        "provider_declared_status_must_be_preserved_for_audit_even_if_contract_fails",
+        "contract_failure_must_not_be_misreported_as_provider_missing_data"
+      ]
+    },
+    "agent3.system_contract_violations": {
+      "owner": "src.services.agent3_sop_core_v225_service:missing_agent3_sop_contract",
+      "producers": [
+        "src/services/agent3_sop_core_v225_service.py",
+        "src/services/agent3_system_constraint_base_v23214_service.py",
+        "src/services/agent3_system_constraint_v23215_service.py"
+      ],
+      "consumers": [
+        "src/services/agent3_semantic_path_repair_v1_service.py",
+        "src/services/agent_runtime_contract_v225_service.py",
+        "src/services/pipeline_agent3_sop_v225_service.py"
+      ],
+      "legacyAliases": [
+        "agent3Sop.semanticContractMissing",
+        "agent3Sop.contractValidation.missing"
+      ],
+      "invariants": [
+        "violations_are_machine_readable_and_keep_exact_json_paths",
+        "validator_remains_fail_closed_after_repair"
+      ]
+    },
+    "agent3.pipeline_admission_errors": {
+      "owner": "src.services.agent_runtime_contract_v225_service:missing_agent3_sop_completed_contract",
+      "producers": [
+        "src/services/agent_runtime_contract_v225_service.py"
+      ],
+      "consumers": [
+        "src/services/pipeline_agent3_sop_v225_service.py",
+        "src/services/pipeline_live_read_model_v2258_service.py"
+      ],
+      "legacyAliases": [
+        "missing"
+      ],
+      "invariants": [
+        "root_semantic_violations_precede_generic_status_errors",
+        "frontend_failure_class_must_derive_from_structured_root_cause_when_available"
+      ]
+    },
+    "agent3.execution_steps": {
+      "owner": "src.services.agent3_sop_core_v225_service:_normalize_sop",
+      "producers": [
+        "src/services/agent3_sop_core_v225_service.py"
+      ],
+      "consumers": [
+        "src/services/agent3_system_constraint_base_v23214_service.py",
+        "src/services/agent3_semantic_path_repair_v1_service.py",
+        "src/services/agent_runtime_contract_v225_service.py"
+      ],
+      "legacyAliases": [
+        "operatorActionSteps",
+        "sopSteps"
+      ],
+      "invariants": [
+        "executionSteps_is_single_source_of_truth",
+        "operatorActionSteps_must_be_deterministic_projection_of_instruction_fields"
+      ]
+    },
+    "agent3.failure_class": {
+      "owner": "src.services.agent3_semantic_path_repair_v1_service:classify_contract_violations",
+      "producers": [
+        "src/services/agent3_semantic_path_repair_v1_service.py"
+      ],
+      "consumers": [
+        "src/services/pipeline_agent3_sop_v225_service.py",
+        "src/services/pipeline_live_read_model_v2258_service.py"
+      ],
+      "legacyAliases": [
+        "frontendFailureLabel",
+        "last_error_code",
+        "error_reason"
+      ],
+      "invariants": [
+        "cross_family_contamination_is_not_output_format_error",
+        "system_fact_converted_to_action_is_not_output_format_error"
+      ]
+    }
+  },
+  "interfaces": {
+    "runtime.hash.ensure_tables": {
+      "owner": "src.services.hash_directed_artifact_runtime_v2259_service:ensure_hash_directed_runtime_tables",
+      "consumers": [
+        "src/services/agent3_runtime_v23215_service.py",
+        "src/services/agent_token_runtime_v2259_service.py"
+      ],
+      "compatibilityAliases": [
+        "src.services.agent_token_runtime_v2259_service:ensure_hash_directed_runtime_tables"
+      ],
+      "repairPolicy": "alias_may_forward_to_owner_but_must_not_duplicate_implementation"
+    },
+    "runtime.hash.match_provider_output": {
+      "owner": "src.services.agent_token_runtime_v2259_service:_descriptor_for_raw",
+      "consumers": [
+        "src/services/agent_token_runtime_v2259_service.py"
+      ],
+      "repairPolicy": "strict_itemExecutionId_plus_inputContentHash_only",
+      "forbiddenFallbacks": [
+        "inputContentHash_only",
+        "storeId_plus_productId"
+      ]
+    },
+    "agent3.semantic_path_repair": {
+      "owner": "src.services.agent3_semantic_path_repair_v1_service:install_agent3_semantic_path_repair",
+      "consumers": [
+        "src/services/agent_token_runtime_v225_service.py"
+      ],
+      "repairPolicy": "one_provider_attempt_exact_paths_only_then_same_validator",
+      "directMutationForbidden": [
+        "operatorActionSteps"
+      ]
+    }
+  },
+  "repairClasses": {
+    "cross_family_contamination": {
+      "sourcePrefix": "agent3_sop_cross_family_contamination:",
+      "repairable": true,
+      "repairMode": "exact_json_path_provider_repair"
+    },
+    "system_fact_converted_to_action": {
+      "sourcePrefix": "agent3_system_fact_converted_to_action:",
+      "repairable": true,
+      "repairMode": "exact_json_path_provider_repair"
+    },
+    "runtime_interface_owner_mismatch": {
+      "repairable": true,
+      "repairMode": "registry_owner_alias_forward"
+    },
+    "exact_hash_identity_mismatch": {
+      "repairable": false,
+      "repairMode": "reject"
+    }
+  },
+  "globalInvariants": [
+    "registry_owner_is_unique",
+    "immutable_artifact_hash_never_rebound_to_new_business_input",
+    "exact_hash_identity_is_fail_closed",
+    "agent3_repair_can_only_mutate_validator_named_paths",
+    "agent3_repair_must_rerun_the_same_system_validator",
+    "legacy_aliases_are_read_compatibility_only",
+    "no_virtual_environment_creation_or_activation_is_required_by_ops_repair_script"
+  ]
+}
