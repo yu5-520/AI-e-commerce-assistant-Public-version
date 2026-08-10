@@ -86,13 +86,40 @@ jobs:
           printf 'REPOSITORY_GATE_HASH=%s\n' "$REPOSITORY_GATE_HASH" >> "$GITHUB_ENV"
           echo "repositoryGateHash=$REPOSITORY_GATE_HASH"
 
-      - name: ECS Candidate Gate using same verifier
+      - name: Prepare isolated DB for unprivileged ECS gate self-test
+        run: |
+          set -euo pipefail
+          PILOT_DB="${RUNNER_TEMP}/runtime-verification-pilot-${TARGET_SHA}.sqlite3"
+          rm -f "$PILOT_DB"
+          "$PYTHON_BIN" - "$PILOT_DB" <<'PY'
+          import sqlite3,sys
+          db=sys.argv[1]
+          conn=sqlite3.connect(db)
+          try:
+              conn.executescript('''
+              CREATE TABLE imported_report_rows(id INTEGER PRIMARY KEY, data_version TEXT, updated_at TEXT);
+              CREATE TABLE pipeline_jobs(id INTEGER PRIMARY KEY, status TEXT, updated_at TEXT);
+              CREATE TABLE station_queue(id INTEGER PRIMARY KEY, station_id TEXT, status TEXT, updated_at TEXT);
+              CREATE TABLE pipeline_items(id INTEGER PRIMARY KEY, stage TEXT, status TEXT, updated_at TEXT);
+              CREATE TABLE artifact_registry(id INTEGER PRIMARY KEY, artifact_id TEXT, created_at TEXT);
+              CREATE TABLE frontend_view_head_v2259(scope_key TEXT PRIMARY KEY, data_version TEXT, updated_at TEXT);
+              ''')
+              conn.commit()
+          finally:
+              conn.close()
+          PY
+          printf 'PILOT_DB=%s\n' "$PILOT_DB" >> "$GITHUB_ENV"
+          echo "CI uses isolated SQLite because the production shared DB is intentionally root-only."
+          echo "The real deploy_release gate runs as deployment authority against the live shared DB."
+
+      - name: ECS Candidate Gate engine self-test using same verifier
         run: |
           set -euo pipefail
           "$PYTHON_BIN" scripts/competition_execution_gate.py \
             --mode ecs-candidate \
             --root "$GITHUB_WORKSPACE" \
             --deploy-root "$AI_ECOMMERCE_ROOT" \
+            --database "$PILOT_DB" \
             --expected-source-commit "$TARGET_SHA" \
             --expected-repository-gate-hash "$REPOSITORY_GATE_HASH" \
             --output dist/runtime-verification-pilot/ecs-candidate-gate.json \
@@ -105,11 +132,13 @@ jobs:
           assert repo['verified'] is True, repo['findings']
           assert ecs['verified'] is True, ecs['findings']
           assert repo['repository']['repositoryGateHash'] == ecs['repository']['repositoryGateHash']
+          assert (ecs.get('database') or {}).get('quickCheck') == 'ok'
           print('doubleGateMatch=true')
           print('repositoryGateHash=' + repo['repository']['repositoryGateHash'])
           print('ecsExecutionIdentityHash=' + ecs['executionIdentityHash'])
           print('databaseSchemaHash=' + str((ecs.get('database') or {}).get('databaseSchemaHash')))
           print('databaseStateHash=' + str((ecs.get('database') or {}).get('databaseStateHash')))
+          print('ciDatabaseMode=isolated_self_test')
           PY
 
       - name: Upload pilot gate reports
