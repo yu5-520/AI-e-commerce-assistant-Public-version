@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.09.10",
+  "version": "2026.08.10.1",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics and frontend runtime-hash identity nodes. Graph edge changes are allowed only when at least one endpoint is inside the explicit runtime allowlist; Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, and runtime-callable authority nodes. Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -21,7 +21,9 @@
         "src/services/station_contract_service.py",
         "src/services/station_business_artifact_service.py",
         "src/services/frontend_view_artifact_v2259_service.py",
-        "web_demo/core/hash-view-client-v2259.js"
+        "web_demo/core/hash-view-client-v2259.js",
+        "src/services/hard_interface_bridge_v2301_service.py",
+        "src/services/station_truth_contract_v225_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
@@ -128,6 +130,23 @@
       "allowedRuntimePathPrefixes": [
         "src/services/frontend_view_artifact_v2259_service.py",
         "web_demo/core/hash-view-client-v2259.js"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
+    "runtime_callable_authority": {
+      "description": "Eliminate import-time authority split. The hard-interface bridge may decorate private producer hooks but may not replace public Station callables or their version ownership; the Station truth binder is verification-only and may not mutate DEFAULT_OUTPUTS.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": false,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/services/hard_interface_bridge_v2301_service.py",
+        "src/services/station_truth_contract_v225_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
