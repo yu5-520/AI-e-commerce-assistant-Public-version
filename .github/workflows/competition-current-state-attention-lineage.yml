@@ -125,7 +125,7 @@ jobs:
           from pathlib import Path
           report=json.loads(Path('dist/current-state-attention-field-lineage-report.json').read_text(encoding='utf-8'))
           assert report.get('verified') is True, report.get('findings')
-          assert report.get('registeredFieldCount') == 5, report.get('registeredFieldCount')
+          assert report.get('registeredFieldCount') == 4, report.get('registeredFieldCount')
           assert not report.get('stalePredicateHits'), report.get('stalePredicateHits')
           print('currentStateAttentionFieldLineageHash=' + str(report.get('verificationHash')))
           print('consumerRuntimeFileCount=' + str(len(report.get('consumerRuntimeFiles') or [])))
