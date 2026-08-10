@@ -1,8 +1,12 @@
-"""V23.2.16 Agent3 system contract and Agent2 proof bridge.
+"""V23.2.18 Agent3 system contract and Agent2 proof bridge.
 
-Execution steps remain the authoritative SOP body. Stop and rollback conditions are
-family-typed structures. The system-owned bridge also restores a previously
-validated Agent2 proof before Agent3 input projection; Agent3 never generates it.
+Execution steps remain the authoritative operator-owned SOP body. Stop and rollback
+conditions are family-typed structures. Cross-department actions are a separate
+supporting-coordination surface: they may describe another department's work but may
+not mutate the locked operator action family or become operator execution steps.
+
+The system-owned bridge also restores a previously validated Agent2 proof before
+Agent3 input projection; Agent3 never generates it.
 """
 from __future__ import annotations
 
@@ -16,7 +20,7 @@ from src.services.pipeline_artifact_contract_service import (
     attach_pipeline_artifact_ref,
 )
 
-AGENT3_SYSTEM_CONSTRAINT_VERSION = "23.2.15"
+AGENT3_SYSTEM_CONSTRAINT_VERSION = "23.2.18"
 AGENT2_PROOF_BRIDGE_VERSION = "23.2.16"
 
 
@@ -150,6 +154,8 @@ _ROLLBACK_REQUIRED_FIELDS = [
     "evidenceRequired",
 ]
 
+_CROSS_DEPARTMENT_REQUIRED_FIELDS = ["department", "action", "reason"]
+
 
 def family_policy(family: str | None) -> Dict[str, Any]:
     policy = dict(base.family_policy(family))
@@ -160,6 +166,7 @@ def family_policy(family: str | None) -> Dict[str, Any]:
         allowedRollbackConditionTypes=list(selected["allowedRollbackConditionTypes"]),
         stopConditionRequiredFields=list(_STOP_REQUIRED_FIELDS),
         rollbackConditionRequiredFields=list(_ROLLBACK_REQUIRED_FIELDS),
+        crossDepartmentCoordinationRequiredFields=list(_CROSS_DEPARTMENT_REQUIRED_FIELDS),
         maxAuxiliaryRepairAttempts=1,
     )
     return policy
@@ -181,17 +188,33 @@ def compile_agent3_provider_package(package: Dict[str, Any]) -> Dict[str, Any]:
         "unrelatedBusinessRiskCannotStopCurrentActionFamily": True,
         "maxFieldRepairAttempts": policy["maxAuxiliaryRepairAttempts"],
     }
+    result["crossDepartmentCoordinationContract"] = {
+        "field": "crossDepartmentActions",
+        "downstreamField": "supportingCoordination",
+        "supportingCoordinationOnly": True,
+        "requiredFields": policy["crossDepartmentCoordinationRequiredFields"],
+        "otherDepartmentDomainTermsAllowed": True,
+        "mayNotMutateLockedActionFamily": True,
+        "mayNotBecomeOperatorExecutionSteps": True,
+        "operatorExecutionStillBoundToLockedActionFamily": True,
+    }
     system_contract = dict(_dict(result.get("systemConstraintContract")))
     system_contract.update(
         version=AGENT3_SYSTEM_CONSTRAINT_VERSION,
         auxiliaryConditionsAreFamilyTyped=True,
         auxiliaryFieldRepairIsIsolated=True,
         auxiliaryFieldRepairMayNotModifyExecutionSteps=True,
+        operatorActionSurfaceSeparatedFromCrossDepartmentCoordination=True,
+        crossDepartmentActionsAreSupportingCoordination=True,
+        crossDepartmentDomainTermsDoNotMutateOperatorActionFamily=True,
     )
     result["systemConstraintContract"] = system_contract
     output_contract = dict(_dict(result.get("outputStepContract")))
     output_contract["structuredStopConditionsRequired"] = True
     output_contract["structuredRollbackConditionsRequired"] = True
+    output_contract["crossDepartmentCoordinationContract"] = (
+        "department+action+reason; supporting coordination only"
+    )
     result["outputStepContract"] = output_contract
     return result
 
@@ -226,6 +249,30 @@ def _validate_condition_list(
     return errors
 
 
+def _validate_cross_department_coordination(
+    values: Any,
+    *,
+    family: str,
+    required_fields: List[str],
+) -> List[str]:
+    errors: List[str] = []
+    for index, item in enumerate(_arr(values), 1):
+        if not isinstance(item, dict):
+            errors.append(f"agent3_cross_department_coordination_{index}_not_structured")
+            continue
+        for field in required_fields:
+            if item.get(field) in (None, "", [], {}):
+                errors.append(
+                    f"agent3_cross_department_coordination_{index}_missing:{field}"
+                )
+        declared_family = _text(item.get("actionFamily"), 100)
+        if declared_family and declared_family != family:
+            errors.append(
+                f"agent3_cross_department_coordination_{index}_action_family_override"
+            )
+    return errors
+
+
 def _structured_auxiliary_required(package: Dict[str, Any]) -> bool:
     contract = _dict(package.get("inputContract"))
     return bool(
@@ -241,9 +288,6 @@ def validate_agent3_sop_system_contract(
 ) -> List[str]:
     sop = _dict(sop)
     package = _dict(package)
-    errors = list(base.validate_agent3_sop_system_contract(sop, package))
-    if not _structured_auxiliary_required(package):
-        return list(dict.fromkeys(errors))
     draft = _dict(package.get("agent2ActionDraft"))
     family = _text(
         package.get("lockedActionFamily")
@@ -252,6 +296,23 @@ def validate_agent3_sop_system_contract(
         100,
     )
     policy = family_policy(family)
+
+    # V23.2.18 contract layering: the stable base owns strict operator-action
+    # contamination checks. Cross-department coordination is deliberately removed
+    # from that operator surface and validated by its own structural contract below.
+    operator_sop = dict(sop)
+    operator_sop["crossDepartmentActions"] = []
+    errors = list(base.validate_agent3_sop_system_contract(operator_sop, package))
+    errors.extend(
+        _validate_cross_department_coordination(
+            sop.get("crossDepartmentActions"),
+            family=family,
+            required_fields=policy["crossDepartmentCoordinationRequiredFields"],
+        )
+    )
+
+    if not _structured_auxiliary_required(package):
+        return list(dict.fromkeys(errors))
     errors.extend(
         _validate_condition_list(
             sop.get("stopConditions"),
