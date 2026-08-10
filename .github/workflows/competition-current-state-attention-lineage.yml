@@ -184,8 +184,10 @@ jobs:
       - name: Verify current-state attention behavior
         env:
           PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
           "$COMPETITION_RUNTIME_PYTHON" tests/test_current_state_attention_projection_v22512.py
 
       - name: Upload lineage evidence
