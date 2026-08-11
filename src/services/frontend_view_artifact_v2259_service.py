@@ -1,12 +1,14 @@
-"""V22.5.10 content-addressed frontend view Artifacts with runtime-state identity.
+"""V22.5.12 content-addressed frontend view Artifacts with canonical product hash lineage.
 
 DataVersion identifies the business dataset. It does not identify mutable execution state
 inside that dataset. This service therefore derives a deterministic runtimeStateHash from
-the active pipeline projection and uses that hash, together with dataVersion, to invalidate
-frontend manifests.
+the active pipeline projection plus the current canonical product-set hash and uses that
+identity, together with dataVersion, to invalidate frontend manifests.
 
-Immutable module Artifacts remain cacheable by their own business content. The manifest
-carries runtimeStateHash, so a mutable execution transition republishes the Head without
+Immutable module Artifacts remain cacheable by their own business content. The products
+module is built only from the canonical product snapshot facade; Signal/Agent admission is
+never a product-inventory authority. The manifest carries runtimeStateHash, so a mutable
+execution transition or a canonical product-set hash change republishes the Head without
 forcing unrelated module content hashes to rotate.
 """
 from __future__ import annotations
@@ -20,7 +22,7 @@ from typing import Any, Callable, Dict
 from src.repositories.sqlite_repository import connect
 from src.services.artifact_transport_service import resolve_artifact, store_artifact, validate_artifact
 
-FRONTEND_VIEW_ARTIFACT_VERSION = "22.5.10"
+FRONTEND_VIEW_ARTIFACT_VERSION = "22.5.12"
 DEFAULT_VIEW_KEY = "operator-center"
 
 _VOLATILE_VIEW_KEYS = {
@@ -138,12 +140,66 @@ def _latest_data_version() -> str | None:
     return max(candidates)[1] if candidates else None
 
 
-def _runtime_state(data_version: str | None = None) -> Dict[str, Any]:
-    """Return current execution identity from the active pipeline authority.
+def _canonical_product_runtime_identity(data_version: str | None) -> Dict[str, Any]:
+    """Read canonical product-set identity without deserializing product payloads.
 
-    The V22.5.10 pipeline facade deliberately ignores stale caller/history versions and
-    binds to imported_report_rows. After Reset it returns dataVersion=None, which must
-    invalidate any older frontend Head even when the browser still asks for the old DV.
+    A missing active dataVersion must never fall back to archived canonical rows. This
+    metadata-only identity is intentionally small so Head checks remain cheap while still
+    invalidating an old/empty products Artifact as soon as the canonical set is committed.
+    """
+    if not data_version:
+        return {
+            "ready": False,
+            "dataVersion": None,
+            "snapshotId": None,
+            "setSnapshotHash": None,
+            "productCount": 0,
+            "authority": "canonical_product_snapshot_sets_v1",
+        }
+    with connect() as conn:
+        exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='canonical_product_snapshot_sets_v1' LIMIT 1"
+        ).fetchone()
+        if not exists:
+            row = None
+        else:
+            row = conn.execute(
+                """
+                SELECT snapshot_id,data_version,set_snapshot_hash,product_count
+                FROM canonical_product_snapshot_sets_v1
+                WHERE data_version=?
+                ORDER BY julianday(created_at) DESC,rowid DESC
+                LIMIT 1
+                """,
+                (data_version,),
+            ).fetchone()
+    if not row:
+        return {
+            "ready": False,
+            "dataVersion": data_version,
+            "snapshotId": None,
+            "setSnapshotHash": None,
+            "productCount": 0,
+            "authority": "canonical_product_snapshot_sets_v1",
+        }
+    return {
+        "ready": True,
+        "dataVersion": str(row["data_version"] or data_version),
+        "snapshotId": str(row["snapshot_id"] or "") or None,
+        "setSnapshotHash": str(row["set_snapshot_hash"] or "") or None,
+        "productCount": int(row["product_count"] or 0),
+        "authority": "canonical_product_snapshot_sets_v1",
+    }
+
+
+def _runtime_state(data_version: str | None = None) -> Dict[str, Any]:
+    """Return current execution + canonical-product identity from runtime authorities.
+
+    The active pipeline facade deliberately ignores stale caller/history versions and binds
+    to imported_report_rows. After Reset it returns dataVersion=None, which invalidates any
+    older frontend Head. For an active dataVersion, the canonical product set hash is also
+    part of Runtime Truth, so product snapshot materialization cannot leave an empty/stale
+    products Artifact behind under an otherwise unchanged pipeline state.
     """
     from src.services.pipeline_live_read_model_v225_service import read_pipeline_live_model
 
@@ -155,10 +211,12 @@ def _runtime_state(data_version: str | None = None) -> Dict[str, Any]:
         or pipeline.get("dataVersion")
         or None
     )
+    canonical_product = _canonical_product_runtime_identity(authoritative_version)
     identity = {
         "dataVersion": authoritative_version,
         "activeDataVersion": pipeline.get("activeDataVersion"),
         "activeDataVersionGate": pipeline.get("activeDataVersionGate"),
+        "canonicalProductSnapshot": canonical_product,
         "batchState": pipeline.get("batchState") or {},
         "summary": pipeline.get("summary") or {},
         "stages": pipeline.get("stages") or [],
@@ -167,6 +225,7 @@ def _runtime_state(data_version: str | None = None) -> Dict[str, Any]:
     return {
         "dataVersion": authoritative_version,
         "runtimeStateHash": _sha256(identity),
+        "canonicalProductSetSnapshotHash": canonical_product.get("setSnapshotHash"),
         "identity": identity,
         "pipeline": pipeline,
     }
@@ -179,6 +238,7 @@ def _empty_current_products() -> Dict[str, Any]:
         "items": [],
         "count": 0,
         "productCount": 0,
+        "setSnapshotHash": None,
         "rule": "No active imported dataVersion; historical product snapshots are not current view state.",
     }
 
@@ -213,11 +273,11 @@ def _module_builders(
 ) -> Dict[str, Callable[[], Dict[str, Any]]]:
     from src.services.frontend_read_model_service import (
         read_dashboard_view,
-        read_product_views,
         read_system_status_view,
     )
     from src.services.pipeline_live_read_model_v225_service import read_pipeline_live_model
     from src.services.public_task_dto_service import project_task_list_response
+    from src.services.system_product_snapshot_service import read_canonical_product_views
     from src.services.task_fast_read_model_v2021_service import read_task_fast_views_v2021
     from src.services.task_generation_run_service import read_data_line_status
 
@@ -226,7 +286,7 @@ def _module_builders(
     return {
         "dashboard": lambda: read_dashboard_view(),
         "products": (
-            (lambda: read_product_views(data_version=data_version, limit=300))
+            (lambda: read_canonical_product_views(data_version=data_version, limit=300))
             if active
             else _empty_current_products
         ),
@@ -244,6 +304,18 @@ def _module_builders(
         ),
         "dataLine": (lambda: read_data_line_status()) if active else _empty_current_data_line,
         "systemStatus": lambda: read_system_status_view(),
+    }
+
+
+def _module_source_identity(module_key: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    if module_key != "products":
+        return {}
+    return {
+        "authority": "canonical_product_snapshot_service",
+        "dataVersion": payload.get("currentDataVersion") or payload.get("dataVersion"),
+        "setSnapshotHash": payload.get("setSnapshotHash"),
+        "productCount": int(payload.get("count") or payload.get("productCount") or 0),
+        "signalAdmissionIndependent": True,
     }
 
 
@@ -333,6 +405,7 @@ def materialize_frontend_views_v2259(
     runtime = runtime_state if isinstance(runtime_state, dict) else _runtime_state(data_version)
     resolved_version = runtime.get("dataVersion")
     runtime_state_hash = str(runtime.get("runtimeStateHash") or "")
+    canonical_set_hash = str(runtime.get("canonicalProductSetSnapshotHash") or "") or None
     if not runtime_state_hash.startswith("sha256:"):
         raise RuntimeError("frontend_runtime_state_hash_missing")
 
@@ -355,6 +428,7 @@ def materialize_frontend_views_v2259(
             pipeline_payload=runtime.get("pipeline") if isinstance(runtime.get("pipeline"), dict) else None,
         ).items():
             payload = stable_view_payload(builder())
+            source_identity = _module_source_identity(module_key, payload)
             document = {
                 "schema": "frontend_view.module.v2259",
                 "version": FRONTEND_VIEW_ARTIFACT_VERSION,
@@ -366,6 +440,18 @@ def materialize_frontend_views_v2259(
                 "payload": payload,
                 "businessContentHash": _hash(payload),
             }
+            if source_identity:
+                document["sourceIdentity"] = source_identity
+            metadata = {
+                "viewKey": view_key,
+                "userId": user_id,
+                "scopeKey": scope_key,
+                "moduleKey": module_key,
+                "businessContentHash": document["businessContentHash"],
+            }
+            if source_identity:
+                metadata["sourceSnapshotHash"] = source_identity.get("setSnapshotHash")
+                metadata["sourceAuthority"] = source_identity.get("authority")
             artifact = store_artifact(
                 artifact_type="frontend_view.module.v2259",
                 value=document,
@@ -373,21 +459,19 @@ def materialize_frontend_views_v2259(
                 tenant_id=user_id,
                 data_version=resolved_version,
                 created_by="frontend_view_artifact_v2259",
-                metadata={
-                    "viewKey": view_key,
-                    "userId": user_id,
-                    "scopeKey": scope_key,
-                    "moduleKey": module_key,
-                    "businessContentHash": document["businessContentHash"],
-                },
+                metadata=metadata,
             )
             module_ref = str(artifact["artifactId"])
             module_refs.append(module_ref)
-            modules[module_key] = {
+            module_record = {
                 "artifactRef": module_ref,
                 "contentHash": str(artifact["contentHash"]),
                 "businessContentHash": document["businessContentHash"],
             }
+            if source_identity:
+                module_record["sourceSnapshotHash"] = source_identity.get("setSnapshotHash")
+                module_record["sourceAuthority"] = source_identity.get("authority")
+            modules[module_key] = module_record
 
         manifest = {
             "schema": "frontend_view.manifest.v2259",
@@ -397,11 +481,12 @@ def materialize_frontend_views_v2259(
             "scopeKey": scope_key,
             "dataVersion": resolved_version,
             "runtimeStateHash": runtime_state_hash,
+            "canonicalProductSetSnapshotHash": canonical_set_hash,
             "modules": modules,
             "moduleOrder": list(modules),
             "atomicPublication": True,
             "crossDataVersionFallbackAllowed": False,
-            "identityRule": "dataVersion identifies data; runtimeStateHash identifies mutable execution state.",
+            "identityRule": "dataVersion identifies data; runtimeStateHash includes execution state plus canonical product-set identity.",
         }
         artifact = store_artifact(
             artifact_type="frontend_view.manifest.v2259",
@@ -416,6 +501,7 @@ def materialize_frontend_views_v2259(
                 "userId": user_id,
                 "scopeKey": scope_key,
                 "runtimeStateHash": runtime_state_hash,
+                "canonicalProductSetSnapshotHash": canonical_set_hash,
                 "moduleCount": len(modules),
             },
         )
@@ -459,11 +545,12 @@ def materialize_frontend_views_v2259(
             "scopeKey": scope_key,
             "dataVersion": resolved_version,
             "runtimeStateHash": runtime_state_hash,
+            "canonicalProductSetSnapshotHash": canonical_set_hash,
             "manifestRef": artifact["artifactId"],
             "manifestHash": artifact["contentHash"],
             "modules": modules,
             "changedModules": changed_modules,
-            "identityRule": "manifest invalidates on dataVersion or runtimeStateHash change.",
+            "identityRule": "manifest invalidates on dataVersion, runtime state, or canonical product-set hash change.",
         }
     except Exception as exc:
         with connect() as conn:
@@ -489,6 +576,7 @@ def get_frontend_view_head_v2259(
     runtime = _runtime_state(data_version)
     requested_version = runtime.get("dataVersion")
     observed_runtime_hash = str(runtime.get("runtimeStateHash") or "")
+    observed_product_set_hash = runtime.get("canonicalProductSetSnapshotHash")
     row = _head_row(scope_key)
 
     needs_materialization = (
@@ -524,6 +612,7 @@ def get_frontend_view_head_v2259(
         "runtimeStateHash": row.get("runtime_state_hash"),
         "pendingRuntimeStateHash": row.get("pending_runtime_state_hash"),
         "observedRuntimeStateHash": observed_runtime_hash,
+        "observedCanonicalProductSetSnapshotHash": observed_product_set_hash,
         "manifestRef": row.get("manifest_ref"),
         "manifestHash": row.get("manifest_hash"),
         "status": row.get("status") or "empty",
@@ -531,7 +620,7 @@ def get_frontend_view_head_v2259(
         "error": row.get("error"),
         "crossDataVersionFallbackAllowed": False,
         "updatedAt": row.get("updated_at"),
-        "identityRule": "Head is current only when both dataVersion and runtimeStateHash match Runtime Truth.",
+        "identityRule": "Head is current only when dataVersion and the runtime hash (including canonical product-set identity) match Runtime Truth.",
     }
 
 
