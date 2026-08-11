@@ -1,13 +1,13 @@
 """Current-run history boundary for competition/demo product evidence.
 
 Canonical product snapshots are an archive and are intentionally not destroyed by a
-demo reset.  Product trend/evidence reads, however, must never mix snapshots from a
-previous evaluator run into the current run.  This service owns that boundary.
+demo reset. Product trend/evidence reads, however, must never mix snapshots from a
+previous evaluator run into the current run. This service owns that boundary.
 
 The boundary is stored in ``runtime_meta`` and automatically rotates when the existing
-system reset contract updates ``latest_demo_reset_scope``.  For legacy databases that
+system reset contract updates ``latest_demo_reset_scope``. For legacy databases that
 predate this contract, the first read fails closed by treating only the newest canonical
-snapshot as the beginning of the current epoch.  Subsequent uploads accumulate inside
+snapshot as the beginning of the current epoch. Subsequent uploads accumulate inside
 that same epoch until the next reset.
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ from typing import Any, Dict
 
 from src.repositories.sqlite_repository import connect
 
-COMPETITION_HISTORY_EPOCH_VERSION = "1.0.0"
+COMPETITION_HISTORY_EPOCH_VERSION = "1.0.1"
 EPOCH_ID_KEY = "competition_history_epoch_id"
 EPOCH_STARTED_AT_KEY = "competition_history_epoch_started_at"
 EPOCH_SOURCE_RESET_TOKEN_KEY = "competition_history_epoch_source_reset_token"
@@ -96,6 +96,16 @@ def _latest_canonical_snapshot(conn: Any) -> Dict[str, str | None] | None:
     }
 
 
+def _is_at_or_after(conn: Any, left: str | None, right: str | None) -> bool:
+    if not left or not right:
+        return False
+    row = conn.execute(
+        "SELECT CASE WHEN julianday(?) >= julianday(?) THEN 1 ELSE 0 END AS matched",
+        (left, right),
+    ).fetchone()
+    return bool(row and row["matched"])
+
+
 def _epoch_id(*, started_at: str, reset_token: str | None, snapshot_id: str | None) -> str:
     seed = f"{started_at}|{reset_token or 'no-reset'}|{snapshot_id or 'no-snapshot'}"
     digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:20]
@@ -136,7 +146,7 @@ def _persist_epoch(
 def current_competition_history_epoch() -> Dict[str, Any]:
     """Return the active evaluator-history epoch, rotating after a demo reset.
 
-    Existing canonical snapshots remain archived.  The returned ``startedAt`` is the
+    Existing canonical snapshots remain archived. The returned ``startedAt`` is the
     lower time bound that current-run trend/evidence queries must enforce.
     """
     with connect() as conn:
@@ -150,7 +160,7 @@ def current_competition_history_epoch() -> Dict[str, Any]:
 
         reset_token = reset.get("token")
         reset_at = reset.get("updatedAt")
-        reset_changed = bool(reset_token and reset_token != stored_reset_token)
+        reset_changed = bool(stored_epoch and reset_token and reset_token != stored_reset_token)
 
         if stored_epoch and stored_started_at and not reset_changed:
             return {
@@ -164,7 +174,7 @@ def current_competition_history_epoch() -> Dict[str, Any]:
                 "archivePreserved": True,
             }
 
-        if reset_at and (reset_changed or not stored_epoch):
+        if reset_changed and reset_at:
             return _persist_epoch(
                 conn,
                 started_at=str(reset_at),
@@ -174,10 +184,35 @@ def current_competition_history_epoch() -> Dict[str, Any]:
             )
 
         latest = _latest_canonical_snapshot(conn)
-        if latest and latest.get("createdAt"):
+        latest_at = latest.get("createdAt") if latest else None
+
+        # Migration safety: an old reset marker does not prove that every canonical
+        # snapshot created after it belongs to one evaluator run. If canonical history
+        # already exists when this contract is first installed, begin at the newest
+        # snapshot (fail closed) and acknowledge the current reset token. A future reset
+        # rotates the epoch normally.
+        if latest and latest_at and not _is_at_or_after(conn, reset_at, latest_at):
             return _persist_epoch(
                 conn,
-                started_at=str(latest["createdAt"]),
+                started_at=str(latest_at),
+                reset_token=str(reset_token) if reset_token else None,
+                bootstrap_mode="legacy_latest_snapshot_fail_closed",
+                snapshot_id=str(latest.get("snapshotId") or "") or None,
+            )
+
+        if reset_at:
+            return _persist_epoch(
+                conn,
+                started_at=str(reset_at),
+                reset_token=str(reset_token) if reset_token else None,
+                bootstrap_mode="system_demo_reset_boundary",
+                snapshot_id=None,
+            )
+
+        if latest and latest_at:
+            return _persist_epoch(
+                conn,
+                started_at=str(latest_at),
                 reset_token=None,
                 bootstrap_mode="legacy_latest_snapshot_fail_closed",
                 snapshot_id=str(latest.get("snapshotId") or "") or None,
