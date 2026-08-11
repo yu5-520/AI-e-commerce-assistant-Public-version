@@ -144,32 +144,59 @@ def _history() -> dict[str, Any]:
             ],
         }
 
-    original_history = trend_bridge.product_snapshot_history
-    original_get = trend_bridge.get_product_snapshot
+    metadata = [
+        {
+            "snapshot_id": f"SNAP-{dv}",
+            "data_version": dv,
+            "set_snapshot_hash": f"sha256:{hashlib.sha256(dv.encode('utf-8')).hexdigest()}",
+            "created_at": snapshots[dv]["createdAt"],
+            "updated_at": snapshots[dv]["updatedAt"],
+        }
+        for dv, *_ in versions
+    ]
+
+    def fake_slim_snapshot(meta: dict[str, Any], product_id: str, store_id: str | None):
+        snapshot = snapshots.get(str(meta.get("data_version") or ""))
+        if not snapshot:
+            return None
+        matched = next(
+            (
+                item
+                for item in snapshot.get("products") or []
+                if isinstance(item, dict)
+                and trend_bridge._matches(item, product_id, store_id)
+            ),
+            None,
+        )
+        if matched is None:
+            return None
+        return {
+            "snapshotId": meta.get("snapshot_id"),
+            "dataVersion": meta.get("data_version"),
+            "setSnapshotHash": meta.get("set_snapshot_hash"),
+            "createdAt": meta.get("created_at"),
+            "updatedAt": meta.get("updated_at"),
+            "products": [trend_bridge._slim_product(matched)],
+        }
+
+    original_metadata = trend_bridge._history_metadata
+    original_slim = trend_bridge._slim_snapshot_for_product
     try:
-        trend_bridge.product_snapshot_history = lambda limit=120: [
-            {
-                "dataVersion": dv,
-                "snapshotId": f"SNAP-{dv}",
-                "createdAt": snapshots[dv]["createdAt"],
-            }
-            for dv, *_ in versions
-        ]
-        trend_bridge.get_product_snapshot = lambda data_version=None, user_id=None: snapshots.get(data_version)
+        trend_bridge._history_metadata = lambda limit=120: list(metadata)
+        trend_bridge._slim_snapshot_for_product = fake_slim_snapshot
         trend_bridge._CACHE.clear()
         trend = trend_bridge.read_canonical_product_trend(
             object_id, store_id="TB-SH-001", user_id="competition-recovery-probe"
         )
 
-        trend_bridge.product_snapshot_history = lambda limit=120: []
-        trend_bridge.get_product_snapshot = lambda data_version=None, user_id=None: None
+        trend_bridge._slim_snapshot_for_product = lambda meta, product_id, store_id: None
         trend_bridge._CACHE.clear()
         missing = trend_bridge.read_canonical_product_trend(
             "missing", store_id="TB-SH-001", user_id="competition-recovery-probe"
         )
     finally:
-        trend_bridge.product_snapshot_history = original_history
-        trend_bridge.get_product_snapshot = original_get
+        trend_bridge._history_metadata = original_metadata
+        trend_bridge._slim_snapshot_for_product = original_slim
         trend_bridge._CACHE.clear()
 
     recent = trend.get("recentSnapshots") if isinstance(trend.get("recentSnapshots"), list) else []
@@ -177,6 +204,8 @@ def _history() -> dict[str, Any]:
         "ready": trend.get("ready") is True,
         "canonicalAuthority": trend.get("snapshotAuthority") == "canonical_product_snapshot_sets_v1",
         "legacyFallbackDisabled": trend.get("legacySnapshotFallbackUsed") is False,
+        "boundedSingleProductScan": trend.get("historyScanMode") == "metadata_then_single_row_single_product"
+        and trend.get("wholeSnapshotRetention") is False,
         "threeValidSnapshots": _dict(trend.get("observationSummary")).get("validSnapshotCount") == 3,
         "threeDataVersions": [item.get("dataVersion") for item in recent] == ["DV-1", "DV-2", "DV-3"],
         "sameStoreOnly": _dict(trend.get("product")).get("storeId") == "TB-SH-001",
@@ -191,6 +220,8 @@ def _history() -> dict[str, Any]:
         "businessDates": [item.get("businessDate") for item in recent],
         "storeId": _dict(trend.get("product")).get("storeId"),
         "skuId": _dict(trend.get("product")).get("skuId"),
+        "historyScanMode": trend.get("historyScanMode"),
+        "wholeSnapshotRetention": trend.get("wholeSnapshotRetention"),
         "assertions": assertions,
     }
 
@@ -246,6 +277,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ],
                 "canonicalHistoryVerified": report["canonicalHistory"]["verified"],
                 "canonicalDataVersions": report["canonicalHistory"]["dataVersions"],
+                "historyScanMode": report["canonicalHistory"].get("historyScanMode"),
+                "wholeSnapshotRetention": report["canonicalHistory"].get("wholeSnapshotRetention"),
             },
             ensure_ascii=False,
             sort_keys=True,

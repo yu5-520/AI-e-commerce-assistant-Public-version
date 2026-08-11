@@ -1,55 +1,185 @@
 """Canonical product-history bridge for the V22.5.6 product detail page.
 
 V21.7 trend math remains the single trend algorithm owner. This bridge changes only
-snapshot authority: after the canonical-product migration, history must come from
-``canonical_product_snapshot_sets_v1`` instead of the legacy
-``system_product_snapshots_v14`` table.
+snapshot authority and read shape: canonical snapshot sets are scanned one row at a
+time and reduced immediately to the requested product. A detail read must never keep
+whole multi-product snapshot payloads in memory or load the same snapshot twice.
 """
 from __future__ import annotations
 
+import hashlib
 from typing import Any, Dict, List
 
-from src.services.canonical_product_snapshot_service import (
-    get_product_snapshot,
-    product_snapshot_history,
-)
+from src.repositories.sqlite_repository import connect, loads
+from src.services.canonical_product_snapshot_service import ensure_snapshot_tables
 from src.services.product_trend_read_model_v217_service import (
     MAX_SNAPSHOT_SCAN,
     build_product_trend_projection,
 )
 
-CANONICAL_PRODUCT_TREND_VERSION = "22.5.6-canonical-v2"
-_CACHE: Dict[tuple[str, str, str, int, str], Dict[str, Any]] = {}
+CANONICAL_PRODUCT_TREND_VERSION = "22.5.6-canonical-v3-slim-scan"
+_CACHE: Dict[tuple[str, str, str, str], Dict[str, Any]] = {}
+
+_METRIC_KEYS = {
+    "paymentAmount",
+    "gmv",
+    "roi",
+    "roas",
+    "adSpend",
+    "grossMargin",
+    "organicVisitors",
+    "paidVisitors",
+    "visitorCount",
+    "visitors",
+    "clickRate",
+    "conversionRate",
+    "refundRate",
+    "afterSalesRate",
+    "refundAmount",
+    "inventory",
+    "availableDays",
+    "sellableDays",
+    "metricDate",
+    "reportDate",
+    "dataDate",
+    "sourceDataVersions",
+    "sourceDatasets",
+}
+
+_PROFILE_KEYS = {
+    "objectId",
+    "productId",
+    "skuId",
+    "storeId",
+    "storeName",
+    "platform",
+    "title",
+    "metricDate",
+    "reportDate",
+    "dataDate",
+}
+
+_TOP_LEVEL_KEYS = {
+    "objectId",
+    "id",
+    "productId",
+    "skuId",
+    "storeId",
+    "storeName",
+    "platform",
+    "title",
+    "metricDate",
+    "reportDate",
+    "dataDate",
+    "sourceDataVersions",
+    "sourceDatasets",
+}
 
 
 def _text(value: Any) -> str:
     return str(value or "").strip()
 
 
-def _canonical_snapshot_rows(
-    *,
-    user_id: str | None = None,
-    limit: int = MAX_SNAPSHOT_SCAN,
-) -> List[Dict[str, Any]]:
-    history = product_snapshot_history(limit=limit)
-    snapshots: List[Dict[str, Any]] = []
-    for metadata in history:
-        data_version = _text(metadata.get("dataVersion"))
-        if not data_version:
-            continue
-        snapshot = get_product_snapshot(data_version=data_version, user_id=user_id)
-        if not isinstance(snapshot, dict):
-            continue
-        snapshots.append(
-            {
-                **snapshot,
-                "snapshotId": snapshot.get("snapshotId") or metadata.get("snapshotId"),
-                "dataVersion": snapshot.get("dataVersion") or data_version,
-                "createdAt": snapshot.get("createdAt") or metadata.get("createdAt") or metadata.get("capturedAt"),
-                "updatedAt": snapshot.get("updatedAt") or metadata.get("updatedAt") or metadata.get("capturedAt"),
-            }
-        )
-    return snapshots
+def _identity_values(item: Dict[str, Any]) -> set[str]:
+    profile = item.get("profileSnapshot") if isinstance(item.get("profileSnapshot"), dict) else {}
+    values = {
+        item.get("objectId"),
+        item.get("id"),
+        item.get("productId"),
+        item.get("skuId"),
+        profile.get("objectId"),
+        profile.get("productId"),
+        profile.get("skuId"),
+    }
+    return {_text(value) for value in values if _text(value)}
+
+
+def _store_id(item: Dict[str, Any]) -> str:
+    profile = item.get("profileSnapshot") if isinstance(item.get("profileSnapshot"), dict) else {}
+    return _text(item.get("storeId") or profile.get("storeId"))
+
+
+def _matches(item: Dict[str, Any], product_id: str, store_id: str | None) -> bool:
+    if store_id and _store_id(item) != _text(store_id):
+        return False
+    return _text(product_id) in _identity_values(item)
+
+
+def _slim_product(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Keep only fields consumed by the V21.7 trend algorithm.
+
+    Product metric facts, traffic-source facts, permission payloads and detail projections
+    can be very large. They are irrelevant to trend math and must not accumulate across
+    the historical scan.
+    """
+    profile = item.get("profileSnapshot") if isinstance(item.get("profileSnapshot"), dict) else {}
+    metric = item.get("metricSnapshot") if isinstance(item.get("metricSnapshot"), dict) else {}
+    slim = {key: item.get(key) for key in _TOP_LEVEL_KEYS if key in item}
+    slim["profileSnapshot"] = {key: profile.get(key) for key in _PROFILE_KEYS if key in profile}
+    slim["metricSnapshot"] = {key: metric.get(key) for key in _METRIC_KEYS if key in metric}
+    return slim
+
+
+def _history_metadata(limit: int = MAX_SNAPSHOT_SCAN) -> List[Dict[str, Any]]:
+    """Read canonical history identity without deserializing payloads."""
+    ensure_snapshot_tables()
+    selected = max(1, int(limit or MAX_SNAPSHOT_SCAN))
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT snapshot_id,data_version,set_snapshot_hash,created_at,updated_at
+            FROM canonical_product_snapshot_sets_v1
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (selected,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _history_fingerprint(rows: List[Dict[str, Any]]) -> str:
+    material = "|".join(
+        f"{row.get('snapshot_id')}:{row.get('set_snapshot_hash')}:{row.get('updated_at')}"
+        for row in rows
+    )
+    return "sha256:" + hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _slim_snapshot_for_product(
+    metadata: Dict[str, Any],
+    product_id: str,
+    store_id: str | None,
+) -> Dict[str, Any] | None:
+    """Deserialize exactly one set, extract one product, then drop the full payload."""
+    snapshot_id = _text(metadata.get("snapshot_id"))
+    if not snapshot_id:
+        return None
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT payload FROM canonical_product_snapshot_sets_v1 WHERE snapshot_id=? LIMIT 1",
+            (snapshot_id,),
+        ).fetchone()
+    if not row:
+        return None
+    payload = loads(row["payload"])
+    if not isinstance(payload, dict):
+        return None
+    matched = None
+    for item in payload.get("products") or []:
+        if isinstance(item, dict) and _matches(item, product_id, store_id):
+            matched = _slim_product(item)
+            break
+    # Do not retain the multi-product payload beyond this function.
+    if matched is None:
+        return None
+    return {
+        "snapshotId": snapshot_id,
+        "dataVersion": metadata.get("data_version"),
+        "setSnapshotHash": metadata.get("set_snapshot_hash"),
+        "createdAt": metadata.get("created_at"),
+        "updatedAt": metadata.get("updated_at"),
+        "products": [matched],
+    }
 
 
 def read_canonical_product_trend(
@@ -58,18 +188,23 @@ def read_canonical_product_trend(
     store_id: str | None = None,
     user_id: str | None = None,
 ) -> Dict[str, Any]:
-    snapshots = _canonical_snapshot_rows(user_id=user_id)
-    latest_stamp = _text(snapshots[0].get("updatedAt")) if snapshots else "none"
+    metadata = _history_metadata()
+    history_hash = _history_fingerprint(metadata)
     cache_key = (
         _text(product_id),
         _text(store_id),
-        latest_stamp,
-        len(snapshots),
+        history_hash,
         _text(user_id),
     )
     cached = _CACHE.get(cache_key)
     if cached:
         return {**cached, "cacheState": "memory_hit"}
+
+    snapshots: List[Dict[str, Any]] = []
+    for row in metadata:
+        snapshot = _slim_snapshot_for_product(row, product_id, store_id)
+        if snapshot is not None:
+            snapshots.append(snapshot)
 
     projection = build_product_trend_projection(
         snapshots,
@@ -81,6 +216,9 @@ def read_canonical_product_trend(
         "canonicalBridgeVersion": CANONICAL_PRODUCT_TREND_VERSION,
         "snapshotAuthority": "canonical_product_snapshot_sets_v1",
         "legacySnapshotFallbackUsed": False,
+        "historyIdentityHash": history_hash,
+        "historyScanMode": "metadata_then_single_row_single_product",
+        "wholeSnapshotRetention": False,
     }
     if len(_CACHE) >= 256:
         _CACHE.clear()
