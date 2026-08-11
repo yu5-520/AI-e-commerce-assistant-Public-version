@@ -11,6 +11,7 @@ AGENT1_MAX_ITEM_CHARS = 22_000
 AGENT1_MAX_BATCH_CHARS = 72_000
 AGENT2_MAX_ITEM_CHARS = legacy.AGENT2_MAX_ITEM_CHARS
 AGENT2_MAX_BATCH_CHARS = legacy.AGENT2_MAX_BATCH_CHARS
+AGENT1_PROJECTION_DEDUPE_REVISION = "2026.08.11.1"
 
 _AGENT1_TOP_LEVEL_KEYS = {"schema","projectionVersion","sourceArtifactRefs","sourceContentHash","projectedContentHash","payload","projectionAudit","hardInterface"}
 _AGENT1_PAYLOAD_KEYS = {"productId","storeId","signalId","correlationId","dataVersion","productIdentity","profileLayer","snapshotLayer","metricLayer","trendContext","sourceLineageValidation","strongRelations","crossValidation","factLayerValidation","dataFingerprint","diagnosticRag","inputContract"}
@@ -36,6 +37,240 @@ def batch_char_budget(schema: str) -> int:
         return AGENT2_MAX_BATCH_CHARS
     raise AgentInputContractV2258Error("unsupported_agent_input_schema", schema)
 
+
+def _bounded(value: Any, *, depth: int = 0, max_depth: int = 4, max_list: int = 12, max_keys: int = 32) -> Any:
+    if depth >= max_depth:
+        if isinstance(value, str):
+            return value[:320]
+        if isinstance(value, (int, float, bool)) or value is None:
+            return value
+        return str(value)[:320]
+    if isinstance(value, dict):
+        result: Dict[str, Any] = {}
+        for key in sorted(value, key=str)[:max_keys]:
+            child = value[key]
+            if child in (None, "", [], {}):
+                continue
+            result[str(key)] = _bounded(
+                child,
+                depth=depth + 1,
+                max_depth=max_depth,
+                max_list=max_list,
+                max_keys=max_keys,
+            )
+        return result
+    if isinstance(value, list):
+        return [
+            _bounded(
+                child,
+                depth=depth + 1,
+                max_depth=max_depth,
+                max_list=max_list,
+                max_keys=max_keys,
+            )
+            for child in value[:max_list]
+        ]
+    if isinstance(value, str):
+        return value[:480]
+    return value
+
+
+def _dedupe_field_signal(item: Any) -> Any:
+    if not isinstance(item, dict):
+        return item
+    current = item.get("current", item.get("latest", item.get("currentValue")))
+    ratio = item.get("changeRatio", item.get("changeRate", item.get("deltaRate")))
+    result = {
+        "metricCode": item.get("metricCode") or item.get("code") or item.get("metricName"),
+        "metricName": item.get("metricName") or item.get("label"),
+        "previous": item.get("previous", item.get("previousValue")),
+        "current": current,
+        "changeRatio": ratio,
+        "meaningfulChange": item.get("meaningfulChange"),
+        "signalStrength": item.get("signalStrength") or item.get("strength"),
+        "signalType": item.get("signalType") or item.get("type"),
+        "direction": item.get("direction") or item.get("trendDirection"),
+        "sampleCount": item.get("sampleCount") or item.get("periodCount"),
+        "reason": str(item.get("reason") or item.get("summary") or "")[:180] or None,
+    }
+    return {key: value for key, value in result.items() if value not in (None, "", [], {})}
+
+
+def _compact_cross_validation(value: Any) -> Any:
+    if not isinstance(value, dict):
+        return value
+    decision = value.get("decision") if isinstance(value.get("decision"), dict) else {}
+    decision_keys = (
+        "hypothesisCode",
+        "hypothesisLabel",
+        "status",
+        "severity",
+        "confidence",
+        "businessImpact",
+        "urgency",
+        "actionIntensity",
+        "primaryEvidence",
+        "relatedEvidence",
+        "independentEvidenceGroups",
+        "conflictEvidenceGroups",
+        "temporalConfirmationCount",
+        "rule",
+    )
+    compact_decision = {
+        key: _bounded(decision.get(key), max_depth=4, max_list=8, max_keys=24)
+        for key in decision_keys
+        if decision.get(key) not in (None, "", [], {})
+    }
+    keep = (
+        "version",
+        "contract",
+        "changedMetricCount",
+        "abnormalMetricCount",
+        "changedMetrics",
+        "abnormalMetrics",
+        "recentDirectComparisonWindow",
+        "trendOverlayWindows",
+        "sourceVersionScoreContribution",
+        "metricBlockingFactors",
+        "lineageOwner",
+        "lineageFieldsRemoved",
+        "rule",
+    )
+    result = {
+        key: _bounded(value.get(key), max_depth=4, max_list=16, max_keys=32)
+        for key in keep
+        if value.get(key) not in (None, "", [], {})
+    }
+    if compact_decision:
+        result["decision"] = compact_decision
+    result["projectionDedupe"] = {
+        "revision": AGENT1_PROJECTION_DEDUPE_REVISION,
+        "removedDuplicateHypothesisList": "hypotheses" in value,
+        "removedDuplicateTimeSeriesFeatures": "timeSeriesFeatures" in value,
+    }
+    return result
+
+
+def _compact_trend_context(value: Any, metric_codes: List[str], *, hard: bool = False) -> Any:
+    if not isinstance(value, dict):
+        return value
+    result = dict(value)
+    features = value.get("timeSeriesFeatures") if isinstance(value.get("timeSeriesFeatures"), dict) else {}
+    preferred = [code for code in metric_codes if code in features]
+    for code in sorted(features):
+        if code not in preferred:
+            preferred.append(code)
+    limit = 8 if hard else 14
+    feature_keys = (
+        "metricCode",
+        "current",
+        "previous",
+        "previousDelta",
+        "mom",
+        "yoy",
+        "slope5",
+        "slope10",
+        "slope30",
+        "volatility10",
+        "streakDirection",
+        "streakLength",
+        "seasonalResidual",
+        "sampleCount",
+        "sampleConfidence",
+    )
+    result["timeSeriesFeatures"] = {
+        str(code): {
+            key: feature.get(key)
+            for key in feature_keys
+            if isinstance((feature := features.get(code)), dict)
+            and feature.get(key) not in (None, "", [], {})
+        }
+        for code in preferred[:limit]
+        if isinstance(features.get(code), dict)
+    }
+    for key in (
+        "primaryEvidence",
+        "relatedEvidence",
+        "operatingDecisionSummary",
+    ):
+        if key in result:
+            result[key] = _bounded(result[key], max_depth=4, max_list=8, max_keys=24)
+    for key in (
+        "recentFiveTrendSummary",
+        "historicalTrendSummary",
+        "trendSummary",
+        "recentFiveOrLatestFacts",
+    ):
+        if hard:
+            result.pop(key, None)
+        elif key in result:
+            result[key] = _bounded(result[key], max_depth=3, max_list=8, max_keys=24)
+    result["projectionDedupeRevision"] = AGENT1_PROJECTION_DEDUPE_REVISION
+    return {key: child for key, child in result.items() if child not in (None, "", [], {})}
+
+
+def _compact_agent1_payload(payload: Dict[str, Any]) -> tuple[Dict[str, Any], Dict[str, Any]]:
+    result = dict(payload)
+    original_chars = len(stable_json(payload))
+    if original_chars <= AGENT1_MAX_ITEM_CHARS:
+        return result, {
+            "applied": False,
+            "revision": AGENT1_PROJECTION_DEDUPE_REVISION,
+            "originalProjectedChars": original_chars,
+        }
+
+    snapshot = dict(result.get("snapshotLayer")) if isinstance(result.get("snapshotLayer"), dict) else {}
+    signals = snapshot.get("fieldSignals") if isinstance(snapshot.get("fieldSignals"), list) else []
+    deduped_signals = [_dedupe_field_signal(item) for item in signals]
+    snapshot["fieldSignals"] = deduped_signals
+    snapshot["fieldSignalCount"] = len(deduped_signals)
+    snapshot["semanticContinuity"] = True
+    snapshot["projectionDedupeRevision"] = AGENT1_PROJECTION_DEDUPE_REVISION
+    result["snapshotLayer"] = snapshot
+
+    metric_codes = [
+        str(item.get("metricCode"))
+        for item in deduped_signals
+        if isinstance(item, dict) and item.get("metricCode")
+    ]
+    result["crossValidation"] = _compact_cross_validation(result.get("crossValidation"))
+    result["trendContext"] = _compact_trend_context(result.get("trendContext"), metric_codes)
+    if "strongRelations" in result:
+        result["strongRelations"] = _bounded(result["strongRelations"], max_depth=4, max_list=8, max_keys=24)
+    if "factLayerValidation" in result:
+        result["factLayerValidation"] = _bounded(result["factLayerValidation"], max_depth=3, max_list=8, max_keys=24)
+    if "diagnosticRag" in result:
+        result["diagnosticRag"] = _bounded(result["diagnosticRag"], max_depth=4, max_list=10, max_keys=32)
+
+    chars = len(stable_json(result))
+    hard_compaction = False
+    if chars > AGENT1_MAX_ITEM_CHARS:
+        hard_compaction = True
+        result["trendContext"] = _compact_trend_context(result.get("trendContext"), metric_codes, hard=True)
+        if isinstance(result.get("metricLayer"), dict):
+            result["metricLayer"] = {
+                key: result["metricLayer"][key]
+                for key in sorted(result["metricLayer"], key=str)[:32]
+            }
+        if "strongRelations" in result:
+            result["strongRelations"] = _bounded(result["strongRelations"], max_depth=3, max_list=4, max_keys=16)
+        if "diagnosticRag" in result:
+            result["diagnosticRag"] = _bounded(result["diagnosticRag"], max_depth=3, max_list=6, max_keys=20)
+        chars = len(stable_json(result))
+
+    return result, {
+        "applied": True,
+        "revision": AGENT1_PROJECTION_DEDUPE_REVISION,
+        "originalProjectedChars": original_chars,
+        "projectedCharsAfterDedupe": chars,
+        "hardCompactionApplied": hard_compaction,
+        "fieldSignalCountBefore": len(signals),
+        "fieldSignalCountAfter": len(deduped_signals),
+        "fieldSignalSemanticCountPreserved": len(signals) == len(deduped_signals),
+        "itemCharBudgetChanged": False,
+    }
+
+
 def build_projection_envelope(*, schema: str, payload: Dict[str, Any], source_artifact_refs: Iterable[str], source_content_hash: str) -> Dict[str, Any]:
     if schema != AGENT1_INPUT_SCHEMA:
         return legacy.build_projection_envelope(schema=schema, payload=payload, source_artifact_refs=source_artifact_refs, source_content_hash=source_content_hash)
@@ -44,6 +279,7 @@ def build_projection_envelope(*, schema: str, payload: Dict[str, Any], source_ar
         raise AgentInputContractV2258Error("source_artifact_ref_required")
     if not isinstance(payload, dict) or not payload:
         raise AgentInputContractV2258Error("projected_payload_required")
+    payload, dedupe_audit = _compact_agent1_payload(payload)
     chars = len(stable_json(payload))
     envelope = {
         "schema": schema,
@@ -65,6 +301,7 @@ def build_projection_envelope(*, schema: str, payload: Dict[str, Any], source_ar
             "fieldSignalLimit": 32,
             "trendSemanticVersion": AGENT1_INPUT_PROJECTION_VERSION,
             "duplicateSignalRepresentationForbidden": True,
+            "deterministicProjectionDedupe": dedupe_audit,
         },
         "hardInterface": {"enabled": True, "fallbackAllowed": False, "fullArtifactReadByAgentAllowed": False, "gatewayBusinessCompactionAllowed": False},
     }
@@ -166,4 +403,4 @@ def split_envelopes_by_budget(values: List[Dict[str, Any]], *, expected_schema: 
         batches.append(current)
     return batches
 
-__all__ = ["AGENT1_INPUT_PROJECTION_VERSION","AGENT1_INPUT_SCHEMA","AGENT2_INPUT_SCHEMA","AGENT1_MAX_ITEM_CHARS","AGENT1_MAX_BATCH_CHARS","AgentInputContractV2258Error","stable_json","content_hash","estimated_tokens","batch_char_budget","build_projection_envelope","validate_agent_input_envelope","assert_agent_input_envelope","split_envelopes_by_budget"]
+__all__ = ["AGENT1_INPUT_PROJECTION_VERSION","AGENT1_INPUT_SCHEMA","AGENT2_INPUT_SCHEMA","AGENT1_MAX_ITEM_CHARS","AGENT1_MAX_BATCH_CHARS","AGENT1_PROJECTION_DEDUPE_REVISION","AgentInputContractV2258Error","stable_json","content_hash","estimated_tokens","batch_char_budget","build_projection_envelope","validate_agent_input_envelope","assert_agent_input_envelope","split_envelopes_by_budget"]

@@ -258,7 +258,6 @@ def install_v22_runtime() -> None:
     pipeline.agent_pipeline_status = agent_pipeline_status_v22
 
     version_fields = {
-        report_evidence: ("V215_VERSION",),
         observation_install: ("V216_VERSION",),
         observation: ("OBSERVATION_EXPERIMENT_VERSION", "V216_VERSION"),
         task_evidence_install: ("TASK_METRIC_EVIDENCE_PROJECTION_VERSION",),

@@ -2,7 +2,9 @@
 
 No second queue, thread or state machine is created here.  The active worker keeps
 V22.5.9 exact Artifact-hash execution, V22.5.14 Agent2 evidence slices and adds the
-V22.5.15 accepted-output hash-proof bridge.
+V22.5.15 accepted-output hash-proof bridge.  The V22.5.15 binding owns the registered
+competition signal handoff inside the existing worker loop; this facade only exposes
+that state and delegates execution.
 """
 from __future__ import annotations
 
@@ -47,7 +49,7 @@ def worker_config() -> Dict[str, Any]:
         agent2HashProofBridgeVersion="22.5.15",
         agent1BatchSize=int(result.get("agent1BatchSize") or 8),
         dataVersionSelection=(
-            "oldest_highest_priority_after_agent2_hash_reconciliation_v22515"
+            "oldest_highest_priority_after_registered_signal_handoff_and_agent2_hash_reconciliation_v22515"
         ),
         agent1RuntimeSource="artifactRefs.agent1InputRef.v3+inputContentHash",
         agent2RuntimeSource=(
@@ -71,6 +73,10 @@ def worker_config() -> Dict[str, Any]:
         acceptedHashOutputBlindRetryAllowed=False,
         providerRequestIdReconstructionAllowed=False,
         cachedOutputRebindingAllowed=False,
+        competitionSignalHandoff="registered_signalRef_to_agent1_pending_v1",
+        competitionLegacyStationQueueCriticalPath=False,
+        competitionHandoffRegeneratesIdentity=False,
+        competitionHandoffProviderCalls=False,
         secondWorkerAllowed=False,
         fallbackAllowed=False,
     )
@@ -89,6 +95,8 @@ def worker_status(include_queue: bool = True) -> Dict[str, Any]:
             "hash_directed_agent1_audit_then_agent2_evidence_slice_then_hash_proof"
         ),
         executionIndex="artifact_execution_index_v2259",
+        competitionSignalHandoff="registered_signalRef_to_agent1_pending_v1",
+        competitionLegacyStationQueueCriticalPath=False,
         secondWorkerAllowed=False,
         fallbackAllowed=False,
     )
