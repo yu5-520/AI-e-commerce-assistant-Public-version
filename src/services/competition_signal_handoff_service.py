@@ -1,10 +1,11 @@
 """Competition-only direct handoff from formal signal artifacts to Agent1 pending items.
 
-This is deliberately a thin bridge, not a second workflow engine.  The formal
-``product_signal_pool_v15`` signal artifact remains the immutable source of truth;
-this module only projects its registered identity into ``pipeline_items`` while
-preserving ``signalRef`` as a hard Artifact reference.  The existing hard Agent
-runtime continues to own Agent1/2/3 execution, task mapping and task admission.
+This is deliberately a thin bridge, not a second workflow engine.  The active
+``signal_pool_v14`` persistence boundary owned by ``signal_pool_service`` remains
+the source of truth for formal pending signals; this module only projects their
+registered identity into ``pipeline_items`` while preserving ``signalRef`` as a
+hard Artifact reference.  The existing hard Agent runtime continues to own
+Agent1/2/3 execution, task mapping and task admission.
 
 The bridge is idempotent by the existing deterministic pipeline item id and a
 separate handoff hash.  It never regenerates product identity, never reads a
@@ -29,9 +30,12 @@ from src.services.pipeline_item_service import (
 )
 from src.services.signal_pool_service import list_signals
 
-COMPETITION_SIGNAL_HANDOFF_VERSION = "1.0.0"
+COMPETITION_SIGNAL_HANDOFF_VERSION = "1.0.1"
 AGENT1_PENDING_STAGE = "agent1_pending"
-FORMAL_SIGNAL_TABLE = "product_signal_pool_v15"
+# Keep discovery on the same physical persistence boundary used by list_signals().
+# A previous draft pointed discovery at a non-existent product_signal_pool_v15 table,
+# which made --apply silently report an empty batch even when signal_pool_v14 had work.
+FORMAL_SIGNAL_TABLE = "signal_pool_v14"
 
 
 class CompetitionSignalHandoffError(RuntimeError):
@@ -282,7 +286,7 @@ def seed_competition_signal_handoff(
 
 
 def ready_data_versions(*, limit: int = 4) -> List[str]:
-    """Return only versions that already have formal pending signal-pool rows."""
+    """Return versions with formal pending rows from the active signal pool."""
 
     if not _table_exists(FORMAL_SIGNAL_TABLE):
         return []
@@ -312,6 +316,7 @@ def seed_ready_competition_handoffs(*, limit_versions: int = 4) -> Dict[str, Any
     return {
         "schema": "competition.signal_handoff.batch_receipt.v1",
         "version": COMPETITION_SIGNAL_HANDOFF_VERSION,
+        "formalSignalTable": FORMAL_SIGNAL_TABLE,
         "dataVersions": versions,
         "versionCount": len(versions),
         "seededCount": sum(int(item.get("seededCount") or 0) for item in receipts),
