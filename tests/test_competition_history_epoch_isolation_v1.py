@@ -4,7 +4,6 @@ import sqlite3
 from contextlib import contextmanager
 
 from src.services import canonical_product_trend_v2_service as trend
-from src.services import competition_history_epoch_service as epoch
 
 
 @contextmanager
@@ -65,16 +64,16 @@ def test_legacy_database_bootstraps_from_latest_snapshot_and_then_accumulates(mo
     conn = _memory_db()
     _insert_snapshot(conn, "old-1", "2026-08-11T10:00:00")
     _insert_snapshot(conn, "latest", "2026-08-11T11:00:00")
-    monkeypatch.setattr(epoch, "connect", lambda: _connection_scope(conn))
+    monkeypatch.setattr(trend, "connect", lambda: _connection_scope(conn))
 
-    first = epoch.current_competition_history_epoch()
+    first = trend.current_competition_history_epoch()
     assert first["bootstrapMode"] == "legacy_latest_snapshot_fail_closed"
     assert first["startedAt"] == "2026-08-11T11:00:00"
     assert first["bootstrapSnapshotId"] == "latest"
     assert first["crossEpochHistoryAllowed"] is False
 
     _insert_snapshot(conn, "next", "2026-08-11T12:00:00")
-    second = epoch.current_competition_history_epoch()
+    second = trend.current_competition_history_epoch()
     assert second["epochId"] == first["epochId"]
     assert second["startedAt"] == first["startedAt"]
 
@@ -82,16 +81,16 @@ def test_legacy_database_bootstraps_from_latest_snapshot_and_then_accumulates(mo
 def test_existing_system_reset_rotates_epoch_without_deleting_archive(monkeypatch):
     conn = _memory_db()
     _insert_snapshot(conn, "archived", "2026-08-11T10:00:00")
-    monkeypatch.setattr(epoch, "connect", lambda: _connection_scope(conn))
+    monkeypatch.setattr(trend, "connect", lambda: _connection_scope(conn))
 
-    before = epoch.current_competition_history_epoch()
+    before = trend.current_competition_history_epoch()
     conn.execute(
         "INSERT OR REPLACE INTO runtime_meta(key,value,updated_at) VALUES (?,?,?)",
         ("latest_demo_reset_scope", "demo", "2026-08-11 13:00:00"),
     )
     conn.commit()
 
-    after = epoch.current_competition_history_epoch()
+    after = trend.current_competition_history_epoch()
     assert after["epochId"] != before["epochId"]
     assert after["startedAt"] == "2026-08-11 13:00:00"
     assert after["bootstrapMode"] == "system_demo_reset_boundary"
