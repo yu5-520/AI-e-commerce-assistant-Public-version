@@ -1,6 +1,6 @@
 {
   "schema": "competition.registry_field_semantics_overlay.v1",
-  "version": "2026.08.09.2",
+  "version": "2026.08.11.3",
   "registrationMode": "hash_anchored_semantic_overlay",
   "baseSourceCommit": "78afdc4dce2e78dd96555442682ad39ecbb7da8a",
   "registryAuthority": "contracts/registry/fields.json",
@@ -8,22 +8,30 @@
   "sealedRuntimeRegistryRoot": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
   "rootRotationAllowed": false,
   "fields": [
-    {"fieldId":"frontend_runtime.data_version","canonicalPath":"dataVersion","dataType":"string|null","ownerModule":"pipeline_runtime","readers":["frontend_view","artifact_transport"],"writers":["pipeline_runtime"],"fieldDefinitionHash":"sha256:d62f81f47a795e7617d683342e9671ede30af33e8a9ebf086081ce2215424110","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"},
-    {"fieldId":"frontend_runtime.runtime_state_hash","canonicalPath":"runtimeStateHash","dataType":"sha256","ownerModule":"frontend_view","readers":["frontend_view","artifact_transport"],"writers":["frontend_view"],"fieldDefinitionHash":"sha256:964c1bea8cceec34e74c7424e4f86ee820c2eb5e173730ef420e80d5d5664364","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"},
-    {"fieldId":"frontend_runtime.pending_runtime_state_hash","canonicalPath":"pendingRuntimeStateHash","dataType":"sha256|null","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"fieldDefinitionHash":"sha256:b1192442f54336a6733a000dfd2ccf48f3444c1e6b6105e4e52fadd926835e00","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"},
-    {"fieldId":"frontend_runtime.observed_runtime_state_hash","canonicalPath":"observedRuntimeStateHash","dataType":"sha256","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"fieldDefinitionHash":"sha256:c2b812b7e9bb470cb2cff2bdcfbda1276c397ff9288b47854134bd5ab1c23714","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"},
-    {"fieldId":"frontend_runtime.manifest_ref","canonicalPath":"manifestRef","dataType":"artifact_ref","ownerModule":"frontend_view","readers":["frontend_view","artifact_transport"],"writers":["frontend_view"],"fieldDefinitionHash":"sha256:bda103c98ad5cd38110a1c1841c8e132714d55cb0136f11b53a06040682225eb","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"},
-    {"fieldId":"frontend_runtime.manifest_hash","canonicalPath":"manifestHash","dataType":"sha256","ownerModule":"frontend_view","readers":["frontend_view","artifact_transport"],"writers":["frontend_view"],"fieldDefinitionHash":"sha256:211138b7f64f946de3fd261cb5d667092830ee5d32d5a86633b62a3e91837ab0","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"},
-    {"fieldId":"frontend_runtime.pending_data_version","canonicalPath":"pendingDataVersion","dataType":"string|null","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"fieldDefinitionHash":"sha256:0ca5187e35d5c6223b94bf4ed6009ceb2c39090156979d05beff35411b47d636","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"},
-    {"fieldId":"frontend_runtime.display_mode","canonicalPath":"displayMode","dataType":"enum:current|previous_snapshot|building","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"fieldDefinitionHash":"sha256:dbc6b4a53422e9079c2833f50ccc1724ea2b00715d4decd20c782141f554860a","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"},
-    {"fieldId":"frontend_runtime.artifact_ref","canonicalPath":"artifactRef","dataType":"artifact_ref","ownerModule":"artifact_transport","readers":["frontend_view"],"writers":["artifact_transport","frontend_view"],"fieldDefinitionHash":"sha256:5d57f1f75837fd6ea51b198e8ef804fb77ebac97308edbbef75bfc8cff9db3fb","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"},
-    {"fieldId":"frontend_runtime.content_hash","canonicalPath":"contentHash","dataType":"sha256","ownerModule":"artifact_transport","readers":["frontend_view"],"writers":["artifact_transport"],"fieldDefinitionHash":"sha256:51dbf27e06618b17e05ede780973e432fec06f159732ffa522e0204a210e2762","hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY"}
+    {"fieldId":"frontend_runtime.data_version","canonicalPath":"dataVersion","dataType":"string|null","ownerModule":"pipeline_runtime","readers":["frontend_view","artifact_transport"],"writers":["pipeline_runtime"],"hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:d62f81f47a795e7617d683342e9671ede30af33e8a9ebf086081ce2215424110"},
+    {"fieldId":"frontend_runtime.canonical_product_set_snapshot_hash","canonicalPath":"canonicalProductSetSnapshotHash","dataType":"sha256|null","ownerModule":"frontend_view","readers":["frontend_view","artifact_transport"],"writers":["frontend_view"],"hashRole":"canonical_source_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:16091d4fe274ff284270a922320d5e312c14a7a67b5215a942a7eb4243111a06"},
+    {"fieldId":"frontend_runtime.runtime_state_hash","canonicalPath":"runtimeStateHash","dataType":"sha256","ownerModule":"frontend_view","readers":["frontend_view","artifact_transport"],"writers":["frontend_view"],"hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:964c1bea8cceec34e74c7424e4f86ee820c2eb5e173730ef420e80d5d5664364"},
+    {"fieldId":"frontend_runtime.pending_runtime_state_hash","canonicalPath":"pendingRuntimeStateHash","dataType":"sha256|null","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:b1192442f54336a6733a000dfd2ccf48f3444c1e6b6105e4e52fadd926835e00"},
+    {"fieldId":"frontend_runtime.observed_runtime_state_hash","canonicalPath":"observedRuntimeStateHash","dataType":"sha256","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:c2b812b7e9bb470cb2cff2bdcfbda1276c397ff9288b47854134bd5ab1c23714"},
+    {"fieldId":"frontend_runtime.manifest_ref","canonicalPath":"manifestRef","dataType":"artifact_ref","ownerModule":"frontend_view","readers":["frontend_view","artifact_transport"],"writers":["frontend_view"],"hashRole":"immutable_reference","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:bda103c98ad5cd38110a1c1841c8e132714d55cb0136f11b53a06040682225eb"},
+    {"fieldId":"frontend_runtime.manifest_hash","canonicalPath":"manifestHash","dataType":"sha256","ownerModule":"frontend_view","readers":["frontend_view","artifact_transport"],"writers":["frontend_view"],"hashRole":"content_fingerprint","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:211138b7f64f946de3fd261cb5d667092830ee5d32d5a86633b62a3e91837ab0"},
+    {"fieldId":"frontend_runtime.pending_data_version","canonicalPath":"pendingDataVersion","dataType":"string|null","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:0ca5187e35d5c6223b94bf4ed6009ceb2c39090156979d05beff35411b47d636"},
+    {"fieldId":"frontend_runtime.display_mode","canonicalPath":"displayMode","dataType":"enum:current|previous_snapshot|building","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"hashRole":"runtime_identity","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:dbc6b4a53422e9079c2833f50ccc1724ea2b00715d4decd20c782141f554860a"},
+    {"fieldId":"frontend_runtime.artifact_ref","canonicalPath":"artifactRef","dataType":"artifact_ref","ownerModule":"artifact_transport","readers":["frontend_view"],"writers":["artifact_transport","frontend_view"],"hashRole":"immutable_reference","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:5d57f1f75837fd6ea51b198e8ef804fb77ebac97308edbbef75bfc8cff9db3fb"},
+    {"fieldId":"frontend_runtime.content_hash","canonicalPath":"contentHash","dataType":"sha256","ownerModule":"artifact_transport","readers":["frontend_view"],"writers":["artifact_transport"],"hashRole":"content_fingerprint","identityRole":"frontend_runtime","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:51dbf27e06618b17e05ede780973e432fec06f159732ffa522e0204a210e2762"},
+    {"fieldId":"frontend_runtime.business_content_hash","canonicalPath":"businessContentHash","dataType":"sha256","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"hashRole":"business_content_fingerprint","identityRole":"frontend_module","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:a37b1b5be08fca77c3adae77a75249b3ed59683e2f9530017c6b1ac005d19ffa"},
+    {"fieldId":"frontend_runtime.source_snapshot_hash","canonicalPath":"sourceSnapshotHash","dataType":"sha256|null","ownerModule":"frontend_view","readers":["frontend_view"],"writers":["frontend_view"],"hashRole":"canonical_source_fingerprint","identityRole":"frontend_module","layer":"frontend_hash_view","status":"ACTIVE_OVERLAY","fieldDefinitionHash":"sha256:3ff25555e28470d7417b5be27be886fbae11657e69f91dd8b05bcee28880b35e"}
   ],
   "semanticModes": {
     "current_runtime_view": {
-      "identityFields": ["dataVersion", "runtimeStateHash"],
+      "identityFields": ["dataVersion", "runtimeStateHash", "canonicalProductSetSnapshotHash"],
       "publicationField": "manifestHash",
-      "rule": "dataVersion identifies the dataset; runtimeStateHash identifies mutable execution state; either identity change republishes the Head."
+      "rule": "dataVersion identifies the active dataset; runtimeStateHash includes mutable execution state and canonicalProductSetSnapshotHash; any canonical product-set change republishes the Head."
+    },
+    "canonical_product_module": {
+      "identityFields": ["canonicalProductSetSnapshotHash", "sourceSnapshotHash", "businessContentHash", "contentHash"],
+      "publicationField": "artifactRef",
+      "rule": "Products module is materialized only from canonical product projection. Signal admission cannot reduce its inventory; sourceSnapshotHash must equal the canonical set hash."
     },
     "immutable_artifact_cache": {
       "identityFields": ["artifactRef", "contentHash"],
@@ -31,6 +39,8 @@
     }
   },
   "requiredRuntimeAnchors": [
+    "src/services/canonical_product_snapshot_service.py",
+    "src/services/system_product_snapshot_service.py",
     "src/services/frontend_view_artifact_v2259_service.py",
     "src/services/pipeline_live_read_model_v225_service.py",
     "src/api/routes/frontend_views.py",
@@ -38,15 +48,18 @@
   ],
   "forbiddenStalePredicates": [
     {"id":"data_version_only_head_invalidation","literal":"requested_version and row.get(\"data_version\") != requested_version"},
-    {"id":"legacy_hash_view_client_version","literal":"const VERSION = \"22.5.9\";"}
+    {"id":"legacy_hash_view_client_version","literal":"const VERSION = \"22.5.9\";"},
+    {"id":"signal_derived_products_hash_view_builder","literal":"lambda: read_product_views(data_version=data_version"}
   ],
   "rules": [
     "Scan only files present in TARGET competition runtime hash-lineage closure.",
     "Every field hit is recorded with exact runtime path and SHA-256 content hash.",
-    "Head identity requires both dataVersion and runtimeStateHash.",
-    "Reset/no active runtime must invalidate any previous dataVersion Head and publish an empty current view.",
+    "Head identity requires active dataVersion plus runtimeStateHash; runtimeStateHash includes canonicalProductSetSnapshotHash.",
+    "Products Hash View must materialize from canonical product snapshot projection only; Signal/Agent admission is not product inventory authority.",
+    "Reset/no active runtime must invalidate any previous dataVersion Head and publish an empty current view without canonical-history fallback.",
+    "Canonical product-set hash changes must invalidate the current Head even when pipeline execution state is unchanged.",
     "Immutable module and manifest Artifacts remain content-addressed; only Head polling is no-store.",
-    "Canonical V23 Registry root is not rotated by this hotfix; this overlay is a migration proof anchored to that authority."
+    "Canonical V23 Registry root is not rotated by this repair; field/runtime projection and module contract hashes rotate under the sealed root."
   ],
-  "overlayHash": "sha256:4c88b305872c98888daa6d4b545cbf93bf9e0afac17f8a290da2109f825b5d88"
+  "overlayHash": "sha256:19f32e31a7b2fdecd91ef06612365e7d49423b7c3245d79200827b041709cae0"
 }
