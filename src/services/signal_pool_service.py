@@ -3,7 +3,9 @@
 Signal Pool is a persistence boundary, not a snapshot generator. It accepts only
 an already materialized V21.5 operating-evidence snapshot, validates every
 fullProductBundle, scopes persisted ids by dataVersion, and fails closed when an
-old or incomplete snapshot reaches the runtime.
+old or incomplete snapshot reaches the runtime. Every admitted formal signal is
+also materialized once through Artifact Transport so downstream Agent handoff
+receives an immutable ART-* signalRef rather than a mutable database identity.
 """
 
 from __future__ import annotations
@@ -15,11 +17,17 @@ from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect, dumps, ensure_columns, loads
 from src.services import product_signal_snapshot_service
+from src.services.artifact_transport_service import (
+    artifact_type_for_stage,
+    pipeline_payload_artifact,
+    validate_artifact,
+)
 
 SIGNAL_POOL_VERSION = "21.5.2"
 EXPECTED_EVIDENCE_VERSION = "21.5.0"
 EXPECTED_EVIDENCE_CONTRACT = "operatingEvidenceGraph.v1"
 AGENT_READY_STATUS = "pending_rag_agent"
+FORMAL_SIGNAL_ARTIFACT_STAGE = "signal_admitted"
 PACKAGE_PENDING_STATUSES = {
     "pending_agent_judgment",
     "pending_product_signal_package",
@@ -125,6 +133,91 @@ def _scoped_signal_id(signal: Dict[str, Any]) -> str:
     return f"PSIGV-{digest}"
 
 
+def _formal_signal_payload(signal: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the immutable business payload used to derive signalRef.
+
+    Mutable pool lifecycle state and already-produced Artifact references are
+    intentionally excluded. Re-running the same dataVersion therefore resolves
+    to the same content-addressed ART-* identity even after the pool row advances
+    to a later status.
+    """
+
+    excluded = {
+        "artifactRefs",
+        "signalRef",
+        "signal_ref",
+        "payload",
+        "createdAt",
+        "updatedAt",
+        "agentReadyStatus",
+    }
+    payload = {
+        key: value
+        for key, value in signal.items()
+        if key not in excluded
+    }
+    payload["signalId"] = signal.get("signalId")
+    payload["sourceSignalId"] = signal.get("sourceSignalId")
+    payload["dataVersion"] = signal.get("dataVersion")
+    payload["status"] = AGENT_READY_STATUS
+    payload["formalSignalContract"] = "competition.formal_signal.v1"
+    payload["evidenceContract"] = EXPECTED_EVIDENCE_CONTRACT
+    payload["evidenceVersion"] = EXPECTED_EVIDENCE_VERSION
+    return payload
+
+
+def _materialize_formal_signal_artifact(signal: Dict[str, Any]) -> Dict[str, Any]:
+    """Attach one validated immutable signalRef to the formal Signal Pool row."""
+
+    next_signal = dict(signal)
+    inherited = (
+        next_signal.get("artifactRefs")
+        if isinstance(next_signal.get("artifactRefs"), dict)
+        else {}
+    )
+    formal_payload = _formal_signal_payload(next_signal)
+    transport = pipeline_payload_artifact(
+        envelope={
+            "itemId": next_signal.get("signalId"),
+            "dataVersion": next_signal.get("dataVersion"),
+            "productId": next_signal.get("productId") or next_signal.get("entityId"),
+            "storeId": next_signal.get("storeId"),
+            "outputRef": next_signal.get("sourceRef"),
+            "artifactRefs": inherited,
+        },
+        stage=FORMAL_SIGNAL_ARTIFACT_STAGE,
+        payload=formal_payload,
+        station_id="signal_pool_service",
+        previous_artifact_refs=inherited,
+    )
+    refs = (
+        transport.get("artifactRefs")
+        if isinstance(transport.get("artifactRefs"), dict)
+        else {}
+    )
+    signal_ref = str(refs.get("signalRef") or "").strip()
+    expected_type = artifact_type_for_stage(FORMAL_SIGNAL_ARTIFACT_STAGE)
+    validation = (
+        validate_artifact(signal_ref, expected_type=expected_type)
+        if signal_ref.startswith("ART-")
+        else {"ok": False, "status": "formal_signal_ref_missing"}
+    )
+    if validation.get("ok") is not True:
+        raise RuntimeError(
+            "formal_signal_artifact_invalid:"
+            f"dataVersion={next_signal.get('dataVersion') or 'latest'};"
+            f"signalId={next_signal.get('signalId') or 'UNKNOWN'};"
+            f"status={validation.get('status') or 'invalid'}"
+        )
+
+    next_signal["signalRef"] = signal_ref
+    next_signal["artifactRefs"] = refs
+    next_signal["signalArtifactContentHash"] = transport.get("contentHash")
+    next_signal["signalArtifactType"] = expected_type
+    next_signal["signalArtifactIdempotentHit"] = bool(transport.get("idempotentHit"))
+    return next_signal
+
+
 def _save_signal(signal: Dict[str, Any]) -> Dict[str, Any]:
     ensure_signal_pool_tables()
     now = now_iso()
@@ -133,6 +226,7 @@ def _save_signal(signal: Dict[str, Any]) -> Dict[str, Any]:
     signal_id = _scoped_signal_id(next_signal)
     next_signal["sourceSignalId"] = source_signal_id
     next_signal["signalId"] = signal_id
+    next_signal = _materialize_formal_signal_artifact(next_signal)
 
     with connect() as conn:
         existing = conn.execute(
@@ -437,6 +531,7 @@ def generate_signal_pool(
         "legacyUnscopedRowsRemoved": legacy_removed,
         "signalIdScope": "data_version",
         "payloadContract": "explicit_nested_payload",
+        "formalSignalArtifactStage": FORMAL_SIGNAL_ARTIFACT_STAGE,
         "signalSnapshotSource": snapshot_source,
         "snapshotRematerialized": False,
         "contractValidation": contract_validation,
@@ -447,6 +542,7 @@ def generate_signal_pool(
         "productSignalSnapshot": resolved_snapshot,
         "rule": (
             "V21.5.2 fails closed unless every non-baseline bundle carries "
-            "crossValidation 21.5.0 and an operating decision."
+            "crossValidation 21.5.0 and an operating decision; every accepted "
+            "formal signal is materialized as an immutable ART-* signalRef."
         ),
     }
