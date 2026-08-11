@@ -2,12 +2,14 @@
 
 The product list stays lightweight. Product detail is now a content-addressed read:
 - current canonical productSnapshotHash identifies the product fact version;
-- canonical history set hashes identify the trend-history version;
+- current competition-history epoch set hashes identify the trend-history version;
 - the composite detail is stored as one immutable Artifact;
 - repeated page opens resolve that Artifact instead of rescanning history.
 
 A cache miss uses the memory-bounded canonical trend bridge, which scans one snapshot
-row at a time and retains only the requested product.
+row at a time and retains only the requested product. V22.5.6.1 binds cache identity to
+the same current-run history epoch as trend evidence, so an Artifact created from an
+older evaluator/demo epoch can never satisfy a current product-detail read.
 """
 from __future__ import annotations
 
@@ -19,11 +21,14 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from src.repositories.sqlite_repository import connect
 from src.services.artifact_transport_service import resolve_artifact, store_artifact, validate_artifact
-from src.services.canonical_product_trend_v2_service import read_canonical_product_trend
+from src.services.canonical_product_trend_v2_service import (
+    current_competition_history_epoch,
+    read_canonical_product_trend,
+)
 from src.services.competition_operator_context_service import user_id_from_headers
 
 router = APIRouter()
-PRODUCT_DETAIL_COMPOSITE_VERSION = "22.5.6-hash-cache-v1"
+PRODUCT_DETAIL_COMPOSITE_VERSION = "22.5.6.1-hash-cache-v2-epoch"
 PRODUCT_DETAIL_ARTIFACT_TYPE = "frontend_product_detail.hash.v1"
 PRODUCT_DETAIL_CACHE_TABLE = "frontend_product_detail_hash_cache_v1"
 
@@ -72,22 +77,28 @@ def _ensure_cache_table() -> None:
 
 
 def _history_identity() -> str:
-    """Hash canonical history metadata only; never deserialize snapshot payloads."""
+    """Hash current-epoch canonical history metadata only; never scan prior epochs."""
+    epoch = current_competition_history_epoch()
+    epoch_id = _text(epoch.get("epochId"))
+    epoch_started_at = _text(epoch.get("startedAt"))
     with connect() as conn:
         exists = conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='canonical_product_snapshot_sets_v1' LIMIT 1"
         ).fetchone()
         if not exists:
-            return "sha256:" + hashlib.sha256(b"no-canonical-history").hexdigest()
+            material = f"{epoch_id}|no-canonical-history"
+            return "sha256:" + hashlib.sha256(material.encode("utf-8")).hexdigest()
         rows = conn.execute(
             """
             SELECT snapshot_id,set_snapshot_hash,updated_at
             FROM canonical_product_snapshot_sets_v1
-            ORDER BY created_at DESC
+            WHERE julianday(created_at) >= julianday(?)
+            ORDER BY julianday(created_at) DESC, rowid DESC
             LIMIT 120
-            """
+            """,
+            (epoch_started_at,),
         ).fetchall()
-    material = "|".join(
+    material = epoch_id + "|" + "|".join(
         f"{row['snapshot_id']}:{row['set_snapshot_hash']}:{row['updated_at']}"
         for row in rows
     )
@@ -183,7 +194,7 @@ def _store_cached(
             "cacheKey": cache_key,
             "productSnapshotHash": product_snapshot_hash,
             "historyIdentityHash": history_identity_hash,
-            "readMode": "content_addressed_product_detail",
+            "readMode": "content_addressed_product_detail_current_history_epoch",
         },
     )
     artifact_ref = _text(artifact.get("artifactId"))
@@ -283,10 +294,12 @@ def product_detail_v2256(
             "recentTrend": "canonical_product_trend_v2_service",
             "trendAlgorithm": "product_trend_read_model_v217_service",
             "snapshotAuthority": "canonical_product_snapshot_sets_v1",
+            "historyScope": "current_competition_runtime_epoch",
+            "crossEpochHistoryAllowed": False,
             "detailCache": PRODUCT_DETAIL_ARTIFACT_TYPE,
             "compactListReadModelUsedAsDetail": False,
         },
-        "readRule": "Product detail resolves one immutable content-addressed Artifact. History is scanned only on cache miss and never retains whole snapshot sets.",
+        "readRule": "Product detail resolves one immutable content-addressed Artifact bound to the current history epoch. Prior evaluator epochs remain archived but cannot satisfy this cache key or trend evidence read.",
     }
     return _store_cached(
         cache_key=cache_key,
