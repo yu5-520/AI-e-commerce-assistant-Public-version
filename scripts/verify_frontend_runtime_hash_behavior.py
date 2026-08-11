@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Dependency-light behavioral gate for frontend runtime hash invalidation.
+"""Dependency-light behavioral gate for frontend runtime/hash lineage.
 
-This checker uses only stdlib monkeypatching. It does not call a model, HTTP endpoint,
-or production database. It verifies the identity semantics that matter for the Hash View:
+This checker uses only stdlib monkeypatching/static inspection. It does not call a model,
+HTTP endpoint, or production database. It verifies the identity semantics that matter for
+the Hash View, including the canonical product single-root repair:
 
 - same dataVersion + changed execution state => changed runtimeStateHash;
 - transport timestamps alone do not rotate runtimeStateHash;
-- Reset/no active runtime overrides a stale caller dataVersion;
+- same dataVersion + changed canonical setSnapshotHash => changed runtimeStateHash;
+- Reset/no active runtime overrides a stale caller dataVersion and cannot read history;
 - Head republishes on runtime hash change and reuses on exact identity match;
+- Hash View products module is built from canonical product snapshot projection only;
+- canonical set hash -> runtime hash -> products module Artifact -> manifest hash/ref is
+  explicitly registered in Unified Registry / Runtime Projection;
 - browser Head fetch is no-store while immutable Artifact caching remains enabled;
-- product detail requests are intercepted by the Hash View client and can reuse the
-  immutable detail payload while the manifest hash is unchanged.
+- product detail requests keep the separate immutable detail hash-cache path.
 """
 from __future__ import annotations
 
@@ -51,12 +55,38 @@ def _pipeline(status: str, updated_at: str) -> Dict[str, Any]:
     }
 
 
+def _canonical_identity(data_version: str | None, set_hash: str | None) -> Dict[str, Any]:
+    if not data_version:
+        return {
+            "ready": False,
+            "dataVersion": None,
+            "snapshotId": None,
+            "setSnapshotHash": None,
+            "productCount": 0,
+            "authority": "canonical_product_snapshot_sets_v1",
+        }
+    return {
+        "ready": bool(set_hash),
+        "dataVersion": data_version,
+        "snapshotId": f"CANONICAL-PRODUCT-SNAPSHOT-{data_version}" if set_hash else None,
+        "setSnapshotHash": set_hash,
+        "productCount": 30 if set_hash else 0,
+        "authority": "canonical_product_snapshot_sets_v1",
+    }
+
+
 def _runtime_hash_checks() -> Dict[str, Any]:
-    original = sys.modules.get("src.services.pipeline_live_read_model_v225_service")
+    original_pipeline = sys.modules.get("src.services.pipeline_live_read_model_v225_service")
+    original_canonical = view._canonical_product_runtime_identity
     fake = types.ModuleType("src.services.pipeline_live_read_model_v225_service")
     state = {"value": _pipeline("queued", "2026-08-09T20:00:00")}
+    canonical = {"hash": "sha256:canonical-a"}
     fake.read_pipeline_live_model = lambda **_kwargs: dict(state["value"])
     sys.modules[fake.__name__] = fake
+    view._canonical_product_runtime_identity = lambda data_version: _canonical_identity(
+        data_version,
+        canonical["hash"] if data_version else None,
+    )
     try:
         queued = view._runtime_state("DV-SAME")
         state["value"] = _pipeline("completed", "2026-08-09T20:00:01")
@@ -74,6 +104,14 @@ def _runtime_hash_checks() -> Dict[str, Any]:
             timestamp_only["runtimeStateHash"],
         )
 
+        canonical["hash"] = "sha256:canonical-b"
+        canonical_changed = view._runtime_state("DV-SAME")
+        assert canonical_changed["runtimeStateHash"] != queued["runtimeStateHash"], (
+            queued["runtimeStateHash"],
+            canonical_changed["runtimeStateHash"],
+        )
+        assert canonical_changed["canonicalProductSetSnapshotHash"] == "sha256:canonical-b"
+
         state["value"] = {
             "dataVersion": None,
             "activeDataVersion": None,
@@ -86,17 +124,21 @@ def _runtime_hash_checks() -> Dict[str, Any]:
         reset = view._runtime_state("DV-STALE-BROWSER")
         assert reset["dataVersion"] is None, reset
         assert reset["identity"]["activeDataVersionGate"] == "closed_no_active_import_runtime", reset
+        assert reset["identity"]["canonicalProductSnapshot"]["setSnapshotHash"] is None, reset
         assert reset["runtimeStateHash"].startswith("sha256:"), reset
         return {
             "queuedHash": queued["runtimeStateHash"],
             "completedHash": completed["runtimeStateHash"],
+            "canonicalChangedHash": canonical_changed["runtimeStateHash"],
+            "canonicalSetSnapshotHash": canonical_changed["canonicalProductSetSnapshotHash"],
             "resetHash": reset["runtimeStateHash"],
         }
     finally:
-        if original is None:
+        view._canonical_product_runtime_identity = original_canonical
+        if original_pipeline is None:
             sys.modules.pop(fake.__name__, None)
         else:
-            sys.modules[fake.__name__] = original
+            sys.modules[fake.__name__] = original_pipeline
 
 
 def _head_checks() -> Dict[str, Any]:
@@ -107,6 +149,7 @@ def _head_checks() -> Dict[str, Any]:
         view._runtime_state = lambda _dv=None: {
             "dataVersion": "DV-SAME",
             "runtimeStateHash": "sha256:new-runtime",
+            "canonicalProductSetSnapshotHash": "sha256:canonical-new",
             "identity": {},
             "pipeline": {},
         }
@@ -125,6 +168,7 @@ def _head_checks() -> Dict[str, Any]:
                 "status": "ready",
                 "dataVersion": kwargs["runtime_state"]["dataVersion"],
                 "runtimeStateHash": kwargs["runtime_state"]["runtimeStateHash"],
+                "canonicalProductSetSnapshotHash": kwargs["runtime_state"].get("canonicalProductSetSnapshotHash"),
                 "manifestRef": "ART-NEW",
                 "manifestHash": "sha256:new-manifest",
             }
@@ -132,11 +176,13 @@ def _head_checks() -> Dict[str, Any]:
         view.materialize_frontend_views_v2259 = fake_materialize
         changed = view.get_frontend_view_head_v2259(data_version="DV-SAME")
         assert changed["manifestRef"] == "ART-NEW", changed
+        assert changed["canonicalProductSetSnapshotHash"] == "sha256:canonical-new", changed
         assert len(calls) == 1, calls
 
         view._runtime_state = lambda _dv=None: {
             "dataVersion": "DV-SAME",
             "runtimeStateHash": "sha256:same-runtime",
+            "canonicalProductSetSnapshotHash": "sha256:canonical-same",
             "identity": {},
             "pipeline": {},
         }
@@ -159,6 +205,7 @@ def _head_checks() -> Dict[str, Any]:
         same = view.get_frontend_view_head_v2259(data_version="DV-SAME")
         assert same["manifestRef"] == "ART-SAME", same
         assert same["runtimeStateHash"] == same["observedRuntimeStateHash"] == "sha256:same-runtime", same
+        assert same["observedCanonicalProductSetSnapshotHash"] == "sha256:canonical-same", same
         return {
             "changedManifest": changed["manifestHash"],
             "reusedManifest": same["manifestHash"],
@@ -167,6 +214,105 @@ def _head_checks() -> Dict[str, Any]:
         view._runtime_state = original_runtime
         view._head_row = original_head
         view.materialize_frontend_views_v2259 = original_materialize
+
+
+def _canonical_product_hash_lineage_checks() -> Dict[str, Any]:
+    service = (ROOT / "src/services/frontend_view_artifact_v2259_service.py").read_text(encoding="utf-8")
+    registry = json.loads((ROOT / "config/runtime_contract_lineage_registry_v1.json").read_text(encoding="utf-8"))
+    runtime = json.loads((ROOT / "config/v23_registry_runtime.json").read_text(encoding="utf-8"))
+
+    required_service = [
+        'FRONTEND_VIEW_ARTIFACT_VERSION = "22.5.12"',
+        "from src.services.system_product_snapshot_service import read_canonical_product_views",
+        "lambda: read_canonical_product_views(data_version=data_version, limit=300)",
+        "canonicalProductSetSnapshotHash",
+        "canonicalProductSnapshot",
+        "sourceSnapshotHash",
+        "signalAdmissionIndependent",
+    ]
+    missing_service = [literal for literal in required_service if literal not in service]
+    assert not missing_service, missing_service
+    assert "lambda: read_product_views(data_version=data_version" not in service
+
+    required_fields = {
+        "canonical.set_snapshot_hash",
+        "product.product_registry_key",
+        "product.product_snapshot_hash",
+        "frontend.runtime_state_hash",
+        "frontend.module_business_hash",
+        "frontend.module_content_hash",
+        "frontend.module_artifact_ref",
+        "frontend.manifest_hash",
+        "frontend.manifest_artifact_ref",
+    }
+    fields = set((registry.get("fields") or {}).keys())
+    assert required_fields <= fields, sorted(required_fields - fields)
+
+    required_interfaces = {
+        "canonical.product.view.project",
+        "frontend.products.module.materialize",
+        "frontend.manifest.publish",
+        "frontend.hash.products.read",
+    }
+    interfaces = set((registry.get("interfaces") or {}).keys())
+    assert required_interfaces <= interfaces, sorted(required_interfaces - interfaces)
+
+    edge_keys = {
+        (str(item.get("from")), str(item.get("to")), str(item.get("type")))
+        for item in registry.get("lineageEdges") or []
+        if isinstance(item, dict)
+    }
+    required_edges = {
+        ("canonical.product.view.project", "frontend.products.module.materialize", "INTERFACE_HANDOFF"),
+        ("canonical.set_snapshot_hash", "frontend.runtime_state_hash", "HASH_IDENTITY_INPUT"),
+        ("canonical.set_snapshot_hash", "frontend.module_business_hash", "CONTENT_HASH_INPUT"),
+        ("frontend.module_business_hash", "frontend.module_content_hash", "ARTIFACT_HASH_DERIVATION"),
+        ("frontend.module_content_hash", "frontend.manifest_hash", "MANIFEST_HASH_INPUT"),
+        ("frontend.runtime_state_hash", "frontend.manifest_hash", "MANIFEST_HASH_INPUT"),
+        ("frontend.manifest_artifact_ref", "frontend.hash.products.read", "EXACT_REFERENCE_TRANSFER"),
+        ("frontend.module_artifact_ref", "frontend.hash.products.read", "EXACT_REFERENCE_TRANSFER"),
+    }
+    assert required_edges <= edge_keys, sorted(required_edges - edge_keys)
+
+    frontend_module = (runtime.get("modules") or {}).get("frontend_view") or {}
+    runtime_fields = set(frontend_module.get("fieldIds") or [])
+    assert required_fields <= runtime_fields, sorted(required_fields - runtime_fields)
+    runtime_paths = set(frontend_module.get("implementationPaths") or [])
+    required_paths = {
+        "src/services/canonical_product_snapshot_service.py",
+        "src/services/system_product_snapshot_service.py",
+        "src/services/frontend_view_artifact_v2259_service.py",
+        "web_demo/core/hash-view-client-v2259.js",
+    }
+    assert required_paths <= runtime_paths, sorted(required_paths - runtime_paths)
+    assert runtime.get("runtimeContractLineageRegistryVersion") == "2026.08.11.3", runtime
+    assert runtime.get("frontendViewRuntimeScopeVersion") == "23.2.13", runtime
+
+    source_identity = view._module_source_identity(
+        "products",
+        {
+            "currentDataVersion": "DV-SAME",
+            "setSnapshotHash": "sha256:set",
+            "count": 30,
+        },
+    )
+    assert source_identity == {
+        "authority": "canonical_product_snapshot_service",
+        "dataVersion": "DV-SAME",
+        "setSnapshotHash": "sha256:set",
+        "productCount": 30,
+        "signalAdmissionIndependent": True,
+    }, source_identity
+
+    return {
+        "registryVersion": registry.get("version"),
+        "runtimeScopeVersion": runtime.get("frontendViewRuntimeScopeVersion"),
+        "requiredFieldCount": len(required_fields),
+        "requiredInterfaceCount": len(required_interfaces),
+        "requiredEdgeCount": len(required_edges),
+        "canonicalProductCountProbe": source_identity["productCount"],
+        "signalAdmissionIndependent": source_identity["signalAdmissionIndependent"],
+    }
 
 
 def _client_checks() -> Dict[str, Any]:
@@ -184,6 +330,7 @@ def _client_checks() -> Dict[str, Any]:
         "detailContentHash",
         "detailArtifactRef",
         "nativeFetch",
+        'api.productView = (params = {}) => moduleView("products"',
     ]
     missing = [literal for literal in required if literal not in source]
     assert not missing, missing
@@ -224,9 +371,10 @@ def _product_detail_runtime_checks() -> Dict[str, Any]:
 
 def main() -> int:
     report = {
-        "schema": "competition.frontend_runtime_hash_behavior.v2",
+        "schema": "competition.frontend_runtime_hash_behavior.v3",
         "runtime": _runtime_hash_checks(),
         "head": _head_checks(),
+        "canonicalProducts": _canonical_product_hash_lineage_checks(),
         "client": _client_checks(),
         "productDetail": _product_detail_runtime_checks(),
         "verified": True,
