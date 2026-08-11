@@ -8,7 +8,9 @@ or production database. It verifies the identity semantics that matter for the H
 - transport timestamps alone do not rotate runtimeStateHash;
 - Reset/no active runtime overrides a stale caller dataVersion;
 - Head republishes on runtime hash change and reuses on exact identity match;
-- browser Head fetch is no-store while immutable Artifact caching remains enabled.
+- browser Head fetch is no-store while immutable Artifact caching remains enabled;
+- product detail requests are intercepted by the Hash View client and can reuse the
+  immutable detail payload while the manifest hash is unchanged.
 """
 from __future__ import annotations
 
@@ -170,25 +172,63 @@ def _head_checks() -> Dict[str, Any]:
 def _client_checks() -> Dict[str, Any]:
     source = (ROOT / "web_demo/core/hash-view-client-v2259.js").read_text(encoding="utf-8")
     required = [
-        'const VERSION = "22.5.10";',
+        'const VERSION = "22.5.11";',
         'cache: "no-store"',
         "_headNonce",
         "runtimeStateHash",
         "manifestHash",
         "readImmutable(expectedHash)",
+        "product-detail-artifact:",
+        "/api/modules/product-detail-v2256/",
+        "browserCacheState: \"hash_hit\"",
+        "detailContentHash",
+        "detailArtifactRef",
+        "nativeFetch",
     ]
     missing = [literal for literal in required if literal not in source]
     assert not missing, missing
     assert 'const VERSION = "22.5.9";' not in source
+    assert 'const VERSION = "22.5.10";' not in source
     return {"requiredLiteralCount": len(required), "missing": missing}
+
+
+def _product_detail_runtime_checks() -> Dict[str, Any]:
+    route = (ROOT / "src/api/routes/modules/product_detail_v2256.py").read_text(encoding="utf-8")
+    trend = (ROOT / "src/services/canonical_product_trend_v2_service.py").read_text(encoding="utf-8")
+    route_required = [
+        "frontend_product_detail.hash.v1",
+        "detailArtifactRef",
+        "detailContentHash",
+        "historyIdentityHash",
+        "content_addressed_product_detail",
+    ]
+    trend_required = [
+        "metadata_then_single_row_single_product",
+        "wholeSnapshotRetention",
+        "SELECT payload FROM canonical_product_snapshot_sets_v1 WHERE snapshot_id=? LIMIT 1",
+        "_slim_product",
+    ]
+    missing_route = [literal for literal in route_required if literal not in route]
+    missing_trend = [literal for literal in trend_required if literal not in trend]
+    assert not missing_route, missing_route
+    assert not missing_trend, missing_trend
+    assert "product_snapshot_history(limit=limit)" not in trend
+    assert "get_product_snapshot(data_version=data_version" not in trend
+    return {
+        "routeRequired": len(route_required),
+        "trendRequired": len(trend_required),
+        "missingRoute": missing_route,
+        "missingTrend": missing_trend,
+    }
 
 
 def main() -> int:
     report = {
-        "schema": "competition.frontend_runtime_hash_behavior.v1",
+        "schema": "competition.frontend_runtime_hash_behavior.v2",
         "runtime": _runtime_hash_checks(),
         "head": _head_checks(),
         "client": _client_checks(),
+        "productDetail": _product_detail_runtime_checks(),
         "verified": True,
     }
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
