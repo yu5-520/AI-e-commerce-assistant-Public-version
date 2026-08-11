@@ -1,16 +1,15 @@
-"""Competition-only direct handoff from formal signal artifacts to Agent1 pending items.
+"""Competition-only handoff from admission-qualified formal signal artifacts to Agent1.
 
-This is deliberately a thin bridge, not a second workflow engine.  The active
-``signal_pool_v14`` persistence boundary owned by ``signal_pool_service`` remains
-the source of truth for formal pending signals; this module only projects their
-registered identity into ``pipeline_items`` while preserving ``signalRef`` as a
-hard Artifact reference.  The existing hard Agent runtime continues to own
-Agent1/2/3 execution, task mapping and task admission.
+This is deliberately a thin bridge, not a second workflow engine. The active
+``signal_pool_v14`` persistence boundary remains the source of truth for formal
+signals, while Product Signal Admission remains the business gate. Only signals
+already marked ``admitted_for_judgment`` are projected into ``pipeline_items``.
+Observed/weak signals stay outside the Agent queue. The bridge preserves the
+registered immutable ``signalRef`` and never regenerates product identity.
 
 The bridge is idempotent by the existing deterministic pipeline item id and a
-separate handoff hash.  It never regenerates product identity, never reads a
-"latest" fallback when a dataVersion is supplied, and fails closed when the
-formal signal Artifact reference is absent or invalid.
+separate handoff hash. It never reads a "latest" fallback when a dataVersion is
+supplied and fails closed when the formal Signal Artifact is absent or invalid.
 """
 from __future__ import annotations
 
@@ -30,12 +29,10 @@ from src.services.pipeline_item_service import (
 )
 from src.services.signal_pool_service import list_signals
 
-COMPETITION_SIGNAL_HANDOFF_VERSION = "1.0.1"
+COMPETITION_SIGNAL_HANDOFF_VERSION = "1.0.2"
 AGENT1_PENDING_STAGE = "agent1_pending"
-# Keep discovery on the same physical persistence boundary used by list_signals().
-# A previous draft pointed discovery at a non-existent product_signal_pool_v15 table,
-# which made --apply silently report an empty batch even when signal_pool_v14 had work.
 FORMAL_SIGNAL_TABLE = "signal_pool_v14"
+ADMISSION_QUALIFIED_STATUS = "admitted_for_judgment"
 
 
 class CompetitionSignalHandoffError(RuntimeError):
@@ -112,6 +109,23 @@ def _identity(signal: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
+def _admission_score(signal: Dict[str, Any]) -> int:
+    payload = signal.get("payload") if isinstance(signal.get("payload"), dict) else {}
+    value: Any = (
+        signal.get("score")
+        if signal.get("score") is not None
+        else signal.get("admissionScore")
+        if signal.get("admissionScore") is not None
+        else payload.get("admissionScore")
+    )
+    if isinstance(value, dict):
+        value = value.get("score")
+    try:
+        return max(0, min(100, int(float(value or 0))))
+    except Exception:
+        return 0
+
+
 def _existing_item(item_id: str) -> Dict[str, Any]:
     ensure_pipeline_item_tables()
     with connect() as conn:
@@ -120,6 +134,16 @@ def _existing_item(item_id: str) -> Dict[str, Any]:
             (item_id,),
         ).fetchone()
     return dict(row) if row else {}
+
+
+def _existing_signal_ref(existing: Dict[str, Any]) -> str:
+    try:
+        refs = json.loads(existing.get("artifact_refs_json") or "{}")
+    except Exception:
+        refs = {}
+    if not isinstance(refs, dict):
+        refs = {}
+    return _text(refs.get("signalRef"))
 
 
 def _validate_signal_ref(signal_ref: str) -> Dict[str, Any]:
@@ -140,11 +164,13 @@ def seed_competition_signal_handoff(
     *,
     limit: int = 500,
 ) -> Dict[str, Any]:
-    """Project formal pending signals directly into the registered Agent1 queue.
+    """Project admission-qualified formal Signals into the registered Agent1 queue.
 
-    No Provider is called here.  Existing items at Agent1 or any later stage are
-    left untouched.  This makes repeated worker ticks safe and keeps the old
-    station queue out of the competition critical path without deleting it.
+    No Provider is called here. Signals that failed Product Signal Admission are
+    not visible to this bridge. Existing rows at later stages remain untouched;
+    an existing Agent1-pending row is reused only when it already carries the
+    exact same immutable ``signalRef``. This keeps Admission as the business gate
+    while removing only the legacy queue transport between Admission and Agent1.
     """
 
     data_version = _text(data_version)
@@ -153,7 +179,7 @@ def seed_competition_signal_handoff(
 
     response = list_signals(
         data_version=data_version,
-        status="pending_rag_agent",
+        status=ADMISSION_QUALIFIED_STATUS,
         limit=max(1, min(1000, int(limit or 500))),
     )
     signals = [item for item in response.get("signals") or [] if isinstance(item, dict)]
@@ -194,7 +220,12 @@ def seed_competition_signal_handoff(
         )
         existing = _existing_item(item_id)
         existing_stage = _text(existing.get("current_stage"))
-        if existing and STAGE_ORDER.get(existing_stage, 0) >= STAGE_ORDER[AGENT1_PENDING_STAGE]:
+        existing_signal_ref = _existing_signal_ref(existing)
+        if (
+            existing
+            and STAGE_ORDER.get(existing_stage, 0) >= STAGE_ORDER[AGENT1_PENDING_STAGE]
+            and existing_signal_ref == signal_ref
+        ):
             reused += 1
             items.append(
                 {
@@ -206,6 +237,21 @@ def seed_competition_signal_handoff(
                 }
             )
             continue
+        if (
+            existing
+            and STAGE_ORDER.get(existing_stage, 0) > STAGE_ORDER[AGENT1_PENDING_STAGE]
+            and existing_signal_ref != signal_ref
+        ):
+            blocked.append(
+                {
+                    "itemId": item_id,
+                    "signalId": identity.get("signalId"),
+                    "productId": identity.get("productId"),
+                    "reason": "existing_downstream_item_signal_ref_mismatch",
+                    "existingStage": existing_stage,
+                }
+            )
+            continue
 
         handoff_material = {
             "dataVersion": data_version,
@@ -214,6 +260,7 @@ def seed_competition_signal_handoff(
             "productId": identity.get("productId"),
             "storeId": identity.get("storeId"),
             "productRegistryKey": identity.get("productRegistryKey"),
+            "admissionStatus": ADMISSION_QUALIFIED_STATUS,
             "target": "agent1_pending",
         }
         handoff_hash = _canonical_hash(handoff_material)
@@ -236,6 +283,7 @@ def seed_competition_signal_handoff(
             "handoffHash": handoff_hash,
             "artifactRefs": artifact_refs,
             "source": "competition_signal_handoff_service",
+            "businessGateOwner": "product_signal_admission_v197_service",
             "legacyStationQueueRequired": False,
             "identityRegenerated": False,
             "providerCallsExecuted": 0,
@@ -244,7 +292,7 @@ def seed_competition_signal_handoff(
             envelope,
             stage=AGENT1_PENDING_STAGE,
             status="queued",
-            priority=max(1, min(100, 100 - int(signal.get("score") or signal.get("admissionScore") or 0))),
+            priority=max(1, min(100, 100 - _admission_score(signal))),
             output_ref=envelope.get("outputRef"),
             payload=payload,
         )
@@ -273,6 +321,7 @@ def seed_competition_signal_handoff(
         "schema": "competition.signal_handoff.receipt.v1",
         "version": COMPETITION_SIGNAL_HANDOFF_VERSION,
         "dataVersion": data_version,
+        "admissionQualifiedStatus": ADMISSION_QUALIFIED_STATUS,
         "formalSignalCount": len(signals),
         "seededCount": seeded,
         "idempotentCount": reused,
@@ -281,12 +330,12 @@ def seed_competition_signal_handoff(
         "items": items,
         "providerCallsExecuted": 0,
         "legacyStationQueueRequired": False,
-        "rule": "formal signalRef is preserved as the exact immutable Agent1 source Artifact",
+        "rule": "only admission-qualified formal signalRefs may enter Agent1; observed signals remain outside the Agent queue",
     }
 
 
 def ready_data_versions(*, limit: int = 4) -> List[str]:
-    """Return versions with formal pending rows from the active signal pool."""
+    """Return versions with admission-qualified formal rows from Signal Pool."""
 
     if not _table_exists(FORMAL_SIGNAL_TABLE):
         return []
@@ -301,7 +350,7 @@ def ready_data_versions(*, limit: int = 4) -> List[str]:
         params: List[Any] = []
         if "status" in columns:
             where = "WHERE status=?"
-            params.append("pending_rag_agent")
+            params.append(ADMISSION_QUALIFIED_STATUS)
         rows = conn.execute(
             f"SELECT data_version, MAX(rowid) AS rid FROM {FORMAL_SIGNAL_TABLE} {where} "
             "GROUP BY data_version ORDER BY rid ASC LIMIT ?",
@@ -317,6 +366,7 @@ def seed_ready_competition_handoffs(*, limit_versions: int = 4) -> Dict[str, Any
         "schema": "competition.signal_handoff.batch_receipt.v1",
         "version": COMPETITION_SIGNAL_HANDOFF_VERSION,
         "formalSignalTable": FORMAL_SIGNAL_TABLE,
+        "admissionQualifiedStatus": ADMISSION_QUALIFIED_STATUS,
         "dataVersions": versions,
         "versionCount": len(versions),
         "seededCount": sum(int(item.get("seededCount") or 0) for item in receipts),
@@ -329,6 +379,7 @@ def seed_ready_competition_handoffs(*, limit_versions: int = 4) -> Dict[str, Any
 
 __all__ = [
     "COMPETITION_SIGNAL_HANDOFF_VERSION",
+    "ADMISSION_QUALIFIED_STATUS",
     "CompetitionSignalHandoffError",
     "seed_competition_signal_handoff",
     "seed_ready_competition_handoffs",
