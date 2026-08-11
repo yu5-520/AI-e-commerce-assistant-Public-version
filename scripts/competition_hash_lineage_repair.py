@@ -14,7 +14,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any, Dict
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -74,7 +74,15 @@ def _registry_gate() -> Dict[str, Any]:
 
 def _compile() -> Dict[str, Any]:
     _run([sys.executable, "scripts/compile_competition_lineage.py"])
-    _run([sys.executable, "scripts/compile_runtime_contract_lineage_overlay.py"])
+    base_lineage = ROOT / "dist" / "competition-lineage" / "lineage-graph.json"
+    if not base_lineage.is_file():
+        raise RuntimeError(f"base_lineage_artifact_missing:{base_lineage}")
+    _run([
+        sys.executable,
+        "scripts/compile_runtime_contract_lineage_overlay.py",
+        "--base-lineage",
+        "dist/competition-lineage/lineage-graph.json",
+    ])
     output = ROOT / "dist" / "competition-contract-lineage" / "runtime-contract-lineage.json"
     compiled = _read(output)
     verification = compiled.get("verification") or {}
