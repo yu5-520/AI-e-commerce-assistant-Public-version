@@ -3,7 +3,7 @@
   "agent2ProofBridgeVersion": "23.2.16",
   "frontendViewRuntimeScopeVersion": "23.2.12",
   "runtimeContractLineageRegistryPath": "config/runtime_contract_lineage_registry_v1.json",
-  "runtimeContractLineageRegistryVersion": "2026.08.11.1",
+  "runtimeContractLineageRegistryVersion": "2026.08.11.2",
   "mode": "selected_fail_closed",
   "modules": {
     "agent1_input_projection": {
