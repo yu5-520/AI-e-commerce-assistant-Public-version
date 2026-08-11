@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.11.3",
+  "version": "2026.08.11.4",
   "defaultProfile": "runtime_contract_lineage_repair",
   "profiles": {
     "runtime_contract_lineage_repair": {
-      "description": "Exact Unified-Registry -> Hash-Lineage -> runtime-contract repair scope. It permits only the canonical contract registry, its active runtime projection, strict hash/interface guards, the exact formal-signal -> Agent1 handoff inside the existing single worker, Agent3 exact-path semantic repair, completed-contract projection, Agent stage Artifact refs and structured current-state failure projection. The V22 runtime installer is allowed only for the exact authority correction that stops release-version projection from overwriting the immutable operating-evidence contract version; it must not add a new Signal Pool dependency or compatibility bridge. Runtime membership may change only when the added/removed file is explicitly allowlisted or owned by an explicitly allowed registry module. The competition handoff must preserve formal signalRef and identity, creates no second Worker/Queue and does not relax fail-closed hash checks. All unrelated production files, modules, nodes and special hashes remain fail-closed.",
+      "description": "Exact Unified-Registry -> Hash-Lineage -> runtime-contract repair scope. It permits only the canonical contract registry, its active runtime projection, strict hash/interface guards, the exact formal-signal Artifact materialization edge from the existing Signal Pool into Artifact Transport, the exact formal-signal -> Agent1 handoff inside the existing single worker, Agent3 exact-path semantic repair, completed-contract projection, Agent stage Artifact refs and structured current-state failure projection. The V22 runtime installer is allowed only for the exact authority correction that stops release-version projection from overwriting the immutable operating-evidence contract version; it must not add a new Signal Pool dependency or compatibility bridge. Signal Pool may call the existing Artifact Transport only to materialize the registered immutable signal.signal_ref after evidence-contract validation; it must preserve dataVersion, signalId, sourceSignalId, product/store identity and sourceRef, must not create a second queue/worker, and must fail closed when ART-* validation fails. Runtime membership may change only when the added/removed file is explicitly allowlisted or owned by an explicitly allowed registry module. The competition handoff must preserve formal signalRef and identity, creates no second Worker/Queue and does not relax fail-closed hash checks. All unrelated production files, modules, nodes and special hashes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -20,6 +20,7 @@
         "src/services/agent_token_runtime_v225_service.py",
         "src/services/agent_runtime_contract_v225_service.py",
         "src/services/artifact_transport_service.py",
+        "src/services/signal_pool_service.py",
         "src/services/pipeline_live_read_model_v225_service.py",
         "src/services/competition_signal_handoff_service.py",
         "src/services/station_agent_worker_v22515_service.py",
