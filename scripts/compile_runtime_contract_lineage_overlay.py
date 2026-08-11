@@ -176,7 +176,6 @@ def compile_overlay(
                 }
                 edges.add((node_id, fallback_id, "FORBIDS"))
 
-    # Interface input/output field bindings are first-class graph edges.
     for interface_id, raw in sorted(interfaces.items()):
         if not isinstance(raw, dict):
             continue
@@ -194,9 +193,6 @@ def compile_overlay(
                 continue
             edges.add((interface_node, field_node, "OUTPUTS"))
 
-    # Explicit contract lineage edges are the only place where hard pointer/reference
-    # semantics are declared.  This prevents factHash/contentHash/business keys from
-    # becoming false broken-parent alarms merely because they contain "hash" or "key".
     explicit_edges = registry.get("lineageEdges") or []
     if not isinstance(explicit_edges, list):
         findings.append("lineage_edges_invalid")
@@ -228,8 +224,6 @@ def compile_overlay(
         if edge_type in {"HARD_POINTER", "EXACT_REFERENCE_TRANSFER", "EXACT_HASH_DERIVATION"}:
             hard_edge_count += 1
 
-    # Impact edges let a single field/interface light all downstream contracts that
-    # must be reviewed when it changes, without pretending every impact is a pointer.
     impacts = registry.get("impacts") or []
     if not isinstance(impacts, list):
         findings.append("impacts_invalid")
@@ -334,7 +328,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--base-lineage",
-        default="dist/competition-contract-lineage/lineage-graph.json",
+        default="dist/competition-lineage/lineage-graph.json",
     )
     parser.add_argument(
         "--output",
