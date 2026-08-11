@@ -1,9 +1,9 @@
 {
   "agent3SystemConstraintVersion": "23.2.18",
   "agent2ProofBridgeVersion": "23.2.16",
-  "frontendViewRuntimeScopeVersion": "23.2.12",
+  "frontendViewRuntimeScopeVersion": "23.2.13",
   "runtimeContractLineageRegistryPath": "config/runtime_contract_lineage_registry_v1.json",
-  "runtimeContractLineageRegistryVersion": "2026.08.11.2",
+  "runtimeContractLineageRegistryVersion": "2026.08.11.3",
   "mode": "selected_fail_closed",
   "modules": {
     "agent1_input_projection": {
@@ -166,13 +166,22 @@
         "entity.tenant_id",
         "entity.store_id",
         "entity.product_id",
+        "canonical.set_snapshot_hash",
+        "product.product_registry_key",
+        "product.product_snapshot_hash",
+        "frontend.runtime_state_hash",
+        "frontend.module_business_hash",
         "frontend.module_content_hash",
+        "frontend.module_artifact_ref",
         "frontend.manifest_hash",
+        "frontend.manifest_artifact_ref",
         "agent3.failure_class"
       ],
       "implementationPaths": [
         "config/v23_registry_runtime.json",
         "src/api/routes/frontend_views.py",
+        "src/services/canonical_product_snapshot_service.py",
+        "src/services/system_product_snapshot_service.py",
         "src/services/frontend_view_artifact_v2259_service.py",
         "src/services/public_task_dto_service.py",
         "src/services/pipeline_live_read_model_v2258_service.py",
@@ -180,6 +189,7 @@
         "web_demo/index.html",
         "web_demo/bootstrap.js",
         "web_demo/core/router.js",
+        "web_demo/core/hash-view-client-v2259.js",
         "web_demo/core/task-read-model-v2082.js",
         "web_demo/modules/task-report/page.js",
         "web_demo/loading-ui.css"

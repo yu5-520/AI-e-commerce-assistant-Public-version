@@ -140,10 +140,12 @@ jobs:
           from pathlib import Path
           report = json.loads(Path('dist/frontend-runtime-hash-field-lineage-report.json').read_text(encoding='utf-8'))
           assert report.get('verified') is True, report.get('findings')
-          assert report.get('registeredFieldCount') == 10, report.get('registeredFieldCount')
+          assert report.get('registeredFieldCount') == 13, report.get('registeredFieldCount')
           assert not report.get('stalePredicateHits'), report.get('stalePredicateHits')
           consumers = set(report.get('consumerRuntimeFiles') or [])
           required = {
+              'src/services/canonical_product_snapshot_service.py',
+              'src/services/system_product_snapshot_service.py',
               'src/services/frontend_view_artifact_v2259_service.py',
               'src/services/pipeline_live_read_model_v225_service.py',
               'src/api/routes/frontend_views.py',
@@ -184,7 +186,12 @@ jobs:
           report = json.loads(Path('dist/frontend-runtime-hash-behavior-report.json').read_text(encoding='utf-8'))
           assert report.get('verified') is True, report
           assert report['runtime']['queuedHash'] != report['runtime']['completedHash'], report
+          assert report['runtime']['queuedHash'] != report['runtime']['canonicalChangedHash'], report
+          assert report['runtime']['canonicalSetSnapshotHash'] == 'sha256:canonical-b', report
           assert report['head']['changedManifest'] != report['head']['reusedManifest'], report
+          assert report['canonicalProducts']['signalAdmissionIndependent'] is True, report
+          assert report['canonicalProducts']['requiredFieldCount'] == 9, report
+          assert report['canonicalProducts']['requiredInterfaceCount'] == 4, report
           assert report['client']['missing'] == [], report
           print('frontendRuntimeHashBehavior=verified')
           PY

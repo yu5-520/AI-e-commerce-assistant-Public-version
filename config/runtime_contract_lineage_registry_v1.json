@@ -1,32 +1,32 @@
 {
   "schema": "runtime.contract_lineage.registry.v1",
-  "version": "2026.08.11.2",
+  "version": "2026.08.11.3",
   "mode": "fail_closed",
-  "description": "比赛生产链统一字段/接口/哈希血缘注册表。只有显式 hard_pointer/reference_transfer 才能作为断链错误；content_fingerprint 仅校验内容不可变，business_identity 仅校验跨版本身份稳定。legacyAliases 只读兼容，owner 唯一。",
+  "description": "比赛生产链统一字段/接口/哈希血缘注册表。只有显式 hard_pointer/reference_transfer 才能作为断链错误；content_fingerprint 仅校验内容不可变，business_identity 仅校验跨版本身份稳定。legacyAliases 只读兼容，owner 唯一。前端商品 Hash View 必须以 canonical product snapshot 为唯一商品事实源，Signal/Agent admission 不得拥有商品库存可见性。",
   "fields": {
     "entity.data_version": {
       "owner": "src.services.pipeline_item_service:build_item_envelope",
       "producers": ["src/services/product_signal_snapshot_service.py", "src/services/signal_pool_service.py", "src/services/pipeline_item_service.py"],
-      "consumers": ["src/services/competition_signal_handoff_service.py", "src/services/agent_input_transport_v2258_service.py", "src/services/agent_runtime_hard_interface_v22515_service.py", "src/services/pipeline_task_mapping_v225_service.py"],
+      "consumers": ["src/services/competition_signal_handoff_service.py", "src/services/agent_input_transport_v2258_service.py", "src/services/agent_runtime_hard_interface_v22515_service.py", "src/services/pipeline_task_mapping_v225_service.py", "src/services/system_product_snapshot_service.py", "src/services/frontend_view_artifact_v2259_service.py"],
       "legacyAliases": ["dataVersion", "data_version", "sourceDataVersion"],
       "semantic": "business_version_identity",
-      "invariants": ["must_be_transferred_exactly_across_competition_handoff", "latest_fallback_forbidden_when_explicit_version_exists"]
+      "invariants": ["must_be_transferred_exactly_across_competition_handoff", "latest_fallback_forbidden_when_explicit_version_exists", "frontend_products_must_bind_to_active_data_version_only"]
     },
     "entity.product_id": {
       "owner": "src.services.pipeline_item_service:build_item_envelope",
-      "producers": ["src/services/signal_pool_service.py", "src/services/pipeline_item_service.py"],
-      "consumers": ["src/services/competition_signal_handoff_service.py", "src/services/agent_input_transport_v2258_service.py", "src/services/pipeline_task_mapping_v225_service.py"],
+      "producers": ["src/services/signal_pool_service.py", "src/services/pipeline_item_service.py", "src/services/canonical_product_snapshot_service.py"],
+      "consumers": ["src/services/competition_signal_handoff_service.py", "src/services/agent_input_transport_v2258_service.py", "src/services/pipeline_task_mapping_v225_service.py", "src/services/system_product_snapshot_service.py", "src/services/frontend_view_artifact_v2259_service.py", "src/api/routes/frontend_views.py"],
       "legacyAliases": ["productId", "product_id", "entityId"],
       "semantic": "business_identity",
-      "invariants": ["must_not_be_regenerated_by_handoff"]
+      "invariants": ["must_not_be_regenerated_by_handoff", "frontend_visibility_must_not_depend_on_signal_admission"]
     },
     "entity.store_id": {
       "owner": "src.services.pipeline_item_service:build_item_envelope",
-      "producers": ["src/services/signal_pool_service.py", "src/services/pipeline_item_service.py"],
-      "consumers": ["src/services/competition_signal_handoff_service.py", "src/services/agent_input_transport_v2258_service.py", "src/services/pipeline_task_mapping_v225_service.py"],
+      "producers": ["src/services/signal_pool_service.py", "src/services/pipeline_item_service.py", "src/services/canonical_product_snapshot_service.py"],
+      "consumers": ["src/services/competition_signal_handoff_service.py", "src/services/agent_input_transport_v2258_service.py", "src/services/pipeline_task_mapping_v225_service.py", "src/services/system_product_snapshot_service.py", "src/services/frontend_view_artifact_v2259_service.py", "src/api/routes/frontend_views.py"],
       "legacyAliases": ["storeId", "store_id"],
       "semantic": "business_identity",
-      "invariants": ["must_not_be_regenerated_by_handoff"]
+      "invariants": ["must_not_be_regenerated_by_handoff", "store_filter_is_projection_after_canonical_inventory_resolution"]
     },
     "entity.signal_id": {
       "owner": "src.services.signal_pool_service",
@@ -55,10 +55,18 @@
     "canonical.snapshot_id": {
       "owner": "src.services.canonical_product_snapshot_service:materialize_canonical_product_snapshot",
       "producers": ["src/services/canonical_product_snapshot_service.py"],
-      "consumers": ["src/services/product_signal_snapshot_service.py"],
+      "consumers": ["src/services/product_signal_snapshot_service.py", "src/services/system_product_snapshot_service.py", "src/services/frontend_view_artifact_v2259_service.py"],
       "legacyAliases": ["snapshotId", "snapshot_id", "productSnapshotId"],
       "semantic": "hard_pointer_target",
-      "invariants": ["product_signal_current_and_previous_snapshot_ids_must_resolve_here"]
+      "invariants": ["product_signal_current_and_previous_snapshot_ids_must_resolve_here", "frontend_product_runtime_identity_may_read_metadata_only"]
+    },
+    "canonical.set_snapshot_hash": {
+      "owner": "src.services.canonical_product_snapshot_service:materialize_canonical_product_snapshot",
+      "producers": ["src/services/canonical_product_snapshot_service.py", "src/services/system_product_snapshot_service.py"],
+      "consumers": ["src/services/system_product_snapshot_service.py", "src/services/frontend_view_artifact_v2259_service.py", "src/api/routes/frontend_views.py", "web_demo/core/hash-view-client-v2259.js"],
+      "legacyAliases": ["setSnapshotHash", "snapshotHash", "canonicalProductSetSnapshotHash", "sourceSnapshotHash"],
+      "semantic": "content_fingerprint",
+      "invariants": ["hashes_sorted_productSnapshotHashes_for_one_dataVersion", "same_product_set_same_hash", "must_be_part_of_frontend_runtime_identity", "signal_admission_never_changes_this_hash"]
     },
     "signal.product_snapshot_id": {
       "owner": "src.services.product_signal_snapshot_service:materialize_product_signal_snapshot",
@@ -86,11 +94,19 @@
     },
     "product.product_registry_key": {
       "owner": "src.services.canonical_product_snapshot_service",
-      "producers": ["src/services/canonical_product_snapshot_service.py", "src/services/signal_pool_service.py"],
-      "consumers": ["src/services/competition_signal_handoff_service.py", "src/services/pipeline_task_mapping_v225_service.py"],
-      "legacyAliases": ["productRegistryKey", "product_registry_key"],
+      "producers": ["src/services/canonical_product_snapshot_service.py", "src/services/signal_pool_service.py", "src/services/system_product_snapshot_service.py"],
+      "consumers": ["src/services/competition_signal_handoff_service.py", "src/services/pipeline_task_mapping_v225_service.py", "src/services/system_product_snapshot_service.py", "src/services/frontend_view_artifact_v2259_service.py", "src/api/routes/frontend_views.py"],
+      "legacyAliases": ["productRegistryKey", "product_registry_key", "objectId"],
       "semantic": "business_identity",
-      "invariants": ["identity_key_is_not_a_parent_pointer", "must_remain_stable_across_data_versions_for_same_product"]
+      "invariants": ["identity_key_is_not_a_parent_pointer", "must_remain_stable_across_data_versions_for_same_product", "frontend_products_preserve_canonical_registry_key"]
+    },
+    "product.product_snapshot_hash": {
+      "owner": "src.services.canonical_product_snapshot_service:build_canonical_product_snapshot_item",
+      "producers": ["src/services/canonical_product_snapshot_service.py", "src/services/system_product_snapshot_service.py"],
+      "consumers": ["src/services/system_product_snapshot_service.py", "src/services/frontend_view_artifact_v2259_service.py", "src/api/routes/frontend_views.py", "src/api/routes/modules/product_detail_v2256.py", "src/services/task_snapshot_station_service.py"],
+      "legacyAliases": ["productSnapshotHash", "snapshotHash", "parentSnapshotHash"],
+      "semantic": "content_fingerprint",
+      "invariants": ["one_immutable_product_fact_version_one_hash", "hash_is_not_product_identity", "frontend_products_must_preserve_hash_exactly", "task_and_product_detail_resolve_same_hash"]
     },
     "canonical.fact_hash": {
       "owner": "src.services.canonical_product_snapshot_service",
@@ -103,7 +119,7 @@
     "artifact.content_hash": {
       "owner": "src.services.artifact_registry_service",
       "producers": ["src/services/artifact_registry_service.py", "src/services/artifact_transport_service.py"],
-      "consumers": ["src/services/agent_input_transport_v2258_service.py", "src/services/hash_directed_artifact_runtime_v2259_service.py"],
+      "consumers": ["src/services/agent_input_transport_v2258_service.py", "src/services/hash_directed_artifact_runtime_v2259_service.py", "src/services/frontend_view_artifact_v2259_service.py"],
       "legacyAliases": ["contentHash", "content_hash", "sourceContentHash"],
       "semantic": "content_fingerprint",
       "invariants": ["not_a_foreign_pointer", "immutable_artifact_content_hash_never_rebound"]
@@ -252,21 +268,53 @@
       "semantic": "validation_result",
       "invariants": ["cross_family_contamination_is_not_output_format_error", "system_fact_converted_to_action_is_not_output_format_error"]
     },
+    "frontend.runtime_state_hash": {
+      "owner": "src.services.frontend_view_artifact_v2259_service:_runtime_state",
+      "producers": ["src/services/frontend_view_artifact_v2259_service.py"],
+      "consumers": ["src/services/frontend_view_artifact_v2259_service.py", "src/api/routes/frontend_views.py", "web_demo/core/hash-view-client-v2259.js"],
+      "legacyAliases": ["runtimeStateHash", "observedRuntimeStateHash"],
+      "semantic": "content_fingerprint",
+      "invariants": ["includes_active_pipeline_state", "includes_canonical_set_snapshot_hash", "reset_with_no_active_dataVersion_cannot_reuse_historical_products"]
+    },
+    "frontend.module_business_hash": {
+      "owner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
+      "producers": ["src/services/frontend_view_artifact_v2259_service.py"],
+      "consumers": ["src/services/frontend_view_artifact_v2259_service.py"],
+      "legacyAliases": ["businessContentHash"],
+      "semantic": "content_fingerprint",
+      "invariants": ["stable_payload_only", "products_hash_changes_when_canonical_projection_changes"]
+    },
     "frontend.module_content_hash": {
       "owner": "src.services.frontend_view_artifact_v2259_service",
-      "producers": ["src/services/frontend_view_artifact_v2259_service.py"],
-      "consumers": ["src/api/routes/frontend_views.py"],
-      "legacyAliases": ["moduleContentHash", "contentHash"],
+      "producers": ["src/services/frontend_view_artifact_v2259_service.py", "src/services/artifact_transport_service.py"],
+      "consumers": ["src/api/routes/frontend_views.py", "web_demo/core/hash-view-client-v2259.js"],
+      "legacyAliases": ["moduleContentHash", "moduleHash", "contentHash"],
       "semantic": "content_fingerprint",
-      "invariants": ["not_a_foreign_pointer"]
+      "invariants": ["not_a_foreign_pointer", "must_validate_against_immutable_module_artifact"]
+    },
+    "frontend.module_artifact_ref": {
+      "owner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
+      "producers": ["src/services/frontend_view_artifact_v2259_service.py", "src/services/artifact_transport_service.py"],
+      "consumers": ["src/services/frontend_view_artifact_v2259_service.py", "src/api/routes/frontend_views.py", "web_demo/core/hash-view-client-v2259.js"],
+      "legacyAliases": ["moduleArtifactRef", "artifactRef"],
+      "semantic": "immutable_artifact_reference",
+      "invariants": ["must_start_with_ART", "manifest_may_reference_only_materialized_module_artifacts"]
     },
     "frontend.manifest_hash": {
       "owner": "src.services.frontend_view_artifact_v2259_service",
-      "producers": ["src/services/frontend_view_artifact_v2259_service.py"],
-      "consumers": ["src/api/routes/frontend_views.py"],
+      "producers": ["src/services/frontend_view_artifact_v2259_service.py", "src/services/artifact_transport_service.py"],
+      "consumers": ["src/api/routes/frontend_views.py", "web_demo/core/hash-view-client-v2259.js"],
       "legacyAliases": ["manifestHash"],
       "semantic": "content_fingerprint",
-      "invariants": ["manifest_switch_is_atomic"]
+      "invariants": ["manifest_switch_is_atomic", "manifest_hash_changes_when_runtime_or_module_identity_changes"]
+    },
+    "frontend.manifest_artifact_ref": {
+      "owner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
+      "producers": ["src/services/frontend_view_artifact_v2259_service.py", "src/services/artifact_transport_service.py"],
+      "consumers": ["src/services/frontend_view_artifact_v2259_service.py", "src/api/routes/frontend_views.py", "web_demo/core/hash-view-client-v2259.js"],
+      "legacyAliases": ["manifestRef"],
+      "semantic": "immutable_artifact_reference",
+      "invariants": ["must_start_with_ART", "head_switch_is_atomic", "browser_fetches_only_current_authorized_manifest"]
     },
     "registry.root_hash": {
       "owner": "src.services.registry_runtime_receipt_v23_service",
@@ -327,6 +375,38 @@
       "consumers": ["src/services/agent_token_runtime_v225_service.py"],
       "repairPolicy": "one_provider_attempt_exact_paths_only_then_same_validator",
       "directMutationForbidden": ["operatorActionSteps"]
+    },
+    "canonical.product.view.project": {
+      "owner": "src.services.system_product_snapshot_service:read_canonical_product_views",
+      "consumers": ["src/services/frontend_view_artifact_v2259_service.py", "src/api/routes/frontend_views.py"],
+      "inputFields": ["entity.data_version", "entity.store_id", "canonical.set_snapshot_hash"],
+      "outputFields": ["entity.product_id", "entity.store_id", "product.product_registry_key", "product.product_snapshot_hash", "canonical.set_snapshot_hash"],
+      "repairPolicy": "canonical_product_snapshot_is_single_frontend_product_inventory_source",
+      "invariants": ["all_registered_products_visible_independent_of_signal_admission", "no_signal_snapshot_fallback", "no_agent_output_fallback"]
+    },
+    "frontend.products.module.materialize": {
+      "owner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
+      "consumers": ["src/api/routes/frontend_views.py", "web_demo/core/hash-view-client-v2259.js"],
+      "inputFields": ["entity.data_version", "entity.tenant_id", "canonical.set_snapshot_hash", "product.product_registry_key", "product.product_snapshot_hash", "frontend.runtime_state_hash"],
+      "outputFields": ["frontend.module_business_hash", "frontend.module_content_hash", "frontend.module_artifact_ref"],
+      "repairPolicy": "materialize_immutable_products_artifact_from_canonical_projection_only",
+      "invariants": ["sourceSnapshotHash_equals_canonical_set_snapshot_hash", "product_count_is_canonical_inventory_count", "signal_admission_count_cannot_reduce_product_count"]
+    },
+    "frontend.manifest.publish": {
+      "owner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
+      "consumers": ["src/api/routes/frontend_views.py", "web_demo/core/hash-view-client-v2259.js"],
+      "inputFields": ["entity.data_version", "frontend.runtime_state_hash", "frontend.module_content_hash", "frontend.module_artifact_ref", "canonical.set_snapshot_hash"],
+      "outputFields": ["frontend.manifest_hash", "frontend.manifest_artifact_ref"],
+      "repairPolicy": "atomic_manifest_publish_after_all_immutable_modules_exist",
+      "invariants": ["manifest_parents_are_exact_module_artifact_refs", "head_switch_is_atomic", "canonical_product_set_hash_is_manifest_identity"]
+    },
+    "frontend.hash.products.read": {
+      "owner": "src.services.frontend_view_artifact_v2259_service:read_frontend_view_artifact_v2259",
+      "consumers": ["web_demo/core/hash-view-client-v2259.js"],
+      "inputFields": ["frontend.manifest_artifact_ref", "frontend.manifest_hash", "frontend.module_artifact_ref", "frontend.module_content_hash", "frontend.runtime_state_hash"],
+      "outputFields": ["canonical.set_snapshot_hash", "product.product_registry_key", "product.product_snapshot_hash", "entity.product_id", "entity.store_id"],
+      "repairPolicy": "content_addressed_manifest_then_module_read_no_legacy_product_read_model_fallback",
+      "invariants": ["head_is_no_store", "immutable_artifacts_are_hash_cacheable", "manifest_scope_must_match_operator", "products_payload_remains_canonical"]
     }
   },
   "lineageEdges": [
@@ -338,13 +418,30 @@
     {"from": "artifact.content_hash", "to": "execution.input_content_hash", "type": "EXACT_HASH_DERIVATION", "required": true},
     {"from": "product.product_registry_key", "to": "entity.product_id", "type": "IDENTITY_IMPACT", "required": false},
     {"from": "entity.data_version", "to": "competition.signal.handoff", "type": "EXACT_VALUE_TRANSFER", "required": true},
-    {"from": "entity.data_version", "to": "agent1.input.project", "type": "EXACT_VALUE_TRANSFER", "required": true}
+    {"from": "entity.data_version", "to": "agent1.input.project", "type": "EXACT_VALUE_TRANSFER", "required": true},
+    {"from": "product.product_snapshot_hash", "to": "canonical.set_snapshot_hash", "type": "HASH_AGGREGATION", "required": true},
+    {"from": "canonical.product.view.project", "to": "frontend.products.module.materialize", "type": "INTERFACE_HANDOFF", "required": true},
+    {"from": "canonical.set_snapshot_hash", "to": "frontend.runtime_state_hash", "type": "HASH_IDENTITY_INPUT", "required": true},
+    {"from": "canonical.set_snapshot_hash", "to": "frontend.module_business_hash", "type": "CONTENT_HASH_INPUT", "required": true},
+    {"from": "frontend.module_business_hash", "to": "frontend.module_content_hash", "type": "ARTIFACT_HASH_DERIVATION", "required": true},
+    {"from": "frontend.module_content_hash", "to": "frontend.manifest_hash", "type": "MANIFEST_HASH_INPUT", "required": true},
+    {"from": "frontend.runtime_state_hash", "to": "frontend.manifest_hash", "type": "MANIFEST_HASH_INPUT", "required": true},
+    {"from": "frontend.module_artifact_ref", "to": "frontend.manifest_artifact_ref", "type": "PARENT_REFERENCE", "required": true},
+    {"from": "frontend.manifest_artifact_ref", "to": "frontend.hash.products.read", "type": "EXACT_REFERENCE_TRANSFER", "required": true},
+    {"from": "frontend.module_artifact_ref", "to": "frontend.hash.products.read", "type": "EXACT_REFERENCE_TRANSFER", "required": true},
+    {"from": "frontend.manifest.publish", "to": "frontend.hash.products.read", "type": "INTERFACE_HANDOFF", "required": true}
   ],
   "impacts": [
     {"source": "signal.signal_ref", "targets": ["competition.signal.handoff", "agent1.input.project", "execution.input_artifact_ref", "execution.input_content_hash", "execution.item_execution_id"]},
-    {"source": "entity.data_version", "targets": ["competition.signal.handoff", "agent1.input.project", "agent1.operating_judgment", "agent2.action_draft", "agent3.execution_steps"]},
-    {"source": "product.product_registry_key", "targets": ["competition.signal.handoff", "entity.product_id", "agent1.operating_judgment", "agent3.execution_steps"]},
+    {"source": "entity.data_version", "targets": ["competition.signal.handoff", "agent1.input.project", "agent1.operating_judgment", "agent2.action_draft", "agent3.execution_steps", "canonical.product.view.project", "frontend.runtime_state_hash", "frontend.products.module.materialize", "frontend.manifest.publish"]},
+    {"source": "product.product_registry_key", "targets": ["competition.signal.handoff", "entity.product_id", "agent1.operating_judgment", "agent3.execution_steps", "canonical.product.view.project", "frontend.products.module.materialize"]},
     {"source": "canonical.snapshot_id", "targets": ["signal.product_snapshot_id", "signal.previous_snapshot_id", "signal.signal_ref"]},
+    {"source": "product.product_snapshot_hash", "targets": ["canonical.set_snapshot_hash", "canonical.product.view.project", "frontend.products.module.materialize", "frontend.module_business_hash", "frontend.module_content_hash", "frontend.manifest_hash"]},
+    {"source": "canonical.set_snapshot_hash", "targets": ["canonical.product.view.project", "frontend.runtime_state_hash", "frontend.products.module.materialize", "frontend.module_business_hash", "frontend.module_content_hash", "frontend.manifest_hash", "frontend.hash.products.read"]},
+    {"source": "frontend.runtime_state_hash", "targets": ["frontend.manifest.publish", "frontend.manifest_hash", "frontend.hash.products.read"]},
+    {"source": "frontend.module_business_hash", "targets": ["frontend.module_content_hash", "frontend.manifest.publish", "frontend.manifest_hash"]},
+    {"source": "frontend.module_content_hash", "targets": ["frontend.manifest.publish", "frontend.manifest_hash", "frontend.hash.products.read"]},
+    {"source": "frontend.manifest_hash", "targets": ["frontend.hash.products.read"]},
     {"source": "execution.input_content_hash", "targets": ["execution.item_execution_id", "agent1.operating_judgment", "agent2.draft_execution_proof", "agent3.execution_steps"]}
   ],
   "repairClasses": {
@@ -353,7 +450,8 @@
     "runtime_interface_owner_mismatch": {"repairable": true, "repairMode": "registry_owner_alias_forward"},
     "exact_hash_identity_mismatch": {"repairable": false, "repairMode": "reject"},
     "hard_pointer_missing": {"repairable": false, "repairMode": "reject_and_report_exact_registered_edge"},
-    "competition_signal_handoff_missing": {"repairable": true, "repairMode": "seed_exact_signalRef_into_agent1_pending"}
+    "competition_signal_handoff_missing": {"repairable": true, "repairMode": "seed_exact_signalRef_into_agent1_pending"},
+    "frontend_products_source_split": {"repairable": true, "repairMode": "canonical_snapshot_single_root_rematerialize_hash_view"}
   },
   "globalInvariants": [
     "registry_owner_is_unique",
@@ -364,6 +462,10 @@
     "business_identity_is_not_a_parent_pointer",
     "competition_signal_handoff_preserves_signalRef_and_dataVersion_exactly",
     "competition_signal_handoff_does_not_create_second_worker_or_queue",
+    "frontend_products_artifact_uses_canonical_snapshot_only",
+    "signal_admission_never_controls_product_inventory",
+    "frontend_head_runtime_hash_includes_canonical_product_set_hash",
+    "frontend_product_module_hash_chain_is_content_addressed",
     "agent3_repair_can_only_mutate_validator_named_paths",
     "agent3_repair_must_rerun_the_same_system_validator",
     "legacy_aliases_are_read_compatibility_only",
