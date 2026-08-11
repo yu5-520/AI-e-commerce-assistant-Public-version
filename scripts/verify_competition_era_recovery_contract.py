@@ -179,10 +179,18 @@ def _history() -> dict[str, Any]:
             "products": [trend_bridge._slim_product(matched)],
         }
 
+    original_epoch = trend_bridge.current_competition_history_epoch
     original_metadata = trend_bridge._history_metadata
     original_slim = trend_bridge._slim_snapshot_for_product
+    fixture_epoch = {
+        "epochId": "HIST-EPOCH-ERA-RECOVERY",
+        "startedAt": "2026-06-25T00:00:00",
+        "bootstrapMode": "fixture_three_report_current_epoch",
+        "archivePreserved": True,
+    }
     try:
-        trend_bridge._history_metadata = lambda limit=120: list(metadata)
+        trend_bridge.current_competition_history_epoch = lambda: dict(fixture_epoch)
+        trend_bridge._history_metadata = lambda epoch_started_at, limit=120: list(metadata)
         trend_bridge._slim_snapshot_for_product = fake_slim_snapshot
         trend_bridge._CACHE.clear()
         trend = trend_bridge.read_canonical_product_trend(
@@ -195,6 +203,7 @@ def _history() -> dict[str, Any]:
             "missing", store_id="TB-SH-001", user_id="competition-recovery-probe"
         )
     finally:
+        trend_bridge.current_competition_history_epoch = original_epoch
         trend_bridge._history_metadata = original_metadata
         trend_bridge._slim_snapshot_for_product = original_slim
         trend_bridge._CACHE.clear()
@@ -204,8 +213,12 @@ def _history() -> dict[str, Any]:
         "ready": trend.get("ready") is True,
         "canonicalAuthority": trend.get("snapshotAuthority") == "canonical_product_snapshot_sets_v1",
         "legacyFallbackDisabled": trend.get("legacySnapshotFallbackUsed") is False,
-        "boundedSingleProductScan": trend.get("historyScanMode") == "metadata_then_single_row_single_product"
+        "boundedSingleProductScan": trend.get("historyScanMode") == "epoch_metadata_then_single_row_single_product"
         and trend.get("wholeSnapshotRetention") is False,
+        "currentEpochOnly": trend.get("historyEpochId") == fixture_epoch["epochId"]
+        and trend.get("historyScope") == "current_competition_runtime_epoch"
+        and trend.get("crossEpochHistoryAllowed") is False,
+        "archivePreserved": trend.get("canonicalArchivePreserved") is True,
         "threeValidSnapshots": _dict(trend.get("observationSummary")).get("validSnapshotCount") == 3,
         "threeDataVersions": [item.get("dataVersion") for item in recent] == ["DV-1", "DV-2", "DV-3"],
         "sameStoreOnly": _dict(trend.get("product")).get("storeId") == "TB-SH-001",
@@ -220,6 +233,8 @@ def _history() -> dict[str, Any]:
         "businessDates": [item.get("businessDate") for item in recent],
         "storeId": _dict(trend.get("product")).get("storeId"),
         "skuId": _dict(trend.get("product")).get("skuId"),
+        "historyEpochId": trend.get("historyEpochId"),
+        "historyScope": trend.get("historyScope"),
         "historyScanMode": trend.get("historyScanMode"),
         "wholeSnapshotRetention": trend.get("wholeSnapshotRetention"),
         "assertions": assertions,
@@ -277,6 +292,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ],
                 "canonicalHistoryVerified": report["canonicalHistory"]["verified"],
                 "canonicalDataVersions": report["canonicalHistory"]["dataVersions"],
+                "historyEpochId": report["canonicalHistory"].get("historyEpochId"),
+                "historyScope": report["canonicalHistory"].get("historyScope"),
                 "historyScanMode": report["canonicalHistory"].get("historyScanMode"),
                 "wholeSnapshotRetention": report["canonicalHistory"].get("wholeSnapshotRetention"),
             },
