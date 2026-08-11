@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from src.runtime_version import OPERATING_EVIDENCE_CONTRACT_VERSION, VERSION
+from src.runtime_version import VERSION
 
 _INSTALLED = False
 
@@ -80,7 +80,6 @@ def install_v22_runtime() -> None:
     from src.services import real_product_judgment_agent_v196_service as agent1
     from src.services import report_alert_service as report_alert
     from src.services import report_schema_service as report_schema
-    from src.services import signal_pool_service as signal_pool
     from src.services import sop_builder_core_v20_service as sop
     from src.services import station_adapter_service as station_adapter
     from src.services import station_contract_service as station_contract
@@ -259,7 +258,6 @@ def install_v22_runtime() -> None:
     pipeline.agent_pipeline_status = agent_pipeline_status_v22
 
     version_fields = {
-        report_evidence: ("V215_VERSION",),
         observation_install: ("V216_VERSION",),
         observation: ("OBSERVATION_EXPERIMENT_VERSION", "V216_VERSION"),
         task_evidence_install: ("TASK_METRIC_EVIDENCE_PROJECTION_VERSION",),
@@ -335,47 +333,6 @@ def install_v22_runtime() -> None:
         _set_version(module, *names)
         module.V22_RUNTIME_VERSION = VERSION
         module.V22_SINGLE_RUNTIME = True
-
-    evidence_contract_version = OPERATING_EVIDENCE_CONTRACT_VERSION
-    original_build_cross_validation = report_evidence.build_cross_validation
-    original_score_cross_validated_signal = report_evidence.score_cross_validated_signal
-
-    def build_cross_validation_v22(
-        current_item: Dict[str, Any],
-        history_items: Any,
-    ) -> Dict[str, Any]:
-        cross = dict(original_build_cross_validation(current_item, history_items) or {})
-        cross["version"] = evidence_contract_version
-        cross["contract"] = "operatingEvidenceGraph.v1"
-        cross["producerVersion"] = VERSION
-        return cross
-
-    def score_cross_validated_signal_v22(
-        signal: Dict[str, Any],
-        fallback: Any,
-    ) -> Dict[str, Any]:
-        payload = signal.get("payload") if isinstance(signal.get("payload"), dict) else signal
-        if not isinstance(payload, dict):
-            return fallback(signal)
-        cross = payload.get("crossValidation")
-        if not isinstance(cross, dict) or cross.get("version") != evidence_contract_version:
-            return fallback(signal)
-        runtime_cross = dict(cross)
-        runtime_cross["version"] = report_evidence.V215_VERSION
-        runtime_payload = dict(payload)
-        runtime_payload["crossValidation"] = runtime_cross
-        runtime_signal = dict(signal)
-        runtime_signal["payload"] = runtime_payload
-        return original_score_cross_validated_signal(runtime_signal, fallback)
-
-    report_evidence.build_cross_validation = build_cross_validation_v22
-    report_evidence.score_cross_validated_signal = score_cross_validated_signal_v22
-    report_evidence.OPERATING_EVIDENCE_CONTRACT_VERSION = evidence_contract_version
-
-    signal_pool.EXPECTED_EVIDENCE_VERSION = evidence_contract_version
-    signal_pool.EXPECTED_EVIDENCE_CONTRACT = "operatingEvidenceGraph.v1"
-    signal_pool.V22_RUNTIME_VERSION = VERSION
-    signal_pool.V22_SINGLE_RUNTIME = True
 
     from src.services import station_queue_worker_service as station_worker
 
