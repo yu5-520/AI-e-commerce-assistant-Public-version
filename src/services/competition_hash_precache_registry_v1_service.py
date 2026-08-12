@@ -1,12 +1,12 @@
 """Unified layered semantic-hash precache for the competition deterministic chain.
 
-This module does not replace any strict Hash Lineage identity.  Existing
+This module does not replace any strict Hash Lineage identity. Existing
 productSnapshotHash/setSnapshotHash/evidenceInputHash/Artifact content hashes and Agent
-ExecutionHash values remain the current-run authority.  The additional semantic hashes
+ExecutionHash values remain the current-run authority. The additional semantic hashes
 exist only to answer one question: has the same business computation already been
 performed under the same registered compute contract?
 
-A semantic hit reuses only an immutable business body.  Callers must rebind the current
+A semantic hit reuses only an immutable business body. Callers must rebind the current
 ``dataVersion`` and create current strict Artifacts/Execution identities before the
 result is allowed downstream.
 """
@@ -25,8 +25,8 @@ HASH_PRECACHE_SCHEMA = "competition.hash_precache.index.v1"
 HASH_PRECACHE_TABLE = "competition_hash_precache_v1"
 HASH_PRECACHE_ARTIFACT_TYPE = "competition.pre_agent_semantic_cache"
 
-# These values identify one execution/transport instance rather than business meaning.
-# They must never make two identical evaluator report sequences miss the semantic cache.
+# Execution/transport/strict-lineage identities are deliberately excluded. The semantic
+# key is a sibling of strict Hash Lineage, never a replacement for it.
 SEMANTIC_EXCLUDED_KEYS = {
     "dataVersion",
     "data_version",
@@ -47,14 +47,21 @@ SEMANTIC_EXCLUDED_KEYS = {
     "executionHash",
     "ExecutionHash",
     "inputContentHash",
+    "contentHash",
+    "sourceContentHash",
+    "sourceContentHashes",
+    "productSnapshotHash",
+    "snapshotHash",
+    "parentSnapshotHash",
+    "setSnapshotHash",
+    "projectionHash",
+    "observationHash",
+    "factHash",
     "artifactRefs",
     "sourceArtifactRefs",
     "sourceReportRef",
     "sourceReportRefs",
     "sourceArtifactRef",
-    "sourceArtifactRefs",
-    "sourceContentHash",
-    "sourceContentHashes",
     "permissionStampId",
     "permissionScopeRef",
     "factRefs",
@@ -89,12 +96,7 @@ def stable_sha256(value: Any) -> str:
 
 
 def semantic_projection(value: Any) -> Any:
-    """Remove execution-only identities while preserving business semantics.
-
-    Lists are kept in their original business order.  Dict keys are canonically sorted
-    by ``stable_json`` when hashed, so no mutation is required here.
-    """
-
+    """Remove execution-only identities while preserving business semantics."""
     if isinstance(value, dict):
         result: Dict[str, Any] = {}
         for key, child in value.items():
@@ -103,7 +105,6 @@ def semantic_projection(value: Any) -> Any:
                 continue
             projected = semantic_projection(child)
             if projected in (None, "", [], {}):
-                # Preserve explicit zero/False but drop empty transport noise.
                 if child not in (0, False):
                     continue
             result[name] = projected
@@ -158,9 +159,6 @@ def input_sequence_hash(
     *,
     contract: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
-    # History is supplied newest-first by the Evidence runtime.  For the semantic input
-    # sequence we retain that order explicitly; repeated H1/H2/H3 business sequences are
-    # therefore stable even when their runtime dataVersion values are regenerated.
     history_items = [item for item in history if isinstance(item, dict)]
     current_hash = canonical_semantic_hash(current, contract=contract)
     history_hashes = [canonical_semantic_hash(item, contract=contract) for item in history_items]
