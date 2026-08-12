@@ -1,0 +1,54 @@
+{
+  "schema": "task.evidence.canonical_history.repair.v1",
+  "version": "1.0.0",
+  "runtimeContractLineageRegistryVersion": "2026.08.12.2",
+  "mode": "fail_closed",
+  "rootCause": "task evidence materialization still consumed retired system_product_snapshots_v14 while canonical_product_snapshot_sets_v1 was the registered product fact root",
+  "allowedSnapshotAuthority": "canonical_product_snapshot_sets_v1",
+  "forbiddenSnapshotAuthorities": [
+    "system_product_snapshots_v14"
+  ],
+  "runtimeFiles": [
+    "src/services/task_evidence_canonical_history_v1_service.py",
+    "src/services/task_evidence_canonical_history_install_v1_service.py",
+    "src/services/canonical_product_trend_v2_service.py",
+    "src/services/task_metric_evidence_projection_v2178_service.py",
+    "src/services/task_detail_snapshot_v2024_service.py",
+    "src/__init__.py"
+  ],
+  "installOrder": [
+    "src.services.v22_runtime_service:install_v22_runtime",
+    "src.services.task_evidence_canonical_history_install_v1_service:install_task_evidence_canonical_history_v1"
+  ],
+  "invariants": [
+    "canonical_product_snapshot_is_single_task_evidence_history_root",
+    "task_evidence_never_reads_system_product_snapshots_v14",
+    "current_competition_history_epoch_is_preserved",
+    "explicit_task_dataVersion_missing_from_current_epoch_fails_closed",
+    "task_creation_time_boundary_excludes_later_canonical_observations",
+    "one_product_is_read_from_one_canonical_snapshot_row_at_a_time",
+    "whole_multi_product_history_is_never_retained_for_task_evidence",
+    "two_or_more_valid_frozen_observations_are_still_required_for_execution",
+    "agent1_agent2_agent3_and_task_admission_are_unchanged",
+    "old_task_detail_materializations_become_stale_without_deleting_task_hash_or_canonical_facts"
+  ],
+  "staleMaterialization": {
+    "previousSourceVersion": "22.4.0",
+    "replacementSourceVersion": "22.4.0-task-evidence-canonical-v1",
+    "rebuildAuthority": "task_status_read_through",
+    "deleteFacts": false
+  },
+  "projection": {
+    "version": "22.4.0-canonical-history-v1",
+    "requiredLineageFields": [
+      "snapshotAuthority",
+      "historyEpochId",
+      "historyIdentityHash",
+      "historyBoundarySourceDataVersion",
+      "historyBoundaryFrozenAt",
+      "historyMatchedProductId",
+      "legacySnapshotFallbackUsed",
+      "wholeSnapshotRetention"
+    ]
+  }
+}

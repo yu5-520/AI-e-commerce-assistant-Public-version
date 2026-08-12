@@ -116,23 +116,43 @@ jobs:
               PROFILE="runtime_contract_lineage_repair"
               POLICY="governance/runtime_contract_lineage_repair_policy.json"
             else
-              PRECACHE_CHANGED=0
+              TASK_EVIDENCE_REPAIR_CHANGED=0
               for relative in \
-                config/competition_hash_precache_registry_v1.json \
-                src/services/competition_hash_precache_registry_v1_service.py \
-                src/services/competition_evidence_v215_runtime_service.py; do
+                governance/task_evidence_canonical_history_repair_v1.json \
+                src/services/task_evidence_canonical_history_v1_service.py \
+                src/services/task_evidence_canonical_history_install_v1_service.py \
+                scripts/verify_task_evidence_canonical_history.py; do
                 if [ ! -f "$TARGET_EXTRACTED/$relative" ]; then
                   continue
                 fi
                 if [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; then
-                  PRECACHE_CHANGED=1
+                  TASK_EVIDENCE_REPAIR_CHANGED=1
                   break
                 fi
               done
-              if [ "$PRECACHE_CHANGED" = "1" ]; then
-                test -f "$TARGET_EXTRACTED/governance/competition_hash_precache_lineage_policy.json"
-                PROFILE="hash_precache_registry"
-                POLICY="governance/competition_hash_precache_lineage_policy.json"
+              if [ "$TASK_EVIDENCE_REPAIR_CHANGED" = "1" ]; then
+                test -f "$TARGET_EXTRACTED/governance/task_evidence_canonical_history_repair_v1.json"
+                PROFILE="runtime_contract_lineage_repair"
+                POLICY="governance/runtime_contract_lineage_repair_policy.json"
+              else
+                PRECACHE_CHANGED=0
+                for relative in \
+                  config/competition_hash_precache_registry_v1.json \
+                  src/services/competition_hash_precache_registry_v1_service.py \
+                  src/services/competition_evidence_v215_runtime_service.py; do
+                  if [ ! -f "$TARGET_EXTRACTED/$relative" ]; then
+                    continue
+                  fi
+                  if [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; then
+                    PRECACHE_CHANGED=1
+                    break
+                  fi
+                done
+                if [ "$PRECACHE_CHANGED" = "1" ]; then
+                  test -f "$TARGET_EXTRACTED/governance/competition_hash_precache_lineage_policy.json"
+                  PROFILE="hash_precache_registry"
+                  POLICY="governance/competition_hash_precache_lineage_policy.json"
+                fi
               fi
             fi
           fi
