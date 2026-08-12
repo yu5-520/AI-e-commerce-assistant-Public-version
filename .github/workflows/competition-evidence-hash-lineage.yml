@@ -133,10 +133,11 @@ jobs:
           assert report.get('verified') is True, report
           assert report['services']['forbiddenRuntimeRescanHits'] == {'snapshot': [], 'bridge': [], 'station': []}, report
           assert report['services']['legacyV215WrapperActive'] is False, report
-          assert report['registry']['registryVersion'] == '2026.08.12.1', report
+          assert report['registry']['registryVersion'] == '2026.08.12.2', report
           assert report['registry']['runtimeModule'] == 'signal_admission', report
           assert report['registry']['runtimeScopeVersion'] == '23.2.15', report
           assert report['registry']['v215BridgePathRegistered'] is True, report
+          assert report['registry']['v215OverlayInterfaceRegistered'] is True, report
           assert report['registry']['evidenceContractVersion'] == '21.5.0', report
           print('competitionEvidenceHashLineage=verified')
           PY
