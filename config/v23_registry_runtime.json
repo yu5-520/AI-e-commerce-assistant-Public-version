@@ -4,7 +4,7 @@
   "frontendViewRuntimeScopeVersion": "23.2.13",
   "evidenceHashRuntimeScopeVersion": "23.2.15",
   "runtimeContractLineageRegistryPath": "config/runtime_contract_lineage_registry_v1.json",
-  "runtimeContractLineageRegistryVersion": "2026.08.12.1",
+  "runtimeContractLineageRegistryVersion": "2026.08.12.2",
   "mode": "selected_fail_closed",
   "modules": {
     "signal_admission": {
