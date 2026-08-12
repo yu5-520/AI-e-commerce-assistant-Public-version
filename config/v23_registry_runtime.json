@@ -2,10 +2,46 @@
   "agent3SystemConstraintVersion": "23.2.18",
   "agent2ProofBridgeVersion": "23.2.16",
   "frontendViewRuntimeScopeVersion": "23.2.13",
+  "evidenceHashRuntimeScopeVersion": "23.2.14",
   "runtimeContractLineageRegistryPath": "config/runtime_contract_lineage_registry_v1.json",
-  "runtimeContractLineageRegistryVersion": "2026.08.11.3",
+  "runtimeContractLineageRegistryVersion": "2026.08.12.1",
   "mode": "selected_fail_closed",
   "modules": {
+    "signal_admission": {
+      "fieldIds": [
+        "entity.data_version",
+        "entity.product_id",
+        "entity.store_id",
+        "entity.signal_id",
+        "canonical.snapshot_id",
+        "canonical.set_snapshot_hash",
+        "product.product_registry_key",
+        "product.product_snapshot_hash",
+        "evidence.history_epoch_id",
+        "evidence.current_set_snapshot_hash",
+        "evidence.current_observation_hash",
+        "evidence.previous_set_snapshot_hashes",
+        "evidence.previous_observation_hashes",
+        "evidence.contract_version",
+        "evidence.input_hash",
+        "evidence.full_product_bundle_ref",
+        "evidence.validated_bundle_ref",
+        "signal.signal_ref",
+        "artifact.content_hash"
+      ],
+      "implementationPaths": [
+        "config/runtime_contract_lineage_registry_v1.json",
+        "src/services/canonical_product_snapshot_service.py",
+        "src/services/canonical_product_trend_v2_service.py",
+        "src/services/product_signal_snapshot_service.py",
+        "src/services/station_alignment_v225_service.py",
+        "src/services/station_business_artifact_service.py",
+        "src/services/artifact_transport_service.py",
+        "src/services/artifact_signal_admission_v225_service.py"
+      ],
+      "runner": "src.services.artifact_signal_admission_v225_service:product_signal_admission_station_v225",
+      "schemaIds": []
+    },
     "agent1_input_projection": {
       "fieldIds": [
         "execution.input_artifact_ref",
@@ -258,6 +294,7 @@
   "releaseVersion": "23.0.0",
   "requiredModules": [
     "release_governance",
+    "signal_admission",
     "agent1_input_projection",
     "agent1_runtime",
     "agent2_runtime",
