@@ -1,0 +1,89 @@
+name: Competition Hash Precache Registry
+
+on:
+  pull_request:
+    paths:
+      - 'config/competition_hash_precache_registry_v1.json'
+      - 'src/services/competition_hash_precache_registry_v1_service.py'
+      - 'src/services/competition_evidence_v215_runtime_service.py'
+      - 'scripts/verify_competition_hash_precache_registry.py'
+      - 'scripts/repair_competition_hash_precache.sh'
+      - 'tests/test_competition_hash_precache_registry_v1.py'
+      - '.github/workflows/competition-hash-precache-registry.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-hash-precache-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: self-hosted
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Materialize exact source commit archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="${RUNNER_TEMP}/hash-precache-${SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/hash-precache-${SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            if curl --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+
+      - name: Select existing Python runtime
+        run: |
+          set -euo pipefail
+          if [ -x /opt/python/3.11.9/bin/python3.11 ]; then
+            PY=/opt/python/3.11.9/bin/python3.11
+          else
+            PY="$(command -v python3)"
+          fi
+          test -x "$PY"
+          echo "PY=$PY" >> "$GITHUB_ENV"
+          "$PY" --version
+
+      - name: Compile scoped runtime
+        run: |
+          set -euo pipefail
+          "$PY" -m py_compile \
+            src/services/competition_hash_precache_registry_v1_service.py \
+            src/services/competition_evidence_v215_runtime_service.py \
+            scripts/verify_competition_hash_precache_registry.py \
+            tests/test_competition_hash_precache_registry_v1.py
+
+      - name: Verify unified registry and hash classes
+        run: |
+          set -euo pipefail
+          "$PY" scripts/verify_competition_hash_precache_registry.py
+
+      - name: Run semantic hash regression tests
+        run: |
+          set -euo pipefail
+          "$PY" -m unittest -q tests.test_competition_hash_precache_registry_v1
