@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.13.1",
+  "version": "2026.08.12.2",
   "defaultProfile": "runtime_contract_lineage_repair",
   "profiles": {
     "runtime_contract_lineage_repair": {
