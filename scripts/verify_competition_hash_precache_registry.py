@@ -49,6 +49,22 @@ def main() -> int:
         if (classification.get(name) or {}).get("crossRunReusable") is not False:
             findings.append(f"strict_classification_cross_run_reuse_forbidden:{name}")
 
+    exclusions = set(str(value) for value in overlay.get("semanticExclusions") or [])
+    for required in (
+        "dataVersion",
+        "productSnapshotHash",
+        "setSnapshotHash",
+        "evidenceInputHash",
+        "factId",
+        "metricFactId",
+        "sourceRowId",
+        "sourceHash",
+        "sourceRef",
+        "reportBatchId",
+    ):
+        if required not in exclusions:
+            findings.append(f"semantic_execution_exclusion_missing:{required}")
+
     root_fields = root.get("fields") if isinstance(root.get("fields"), dict) else {}
     for canonical_id in (
         "canonical.set_snapshot_hash",
@@ -66,6 +82,9 @@ def main() -> int:
         '"productSnapshotHash"',
         '"setSnapshotHash"',
         '"evidenceInputHash"',
+        '"factId"',
+        '"sourceRowId"',
+        '"sourceHash"',
         'def build_pre_agent_hashes(',
         'def lookup_pre_agent_cache(',
         'def store_pre_agent_cache(',
@@ -117,7 +136,7 @@ def main() -> int:
         "overlayVersion": overlay.get("version"),
         "rootRegistryVersion": root.get("version"),
         "levels": levels,
-        "semanticExclusionCount": len(overlay.get("semanticExclusions") or []),
+        "semanticExclusionCount": len(exclusions),
         "strictRootFieldsVerified": 4,
         "findings": findings,
     }
