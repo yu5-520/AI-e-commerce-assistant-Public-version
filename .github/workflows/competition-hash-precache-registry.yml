@@ -25,6 +25,8 @@ jobs:
     timeout-minutes: 20
     env:
       PYTHONDONTWRITEBYTECODE: '1'
+      COMPETITION_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
     steps:
       - name: Materialize exact source commit archive
         env:
@@ -57,22 +59,27 @@ jobs:
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
 
-      - name: Select existing Python runtime
+      - name: Prepare verified application runtime
         run: |
           set -euo pipefail
-          if [ -x /opt/python/3.11.9/bin/python3.11 ]; then
-            PY=/opt/python/3.11.9/bin/python3.11
-          else
-            PY="$(command -v python3)"
-          fi
-          test -x "$PY"
-          echo "PY=$PY" >> "$GITHUB_ENV"
-          "$PY" --version
+          test -x "$COMPETITION_BASE_PYTHON"
+          mkdir -p dist/hash-precache-runtime
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_BASE_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/dist/hash-precache-runtime" \
+              | tee dist/hash-precache-runtime/runtime-prepare.log | tail -n 1
+          )"
+          test -x "$RUNTIME_PYTHON"
+          "$RUNTIME_PYTHON" -c 'import fastapi, sqlalchemy, openpyxl'
+          echo "RUNTIME_PYTHON=$RUNTIME_PYTHON" >> "$GITHUB_ENV"
 
       - name: Compile scoped runtime
         run: |
           set -euo pipefail
-          "$PY" -m py_compile \
+          "$RUNTIME_PYTHON" -m py_compile \
             src/services/competition_hash_precache_registry_v1_service.py \
             src/services/competition_evidence_v215_runtime_service.py \
             scripts/verify_competition_hash_precache_registry.py \
@@ -81,9 +88,9 @@ jobs:
       - name: Verify unified registry and hash classes
         run: |
           set -euo pipefail
-          "$PY" scripts/verify_competition_hash_precache_registry.py
+          "$RUNTIME_PYTHON" scripts/verify_competition_hash_precache_registry.py
 
       - name: Run semantic hash regression tests
         run: |
           set -euo pipefail
-          "$PY" -m unittest -q tests.test_competition_hash_precache_registry_v1
+          "$RUNTIME_PYTHON" -m unittest -q tests.test_competition_hash_precache_registry_v1
