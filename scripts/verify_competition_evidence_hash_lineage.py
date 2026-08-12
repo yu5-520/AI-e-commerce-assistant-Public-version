@@ -159,7 +159,7 @@ def _registry_checks() -> dict[str, Any]:
     runtime = _json("config/v23_registry_runtime.json")
     governance = _json("governance/runtime_contract_lineage_repair_policy.json")
 
-    assert registry.get("version") == "2026.08.12.1", registry.get("version")
+    assert registry.get("version") == "2026.08.12.2", registry.get("version")
     required_fields = {
         "canonical.set_snapshot_hash",
         "product.product_snapshot_hash",
@@ -180,6 +180,7 @@ def _registry_checks() -> dict[str, Any]:
 
     required_interfaces = {
         "evidence.snapshot.precache",
+        "evidence.cross_validation.overlay",
         "evidence.full_product_bundle.materialize",
         "evidence.full_product_bundle.artifact",
         "evidence.bundle.validate",
@@ -202,7 +203,9 @@ def _registry_checks() -> dict[str, Any]:
         ("evidence.current_set_snapshot_hash", "evidence.input_hash", "HASH_IDENTITY_INPUT"),
         ("evidence.current_observation_hash", "evidence.input_hash", "HASH_IDENTITY_INPUT"),
         ("evidence.contract_version", "evidence.input_hash", "HASH_IDENTITY_INPUT"),
-        ("evidence.snapshot.precache", "evidence.full_product_bundle.materialize", "INTERFACE_HANDOFF"),
+        ("evidence.snapshot.precache", "evidence.cross_validation.overlay", "INTERFACE_HANDOFF"),
+        ("evidence.input_hash", "evidence.cross_validation.overlay", "EXACT_HASH_TRANSFER"),
+        ("evidence.cross_validation.overlay", "evidence.full_product_bundle.materialize", "INTERFACE_HANDOFF"),
         ("evidence.full_product_bundle_ref", "evidence.bundle.validate", "EXACT_REFERENCE_TRANSFER"),
         ("evidence.validated_bundle_ref", "evidence.signal.admission", "EXACT_REFERENCE_TRANSFER"),
         ("evidence.validated_bundle_ref", "signal.signal_ref", "PARENT_REFERENCE"),
@@ -216,13 +219,15 @@ def _registry_checks() -> dict[str, Any]:
         "competition_evidence_runtime_never_scans_90_complete_canonical_snapshots",
         "competition_evidence_never_force_rebuilds_existing_canonical_snapshot",
         "competition_evidence_max_comparable_history_is_two",
+        "competition_v22_runtime_replaces_legacy_v215_90_snapshot_wrapper_before_station_execution",
+        "competition_v215_cross_validation_reads_only_evidence_hash_selected_compact_observations",
         "validatedBundleRef_is_exact_parent_of_active_competition_signal_ART",
-        "evidenceInputHash_is_preserved_through_bundle_validation_and_signal_admission",
+        "evidenceInputHash_is_preserved_through_v215_overlay_bundle_validation_and_signal_admission",
         "competition_signal_handoff_does_not_create_second_worker_or_queue",
     }
     assert required_globals <= globals_, sorted(required_globals - globals_)
 
-    assert runtime.get("runtimeContractLineageRegistryVersion") == "2026.08.12.1", runtime
+    assert runtime.get("runtimeContractLineageRegistryVersion") == "2026.08.12.2", runtime
     assert runtime.get("evidenceHashRuntimeScopeVersion") == "23.2.15", runtime
     assert "signal_admission" in set(runtime.get("requiredModules") or []), runtime
     signal_module = (runtime.get("modules") or {}).get("signal_admission") or {}
@@ -266,6 +271,7 @@ def _registry_checks() -> dict[str, Any]:
         "runtimeRunner": expected_runner,
         "runtimeScopeVersion": runtime.get("evidenceHashRuntimeScopeVersion"),
         "v215BridgePathRegistered": "src/services/competition_evidence_v215_runtime_service.py" in runtime_paths,
+        "v215OverlayInterfaceRegistered": "evidence.cross_validation.overlay" in interfaces,
         "evidenceContract": "operatingEvidenceGraph.v1",
         "evidenceContractVersion": "21.5.0",
     }
@@ -273,7 +279,7 @@ def _registry_checks() -> dict[str, Any]:
 
 def main() -> int:
     report = {
-        "schema": "competition.evidence_hash_lineage.verification.v2",
+        "schema": "competition.evidence_hash_lineage.verification.v3",
         "services": _service_checks(),
         "registry": _registry_checks(),
         "verified": True,
