@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'src/services/product_signal_snapshot_service.py'
+      - 'src/services/v215_report_batch_evidence_service.py'
+      - 'src/services/competition_evidence_v215_runtime_service.py'
+      - 'src/services/v22_runtime_service.py'
       - 'src/services/station_alignment_v225_service.py'
       - 'src/services/station_business_artifact_service.py'
       - 'src/services/artifact_signal_admission_v225_service.py'
@@ -68,6 +71,7 @@ jobs:
           test -s "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
           test -f "$EXTRACTED/scripts/verify_competition_evidence_hash_lineage.py"
+          test -f "$EXTRACTED/src/services/competition_evidence_v215_runtime_service.py"
           test -f "$EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
@@ -110,6 +114,8 @@ jobs:
           set -euo pipefail
           "$PYTHON_BIN" -m py_compile \
             src/services/product_signal_snapshot_service.py \
+            src/services/competition_evidence_v215_runtime_service.py \
+            src/services/v22_runtime_service.py \
             src/services/station_alignment_v225_service.py \
             src/services/station_business_artifact_service.py \
             src/services/artifact_signal_admission_v225_service.py \
@@ -125,9 +131,12 @@ jobs:
           from pathlib import Path
           report = json.loads(Path('dist/competition-evidence-hash-lineage/verification-report.json').read_text(encoding='utf-8'))
           assert report.get('verified') is True, report
-          assert report['services']['forbiddenRuntimeRescanHits'] == {'snapshot': [], 'station': []}, report
+          assert report['services']['forbiddenRuntimeRescanHits'] == {'snapshot': [], 'bridge': [], 'station': []}, report
+          assert report['services']['legacyV215WrapperActive'] is False, report
           assert report['registry']['registryVersion'] == '2026.08.12.1', report
           assert report['registry']['runtimeModule'] == 'signal_admission', report
+          assert report['registry']['runtimeScopeVersion'] == '23.2.15', report
+          assert report['registry']['v215BridgePathRegistered'] is True, report
           assert report['registry']['evidenceContractVersion'] == '21.5.0', report
           print('competitionEvidenceHashLineage=verified')
           PY
