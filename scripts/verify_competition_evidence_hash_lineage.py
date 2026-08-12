@@ -32,6 +32,21 @@ def _python(path: str) -> str:
     return source
 
 
+def _called_names(source: str) -> set[str]:
+    """Return actual Python call targets, excluding comments/docstrings/literals."""
+    tree = ast.parse(source)
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        fn = node.func
+        if isinstance(fn, ast.Name):
+            names.add(fn.id)
+        elif isinstance(fn, ast.Attribute):
+            names.add(fn.attr)
+    return names
+
+
 def _service_checks() -> dict[str, Any]:
     snapshot = _python("src/services/product_signal_snapshot_service.py")
     bridge = _python("src/services/competition_evidence_v215_runtime_service.py")
@@ -126,19 +141,22 @@ def _service_checks() -> dict[str, Any]:
         "materialize_system_product_snapshot(data_version=data_version, user_id=user_id, force=True)",
         "product_snapshot_history(limit=90)",
     ]
-    forbidden_bridge = [
-        "product_snapshot_history(",
-        "_comparable_history(",
-        "historyCandidateLimit\": 90",
-        "comparable[:30]",
-    ]
     forbidden_station = [
         "force=force,",
         "materialize_product_signal_snapshot(\n        data_version=data_version,\n        user_id=user_id,\n        force=True",
     ]
+    bridge_calls = _called_names(bridge)
+    forbidden_bridge_calls = sorted(
+        {"product_snapshot_history", "_comparable_history"}.intersection(bridge_calls)
+    )
+    forbidden_bridge_literals = [
+        literal
+        for literal in ('historyCandidateLimit": 90', "comparable[:30]")
+        if literal in bridge
+    ]
     stale = {
         "snapshot": [item for item in forbidden_snapshot if item in snapshot],
-        "bridge": [item for item in forbidden_bridge if item in bridge],
+        "bridge": [*forbidden_bridge_calls, *forbidden_bridge_literals],
         "station": [item for item in forbidden_station if item in station],
     }
     assert not any(stale.values()), stale
@@ -151,6 +169,7 @@ def _service_checks() -> dict[str, Any]:
         "admissionRequiredCount": len(admission_required),
         "forbiddenRuntimeRescanHits": stale,
         "legacyV215WrapperActive": False,
+        "bridgeActualCallTargets": sorted(bridge_calls),
     }
 
 
@@ -279,7 +298,7 @@ def _registry_checks() -> dict[str, Any]:
 
 def main() -> int:
     report = {
-        "schema": "competition.evidence_hash_lineage.verification.v3",
+        "schema": "competition.evidence_hash_lineage.verification.v4",
         "services": _service_checks(),
         "registry": _registry_checks(),
         "verified": True,
