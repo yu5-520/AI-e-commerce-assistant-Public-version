@@ -3,8 +3,8 @@
 
 This checker does not access the production database or call a provider. It proves that
 TARGET source keeps the competition Evidence path hash-directed and that Unified
-Registry, selected V23 runtime projection, station Artifact contracts and active Signal
-Admission describe the same single execution chain.
+Registry, selected V23 runtime projection, V21.5 compatibility binding, station Artifact
+contracts and active Signal Admission describe the same single execution chain.
 """
 from __future__ import annotations
 
@@ -34,6 +34,8 @@ def _python(path: str) -> str:
 
 def _service_checks() -> dict[str, Any]:
     snapshot = _python("src/services/product_signal_snapshot_service.py")
+    bridge = _python("src/services/competition_evidence_v215_runtime_service.py")
+    v22 = _python("src/services/v22_runtime_service.py")
     station = _python("src/services/station_alignment_v225_service.py")
     business = _python("src/services/station_business_artifact_service.py")
     admission = _python("src/services/artifact_signal_admission_v225_service.py")
@@ -54,6 +56,25 @@ def _service_checks() -> dict[str, Any]:
         'wholeSnapshotRetention',
         'idempotentHit',
         'materialize_system_product_snapshot(data_version=data_version, user_id=user_id, force=False)',
+    ]
+    bridge_required = [
+        'BRIDGE_VERSION = "competitionEvidence.v21_5_hash_bridge.v1"',
+        '_HASH_PRECACHE_MATERIALIZER = signal_snapshot.materialize_product_signal_snapshot',
+        'competition_evidence_observation_v1',
+        'previousProductSetHashes',
+        '[:2]',
+        'v215.build_cross_validation',
+        'operatingEvidenceGraph.v1',
+        'evidenceInputHash',
+        'wholeSnapshotRetention',
+        'competition_hash_precache',
+        'signal_snapshot.materialize_product_signal_snapshot = materialize_signal_snapshot_v215_hash',
+        'admission.materialize_product_signal_snapshot = materialize_signal_snapshot_v215_hash',
+    ]
+    v22_required = [
+        'from src.services import competition_evidence_v215_runtime_service as competition_evidence_v215',
+        'report_evidence.install_v215_runtime()',
+        'competition_evidence_v215.install_competition_evidence_v215_runtime()',
     ]
     station_required = [
         'STATION_ALIGNMENT_V225_VERSION = "22.2.7"',
@@ -87,11 +108,17 @@ def _service_checks() -> dict[str, Any]:
 
     missing = {
         "snapshot": [item for item in snapshot_required if item not in snapshot],
+        "bridge": [item for item in bridge_required if item not in bridge],
+        "v22": [item for item in v22_required if item not in v22],
         "station": [item for item in station_required if item not in station],
         "business": [item for item in business_required if item not in business],
         "admission": [item for item in admission_required if item not in admission],
     }
     assert not any(missing.values()), missing
+
+    assert v22.index('report_evidence.install_v215_runtime()') < v22.index(
+        'competition_evidence_v215.install_competition_evidence_v215_runtime()'
+    ), "competition Evidence bridge must replace the V21.5 historical wrapper after V21.5 installs"
 
     forbidden_snapshot = [
         "product_snapshot_history(data_version, limit=90)",
@@ -99,21 +126,31 @@ def _service_checks() -> dict[str, Any]:
         "materialize_system_product_snapshot(data_version=data_version, user_id=user_id, force=True)",
         "product_snapshot_history(limit=90)",
     ]
+    forbidden_bridge = [
+        "product_snapshot_history(",
+        "_comparable_history(",
+        "historyCandidateLimit\": 90",
+        "comparable[:30]",
+    ]
     forbidden_station = [
         "force=force,",
         "materialize_product_signal_snapshot(\n        data_version=data_version,\n        user_id=user_id,\n        force=True",
     ]
     stale = {
         "snapshot": [item for item in forbidden_snapshot if item in snapshot],
+        "bridge": [item for item in forbidden_bridge if item in bridge],
         "station": [item for item in forbidden_station if item in station],
     }
     assert not any(stale.values()), stale
     return {
         "snapshotRequiredCount": len(snapshot_required),
+        "bridgeRequiredCount": len(bridge_required),
+        "v22BindingRequiredCount": len(v22_required),
         "stationRequiredCount": len(station_required),
         "businessRequiredCount": len(business_required),
         "admissionRequiredCount": len(admission_required),
         "forbiddenRuntimeRescanHits": stale,
+        "legacyV215WrapperActive": False,
     }
 
 
@@ -186,7 +223,7 @@ def _registry_checks() -> dict[str, Any]:
     assert required_globals <= globals_, sorted(required_globals - globals_)
 
     assert runtime.get("runtimeContractLineageRegistryVersion") == "2026.08.12.1", runtime
-    assert runtime.get("evidenceHashRuntimeScopeVersion") == "23.2.14", runtime
+    assert runtime.get("evidenceHashRuntimeScopeVersion") == "23.2.15", runtime
     assert "signal_admission" in set(runtime.get("requiredModules") or []), runtime
     signal_module = (runtime.get("modules") or {}).get("signal_admission") or {}
     runtime_fields = set(signal_module.get("fieldIds") or [])
@@ -198,6 +235,9 @@ def _registry_checks() -> dict[str, Any]:
         "src/services/canonical_product_snapshot_service.py",
         "src/services/canonical_product_trend_v2_service.py",
         "src/services/product_signal_snapshot_service.py",
+        "src/services/v215_report_batch_evidence_service.py",
+        "src/services/competition_evidence_v215_runtime_service.py",
+        "src/services/v22_runtime_service.py",
         "src/services/station_alignment_v225_service.py",
         "src/services/station_business_artifact_service.py",
         "src/services/artifact_transport_service.py",
@@ -206,9 +246,9 @@ def _registry_checks() -> dict[str, Any]:
     assert required_paths <= runtime_paths, sorted(required_paths - runtime_paths)
 
     profile = ((governance.get("profiles") or {}).get("runtime_contract_lineage_repair") or {})
-    assert governance.get("version") == "2026.08.12.1", governance.get("version")
+    assert governance.get("version") == "2026.08.12.2", governance.get("version")
     allowed_paths = set(profile.get("allowedRuntimePathPrefixes") or [])
-    assert required_paths - {"src/services/canonical_product_snapshot_service.py", "src/services/canonical_product_trend_v2_service.py"} <= allowed_paths, sorted(required_paths - allowed_paths)
+    assert required_paths <= allowed_paths, sorted(required_paths - allowed_paths)
     assert "signal_admission" in set(profile.get("allowedRegistryModules") or []), profile
 
     contract = registry["fields"]["evidence.contract_version"]
@@ -224,6 +264,8 @@ def _registry_checks() -> dict[str, Any]:
         "requiredEdgeCount": len(required_edges),
         "runtimeModule": "signal_admission",
         "runtimeRunner": expected_runner,
+        "runtimeScopeVersion": runtime.get("evidenceHashRuntimeScopeVersion"),
+        "v215BridgePathRegistered": "src/services/competition_evidence_v215_runtime_service.py" in runtime_paths,
         "evidenceContract": "operatingEvidenceGraph.v1",
         "evidenceContractVersion": "21.5.0",
     }
@@ -231,7 +273,7 @@ def _registry_checks() -> dict[str, Any]:
 
 def main() -> int:
     report = {
-        "schema": "competition.evidence_hash_lineage.verification.v1",
+        "schema": "competition.evidence_hash_lineage.verification.v2",
         "services": _service_checks(),
         "registry": _registry_checks(),
         "verified": True,
