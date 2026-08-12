@@ -1,0 +1,25 @@
+{
+  "schema": "competition.lineage_update_policy.v1",
+  "version": "2026.08.12.1",
+  "defaultProfile": "hash_precache_registry",
+  "profiles": {
+    "hash_precache_registry": {
+      "description": "Exact Unified-Registry -> Hash-Lineage semantic precache scope. It permits only the additive fail-closed hash-precache registry overlay, its semantic cache runtime, and the bounded competition Evidence bridge that consumes it. Existing strict canonical/evidence/Artifact/Execution hash definitions remain unchanged. Cache hits may reuse only immutable business bodies and must rebind current dataVersion, strict evidence identity and current Artifact references before normal Signal Admission splits observed vs Agent1. No frontend, Provider, model, Worker, request-cache or Agent runtime authority change is allowed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": true,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "config/competition_hash_precache_registry_v1.json",
+        "src/services/competition_hash_precache_registry_v1_service.py",
+        "src/services/competition_evidence_v215_runtime_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    }
+  }
+}
