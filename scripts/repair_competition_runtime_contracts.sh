@@ -31,7 +31,7 @@ print("version=" + sys.version.split()[0])
 PY
 
 echo
-echo "[1/5] Syntax-check repaired Python files"
+echo "[1/6] Syntax-check repaired Python files"
 "$PY" -m py_compile \
   src/services/runtime_contract_guard_v1_service.py \
   src/services/agent3_semantic_path_repair_v1_service.py \
@@ -39,28 +39,35 @@ echo "[1/5] Syntax-check repaired Python files"
   src/services/agent_runtime_contract_v225_service.py \
   src/services/artifact_transport_service.py \
   src/services/pipeline_live_read_model_v225_service.py \
+  src/services/task_evidence_canonical_history_v1_service.py \
+  src/services/task_evidence_canonical_history_install_v1_service.py \
+  scripts/verify_task_evidence_canonical_history.py \
   scripts/verify_runtime_contract_lineage.py \
   scripts/compile_runtime_contract_lineage_overlay.py \
   scripts/compile_competition_lineage.py
 
 echo
-echo "[2/5] Verify unified field/interface ownership"
+echo "[2/6] Verify unified field/interface ownership"
 "$PY" scripts/verify_runtime_contract_lineage.py
 
 echo
-echo "[3/5] Compile actual production registry/import hash lineage"
+echo "[3/6] Verify task Evidence canonical-history repair"
+"$PY" scripts/verify_task_evidence_canonical_history.py
+
+echo
+echo "[4/6] Compile actual production registry/import hash lineage"
 rm -rf dist/competition-contract-lineage
 "$PY" scripts/compile_competition_lineage.py \
   --output-dir dist/competition-contract-lineage
 
 echo
-echo "[4/5] Project canonical fields/interfaces onto proven runtime lineage"
+echo "[5/6] Project canonical fields/interfaces onto proven runtime lineage"
 "$PY" scripts/compile_runtime_contract_lineage_overlay.py \
   --base-lineage dist/competition-contract-lineage/lineage-graph.json \
   --output dist/competition-contract-lineage/runtime-contract-lineage.json
 
 echo
-echo "[5/5] Assert base + contract overlay evidence is fail-closed and clean"
+echo "[6/6] Assert base + contract overlay evidence is fail-closed and clean"
 "$PY" - <<'PY'
 import json
 from pathlib import Path
@@ -87,5 +94,6 @@ PY
 echo
 echo "============================================================"
 echo " PASS: registry -> hash lineage -> contract repair verified"
+echo " Task Evidence canonical history authority is fail-closed."
 echo " No virtual environment was created, activated, or installed."
 echo "============================================================"
