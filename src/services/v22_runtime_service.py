@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from src.runtime_version import VERSION
+from src.services import competition_evidence_v215_runtime_service as competition_evidence_v215
 
 _INSTALLED = False
 
@@ -32,6 +33,7 @@ def install_v22_runtime() -> None:
     from src.services import task_metric_evidence_projection_v2178_service as task_evidence
 
     report_evidence.install_v215_runtime()
+    competition_evidence_v215.install_competition_evidence_v215_runtime()
     observation_install.install_v216_runtime()
     task_evidence_install.install_v2178_task_metric_evidence_projection()
 
