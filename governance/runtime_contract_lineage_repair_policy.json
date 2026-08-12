@@ -21,6 +21,8 @@
         "src/services/agent_runtime_contract_v225_service.py",
         "src/services/artifact_transport_service.py",
         "src/services/signal_pool_service.py",
+        "src/services/canonical_product_snapshot_service.py",
+        "src/services/canonical_product_trend_v2_service.py",
         "src/services/product_signal_snapshot_service.py",
         "src/services/station_alignment_v225_service.py",
         "src/services/station_business_artifact_service.py",
