@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.11.6",
+  "version": "2026.08.12.1",
   "defaultProfile": "runtime_contract_lineage_repair",
   "profiles": {
     "runtime_contract_lineage_repair": {
-      "description": "Exact Unified-Registry -> Hash-Lineage -> runtime-contract repair scope. It permits only the canonical contract registry, its active runtime projection, strict hash/interface guards, the exact formal-signal Artifact materialization edge from Signal Pool into Artifact Transport, Product Signal Admission as the mandatory business gate before Agent1, the exact admission-qualified formal-signal -> Agent1 handoff inside the existing single worker, deterministic Agent1 projection de-duplication under the unchanged 22k item budget, Agent3 exact-path semantic repair, completed-contract projection, structured current-state failure projection, and the frontend canonical-product Hash View repair. For frontend products, canonical product snapshot is the sole product-inventory authority: canonical setSnapshotHash participates in runtimeStateHash, products module Artifacts are materialized from read_canonical_product_views only, immutable module refs/content hashes feed one atomic manifest, and Signal/Agent admission may never reduce visible product inventory. The V22 runtime installer is allowed only for the exact authority correction that stops release-version projection from overwriting the immutable operating-evidence contract version; it must not add a new Signal Pool dependency or compatibility bridge. Signal Pool may call the existing Artifact Transport only to materialize the registered immutable signal.signal_ref after evidence-contract validation; it must preserve dataVersion, signalId, sourceSignalId, product/store identity and sourceRef, must not create a second queue/worker, and must fail closed when ART-* validation fails. Competition handoff may consume only status=admitted_for_judgment and must never promote pending_rag_agent, observed_soft_gate or weak/noise rows into Agent1. Agent1 input projection may remove duplicate representations and bound optional summaries but must preserve every field-signal semantic item, sourceLineageValidation, the immutable signalRef parent, evidence decision semantics, the existing 22000 character hard limit and fail-closed validation. Runtime membership may change only when the added/removed file is explicitly allowlisted or owned by an explicitly allowed registry module. All unrelated production files, modules, nodes and special hashes remain fail-closed.",
+      "description": "Exact Unified-Registry -> Hash-Lineage -> runtime-contract repair scope. It permits only the canonical contract registry, its active runtime projection, strict hash/interface guards, the formal Evidence hash-precache chain, the exact formal-signal Artifact materialization edge, Product Signal Admission as the mandatory business gate before Agent1, the exact admission-qualified formal-signal -> Agent1 handoff inside the existing single worker, deterministic Agent1 projection de-duplication under the unchanged 22k item budget, Agent3 exact-path semantic repair, completed-contract projection, structured current-state failure projection, and the frontend canonical-product Hash View repair. Competition Evidence is derived only from canonical product hashes within the active history epoch: Evidence may not force-rebuild canonical snapshots, may not scan 90 complete historical snapshot payloads, may hydrate at most two comparable compact observations, must derive one deterministic evidenceInputHash from the current canonical set/observation hashes + previous comparable hashes + historyEpochId + immutable operatingEvidenceGraph.v1/21.5.0 contract identity, and must preserve that hash through fullProductBundleRef -> validatedBundleRef -> product signal ART. Full-bundle and validation references must be immutable ART-* references produced only after existing station business validation. Signal admission may consume only the validated bundle ART; its signal ART must use that validated ART as parent. No second queue/worker, legacy Signal Pool reload, positive artificial minimum, evidence-contract broadening, Agent budget change or provider-policy change is allowed. Frontend products remain canonical-snapshot only and Signal/Agent admission may never reduce visible product inventory. Runtime membership may change only when the added/removed file is explicitly allowlisted or owned by an explicitly allowed registry module. All unrelated production files, modules, nodes and special hashes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -21,6 +21,10 @@
         "src/services/agent_runtime_contract_v225_service.py",
         "src/services/artifact_transport_service.py",
         "src/services/signal_pool_service.py",
+        "src/services/product_signal_snapshot_service.py",
+        "src/services/station_alignment_v225_service.py",
+        "src/services/station_business_artifact_service.py",
+        "src/services/artifact_signal_admission_v225_service.py",
         "src/services/agent_input_contract_v2258_service.py",
         "src/services/pipeline_live_read_model_v225_service.py",
         "src/services/competition_signal_handoff_service.py",
@@ -30,6 +34,7 @@
         "src/services/v22_runtime_service.py"
       ],
       "allowedRegistryModules": [
+        "signal_admission",
         "agent1_input_projection",
         "agent1_runtime",
         "agent2_runtime",
