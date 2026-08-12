@@ -26,7 +26,9 @@ HASH_PRECACHE_TABLE = "competition_hash_precache_v1"
 HASH_PRECACHE_ARTIFACT_TYPE = "competition.pre_agent_semantic_cache"
 
 # Execution/transport/strict-lineage identities are deliberately excluded. The semantic
-# key is a sibling of strict Hash Lineage, never a replacement for it.
+# key is a sibling of strict Hash Lineage, never a replacement for it. Import-row/fact
+# identifiers are also excluded because the evaluator may upload identical business
+# rows again under new database row/fact identities.
 SEMANTIC_EXCLUDED_KEYS = {
     "dataVersion",
     "data_version",
@@ -43,6 +45,7 @@ SEMANTIC_EXCLUDED_KEYS = {
     "bundleId",
     "correlationId",
     "itemExecutionId",
+    "reportBatchId",
     "runtimeStateHash",
     "executionHash",
     "ExecutionHash",
@@ -50,6 +53,8 @@ SEMANTIC_EXCLUDED_KEYS = {
     "contentHash",
     "sourceContentHash",
     "sourceContentHashes",
+    "sourceHash",
+    "source_hash",
     "productSnapshotHash",
     "snapshotHash",
     "parentSnapshotHash",
@@ -62,8 +67,21 @@ SEMANTIC_EXCLUDED_KEYS = {
     "sourceReportRef",
     "sourceReportRefs",
     "sourceArtifactRef",
+    "sourceRef",
+    "sourceRefs",
+    "inputRef",
+    "inputArtifactRef",
+    "outputArtifactRef",
     "permissionStampId",
     "permissionScopeRef",
+    "factId",
+    "fact_id",
+    "metricFactId",
+    "metric_fact_id",
+    "sourceRowId",
+    "source_row_id",
+    "rowId",
+    "row_id",
     "factRefs",
     "factHashRefs",
     "metricLineage",
