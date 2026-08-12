@@ -94,19 +94,33 @@ def main() -> int:
         if literal not in service:
             findings.append(f"precache_service_literal_missing:{literal}")
 
+    # The semantic cache must remain additive to the already-registered V21.5 bridge.
+    # The exact V18.7 Evidence materializer runs first; only then may SemanticHash select
+    # a cached V21.5 business body. This protects the autonomous Station progression.
     required_bridge_literals = (
+        'BRIDGE_VERSION = "competitionEvidence.v21_5_hash_bridge.v1"',
+        'SEMANTIC_PRECACHE_VERSION = "competitionEvidence.semantic_precache.v1"',
         "build_pre_agent_hashes",
         "lookup_pre_agent_cache",
         "store_pre_agent_cache",
-        '"semanticCacheHit": True',
-        '"currentArtifactRebindRequired": True',
+        "result = _HASH_PRECACHE_MATERIALIZER(",
+        'result["semanticCacheHit"] = True',
+        'result["currentArtifactRebindRequired"] = True',
         '"strictEvidenceInputHashChanged": False',
+        '"stationProgressionOrderChanged": False',
         "_rebind_cached_package(",
-        "signal_snapshot._evidence_identity(",
+        "_exact_identity(base_result)",
     )
     for literal in required_bridge_literals:
         if literal not in bridge:
             findings.append(f"evidence_bridge_precache_literal_missing:{literal}")
+
+    # Ordering is part of the safety contract: exact current Evidence must exist before
+    # semantic lookup. Textual positions are sufficient for this fail-closed verifier.
+    base_pos = bridge.find("result = _HASH_PRECACHE_MATERIALIZER(")
+    lookup_pos = bridge.find("cache = lookup_pre_agent_cache(")
+    if base_pos < 0 or lookup_pos < 0 or base_pos >= lookup_pos:
+        findings.append("semantic_cache_lookup_preceded_exact_evidence_boundary")
 
     for forbidden in (
         "ThreadPoolExecutor",
@@ -138,6 +152,7 @@ def main() -> int:
         "levels": levels,
         "semanticExclusionCount": len(exclusions),
         "strictRootFieldsVerified": 4,
+        "exactEvidenceBeforeSemanticLookup": base_pos >= 0 and lookup_pos > base_pos,
         "findings": findings,
     }
     report = {
