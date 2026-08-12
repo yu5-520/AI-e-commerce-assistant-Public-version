@@ -1,6 +1,6 @@
 {
   "schema": "competition.hash_precache.registry.v1",
-  "version": "2026.08.12.2",
+  "version": "2026.08.12.3",
   "mode": "fail_closed",
   "rootRegistry": "config/runtime_contract_lineage_registry_v1.json",
   "description": "统一注册比赛生产链中的语义缓存哈希、严格内容哈希、执行身份哈希和不可变引用。语义缓存只复用业务计算体；当前 dataVersion、Artifact、ExecutionHash 与运行时间身份必须重新绑定。",
@@ -8,7 +8,7 @@
     "semantic_cache_key": {
       "crossRunReusable": true,
       "mayOwnCurrentArtifactRef": false,
-      "rule": "只包含业务内容和计算合同版本，不包含 dataVersion、snapshotId、signalId、严格内容哈希、correlationId、运行时间戳或当前 Artifact 引用。"
+      "rule": "只包含业务内容和计算合同版本，不包含 dataVersion、snapshotId、signalId、导入行/事实身份、严格内容哈希、correlationId、运行时间戳或当前 Artifact 引用。"
     },
     "content_fingerprint": {
       "crossRunReusable": false,
@@ -89,11 +89,14 @@
   "semanticExclusions": [
     "dataVersion", "data_version", "sourceDataVersion", "sourceDataVersions",
     "snapshotId", "signalSnapshotId", "productSnapshotId", "previousSnapshotId",
-    "signalId", "packageId", "bundleId", "correlationId", "itemExecutionId",
+    "signalId", "signal_id", "packageId", "package_id", "bundleId", "correlationId", "itemExecutionId", "reportBatchId",
     "runtimeStateHash", "executionHash", "ExecutionHash", "inputContentHash", "contentHash",
+    "sourceContentHash", "sourceContentHashes", "sourceHash", "source_hash",
     "productSnapshotHash", "snapshotHash", "parentSnapshotHash", "setSnapshotHash", "projectionHash", "observationHash", "factHash",
-    "artifactRefs", "sourceArtifactRefs", "sourceReportRef", "sourceReportRefs",
+    "artifactRefs", "sourceArtifactRefs", "sourceReportRef", "sourceReportRefs", "sourceArtifactRef", "sourceRef", "sourceRefs",
+    "inputRef", "inputArtifactRef", "outputArtifactRef",
     "sourceContentHash", "sourceContentHashes", "permissionStampId", "permissionScopeRef",
+    "factId", "fact_id", "metricFactId", "metric_fact_id", "sourceRowId", "source_row_id", "rowId", "row_id",
     "factRefs", "factHashRefs", "metricLineage",
     "historyEpochId", "historyEpochStartedAt", "currentProductSetHash", "currentObservationHash",
     "previousProductSetHashes", "previousObservationHashes", "evidenceInputHash",
