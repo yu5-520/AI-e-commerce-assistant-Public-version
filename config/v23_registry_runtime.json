@@ -4,7 +4,7 @@
   "frontendViewRuntimeScopeVersion": "23.2.13",
   "evidenceHashRuntimeScopeVersion": "23.2.15",
   "runtimeContractLineageRegistryPath": "config/runtime_contract_lineage_registry_v1.json",
-  "runtimeContractLineageRegistryVersion": "2026.08.12.2",
+  "runtimeContractLineageRegistryVersion": "2026.08.12.1",
   "mode": "selected_fail_closed",
   "modules": {
     "signal_admission": {
@@ -24,7 +24,6 @@
         "evidence.previous_observation_hashes",
         "evidence.contract_version",
         "evidence.input_hash",
-        "evidence.cross_validation_decision",
         "evidence.full_product_bundle_ref",
         "evidence.validated_bundle_ref",
         "signal.signal_ref",
