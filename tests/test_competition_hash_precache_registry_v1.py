@@ -44,10 +44,31 @@ def _snapshot(data_version: str, amount: float, strict_suffix: str) -> dict:
                     "metricDate": "2026-07-02",
                     "sourceDataVersions": [data_version],
                     "sourceContentHash": f"sha256:source-{strict_suffix}",
+                    "metricFacts": [
+                        {
+                            "factId": f"FACT-{strict_suffix}",
+                            "metricFactId": f"MF-{strict_suffix}",
+                            "sourceRowId": f"ROW-{strict_suffix}",
+                            "sourceHash": f"sha256:row-{strict_suffix}",
+                            "metricName": "paymentAmount",
+                            "value": amount,
+                            "level": "product",
+                        }
+                    ],
                 },
                 "sourceDataVersions": [data_version],
                 "sourceReportRefs": [f"ART-REPORT-{strict_suffix}"],
+                "sourceRef": f"runtime-source:{strict_suffix}",
+                "factRefs": [f"FACT-{strict_suffix}"],
                 "factHashRefs": [f"sha256:fact-{strict_suffix}"],
+                "metricLineage": [
+                    {
+                        "factId": f"FACT-{strict_suffix}",
+                        "sourceRowId": f"ROW-{strict_suffix}",
+                        "factHash": f"sha256:fact-{strict_suffix}",
+                        "metricName": "paymentAmount",
+                    }
+                ],
             }
         ],
     }
@@ -63,7 +84,7 @@ class CompetitionHashPrecacheRegistryTests(unittest.TestCase):
             "hashPrecacheRegistryVersion": "1.0.0",
         }
 
-    def test_execution_identity_does_not_change_business_semantic_hash(self) -> None:
+    def test_execution_and_import_identity_do_not_change_business_semantic_hash(self) -> None:
         first = _snapshot("DV-A", 100.0, "A")
         second = _snapshot("DV-B", 100.0, "B")
         self.assertEqual(
@@ -87,23 +108,36 @@ class CompetitionHashPrecacheRegistryTests(unittest.TestCase):
         two = build_pre_agent_hashes(current, history, contract=changed_contract)
         self.assertNotEqual(one["preAgentComputeHash"], two["preAgentComputeHash"])
 
-    def test_strict_hashes_and_current_refs_are_removed_from_cache_body(self) -> None:
+    def test_strict_hashes_current_refs_and_import_ids_are_removed_from_cache_body(self) -> None:
         projected = semantic_projection(
             {
                 "dataVersion": "DV-X",
                 "signalId": "SIG-X",
+                "reportBatchId": "BATCH-X",
                 "productSnapshotHash": "sha256:strict",
                 "evidenceInputHash": "sha256:evidence",
                 "artifactRefs": {"signalRef": "ART-X"},
+                "factId": "FACT-X",
+                "sourceRowId": "ROW-X",
+                "sourceHash": "sha256:row-x",
+                "sourceRef": "runtime-source-x",
                 "productId": "P10001",
                 "metricLayer": {"paymentAmount": 100.0},
             }
         )
-        self.assertNotIn("dataVersion", projected)
-        self.assertNotIn("signalId", projected)
-        self.assertNotIn("productSnapshotHash", projected)
-        self.assertNotIn("evidenceInputHash", projected)
-        self.assertNotIn("artifactRefs", projected)
+        for key in (
+            "dataVersion",
+            "signalId",
+            "reportBatchId",
+            "productSnapshotHash",
+            "evidenceInputHash",
+            "artifactRefs",
+            "factId",
+            "sourceRowId",
+            "sourceHash",
+            "sourceRef",
+        ):
+            self.assertNotIn(key, projected)
         self.assertEqual(projected["productId"], "P10001")
         self.assertEqual(projected["metricLayer"]["paymentAmount"], 100.0)
 
@@ -120,6 +154,8 @@ class CompetitionHashPrecacheRegistryTests(unittest.TestCase):
         )
         self.assertTrue(registry["classification"]["semantic_cache_key"]["crossRunReusable"])
         self.assertFalse(registry["classification"]["execution_identity"]["crossRunReusable"])
+        for required in ("factId", "sourceRowId", "sourceHash", "productSnapshotHash"):
+            self.assertIn(required, registry["semanticExclusions"])
         self.assertIn("strict_runtime_hash_definitions_unchanged", registry["invariants"])
 
 
