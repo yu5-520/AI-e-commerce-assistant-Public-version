@@ -1,0 +1,140 @@
+{
+  "schema": "competition.hash_precache.registry.v1",
+  "version": "2026.08.12.3",
+  "mode": "fail_closed",
+  "rootRegistry": "config/runtime_contract_lineage_registry_v1.json",
+  "description": "统一注册比赛生产链中的语义缓存哈希、严格内容哈希、执行身份哈希和不可变引用。语义缓存只复用业务计算体；当前 dataVersion、Artifact、ExecutionHash 与运行时间身份必须重新绑定。",
+  "classification": {
+    "semantic_cache_key": {
+      "crossRunReusable": true,
+      "mayOwnCurrentArtifactRef": false,
+      "rule": "只包含业务内容和计算合同版本，不包含 dataVersion、snapshotId、signalId、导入行/事实身份、严格内容哈希、correlationId、运行时间戳或当前 Artifact 引用。"
+    },
+    "content_fingerprint": {
+      "crossRunReusable": false,
+      "mayOwnCurrentArtifactRef": false,
+      "rule": "校验当前不可变内容，不作为跨运行语义复用的唯一键。"
+    },
+    "execution_identity": {
+      "crossRunReusable": false,
+      "mayOwnCurrentArtifactRef": true,
+      "rule": "当前运行严格身份；缓存命中后必须重新生成或重新绑定，禁止直接复用旧运行身份。"
+    },
+    "immutable_artifact_reference": {
+      "crossRunReusable": false,
+      "mayOwnCurrentArtifactRef": true,
+      "rule": "旧缓存 Artifact 只能作为 lineage parent/cache source；当前输出必须创建当前不可变 Artifact。"
+    }
+  },
+  "layers": [
+    {
+      "level": "L0",
+      "name": "source_semantics",
+      "route": "normalize_then_hash",
+      "hashes": [
+        {"canonicalId": "cache.normalized_report_semantic_hash", "classification": "semantic_cache_key", "owner": "src.services.competition_hash_precache_registry_v1_service", "aliases": ["normalizedReportHash"]},
+        {"canonicalId": "cache.input_sequence_hash", "classification": "semantic_cache_key", "owner": "src.services.competition_hash_precache_registry_v1_service", "aliases": ["inputSequenceHash"]}
+      ]
+    },
+    {
+      "level": "L1",
+      "name": "canonical_semantics",
+      "route": "canonical_business_projection",
+      "hashes": [
+        {"canonicalId": "cache.canonical_semantic_hash", "classification": "semantic_cache_key", "owner": "src.services.competition_hash_precache_registry_v1_service", "aliases": ["canonicalSemanticHash"]},
+        {"canonicalId": "canonical.set_snapshot_hash", "classification": "content_fingerprint", "owner": "src.services.canonical_product_snapshot_service", "aliases": ["setSnapshotHash"]},
+        {"canonicalId": "product.product_snapshot_hash", "classification": "content_fingerprint", "owner": "src.services.canonical_product_snapshot_service", "aliases": ["productSnapshotHash"]}
+      ]
+    },
+    {
+      "level": "L2",
+      "name": "evidence_semantics",
+      "route": "semantic_cache_before_evidence_rebuild",
+      "hashes": [
+        {"canonicalId": "cache.evidence_semantic_hash", "classification": "semantic_cache_key", "owner": "src.services.competition_hash_precache_registry_v1_service", "aliases": ["evidenceSemanticHash"]},
+        {"canonicalId": "evidence.input_hash", "classification": "content_fingerprint", "owner": "src.services.product_signal_snapshot_service", "aliases": ["evidenceInputHash"]}
+      ]
+    },
+    {
+      "level": "L3",
+      "name": "admission_semantics",
+      "route": "restore_business_body_then_current_signal_artifact_rebind",
+      "hashes": [
+        {"canonicalId": "cache.admission_semantic_hash", "classification": "semantic_cache_key", "owner": "src.services.competition_hash_precache_registry_v1_service", "aliases": ["admissionSemanticHash"]},
+        {"canonicalId": "cache.pre_agent_compute_hash", "classification": "semantic_cache_key", "owner": "src.services.competition_hash_precache_registry_v1_service", "aliases": ["preAgentComputeHash"]},
+        {"canonicalId": "signal.signal_ref", "classification": "immutable_artifact_reference", "owner": "src.services.artifact_signal_admission_v225_service", "aliases": ["signalRef"]}
+      ]
+    },
+    {
+      "level": "L4",
+      "name": "agent_semantic_cache",
+      "route": "semantic_hit_then_exact_execution_rebind",
+      "hashes": [
+        {"canonicalId": "agent1.semantic_hash", "classification": "semantic_cache_key", "owner": "src.services.agent_token_runtime_hash_exact_v2259_service", "aliases": ["semanticHash"]},
+        {"canonicalId": "agent2.semantic_hash", "classification": "semantic_cache_key", "owner": "src.services.agent_token_runtime_v22520_service", "aliases": ["familyPayloadSemanticHash"]},
+        {"canonicalId": "agent3.semantic_hash", "classification": "semantic_cache_key", "owner": "src.services.agent3_runtime_v23215_service", "aliases": ["sopSemanticHash"]}
+      ]
+    },
+    {
+      "level": "L5",
+      "name": "strict_execution",
+      "route": "never_cross_run_reuse",
+      "hashes": [
+        {"canonicalId": "execution.input_content_hash", "classification": "content_fingerprint", "owner": "src.services.hash_directed_artifact_runtime_v2259_service", "aliases": ["inputContentHash"]},
+        {"canonicalId": "execution.execution_hash", "classification": "execution_identity", "owner": "src.services.hash_directed_artifact_runtime_v2259_service", "aliases": ["executionHash", "ExecutionHash"]},
+        {"canonicalId": "artifact.content_hash", "classification": "content_fingerprint", "owner": "src.services.artifact_registry_service", "aliases": ["contentHash"]}
+      ]
+    }
+  ],
+  "semanticExclusions": [
+    "dataVersion", "data_version", "sourceDataVersion", "sourceDataVersions",
+    "snapshotId", "signalSnapshotId", "productSnapshotId", "previousSnapshotId",
+    "signalId", "signal_id", "packageId", "package_id", "bundleId", "correlationId", "itemExecutionId", "reportBatchId",
+    "runtimeStateHash", "executionHash", "ExecutionHash", "inputContentHash", "contentHash",
+    "sourceContentHash", "sourceContentHashes", "sourceHash", "source_hash",
+    "productSnapshotHash", "snapshotHash", "parentSnapshotHash", "setSnapshotHash", "projectionHash", "observationHash", "factHash",
+    "artifactRefs", "sourceArtifactRefs", "sourceReportRef", "sourceReportRefs", "sourceArtifactRef", "sourceRef", "sourceRefs",
+    "inputRef", "inputArtifactRef", "outputArtifactRef",
+    "sourceContentHash", "sourceContentHashes", "permissionStampId", "permissionScopeRef",
+    "factId", "fact_id", "metricFactId", "metric_fact_id", "sourceRowId", "source_row_id", "rowId", "row_id",
+    "factRefs", "factHashRefs", "metricLineage",
+    "historyEpochId", "historyEpochStartedAt", "currentProductSetHash", "currentObservationHash",
+    "previousProductSetHashes", "previousObservationHashes", "evidenceInputHash",
+    "createdAt", "updatedAt", "created_at", "updated_at"
+  ],
+  "contractInputs": [
+    "canonicalProductSnapshotSchemaVersion",
+    "evidenceInputContract",
+    "evidenceContractVersion",
+    "admissionPolicyVersion",
+    "hashPrecacheRegistryVersion"
+  ],
+  "routing": {
+    "cacheHit": [
+      "validate_cache_artifact",
+      "resolve_cached_business_body",
+      "rebind_current_strict_identity",
+      "persist_current_evidence_snapshot",
+      "continue_normal_quality_and_signal_admission",
+      "route_observed_or_agent1"
+    ],
+    "cacheMiss": [
+      "run_registered_deterministic_compute",
+      "store_immutable_business_cache_artifact",
+      "register_semantic_hash_index",
+      "continue_normal_quality_and_signal_admission",
+      "route_observed_or_agent1"
+    ],
+    "cacheInvalid": ["fail_closed", "never_latest_fallback", "never_old_current_artifact_reuse"]
+  },
+  "invariants": [
+    "strict_runtime_hash_definitions_unchanged",
+    "semantic_cache_hit_never_reuses_old_current_artifact_ref",
+    "semantic_cache_hit_must_preserve_current_data_version_lineage",
+    "business_metric_change_must_change_semantic_hash",
+    "contract_or_policy_change_must_change_semantic_hash",
+    "frontend_contract_unchanged",
+    "worker_count_unchanged",
+    "provider_configuration_unchanged"
+  ]
+}

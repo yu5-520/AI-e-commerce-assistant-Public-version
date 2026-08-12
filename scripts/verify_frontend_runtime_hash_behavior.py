@@ -285,7 +285,10 @@ def _canonical_product_hash_lineage_checks() -> Dict[str, Any]:
         "web_demo/core/hash-view-client-v2259.js",
     }
     assert required_paths <= runtime_paths, sorted(required_paths - runtime_paths)
-    assert runtime.get("runtimeContractLineageRegistryVersion") == "2026.08.11.3", runtime
+    assert runtime.get("runtimeContractLineageRegistryVersion") == registry.get("version"), (
+        runtime.get("runtimeContractLineageRegistryVersion"),
+        registry.get("version"),
+    )
     assert runtime.get("frontendViewRuntimeScopeVersion") == "23.2.13", runtime
 
     source_identity = view._module_source_identity(
