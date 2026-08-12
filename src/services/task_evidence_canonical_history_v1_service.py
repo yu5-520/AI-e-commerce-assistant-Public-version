@@ -1,10 +1,10 @@
 """Canonical current-epoch history adapter for frozen task evidence.
 
 Task evidence must freeze the same canonical product facts used by product detail,
-but additionally respect the task's dataVersion/creation boundary.  This adapter
+but additionally respect the task's dataVersion/creation boundary. This adapter
 reuses the registered canonical-history bridge metadata and single-product slim
-snapshot reader; it never reads the retired ``system_product_snapshots_v14`` table
-and never retains complete multi-product history payloads.
+snapshot reader; it never reads a retired legacy snapshot authority and never
+retains complete multi-product history payloads.
 """
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ def _bounded_metadata(
         ]
         if not indexes:
             return [], "source_data_version_not_in_current_history_epoch"
-        # Metadata is newest -> oldest.  Keep the task version and all older rows;
+        # Metadata is newest -> oldest. Keep the task version and all older rows;
         # later reports must never rewrite a frozen task evidence window.
         rows = rows[min(indexes):]
 
@@ -92,7 +92,7 @@ def task_bounded_canonical_product_snapshots(
 ) -> Dict[str, Any]:
     """Return product-only canonical snapshots visible at the task boundary.
 
-    The current competition history epoch remains the hard archive boundary.  An
+    The current competition history epoch remains the hard archive boundary. An
     explicit task dataVersion that is not present in the epoch fails closed instead
     of falling forward to the latest product state.
     """
