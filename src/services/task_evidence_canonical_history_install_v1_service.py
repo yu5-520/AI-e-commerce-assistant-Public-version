@@ -12,7 +12,7 @@ the history source used to materialize task evidence:
 """
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from src.services import task_metric_evidence_projection_v2178_service as evidence
 from src.services.task_evidence_canonical_history_v1_service import (
@@ -26,6 +26,18 @@ TASK_DETAIL_CANONICAL_EVIDENCE_SOURCE_VERSION = "22.4.0-task-evidence-canonical-
 
 def _dict(value: Any) -> Dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _retired_legacy_snapshot_rows(limit: int = 120) -> List[Dict[str, Any]]:
+    """Hard-disable the retired V21.7.8 table reader after canonical bind.
+
+    The pre-existing wrapper still asks the evidence core for rows before this repair
+    overwrites its projection. Returning an empty immutable set prevents any runtime
+    read of ``system_product_snapshots_v14`` while preserving the old wrapper's metric
+    semantics until the canonical projection is attached immediately afterwards.
+    """
+    _ = limit
+    return []
 
 
 def _strip_materialized_evidence(value: Any) -> Any:
@@ -135,6 +147,10 @@ def install_task_evidence_canonical_history_v1() -> None:
     if getattr(task_detail, "_TASK_EVIDENCE_CANONICAL_HISTORY_V1_INSTALLED", False):
         return
 
+    # The V21.7.8 installer previously rebound this symbol to a cache backed by the
+    # retired legacy table. Revoke that runtime owner before any rebuilt task detail
+    # can touch it.
+    evidence._snapshot_rows = _retired_legacy_snapshot_rows
     original = task_detail.build_task_detail_snapshot
 
     def build_task_detail_snapshot(task: Dict[str, Any]) -> Dict[str, Any]:
