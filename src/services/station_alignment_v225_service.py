@@ -1,10 +1,11 @@
-"""V22.2.5 artifact-aware full-bundle and quality-gate stations.
+"""Artifact-aware full-bundle and quality-gate stations.
 
-V22.2.5 keeps the historical station contract while binding every full product
-bundle to the canonical product snapshot that supplied its facts. The station is
-the compatibility boundary: first-report baseline evidence is validated as canonical
-product evidence, not as a Signal contract, and therefore never requires Signal
-itemization or Agent1 execution.
+V22.2.7 keeps the historical station contract while making competition Evidence a
+strict hash consumer of canonical product snapshots. The station never asks the
+snapshot service to force-rebuild canonical facts. It receives a hash-precomputed
+Evidence snapshot, validates the same business contract, and preserves the exact
+``evidenceInputHash`` / history epoch through the full-bundle and validation ART
+boundaries.
 """
 from __future__ import annotations
 
@@ -20,9 +21,23 @@ from src.services.operating_evidence_contract_service import (
     validate_signal_snapshot,
 )
 
-STATION_ALIGNMENT_V225_VERSION = "22.2.6"
+STATION_ALIGNMENT_V225_VERSION = "22.2.7"
 CANONICAL_LINEAGE_CONTRACT = "canonicalProductSnapshot.lineage.v1"
 BASELINE_EVIDENCE_CONTRACT = "canonicalProductBaselineEvidence.v1"
+_EVIDENCE_IDENTITY_FIELDS = (
+    "evidenceInputContract",
+    "evidenceInputHash",
+    "historyEpochId",
+    "historyEpochStartedAt",
+    "currentProductSetHash",
+    "currentObservationHash",
+    "previousProductSetHashes",
+    "previousObservationHashes",
+    "evidenceCacheMode",
+    "historyScanMode",
+    "wholeSnapshotRetention",
+    "maxComparableHistory",
+)
 
 
 def _packages(snapshot: Dict[str, Any] | None) -> List[Dict[str, Any]]:
@@ -38,11 +53,7 @@ def _product_key(item: Dict[str, Any]) -> str:
 
 def _canonical_products(data_version: str | None) -> List[Dict[str, Any]]:
     snapshot = get_product_snapshot(data_version)
-    return [
-        dict(item)
-        for item in (snapshot or {}).get("products") or []
-        if isinstance(item, dict)
-    ]
+    return [dict(item) for item in (snapshot or {}).get("products") or [] if isinstance(item, dict)]
 
 
 def _canonical_index(data_version: str | None) -> Dict[str, Dict[str, Any]]:
@@ -51,14 +62,44 @@ def _canonical_index(data_version: str | None) -> Dict[str, Dict[str, Any]]:
         for value in [
             product.get("objectId"),
             product.get("productId"),
-            (product.get("profileSnapshot") or {}).get("skuId")
-            if isinstance(product.get("profileSnapshot"), dict)
-            else None,
+            (product.get("profileSnapshot") or {}).get("skuId") if isinstance(product.get("profileSnapshot"), dict) else None,
         ]:
             key = str(value or "").strip()
             if key:
                 index[key] = product
     return index
+
+
+def _evidence_identity(source: Dict[str, Any] | None) -> Dict[str, Any]:
+    if not isinstance(source, dict):
+        return {}
+    result = source.get("result") if isinstance(source.get("result"), dict) else {}
+    identity: Dict[str, Any] = {}
+    for field in _EVIDENCE_IDENTITY_FIELDS:
+        value = source.get(field)
+        if value is None:
+            value = result.get(field)
+        if value is not None:
+            identity[field] = value
+    return identity
+
+
+def _require_evidence_identity(source: Dict[str, Any], *, station_id: str) -> Dict[str, Any]:
+    identity = _evidence_identity(source)
+    missing: List[str] = []
+    if not str(identity.get("evidenceInputHash") or "").startswith("sha256:"):
+        missing.append("evidenceInputHash")
+    if not str(identity.get("historyEpochId") or "").startswith("HIST-EPOCH-"):
+        missing.append("historyEpochId")
+    if not str(identity.get("currentProductSetHash") or "").startswith("sha256:"):
+        missing.append("currentProductSetHash")
+    if identity.get("evidenceCacheMode") != "competition_hash_precache":
+        missing.append("evidenceCacheMode=competition_hash_precache")
+    if identity.get("wholeSnapshotRetention") is not False:
+        missing.append("wholeSnapshotRetention=false")
+    if missing:
+        raise RuntimeError(f"evidence_hash_identity_invalid:{station_id}:" + ",".join(missing))
+    return identity
 
 
 def _bind_canonical_lineage(data_version: str | None, snapshot: Dict[str, Any]) -> Dict[str, Any]:
@@ -67,17 +108,14 @@ def _bind_canonical_lineage(data_version: str | None, snapshot: Dict[str, Any]) 
     packages = _packages(snapshot)
     bound: List[Dict[str, Any]] = []
     matched = 0
+    evidence_identity = _evidence_identity(snapshot)
     for package in packages:
         product = None
         candidates = [
             package.get("entityId"),
             package.get("productId"),
-            (package.get("profileLayer") or {}).get("skuId")
-            if isinstance(package.get("profileLayer"), dict)
-            else None,
-            (package.get("productProfileSnapshot") or {}).get("skuId")
-            if isinstance(package.get("productProfileSnapshot"), dict)
-            else None,
+            (package.get("profileLayer") or {}).get("skuId") if isinstance(package.get("profileLayer"), dict) else None,
+            (package.get("productProfileSnapshot") or {}).get("skuId") if isinstance(package.get("productProfileSnapshot"), dict) else None,
         ]
         for candidate in candidates:
             key = str(candidate or "").strip()
@@ -85,6 +123,7 @@ def _bind_canonical_lineage(data_version: str | None, snapshot: Dict[str, Any]) 
                 product = canonical[key]
                 break
         next_package = dict(package)
+        next_package.update(evidence_identity)
         if product:
             parent_hash = product.get("productSnapshotHash") or product.get("snapshotHash")
             lineage = {
@@ -101,6 +140,7 @@ def _bind_canonical_lineage(data_version: str | None, snapshot: Dict[str, Any]) 
             next_package.update(lineage)
             agent_package = dict(next_package.get("agentProductSnapshotPackage") or {})
             agent_package.update(lineage)
+            agent_package.update(evidence_identity)
             next_package["agentProductSnapshotPackage"] = agent_package
             matched += 1
         else:
@@ -108,6 +148,7 @@ def _bind_canonical_lineage(data_version: str | None, snapshot: Dict[str, Any]) 
         bound.append(next_package)
 
     next_snapshot = dict(snapshot)
+    next_snapshot.update(evidence_identity)
     next_snapshot["productSignalPackages"] = bound
     next_snapshot["signals"] = bound
     next_snapshot["canonicalLineage"] = {
@@ -117,12 +158,13 @@ def _bind_canonical_lineage(data_version: str | None, snapshot: Dict[str, Any]) 
         "matchedPackageCount": matched,
         "missingPackageCount": len(bound) - matched,
         "complete": bool(bound) and matched == len(bound),
+        "evidenceInputHash": evidence_identity.get("evidenceInputHash"),
         "rule": "Agent-facing bundle lineage is inherited from canonical product snapshot; no station-side fact rebuild is allowed.",
     }
     return next_snapshot
 
 
-def _canonical_baseline_bundle(product: Dict[str, Any], data_version: str | None) -> Dict[str, Any]:
+def _canonical_baseline_bundle(product: Dict[str, Any], data_version: str | None, evidence_identity: Dict[str, Any] | None = None) -> Dict[str, Any]:
     profile = dict(product.get("profileSnapshot") or {})
     metric = dict(product.get("metricSnapshot") or {})
     parent_hash = product.get("productSnapshotHash") or product.get("snapshotHash")
@@ -130,6 +172,7 @@ def _canonical_baseline_bundle(product: Dict[str, Any], data_version: str | None
     product_id = product.get("productId") or profile.get("productId")
     store_id = product.get("storeId") or profile.get("storeId")
     return {
+        **(evidence_identity or {}),
         "baselineEvidenceId": f"BASELINE::{object_id or store_id or 'GLOBAL'}::{product_id or 'PRODUCT'}",
         "evidenceContract": BASELINE_EVIDENCE_CONTRACT,
         "evidenceStatus": "baseline",
@@ -153,30 +196,15 @@ def _canonical_baseline_bundle(product: Dict[str, Any], data_version: str | None
     }
 
 
-def _baseline_evidence_bundles(
-    data_version: str | None,
-    snapshot: Dict[str, Any] | None,
-) -> List[Dict[str, Any]]:
-    """Return baseline evidence without requiring the Signal contract.
-
-    Existing full-product bundles are retained when available because they already
-    contain richer profile/metric evidence. If the compatibility Signal snapshot is
-    empty, canonical product snapshots are the authoritative fallback. In neither
-    case are these bundles exposed as Signals.
-    """
+def _baseline_evidence_bundles(data_version: str | None, snapshot: Dict[str, Any] | None) -> List[Dict[str, Any]]:
     packages = _packages(snapshot)
     if packages:
         return packages
-    return [
-        _canonical_baseline_bundle(product, data_version)
-        for product in _canonical_products(data_version)
-    ]
+    identity = _evidence_identity(snapshot)
+    return [_canonical_baseline_bundle(product, data_version, identity) for product in _canonical_products(data_version)]
 
 
-def _validate_baseline_evidence(
-    bundles: List[Dict[str, Any]],
-    data_version: str | None,
-) -> Dict[str, Any]:
+def _validate_baseline_evidence(bundles: List[Dict[str, Any]], data_version: str | None) -> Dict[str, Any]:
     invalid: List[Dict[str, Any]] = []
     for item in bundles:
         identity = _product_key(item)
@@ -187,12 +215,7 @@ def _validate_baseline_evidence(
         if not parent_hash:
             missing.append("productSnapshotHash")
         if missing:
-            invalid.append(
-                {
-                    "productId": item.get("productId") or item.get("entityId"),
-                    "missing": missing,
-                }
-            )
+            invalid.append({"productId": item.get("productId") or item.get("entityId"), "missing": missing})
     return {
         "ok": bool(bundles) and not invalid,
         "status": "passed" if bundles and not invalid else "failed",
@@ -208,10 +231,7 @@ def _validate_baseline_evidence(
 
 def _baseline_only(data_version: str | None, snapshot: Dict[str, Any] | None) -> tuple[bool, Dict[str, Any]]:
     baseline = is_first_report_baseline(data_version)
-    value = bool(
-        (snapshot or {}).get("baselineNoPrevious")
-        or baseline.get("isFirstReportBaseline")
-    )
+    value = bool((snapshot or {}).get("baselineNoPrevious") or baseline.get("isFirstReportBaseline"))
     return value, baseline
 
 
@@ -221,27 +241,17 @@ def _resolve_business_artifact(artifact_id: str | None) -> Dict[str, Any]:
         raise RuntimeError("required_business_artifact_ref_missing")
     validation = validate_artifact(ref)
     if validation.get("ok") is not True:
-        raise RuntimeError(
-            f"business_artifact_invalid:{ref}:{validation.get('status') or 'invalid'}"
-        )
+        raise RuntimeError(f"business_artifact_invalid:{ref}:{validation.get('status') or 'invalid'}")
     payload = resolve_artifact(ref)
     if not isinstance(payload, dict) or not payload:
         raise RuntimeError(f"business_artifact_payload_invalid:{ref}")
     return payload
 
 
-def full_product_bundle_station(
-    data_version: str | None,
-    *,
-    user_id: str | None = None,
-    force: bool = True,
-    **_: Any,
-) -> Dict[str, Any]:
-    raw = signal_snapshot_service.materialize_product_signal_snapshot(
-        data_version=data_version,
-        user_id=user_id,
-        force=force,
-    )
+def full_product_bundle_station(data_version: str | None, *, user_id: str | None = None, force: bool = True, **_: Any) -> Dict[str, Any]:
+    del force
+    raw = signal_snapshot_service.materialize_product_signal_snapshot(data_version=data_version, user_id=user_id, force=False)
+    evidence_identity = _require_evidence_identity(raw, station_id="full_product_bundle_station")
     raw = _bind_canonical_lineage(data_version, raw)
     baseline_only, baseline = _baseline_only(data_version, raw)
 
@@ -250,14 +260,13 @@ def full_product_bundle_station(
         validation = _validate_baseline_evidence(packages, data_version)
         if validation.get("ok") is not True:
             raise RuntimeError(
-                "baseline_product_bundle_contract_invalid_v22_2_6:"
-                f"dataVersion={data_version or 'latest'};"
-                f"packageCount={validation.get('packageCount')};"
-                f"invalidCount={validation.get('invalidCount')};"
-                f"sample={','.join(str(value) for value in validation.get('sample') or [])}"
+                "baseline_product_bundle_contract_invalid_v22_2_7:"
+                f"dataVersion={data_version or 'latest'};packageCount={validation.get('packageCount')};"
+                f"invalidCount={validation.get('invalidCount')};sample={','.join(str(value) for value in validation.get('sample') or [])}"
             )
         lineage = raw.get("canonicalLineage") or {}
         result = {
+            **evidence_identity,
             "baselineNoPrevious": True,
             "baselineMode": "first_report",
             "baselineProductBundleCount": len(packages),
@@ -272,6 +281,7 @@ def full_product_bundle_station(
             "stationId": "full_product_bundle_station",
             "businessOutputType": "baseline_product_bundle",
             "dataVersion": data_version,
+            **evidence_identity,
             "productSignalPackageCount": 0,
             "productSignalCount": 0,
             "generatedSignalCount": 0,
@@ -290,22 +300,18 @@ def full_product_bundle_station(
             "signals": [],
             "result": result,
             "outputRef": f"business_output_pending_artifact:full_product_bundle:{data_version or 'latest'}",
-            "rule": (
-                "First report validates canonical product baseline evidence directly; "
-                "Signal output stays zero until a strictly earlier active report exists."
-            ),
+            "rule": "First report consumes hash-precomputed canonical baseline evidence; no runtime history rebuild is allowed.",
         }
 
     snapshot = normalize_signal_snapshot(raw, baseline_only=False)
+    snapshot.update(evidence_identity)
     snapshot = _bind_canonical_lineage(data_version, snapshot)
     validation = validate_signal_snapshot(snapshot, baseline_only=False)
     if validation.get("ok") is not True:
         raise RuntimeError(
-            "full_product_bundle_contract_invalid_v22_2_6:"
-            f"dataVersion={data_version or 'latest'};"
-            f"packageCount={validation.get('packageCount')};"
-            f"invalidCount={validation.get('invalidCount')};"
-            f"sample={','.join(str(value) for value in validation.get('sample') or [])}"
+            "full_product_bundle_contract_invalid_v22_2_7:"
+            f"dataVersion={data_version or 'latest'};packageCount={validation.get('packageCount')};"
+            f"invalidCount={validation.get('invalidCount')};sample={','.join(str(value) for value in validation.get('sample') or [])}"
         )
     packages = _packages(snapshot)
     lineage = snapshot.get("canonicalLineage") or {}
@@ -314,6 +320,7 @@ def full_product_bundle_station(
         "stationId": "full_product_bundle_station",
         "businessOutputType": "full_product_signal_snapshot",
         "dataVersion": data_version,
+        **evidence_identity,
         "productSignalPackageCount": len(packages),
         "productSignalCount": len(packages),
         "generatedSignalCount": len(packages),
@@ -332,7 +339,7 @@ def full_product_bundle_station(
         "signals": packages,
         "result": snapshot,
         "outputRef": f"business_output_pending_artifact:full_product_bundle:{data_version or 'latest'}",
-        "rule": "The station returns canonical delta evidence with productSnapshotHash lineage.",
+        "rule": "Full product Evidence consumes exact canonical hashes and preserves evidenceInputHash into Artifact Transport.",
     }
 
 
@@ -345,33 +352,30 @@ def bundle_validation_station(
 ) -> Dict[str, Any]:
     source_ref = full_product_bundle_ref or fullProductBundleRef
     upstream = _resolve_business_artifact(source_ref)
+    evidence_identity = _require_evidence_identity(upstream, station_id="bundle_validation_station")
     baseline_only, baseline = _baseline_only(data_version, upstream)
 
     if baseline_only:
         result = upstream.get("result") if isinstance(upstream.get("result"), dict) else {}
-        raw_bundles = (
-            upstream.get("baselineProductBundles")
-            or result.get("baselineProductBundles")
-            or []
-        )
+        raw_bundles = upstream.get("baselineProductBundles") or result.get("baselineProductBundles") or []
         packages = [item for item in raw_bundles if isinstance(item, dict)]
         if not packages:
             packages = _baseline_evidence_bundles(data_version, result)
         validation = _validate_baseline_evidence(packages, data_version)
         if validation.get("ok") is not True:
             raise RuntimeError(
-                "baseline_bundle_validation_contract_invalid_v22_2_6:"
-                f"dataVersion={data_version or 'latest'};"
-                f"packageCount={validation.get('packageCount')};"
-                f"invalidCount={validation.get('invalidCount')};"
-                f"sample={','.join(str(value) for value in validation.get('sample') or [])}"
+                "baseline_bundle_validation_contract_invalid_v22_2_7:"
+                f"dataVersion={data_version or 'latest'};packageCount={validation.get('packageCount')};"
+                f"invalidCount={validation.get('invalidCount')};sample={','.join(str(value) for value in validation.get('sample') or [])}"
             )
         return {
             "version": STATION_ALIGNMENT_V225_VERSION,
             "stationId": "bundle_validation_station",
             "businessOutputType": "validated_baseline_product_bundle",
             "dataVersion": data_version,
+            **evidence_identity,
             "sourceArtifactRef": source_ref,
+            "fullProductBundleRef": source_ref,
             "bundleCount": len(packages),
             "baselineProductBundleCount": len(packages),
             "validatedSignalCount": 0,
@@ -390,42 +394,32 @@ def bundle_validation_station(
             "validatedSignals": [],
             "productSignalPackages": [],
             "outputRef": f"business_output_pending_artifact:bundle_validation:{data_version or 'latest'}",
-            "rule": (
-                "Baseline bundles are canonical evidence, not Signals; validation passes "
-                "without Signal itemization and Agent1 remains closed."
-            ),
+            "rule": "Baseline validation consumes exactly one upstream Evidence ART and preserves its hash identity.",
         }
 
-    snapshot = (
-        upstream.get("result")
-        if isinstance(upstream.get("result"), dict)
-        else upstream
-    )
+    snapshot = upstream.get("result") if isinstance(upstream.get("result"), dict) else upstream
+    snapshot.update(evidence_identity)
     snapshot = _bind_canonical_lineage(data_version, snapshot)
     snapshot = normalize_signal_snapshot(snapshot, baseline_only=False)
+    snapshot.update(evidence_identity)
     snapshot = _bind_canonical_lineage(data_version, snapshot)
     validation = validate_signal_snapshot(snapshot, baseline_only=False)
     if validation.get("ok") is not True:
         raise RuntimeError(
-            "bundle_validation_contract_invalid_v22_2_6:"
-            f"dataVersion={data_version or 'latest'};"
-            f"packageCount={validation.get('packageCount')};"
-            f"invalidCount={validation.get('invalidCount')};"
-            f"sample={','.join(str(value) for value in validation.get('sample') or [])}"
+            "bundle_validation_contract_invalid_v22_2_7:"
+            f"dataVersion={data_version or 'latest'};packageCount={validation.get('packageCount')};"
+            f"invalidCount={validation.get('invalidCount')};sample={','.join(str(value) for value in validation.get('sample') or [])}"
         )
     packages = _packages(snapshot)
-    attention = sum(
-        1
-        for item in packages
-        if ((item.get("crossValidation") or {}).get("decision") or {}).get("status")
-        == "attention"
-    )
+    attention = sum(1 for item in packages if ((item.get("crossValidation") or {}).get("decision") or {}).get("status") == "attention")
     return {
         "version": STATION_ALIGNMENT_V225_VERSION,
         "stationId": "bundle_validation_station",
         "businessOutputType": "validated_product_signal_snapshot",
         "dataVersion": data_version,
+        **evidence_identity,
         "sourceArtifactRef": source_ref,
+        "fullProductBundleRef": source_ref,
         "bundleCount": len(packages),
         "baselineProductBundleCount": 0,
         "validatedSignalCount": len(packages),
@@ -444,7 +438,7 @@ def bundle_validation_station(
         "validatedSignals": packages,
         "productSignalPackages": packages,
         "outputRef": f"business_output_pending_artifact:bundle_validation:{data_version or 'latest'}",
-        "rule": "Quality gate validates delta Signals and keeps canonical productSnapshotHash lineage.",
+        "rule": "Quality gate validates the upstream immutable Evidence ART and preserves exact evidenceInputHash lineage.",
     }
 
 

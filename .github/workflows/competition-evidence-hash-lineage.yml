@@ -1,0 +1,143 @@
+name: Competition Evidence Hash Lineage
+
+on:
+  pull_request:
+    paths:
+      - 'src/services/product_signal_snapshot_service.py'
+      - 'src/services/v215_report_batch_evidence_service.py'
+      - 'src/services/competition_evidence_v215_runtime_service.py'
+      - 'src/services/v22_runtime_service.py'
+      - 'src/services/station_alignment_v225_service.py'
+      - 'src/services/station_business_artifact_service.py'
+      - 'src/services/artifact_signal_admission_v225_service.py'
+      - 'src/services/artifact_transport_service.py'
+      - 'config/runtime_contract_lineage_registry_v1.json'
+      - 'config/v23_registry_runtime.json'
+      - 'governance/runtime_contract_lineage_repair_policy.json'
+      - 'scripts/verify_competition_evidence_hash_lineage.py'
+      - '.github/workflows/competition-evidence-hash-lineage.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: competition-evidence-hash-lineage-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-evidence-hash-lineage:
+    runs-on: self-hosted
+    timeout-minutes: 25
+    env:
+      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Materialize exact TARGET source archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SOURCE_COMMIT="$COMPETITION_SOURCE_COMMIT"
+          ARCHIVE="${RUNNER_TEMP}/competition-evidence-${SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/competition-evidence-${SOURCE_COMMIT}"
+          rm -f "$ARCHIVE"
+          rm -rf "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download ${SOURCE_COMMIT} attempt ${attempt}/8"
+            if curl \
+              --fail \
+              --location \
+              --silent \
+              --show-error \
+              --connect-timeout 20 \
+              --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/verify_competition_evidence_hash_lineage.py"
+          test -f "$EXTRACTED/src/services/competition_evidence_v215_runtime_service.py"
+          test -f "$EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$SOURCE_COMMIT" > "$GITHUB_WORKSPACE/.competition-source-commit"
+
+      - name: Resolve ECS Python 3.10+
+        run: |
+          set -euo pipefail
+          CANDIDATES="${RUNNER_TEMP}/competition-evidence-python.txt"
+          : > "$CANDIDATES"
+          for candidate in python3.13 python3.12 python3.11 python3.10 /usr/local/bin/python3.13 /usr/local/bin/python3.12 /usr/local/bin/python3.11 /usr/local/bin/python3.10 /usr/bin/python3.13 /usr/bin/python3.12 /usr/bin/python3.11 /usr/bin/python3.10; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              command -v "$candidate" >> "$CANDIDATES"
+            elif [ -x "$candidate" ]; then
+              printf '%s\n' "$candidate" >> "$CANDIDATES"
+            fi
+          done
+          for search_root in /opt /usr/local /home "$RUNNER_TOOL_CACHE"; do
+            [ -d "$search_root" ] || continue
+            find "$search_root" -maxdepth 7 -type f \
+              \( -name 'python3.13' -o -name 'python3.12' -o -name 'python3.11' -o -name 'python3.10' -o -name 'python' \) \
+              -perm -u+x -print 2>/dev/null >> "$CANDIDATES" || true
+          done
+          sort -u "$CANDIDATES" -o "$CANDIDATES"
+          while IFS= read -r candidate; do
+            [ -n "$candidate" ] || continue
+            if "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+              printf 'PYTHON_BIN=%s\n' "$candidate" >> "$GITHUB_ENV"
+              "$candidate" -c 'import platform; print("python=" + platform.python_version())'
+              exit 0
+            fi
+          done < "$CANDIDATES"
+          echo 'No usable Python 3.10+ runtime exists on ECS runner.' >&2
+          exit 1
+
+      - name: Verify Evidence source and registry contracts
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" -m py_compile \
+            src/services/product_signal_snapshot_service.py \
+            src/services/competition_evidence_v215_runtime_service.py \
+            src/services/v22_runtime_service.py \
+            src/services/station_alignment_v225_service.py \
+            src/services/station_business_artifact_service.py \
+            src/services/artifact_signal_admission_v225_service.py \
+            scripts/verify_competition_evidence_hash_lineage.py
+          "$PYTHON_BIN" -m json.tool config/runtime_contract_lineage_registry_v1.json >/dev/null
+          "$PYTHON_BIN" -m json.tool config/v23_registry_runtime.json >/dev/null
+          "$PYTHON_BIN" -m json.tool governance/runtime_contract_lineage_repair_policy.json >/dev/null
+          mkdir -p dist/competition-evidence-hash-lineage
+          "$PYTHON_BIN" scripts/verify_competition_evidence_hash_lineage.py \
+            | tee dist/competition-evidence-hash-lineage/verification-report.json
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('dist/competition-evidence-hash-lineage/verification-report.json').read_text(encoding='utf-8'))
+          assert report.get('verified') is True, report
+          assert report['services']['forbiddenRuntimeRescanHits'] == {'snapshot': [], 'bridge': [], 'station': []}, report
+          assert report['services']['legacyV215WrapperActive'] is False, report
+          assert report['registry']['registryVersion'] == '2026.08.12.2', report
+          assert report['registry']['runtimeModule'] == 'signal_admission', report
+          assert report['registry']['runtimeScopeVersion'] == '23.2.15', report
+          assert report['registry']['v215BridgePathRegistered'] is True, report
+          assert report['registry']['v215OverlayInterfaceRegistered'] is True, report
+          assert report['registry']['evidenceContractVersion'] == '21.5.0', report
+          print('competitionEvidenceHashLineage=verified')
+          PY

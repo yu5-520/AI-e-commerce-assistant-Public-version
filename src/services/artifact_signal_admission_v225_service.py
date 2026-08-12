@@ -1,15 +1,14 @@
-"""V22.5.11 Signal admission from the validated business artifact.
+"""V22.5.12 Signal admission from the validated Evidence Artifact.
 
-This is the formal bridge from one validated batch artifact to product-level
-``signalRef`` items. It does not reload the legacy Signal Pool and does not use a
-payload fallback. A first-report baseline artifact is consumed only to record the
-closed historical gate: it creates zero Signal items and zero Agent1 work.
+The validated bundle ART is the only admission input. Competition Evidence hash
+identity is preserved into each product signal Artifact and pipeline handle so the
+lineage remains:
 
-For comparable reports, operating evidence decides whether Agent1 may inspect a
-product. Numeric admission score only orders eligible throughput; it may not turn
-meaningful/structural evidence into an observation. This behavior used to live in a
-V22.2.6 import-time replacement. It now belongs to the registered v225 Station owner
-so static Hash Lineage and runtime callable identity describe the same execution.
+canonical hashes -> evidenceInputHash -> full bundle ART -> validated bundle ART
+-> signal ART -> Agent1.
+
+No legacy Signal Pool reload or payload fallback is introduced. Baseline evidence
+still creates zero Signal items and zero Agent1 work.
 """
 from __future__ import annotations
 
@@ -18,18 +17,22 @@ from typing import Any, Dict, List
 
 from src.services.agent_pipeline_governance_v213_service import normalize_admission_limits
 from src.services.artifact_transport_service import resolve_artifact, store_artifact, validate_artifact
-from src.services.pipeline_agent1_microbatch_v20101_service import (
-    AGENT1_PENDING_STAGE,
-    OBSERVED_STAGE,
-)
-from src.services.pipeline_item_service import (
-    build_item_envelope,
-    record_pipeline_item_event,
-    upsert_pipeline_item,
-)
+from src.services.pipeline_agent1_microbatch_v20101_service import AGENT1_PENDING_STAGE, OBSERVED_STAGE
+from src.services.pipeline_item_service import build_item_envelope, record_pipeline_item_event, upsert_pipeline_item
 from src.services.product_signal_admission_v197_service import score_signal
 
-ARTIFACT_SIGNAL_ADMISSION_VERSION = "22.5.11"
+ARTIFACT_SIGNAL_ADMISSION_VERSION = "22.5.12"
+_EVIDENCE_FIELDS = (
+    "evidenceInputHash",
+    "historyEpochId",
+    "currentProductSetHash",
+    "currentObservationHash",
+    "previousProductSetHashes",
+    "previousObservationHashes",
+    "evidenceCacheMode",
+    "historyScanMode",
+    "wholeSnapshotRetention",
+)
 
 
 def _validated_payload(artifact_id: str | None) -> Dict[str, Any]:
@@ -38,22 +41,23 @@ def _validated_payload(artifact_id: str | None) -> Dict[str, Any]:
         raise RuntimeError("validated_bundle_artifact_ref_missing")
     validation = validate_artifact(ref)
     if validation.get("ok") is not True:
-        raise RuntimeError(
-            f"validated_bundle_artifact_invalid:{ref}:{validation.get('status') or 'invalid'}"
-        )
+        raise RuntimeError(f"validated_bundle_artifact_invalid:{ref}:{validation.get('status') or 'invalid'}")
     payload = resolve_artifact(ref)
     if not isinstance(payload, dict) or not payload:
         raise RuntimeError(f"validated_bundle_payload_invalid:{ref}")
     return payload
 
 
+def _evidence_identity(payload: Dict[str, Any]) -> Dict[str, Any]:
+    identity = {field: payload.get(field) for field in _EVIDENCE_FIELDS if payload.get(field) is not None}
+    evidence_hash = str(identity.get("evidenceInputHash") or "")
+    if evidence_hash and not evidence_hash.startswith("sha256:"):
+        raise RuntimeError("validated_bundle_evidence_input_hash_invalid")
+    return identity
+
+
 def _signals(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
-    values = (
-        payload.get("validatedSignals")
-        or payload.get("productSignalPackages")
-        or payload.get("signals")
-        or []
-    )
+    values = payload.get("validatedSignals") or payload.get("productSignalPackages") or payload.get("signals") or []
     return [item for item in values if isinstance(item, dict)]
 
 
@@ -100,52 +104,23 @@ def _meaningful_change(signal: Dict[str, Any]) -> bool:
 
 def _structural_change(signal: Dict[str, Any]) -> bool:
     primary = str(signal.get("primarySignalType") or "").strip().lower()
-    if primary in {
-        "product_missing_from_latest",
-        "product_new_in_latest",
-        "new_product",
-        "new_link",
-        "test_link",
-    }:
+    if primary in {"product_missing_from_latest", "product_new_in_latest", "new_product", "new_link", "test_link"}:
         return True
-    return bool(
-        primary == "product_baseline"
-        and signal.get("previousProductMetricSnapshot") is None
-    )
+    return bool(primary == "product_baseline" and signal.get("previousProductMetricSnapshot") is None)
 
 
 def _agent1_eligibility(signal: Dict[str, Any], *, baseline_only: bool) -> Dict[str, Any]:
     if baseline_only or _decision(signal).get("baselineOnly") is True:
-        return {
-            "eligible": False,
-            "reason": "batch_or_product_baseline",
-            "source": "operatingEvidenceGraph.v1",
-        }
+        return {"eligible": False, "reason": "batch_or_product_baseline", "source": "operatingEvidenceGraph.v1"}
     decision = _decision(signal)
     status = str(decision.get("status") or "").strip().lower()
     if status not in {"passed", "attention", ""}:
-        return {
-            "eligible": False,
-            "reason": f"evidence_decision_{status or 'invalid'}",
-            "source": "operatingEvidenceGraph.v1",
-        }
+        return {"eligible": False, "reason": f"evidence_decision_{status or 'invalid'}", "source": "operatingEvidenceGraph.v1"}
     if _structural_change(signal):
-        return {
-            "eligible": True,
-            "reason": "structural_product_or_link_change",
-            "source": "operatingEvidenceGraph.v1",
-        }
+        return {"eligible": True, "reason": "structural_product_or_link_change", "source": "operatingEvidenceGraph.v1"}
     if _meaningful_change(signal):
-        return {
-            "eligible": True,
-            "reason": "meaningful_metric_change",
-            "source": "operatingEvidenceGraph.v1",
-        }
-    return {
-        "eligible": False,
-        "reason": "zero_meaningful_change",
-        "source": "operatingEvidenceGraph.v1",
-    }
+        return {"eligible": True, "reason": "meaningful_metric_change", "source": "operatingEvidenceGraph.v1"}
+    return {"eligible": False, "reason": "zero_meaningful_change", "source": "operatingEvidenceGraph.v1"}
 
 
 def _signal_identity(signal: Dict[str, Any]) -> tuple[str, str, str]:
@@ -166,6 +141,7 @@ def _seed_signal_item(
     admitted: bool,
 ) -> Dict[str, Any]:
     signal_id, product_id, store_id = _signal_identity(signal)
+    evidence_identity = _evidence_identity(signal)
     signal_artifact = store_artifact(
         artifact_type="product_signal",
         value=signal,
@@ -181,6 +157,9 @@ def _seed_signal_item(
             "level": score.get("level"),
             "agent1Eligible": bool(score.get("agent1Eligible")),
             "eligibilityReason": score.get("eligibilityReason"),
+            "evidenceInputHash": evidence_identity.get("evidenceInputHash"),
+            "historyEpochId": evidence_identity.get("historyEpochId"),
+            "productSnapshotHash": signal.get("productSnapshotHash") or signal.get("parentSnapshotHash"),
         },
     )
     signal_ref = str(signal_artifact.get("artifactId") or "")
@@ -198,7 +177,7 @@ def _seed_signal_item(
         input_ref=signal_ref,
         output_ref=output_ref,
         stage=stage,
-        artifact_refs={"signalRef": signal_ref},
+        artifact_refs={"signalRef": signal_ref, "validatedBundleRef": source_artifact_ref},
     )
     handle = {
         "version": ARTIFACT_SIGNAL_ADMISSION_VERSION,
@@ -207,6 +186,9 @@ def _seed_signal_item(
         "productId": product_id,
         "storeId": store_id,
         "signalRef": signal_ref,
+        "validatedBundleRef": source_artifact_ref,
+        **evidence_identity,
+        "productSnapshotHash": signal.get("productSnapshotHash") or signal.get("parentSnapshotHash"),
         "admissionScore": score,
         "admissionDecision": "admitted" if admitted else "observed",
         "fullSignalPayloadStoredInArtifactHub": True,
@@ -228,13 +210,7 @@ def _seed_signal_item(
         output_ref=signal_ref,
         payload=handle,
     )
-    return {
-        "signalId": signal_id,
-        "productId": product_id,
-        "storeId": store_id,
-        "signalRef": signal_ref,
-        **score,
-    }
+    return {"signalId": signal_id, "productId": product_id, "storeId": store_id, "signalRef": signal_ref, **evidence_identity, **score}
 
 
 def product_signal_admission_station_v225(
@@ -246,12 +222,9 @@ def product_signal_admission_station_v225(
     max_admitted: int | None = None,
     **_: Any,
 ) -> Dict[str, Any]:
-    limits = normalize_admission_limits(
-        max_signals=max_signals,
-        min_admitted=min_admitted,
-        max_admitted=max_admitted,
-    )
+    limits = normalize_admission_limits(max_signals=max_signals, min_admitted=min_admitted, max_admitted=max_admitted)
     payload = _validated_payload(validated_bundle_ref)
+    evidence_identity = _evidence_identity(payload)
     baseline = payload.get("baseline") if isinstance(payload.get("baseline"), dict) else {}
     baseline_only = bool(payload.get("baselineNoPrevious") or baseline.get("baselineNoPrevious"))
     signals = _signals(payload)
@@ -263,6 +236,7 @@ def product_signal_admission_station_v225(
             "businessOutputType": "baseline_history_gate_closed",
             "dataVersion": data_version,
             "validatedBundleArtifactRef": validated_bundle_ref,
+            **evidence_identity,
             "baselineOnly": True,
             "signalEligibility": False,
             "baselineGate": "closed_before_signal_engine",
@@ -286,21 +260,16 @@ def product_signal_admission_station_v225(
 
     candidates: List[Dict[str, Any]] = []
     for signal in signals:
+        signal.update({key: value for key, value in evidence_identity.items() if signal.get(key) is None})
         score = score_signal(signal)
         eligibility = _agent1_eligibility(signal, baseline_only=False)
         candidates.append({"signal": signal, "score": score, "eligibility": eligibility})
     candidates.sort(
-        key=lambda item: (
-            int(item["score"].get("score") or 0),
-            str(item["signal"].get("productId") or item["signal"].get("entityId") or ""),
-        ),
+        key=lambda item: (int(item["score"].get("score") or 0), str(item["signal"].get("productId") or item["signal"].get("entityId") or "")),
         reverse=True,
     )
     eligible = [item for item in candidates if item["eligibility"]["eligible"]]
-    selected_ids = {
-        str(item["signal"].get("signalId") or "")
-        for item in eligible[: limits["maxAdmitted"]]
-    }
+    selected_ids = {str(item["signal"].get("signalId") or "") for item in eligible[: limits["maxAdmitted"]]}
     admitted: List[Dict[str, Any]] = []
     observed: List[Dict[str, Any]] = []
     reason_counts: Counter[str] = Counter()
@@ -312,12 +281,7 @@ def product_signal_admission_station_v225(
         summary = _seed_signal_item(
             data_version=data_version,
             signal=item["signal"],
-            score={
-                **item["score"],
-                "agent1Eligible": bool(item["eligibility"]["eligible"]),
-                "eligibilityReason": reason,
-                "scoreRole": "priority_only",
-            },
+            score={**item["score"], "agent1Eligible": bool(item["eligibility"]["eligible"]), "eligibilityReason": reason, "scoreRole": "priority_only"},
             source_artifact_ref=str(validated_bundle_ref),
             admitted=is_admitted,
         )
@@ -330,6 +294,7 @@ def product_signal_admission_station_v225(
         "businessOutputType": "artifact_signal_admission",
         "dataVersion": data_version,
         "validatedBundleArtifactRef": validated_bundle_ref,
+        **evidence_identity,
         "baselineOnly": False,
         "signalEligibility": True,
         "baselineGate": "open_after_previous_snapshot",
@@ -351,11 +316,8 @@ def product_signal_admission_station_v225(
         "scoreRole": "priority_only",
         "admissionPolicy": "evidence_trigger_for_agent1_score_for_priority_only",
         "outputRef": f"business_output_pending_artifact:signal_admission:{data_version or 'latest'}",
-        "rule": "Meaningful or structural evidence enters Agent1; numeric score only orders throughput.",
+        "rule": "Meaningful or structural Evidence enters Agent1; numeric score only orders throughput and exact evidenceInputHash is preserved into signal ART.",
     }
 
 
-__all__ = [
-    "ARTIFACT_SIGNAL_ADMISSION_VERSION",
-    "product_signal_admission_station_v225",
-]
+__all__ = ["ARTIFACT_SIGNAL_ADMISSION_VERSION", "product_signal_admission_station_v225"]
