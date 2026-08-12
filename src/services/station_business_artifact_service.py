@@ -1,14 +1,11 @@
 """Persist validated station business output as the pipeline's authoritative artifact.
 
-V22.2.6 closes the last first-report artifact gap by validating *semantic mode*
-rather than assuming every evidence bundle is already a Signal bundle. The field
-semantics are governed by the hash-anchored registry overlay used by the competition
-lineage gate:
-
-- first report: canonical baseline evidence is valid while Signal/Agent counts stay 0;
-- comparable report: Signal eligibility may open, but no positive minimum Signal
-  count is invented;
-- immutable ART references are still written only after this business validation.
+V22.2.7 keeps baseline/delta semantic validation and adds the competition Evidence
+hash contract. Full-bundle and validation outputs must carry an exact
+``evidenceInputHash`` bound to the current history epoch before Artifact Transport is
+allowed to mint the next ART-*. This prevents a station from silently falling back to
+an unbounded database rebuild while preserving the existing single queue/worker and
+all downstream business gates.
 """
 from __future__ import annotations
 
@@ -20,7 +17,7 @@ from src.services.pipeline_item_service import (
     upsert_pipeline_item,
 )
 
-STATION_BUSINESS_ARTIFACT_VERSION = "22.2.6"
+STATION_BUSINESS_ARTIFACT_VERSION = "22.2.7"
 
 STATION_TO_STAGE = {
     "report_receive_station": "data_received",
@@ -51,14 +48,11 @@ BASELINE_ADMISSION_TYPE = "baseline_history_gate_closed"
 DELTA_ADMISSION_TYPE = "artifact_signal_admission"
 BASELINE_GATE_CLOSED = "closed_before_signal_engine"
 DELTA_GATE_OPEN = "open_after_previous_snapshot"
+EVIDENCE_CACHE_MODE = "competition_hash_precache"
 
 
 def business_output_payload(output: Dict[str, Any]) -> Dict[str, Any]:
-    return {
-        key: value
-        for key, value in dict(output or {}).items()
-        if key not in _RUNTIME_ONLY_FIELDS
-    }
+    return {key: value for key, value in dict(output or {}).items() if key not in _RUNTIME_ONLY_FIELDS}
 
 
 def _int(value: Any) -> int:
@@ -83,22 +77,38 @@ def _require_contract_validation(output: Dict[str, Any], missing: List[str]) -> 
     return validation
 
 
-def _require_signal_gate(
-    output: Dict[str, Any],
-    *,
-    eligible: bool,
-    gate: str,
-    missing: List[str],
-) -> None:
+def _require_signal_gate(output: Dict[str, Any], *, eligible: bool, gate: str, missing: List[str]) -> None:
     if output.get("signalEligibility") is not eligible:
         missing.append(f"signalEligibility={str(eligible).lower()}")
     if output.get("baselineGate") != gate:
         missing.append(f"baselineGate={gate}")
 
 
+def _require_evidence_hash_identity(output: Dict[str, Any], missing: List[str]) -> None:
+    if not str(output.get("evidenceInputHash") or "").startswith("sha256:"):
+        missing.append("evidenceInputHash=sha256")
+    if not str(output.get("historyEpochId") or "").startswith("HIST-EPOCH-"):
+        missing.append("historyEpochId")
+    if not str(output.get("currentProductSetHash") or "").startswith("sha256:"):
+        missing.append("currentProductSetHash=sha256")
+    if output.get("evidenceCacheMode") != EVIDENCE_CACHE_MODE:
+        missing.append(f"evidenceCacheMode={EVIDENCE_CACHE_MODE}")
+    if output.get("wholeSnapshotRetention") is not False:
+        missing.append("wholeSnapshotRetention=false")
+    if output.get("historyScanMode") != "epoch_active_import_metadata_then_compact_observation_cache":
+        missing.append("historyScanMode=compact_observation_cache")
+    try:
+        comparable_limit = int(output.get("maxComparableHistory"))
+    except Exception:
+        comparable_limit = -1
+    if comparable_limit < 0 or comparable_limit > 2:
+        missing.append("maxComparableHistory<=2")
+
+
 def _validate_full_product_bundle(output: Dict[str, Any], missing: List[str]) -> None:
     output_type = str(output.get("businessOutputType") or "")
     _require_contract_validation(output, missing)
+    _require_evidence_hash_identity(output, missing)
 
     if output_type == BASELINE_FULL_BUNDLE_TYPE:
         baseline_bundles = _require_list(output, "baselineProductBundles", missing)
@@ -111,12 +121,7 @@ def _validate_full_product_bundle(output: Dict[str, Any], missing: List[str]) ->
             missing.append("baselineProductBundles.count")
         if signal_count != 0 or signal_packages:
             missing.append("baseline.productSignalPackageCount=0")
-        _require_signal_gate(
-            output,
-            eligible=False,
-            gate=BASELINE_GATE_CLOSED,
-            missing=missing,
-        )
+        _require_signal_gate(output, eligible=False, gate=BASELINE_GATE_CLOSED, missing=missing)
         return
 
     if output_type == DELTA_FULL_BUNDLE_TYPE:
@@ -126,22 +131,19 @@ def _validate_full_product_bundle(output: Dict[str, Any], missing: List[str]) ->
             missing.append("productSignalPackageCount>=0")
         if len(signal_packages) != signal_count:
             missing.append("productSignalPackages.count")
-        _require_signal_gate(
-            output,
-            eligible=True,
-            gate=DELTA_GATE_OPEN,
-            missing=missing,
-        )
+        _require_signal_gate(output, eligible=True, gate=DELTA_GATE_OPEN, missing=missing)
         return
 
-    missing.append(
-        "businessOutputType in {baseline_product_bundle,full_product_signal_snapshot}"
-    )
+    missing.append("businessOutputType in {baseline_product_bundle,full_product_signal_snapshot}")
 
 
 def _validate_bundle_validation(output: Dict[str, Any], missing: List[str]) -> None:
     output_type = str(output.get("businessOutputType") or "")
     _require_contract_validation(output, missing)
+    _require_evidence_hash_identity(output, missing)
+    source_ref = str(output.get("sourceArtifactRef") or output.get("fullProductBundleRef") or "")
+    if not source_ref.startswith("ART-"):
+        missing.append("fullProductBundleRef=ART")
 
     if output_type == BASELINE_VALIDATED_BUNDLE_TYPE:
         baseline_bundles = _require_list(output, "baselineProductBundles", missing)
@@ -159,12 +161,7 @@ def _validate_bundle_validation(output: Dict[str, Any], missing: List[str]) -> N
             missing.append("baseline.validatedSignalCount=0")
         if output.get("validationStatus") != "passed":
             missing.append("validationStatus=passed")
-        _require_signal_gate(
-            output,
-            eligible=False,
-            gate=BASELINE_GATE_CLOSED,
-            missing=missing,
-        )
+        _require_signal_gate(output, eligible=False, gate=BASELINE_GATE_CLOSED, missing=missing)
         return
 
     if output_type == DELTA_VALIDATED_BUNDLE_TYPE:
@@ -177,17 +174,10 @@ def _validate_bundle_validation(output: Dict[str, Any], missing: List[str]) -> N
             missing.append("validatedSignals.count")
         if output.get("validationStatus") not in {"passed", "attention", "waiting"}:
             missing.append("validationStatus")
-        _require_signal_gate(
-            output,
-            eligible=True,
-            gate=DELTA_GATE_OPEN,
-            missing=missing,
-        )
+        _require_signal_gate(output, eligible=True, gate=DELTA_GATE_OPEN, missing=missing)
         return
 
-    missing.append(
-        "businessOutputType in {validated_baseline_product_bundle,validated_product_signal_snapshot}"
-    )
+    missing.append("businessOutputType in {validated_baseline_product_bundle,validated_product_signal_snapshot}")
 
 
 def _validate_signal_admission(output: Dict[str, Any], missing: List[str]) -> None:
@@ -207,13 +197,12 @@ def _validate_signal_admission(output: Dict[str, Any], missing: List[str]) -> No
         elif _int(output.get(key)) < 0:
             missing.append(f"{key}>=0")
 
+    validated_ref = str(output.get("validatedBundleArtifactRef") or "")
+    if not validated_ref.startswith("ART-"):
+        missing.append("validatedBundleArtifactRef=ART")
+
     if output_type == BASELINE_ADMISSION_TYPE:
-        _require_signal_gate(
-            output,
-            eligible=False,
-            gate=BASELINE_GATE_CLOSED,
-            missing=missing,
-        )
+        _require_signal_gate(output, eligible=False, gate=BASELINE_GATE_CLOSED, missing=missing)
         if _int(output.get("baselineProductBundleCount")) <= 0:
             missing.append("baselineProductBundleCount>0")
         for key in count_keys:
@@ -222,18 +211,10 @@ def _validate_signal_admission(output: Dict[str, Any], missing: List[str]) -> No
         return
 
     if output_type == DELTA_ADMISSION_TYPE:
-        _require_signal_gate(
-            output,
-            eligible=True,
-            gate=DELTA_GATE_OPEN,
-            missing=missing,
-        )
-        # Eligibility means permission to emit Signals, not a positive minimum.
+        _require_signal_gate(output, eligible=True, gate=DELTA_GATE_OPEN, missing=missing)
         return
 
-    missing.append(
-        "businessOutputType in {baseline_history_gate_closed,artifact_signal_admission}"
-    )
+    missing.append("businessOutputType in {baseline_history_gate_closed,artifact_signal_admission}")
 
 
 def validate_business_output(station_id: str, output: Dict[str, Any]) -> Dict[str, Any]:
@@ -252,13 +233,23 @@ def validate_business_output(station_id: str, output: Dict[str, Any]) -> Dict[st
         "status": "passed" if not missing else "failed",
         "stationId": station_id,
         "businessOutputType": output.get("businessOutputType") if isinstance(output, dict) else None,
+        "evidenceInputHash": output.get("evidenceInputHash") if isinstance(output, dict) else None,
         "missing": missing,
         "rule": (
-            "Baseline and comparable-delta are distinct registered semantic modes; "
-            "zero Signal/Agent counts are valid when the historical gate is closed "
-            "or when an eligible comparable report produces no admissible Signal."
+            "Baseline and comparable-delta remain distinct semantic modes. Evidence stations must preserve "
+            "the registered hash identity and may mint ART-* only after exact contract validation."
         ),
     }
+
+
+def _semantic_artifact_aliases(station_id: str, artifact_ref: str) -> Dict[str, Any]:
+    if station_id == "full_product_bundle_station":
+        return {"fullProductBundleRef": artifact_ref, "evidenceFullProductBundleRef": artifact_ref}
+    if station_id == "bundle_validation_station":
+        return {"validatedBundleRef": artifact_ref, "evidenceValidatedBundleRef": artifact_ref}
+    if station_id == "product_signal_admission_station":
+        return {"signalAdmissionRef": artifact_ref}
+    return {}
 
 
 def record_business_station_output(
@@ -272,10 +263,7 @@ def record_business_station_output(
     business_output = business_output_payload(output)
     validation = validate_business_output(station_id, business_output)
     if validation.get("ok") is not True:
-        raise RuntimeError(
-            f"station_business_output_invalid:{station_id}:"
-            + ",".join(validation.get("missing") or [])
-        )
+        raise RuntimeError(f"station_business_output_invalid:{station_id}:" + ",".join(validation.get("missing") or []))
     upstream = upstream_envelope if isinstance(upstream_envelope, dict) else {}
     stage = STATION_TO_STAGE.get(station_id, station_id)
     envelope = build_item_envelope(
@@ -292,9 +280,7 @@ def record_business_station_output(
         input_ref=input_ref,
         output_ref=None,
         stage=stage,
-        artifact_refs=upstream.get("artifactRefs")
-        if isinstance(upstream.get("artifactRefs"), dict)
-        else {},
+        artifact_refs=upstream.get("artifactRefs") if isinstance(upstream.get("artifactRefs"), dict) else {},
     )
     stored = upsert_pipeline_item(
         envelope,
@@ -304,9 +290,12 @@ def record_business_station_output(
         output_ref=None,
         payload=business_output,
     )
-    artifact_ref = stored.get("payloadArtifactRef")
-    if not str(artifact_ref or "").startswith("ART-"):
+    artifact_ref = str(stored.get("payloadArtifactRef") or "")
+    if not artifact_ref.startswith("ART-"):
         raise RuntimeError(f"station_business_artifact_missing:{station_id}")
+    aliases = _semantic_artifact_aliases(station_id, artifact_ref)
+    refs = dict(stored.get("artifactRefs") or {})
+    refs.update(aliases)
     record_pipeline_item_event(
         stored,
         station_id=station_id,
@@ -318,7 +307,10 @@ def record_business_station_output(
             "businessOutputType": business_output.get("businessOutputType"),
             "dataVersion": data_version,
             "artifactRef": artifact_ref,
+            "evidenceInputHash": business_output.get("evidenceInputHash"),
+            "historyEpochId": business_output.get("historyEpochId"),
             "validation": validation,
+            **aliases,
         },
     )
     return {
@@ -326,7 +318,10 @@ def record_business_station_output(
         "stage": stage,
         "itemId": stored.get("itemId"),
         "payloadArtifactRef": artifact_ref,
-        "artifactRefs": stored.get("artifactRefs") or {},
+        **aliases,
+        "artifactRefs": refs,
+        "evidenceInputHash": business_output.get("evidenceInputHash"),
+        "historyEpochId": business_output.get("historyEpochId"),
         "businessOutputValidation": validation,
         "runtimeReceiptStoredAsBusinessArtifact": False,
     }
