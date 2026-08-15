@@ -1,0 +1,30 @@
+{
+  "schema": "competition.lineage_update_policy.v1",
+  "version": "2026.08.15.1",
+  "defaultProfile": "runtime_generation_barrier",
+  "profiles": {
+    "runtime_generation_barrier": {
+      "description": "Exact Unified-Registry -> Hash-Lineage scope for the competition Runtime Generation Barrier and Reset Repeatability repair. It permits only the additive generation child registry, its fail-closed barrier service, the existing single Worker binding, registry-driven Reset authority, generation-bound current pipeline projection, and the capture-phase frontend Reset controller. Existing canonical/evidence/Artifact/Execution hash definitions, Provider/model configuration, task mapping semantics and multi-worker policy remain unchanged. Historical canonical/Artifact/audit/cache data may be preserved but cannot regain current-generation write or current-view fallback authority.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": true,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "config/runtime_generation_lineage_registry_v1.json",
+        "src/services/runtime_generation_barrier_v1_service.py",
+        "src/services/repeatability_contract_v1_service.py",
+        "src/services/system_service.py",
+        "src/services/station_agent_worker_v22515_service.py",
+        "src/services/pipeline_live_read_model_v225_service.py",
+        "web_demo/core/runtime-generation-reset-v1.js",
+        "web_demo/index.html"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    }
+  }
+}
