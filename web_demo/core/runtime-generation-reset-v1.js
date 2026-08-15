@@ -21,6 +21,18 @@
     } catch (error) {}
   }
 
+  function stopCurrentRouteRuntime() {
+    try {
+      // navigate() only schedules the real route cleanup on a later animation frame.
+      // Reset must close the active AbortController/poll timer synchronously before
+      // the destructive request begins.
+      window.AppRouter?.currentContext?.()?.cleanup?.();
+    } catch (error) {}
+    try {
+      window.AppRouter?.navigate?.("system-status");
+    } catch (error) {}
+  }
+
   async function parseError(response) {
     try {
       const payload = await response.json();
@@ -42,12 +54,9 @@
       target.textContent = "切换代际中";
     }
 
-    // Unmount the report page first. Its cleanup stops the private pipeline-live poll
-    // timer, so Reset no longer competes with the 7s direct polling request.
-    try {
-      window.AppRouter?.navigate?.("system-status");
-    } catch (error) {}
-
+    // Stop the report page's private pipeline-live poll synchronously, then leave the
+    // page. This closes the fetch-abort/reset-write race before Reset starts.
+    stopCurrentRouteRuntime();
     clearBrowserRuntime();
 
     try {
@@ -96,7 +105,7 @@
   );
 
   window.RuntimeGenerationResetV1 = {
-    version: "1.0.0",
+    version: "1.0.1",
     endpoint: RESET_ENDPOINT,
     run: runGenerationReset,
   };
