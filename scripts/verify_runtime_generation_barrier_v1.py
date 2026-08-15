@@ -44,6 +44,11 @@ def main() -> None:
     overlap = sorted(ephemeral & preserved)
     assert not overlap, f"reset policy overlap: {overlap}"
 
+    scope = _load("config/competition_runtime_scope.json")
+    assert "config/*.json" in set(scope.get("seedGlobs") or []), (
+        "precise runtime package must include generation child registry"
+    )
+
     from src.services import system_service
     from src.services.repeatability_contract_v1_service import task_set_semantic_hash
 
@@ -79,6 +84,7 @@ def main() -> None:
         encoding="utf-8"
     )
     assert "stopImmediatePropagation" in patch
+    assert "AppRouter?.currentContext?.()?.cleanup?.()" in patch
     assert "AppRouter?.navigate?.(\"system-status\")" in patch
     assert "window.location.assign(\"/#data-check\")" in patch
     assert "AppApi.refreshAfterDataImport" not in patch
@@ -91,6 +97,13 @@ def main() -> None:
     assert "historicalReaderInvoked" in pipeline
     assert "crossGenerationLastGoodFallbackAllowed" in pipeline
 
+    repeatability_e2e = (
+        ROOT / "scripts/run_competition_reset_repeatability_e2e.py"
+    ).read_text(encoding="utf-8")
+    assert "same_process_two_clean_runs_with_deterministic_contract_fixture" in repeatability_e2e
+    assert "taskSetSemanticHashStable" in repeatability_e2e
+    assert "runtimeGenerationRotated" in repeatability_e2e
+
     result = {
         "ok": True,
         "schema": registry["schema"],
@@ -99,6 +112,8 @@ def main() -> None:
         "ephemeralTableCount": len(ephemeral),
         "preservedTableCount": len(preserved),
         "taskSetSemanticHashSample": left["taskSetSemanticHash"],
+        "precisePackageRegistrySeeded": True,
+        "fullResetRepeatabilityE2ERegistered": True,
         "rule": (
             "Reset scope is registry-owned; worker/reset share one generation barrier; "
             "same business task set keeps one semantic hash across run identities."
