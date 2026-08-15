@@ -13,6 +13,7 @@ on:
       - 'web_demo/index.html'
       - 'scripts/verify_runtime_generation_barrier_v1.py'
       - 'scripts/run_competition_reset_repeatability_e2e.py'
+      - 'scripts/run_competition_reset_repeatability_e2e_worker_driver.py'
       - 'tests/test_runtime_generation_barrier_v1.py'
       - 'tests/test_pipeline_live_generation_reset_v1.py'
       - '.github/workflows/runtime-generation-barrier.yml'
@@ -95,6 +96,7 @@ jobs:
             src/services/pipeline_live_read_model_v225_service.py \
             scripts/verify_runtime_generation_barrier_v1.py \
             scripts/run_competition_reset_repeatability_e2e.py \
+            scripts/run_competition_reset_repeatability_e2e_worker_driver.py \
             tests/test_runtime_generation_barrier_v1.py \
             tests/test_pipeline_live_generation_reset_v1.py
 
@@ -147,7 +149,7 @@ jobs:
       - name: Run same-process two-generation three-report repeatability
         run: |
           set -euo pipefail
-          "$RUNTIME_PYTHON" scripts/run_competition_reset_repeatability_e2e.py \
+          "$RUNTIME_PYTHON" scripts/run_competition_reset_repeatability_e2e_worker_driver.py \
             "dist/runtime-generation/package/runtime-generation-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --scenario fixtures/competition/three_report_scenario.json \
