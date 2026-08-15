@@ -1,0 +1,136 @@
+{
+  "schema": "runtime.generation_lineage.registry.v1",
+  "version": "2026.08.15.1",
+  "mode": "fail_closed",
+  "rootRegistry": "config/runtime_contract_lineage_registry_v1.json",
+  "description": "比赛运行代际子注册表。Reset 不再通过猜测删除表来定义干净状态，而是旋转唯一 active Runtime Generation；Worker 完整迭代与 Reset 使用同一独占门阀。历史 Artifact、canonical archive、semantic cache 可保留，但不得拥有 current runtime 写权限或 current view 回退权。",
+  "fields": {
+    "runtime.generation_seq": {
+      "owner": "src.services.runtime_generation_barrier_v1_service",
+      "producers": ["src/services/runtime_generation_barrier_v1_service.py"],
+      "consumers": ["src/services/system_service.py", "src/services/station_agent_worker_v22515_service.py", "src/services/pipeline_live_read_model_v225_service.py"],
+      "legacyAliases": ["runtimeGenerationSeq"],
+      "semantic": "execution_epoch_identity",
+      "invariants": ["monotonic_per_reset", "persisted_in_runtime_meta", "reset_rotates_before_mutable_state_delete"]
+    },
+    "runtime.generation_hash": {
+      "owner": "src.services.runtime_generation_barrier_v1_service:_generation_hash",
+      "producers": ["src/services/runtime_generation_barrier_v1_service.py"],
+      "consumers": ["src/services/system_service.py", "src/services/station_agent_worker_v22515_service.py", "src/services/pipeline_live_read_model_v225_service.py", "web_demo/core/runtime-generation-reset-v1.js"],
+      "legacyAliases": ["runtimeGenerationHash", "generationHash"],
+      "semantic": "execution_identity",
+      "invariants": ["sibling_to_executionHash_not_replacement", "old_generation_cannot_write_current_runtime", "must_change_on_successive_reset"]
+    },
+    "runtime.reset_state": {
+      "owner": "src.services.runtime_generation_barrier_v1_service:runtime_reset_barrier",
+      "producers": ["src/services/runtime_generation_barrier_v1_service.py"],
+      "consumers": ["src/services/system_service.py", "src/services/station_agent_worker_v22515_service.py", "src/services/pipeline_live_read_model_v225_service.py"],
+      "legacyAliases": ["runtimeResetState", "generationState"],
+      "semantic": "runtime_state_contract",
+      "invariants": ["resetting_and_failed_are_not_writable", "successful_reset_finishes_empty"]
+    },
+    "runtime.active_data_version": {
+      "owner": "src.services.runtime_generation_barrier_v1_service:mark_runtime_generation_active",
+      "producers": ["src/services/station_agent_worker_v22515_service.py"],
+      "consumers": ["src/services/pipeline_live_read_model_v225_service.py", "src/services/system_service.py"],
+      "legacyAliases": ["activeDataVersion"],
+      "semantic": "hard_pointer",
+      "invariants": ["reset_sets_null", "current_view_may_not_fallback_to_history_when_null"]
+    },
+    "runtime.claim_generation_hash": {
+      "owner": "src.services.runtime_generation_barrier_v1_service:runtime_execution_guard",
+      "producers": ["src/services/station_agent_worker_v22515_service.py"],
+      "consumers": ["src/services/runtime_generation_barrier_v1_service.py"],
+      "legacyAliases": ["claimGenerationHash"],
+      "semantic": "execution_fence",
+      "invariants": ["captured_before_provider_or_station_work", "must_equal_commit_generation_hash"]
+    },
+    "runtime.commit_generation_hash": {
+      "owner": "src.services.runtime_generation_barrier_v1_service:assert_generation_current",
+      "producers": ["src/services/station_agent_worker_v22515_service.py"],
+      "consumers": ["src/services/runtime_generation_barrier_v1_service.py"],
+      "legacyAliases": ["commitGenerationHash"],
+      "semantic": "execution_fence",
+      "invariants": ["validated_after_full_worker_iteration", "mismatch_is_fail_closed"]
+    },
+    "runtime.stale_generation_reason": {
+      "owner": "src.services.runtime_generation_barrier_v1_service:assert_generation_current",
+      "producers": ["src/services/runtime_generation_barrier_v1_service.py"],
+      "consumers": ["src/services/station_agent_worker_v22515_service.py", "src/services/system_service.py"],
+      "legacyAliases": ["staleGenerationReason"],
+      "semantic": "validation_result",
+      "invariants": ["stale_generation_never_becomes_current_task_or_pipeline_state"]
+    },
+    "verification.task_set_semantic_hash": {
+      "owner": "src.services.repeatability_contract_v1_service:task_set_semantic_hash",
+      "producers": ["src/services/repeatability_contract_v1_service.py"],
+      "consumers": ["scripts/verify_runtime_generation_barrier_v1.py", "tests/test_runtime_generation_barrier_v1.py"],
+      "legacyAliases": ["taskSetSemanticHash"],
+      "semantic": "semantic_cache_key",
+      "invariants": ["excludes_taskId_dataVersion_executionHash_timestamps", "same_business_task_set_same_hash", "count_and_hash_must_both_match_for_repeatability"]
+    }
+  },
+  "resetPolicies": {
+    "current_runtime_ephemeral": {
+      "action": "delete",
+      "tables": [
+        "task_reviews", "task_submissions", "task_assignments", "approval_records", "task_status",
+        "alert_events", "business_signals_v6", "operating_cadence_signals", "metric_snapshots",
+        "product_metric_facts", "store_metric_facts", "traffic_source_facts", "data_gap_events",
+        "data_snapshots", "imported_report_rows", "report_records", "import_records", "execution_logs",
+        "workflow_runs", "operating_products", "operating_stores", "operating_unit_snapshots",
+        "system_product_snapshots_v14", "product_signal_snapshots_v14", "signal_pool_v14",
+        "agent_judgments_v14", "operation_budget_ledger_v14", "pipeline_jobs", "station_queue",
+        "pipeline_items", "pipeline_item_events", "pipeline_stage_gates", "station_handoffs",
+        "task_snapshots", "task_pool_entries", "task_generation_runs_v14",
+        "agent_product_judgments_v15", "product_judgment_packages_v15",
+        "task_generation_decisions_v15", "agent_budget_ledgers_v15", "agent_call_events_v15",
+        "report_schema_mapping_cache_v15", "frontend_dashboard_view", "frontend_product_view",
+        "frontend_task_view", "frontend_task_detail_view", "frontend_store_view",
+        "frontend_system_status_view", "ops_station_checks", "ops_diagnostic_runs"
+      ],
+      "invariants": ["delete_only_while_exclusive_generation_barrier_held", "current_runtime_empty_after_reset"]
+    },
+    "canonical_archive": {
+      "action": "preserve_epoch_isolated",
+      "tables": ["canonical_product_snapshot_sets_v1"],
+      "invariants": ["history_epoch_rotates_on_reset", "cross_epoch_evidence_forbidden"]
+    },
+    "semantic_cache_reusable": {
+      "action": "preserve_rebind_current_identity",
+      "tables": ["competition_hash_precache_v1", "llm_cache"],
+      "invariants": ["cache_hit_reuses_business_body_only", "current_dataVersion_artifact_execution_identity_rebound"]
+    },
+    "execution_audit_archive": {
+      "action": "preserve_read_only",
+      "tables": ["artifact_registry", "artifact_edges", "artifact_access_log", "artifact_execution_index_v2259"],
+      "invariants": ["archive_may_remain", "old_generation_has_no_current_write_authority"]
+    },
+    "generation_control": {
+      "action": "preserve_and_rotate",
+      "tables": ["runtime_meta"],
+      "invariants": ["generation_seq_monotonic", "generation_hash_rotates_on_reset"]
+    }
+  },
+  "lineage": [
+    "releaseHash+generationSeq+registryVersion -> runtime.generation_hash",
+    "runtime.generation_hash -> worker claimGenerationHash -> full worker iteration -> commitGenerationHash",
+    "runtime.generation_hash -> reset barrier -> current runtime delete -> empty current projection",
+    "runtime.generation_hash + activeDataVersion -> frontend current runtime projection",
+    "history reset marker -> evidence.history_epoch_id rotation",
+    "task business semantics -> verification.task_set_semantic_hash"
+  ],
+  "repeatabilityContract": {
+    "name": "competition.three_report.repeatability.v1",
+    "requiredEqualAcrossCleanRuns": [
+      "normalizedReportHash", "inputSequenceHash", "canonicalSemanticHash",
+      "evidenceSemanticHash", "admissionSemanticHash", "taskCount", "taskSetSemanticHash"
+    ],
+    "requiredDifferentAcrossReset": ["runtimeGenerationHash"],
+    "rules": [
+      "same three reports in same order under same release and contracts must reproduce the same business hash spine",
+      "old generation worker output may remain audit history but may not repopulate current runtime",
+      "double reset is safe and leaves one empty active generation"
+    ]
+  }
+}
