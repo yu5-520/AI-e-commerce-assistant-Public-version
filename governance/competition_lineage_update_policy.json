@@ -1,15 +1,15 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.08.11.1",
+  "version": "2026.08.15.2",
   "defaultProfile": "governance_bootstrap",
   "profiles": {
     "governance_bootstrap": {
-      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, canonical product snapshot lineage convergence, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, product-detail content-addressed hash-cache recovery with bounded single-product canonical history scanning, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse, Agent2 familyPayload semantic reuse, Agent3 clean SOP semantic reuse plus compatible initial microbatching, Agent3 operator/supporting-coordination contract separation, and the sealed deployment controller used by the runtime-verification pilot. Registry membership and all unrelated runtime changes remain fail-closed.",
+      "description": "Current repair gate: permit only hash-lineage-selected first-report/history, canonical product snapshot lineage convergence, projection, strict station-contract ordering, business-artifact semantics, frontend runtime-hash identity, product-detail content-addressed hash-cache recovery with bounded single-product canonical history scanning, runtime-callable authority, current-state attention projection, Agent1 exact-hash native normalization, Agent1 ready-first claim granularity, Agent1 semantic-result reuse, Agent2 familyPayload semantic reuse, Agent3 clean SOP semantic reuse plus compatible initial microbatching, Agent3 operator/supporting-coordination contract separation, the sealed deployment controller used by the runtime-verification pilot, and the registered Runtime Generation Barrier/Reset repeatability repair. Runtime membership may change only for the explicitly allowlisted Generation files below; Registry membership and all unrelated runtime changes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
       "requireGraphHashStable": false,
-      "allowRuntimeMembershipChange": false,
+      "allowRuntimeMembershipChange": true,
       "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
@@ -36,7 +36,14 @@
         "src/services/agent3_runtime_v23215_service.py",
         "src/services/agent_runtime_contract_v225_service.py",
         "src/services/agent3_system_constraint_v23215_service.py",
-        "scripts/deploy_release.sh"
+        "scripts/deploy_release.sh",
+        "config/runtime_generation_lineage_registry_v1.json",
+        "src/services/runtime_generation_barrier_v1_service.py",
+        "src/services/repeatability_contract_v1_service.py",
+        "src/services/system_service.py",
+        "src/services/station_agent_worker_v22515_service.py",
+        "web_demo/core/runtime-generation-reset-v1.js",
+        "web_demo/index.html"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],

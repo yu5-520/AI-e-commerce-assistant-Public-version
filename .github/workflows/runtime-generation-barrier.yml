@@ -1,0 +1,186 @@
+name: Runtime Generation Barrier
+
+on:
+  pull_request:
+    paths:
+      - 'config/runtime_generation_lineage_registry_v1.json'
+      - 'src/services/runtime_generation_barrier_v1_service.py'
+      - 'src/services/repeatability_contract_v1_service.py'
+      - 'src/services/system_service.py'
+      - 'src/services/station_agent_worker_v22515_service.py'
+      - 'src/services/pipeline_live_read_model_v225_service.py'
+      - 'web_demo/core/runtime-generation-reset-v1.js'
+      - 'web_demo/index.html'
+      - 'scripts/verify_runtime_generation_barrier_v1.py'
+      - 'scripts/run_competition_reset_repeatability_e2e.py'
+      - 'scripts/run_competition_reset_repeatability_e2e_worker_driver.py'
+      - 'tests/test_runtime_generation_barrier_v1.py'
+      - 'tests/test_pipeline_live_generation_reset_v1.py'
+      - '.github/workflows/runtime-generation-barrier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-generation-barrier-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: self-hosted
+    timeout-minutes: 50
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
+      COMPETITION_REPEATABILITY_BASE: /opt/actions-runner-public/competition-repeatability/ai-ecommerce-assistant-public
+    steps:
+      - name: Materialize exact source commit archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="${RUNNER_TEMP}/runtime-generation-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/runtime-generation-${COMPETITION_SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            if curl --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${COMPETITION_SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+
+      - name: Prepare verified application runtime
+        run: |
+          set -euo pipefail
+          test -x "$COMPETITION_BASE_PYTHON"
+          rm -rf dist/runtime-generation
+          mkdir -p dist/runtime-generation
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_BASE_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/dist/runtime-generation" \
+              | tee dist/runtime-generation/runtime-prepare.log | tail -n 1
+          )"
+          test -x "$RUNTIME_PYTHON"
+          "$RUNTIME_PYTHON" -c 'import fastapi, sqlalchemy, openpyxl, uvicorn'
+          echo "RUNTIME_PYTHON=$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+
+      - name: Compile generation-scoped runtime
+        run: |
+          set -euo pipefail
+          "$RUNTIME_PYTHON" -m py_compile \
+            src/services/runtime_generation_barrier_v1_service.py \
+            src/services/repeatability_contract_v1_service.py \
+            src/services/system_service.py \
+            src/services/station_agent_worker_v22515_service.py \
+            src/services/pipeline_live_read_model_v225_service.py \
+            scripts/verify_runtime_generation_barrier_v1.py \
+            scripts/run_competition_reset_repeatability_e2e.py \
+            scripts/run_competition_reset_repeatability_e2e_worker_driver.py \
+            tests/test_runtime_generation_barrier_v1.py \
+            tests/test_pipeline_live_generation_reset_v1.py
+
+      - name: Verify unified registry and reset policy
+        run: |
+          set -euo pipefail
+          "$RUNTIME_PYTHON" scripts/verify_runtime_generation_barrier_v1.py
+
+      - name: Run generation and empty-state regressions
+        run: |
+          set -euo pipefail
+          "$RUNTIME_PYTHON" -m unittest -q \
+            tests.test_runtime_generation_barrier_v1 \
+            tests.test_pipeline_live_generation_reset_v1 \
+            tests.test_current_state_attention_projection_v22512 \
+            tests.test_competition_history_epoch_isolation_v1
+
+      - name: Verify frontend reset does not reuse import refresh
+        run: |
+          set -euo pipefail
+          grep -q 'runtime-generation-reset-v1.js' web_demo/index.html
+          grep -q 'stopImmediatePropagation' web_demo/core/runtime-generation-reset-v1.js
+          grep -q 'currentContext?.()?.cleanup?.()' web_demo/core/runtime-generation-reset-v1.js
+          grep -q 'AppRouter?.navigate?.("system-status")' web_demo/core/runtime-generation-reset-v1.js
+          ! grep -E 'AppApi\.refreshAfterDataImport|AppApi\.resetRuntimeData' web_demo/core/runtime-generation-reset-v1.js
+
+      - name: Build exact lineage runtime package
+        run: |
+          set -euo pipefail
+          mkdir -p dist/runtime-generation/lineage dist/runtime-generation/package dist/runtime-generation/e2e
+          "$COMPETITION_BASE_PYTHON" scripts/compile_competition_lineage.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output-dir dist/runtime-generation/lineage \
+            2>&1 | tee dist/runtime-generation/lineage-summary.log
+          "$COMPETITION_BASE_PYTHON" scripts/build_competition_runtime_package.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --lineage-dir dist/runtime-generation/lineage \
+            --output-dir dist/runtime-generation/package \
+            --archive-name "runtime-generation-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            2>&1 | tee dist/runtime-generation/package-build.log
+          "$COMPETITION_BASE_PYTHON" scripts/verify_competition_runtime_package.py \
+            "dist/runtime-generation/package/runtime-generation-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output dist/runtime-generation/package/package-verification.json \
+            2>&1 | tee dist/runtime-generation/package-verification.log
+          grep -q 'config/runtime_generation_lineage_registry_v1.json' dist/runtime-generation/lineage/runtime-files.txt
+          grep -q 'src/services/runtime_generation_barrier_v1_service.py' dist/runtime-generation/lineage/runtime-files.txt
+          grep -q 'web_demo/core/runtime-generation-reset-v1.js' dist/runtime-generation/lineage/runtime-files.txt
+
+      - name: Run same-process two-generation three-report repeatability
+        run: |
+          set -euo pipefail
+          "$RUNTIME_PYTHON" scripts/run_competition_reset_repeatability_e2e_worker_driver.py \
+            "dist/runtime-generation/package/runtime-generation-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --scenario fixtures/competition/three_report_scenario.json \
+            --candidate-base "$COMPETITION_REPEATABILITY_BASE" \
+            --runtime-python "$RUNTIME_PYTHON" \
+            --tool-python "$COMPETITION_BASE_PYTHON" \
+            --app-port 39380 \
+            --provider-port 39480 \
+            --startup-timeout 150 \
+            --max-ticks 120 \
+            --output dist/runtime-generation/e2e/reset-repeatability.json \
+            2>&1 | tee dist/runtime-generation/e2e/reset-repeatability.log
+          "$COMPETITION_BASE_PYTHON" - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('dist/runtime-generation/e2e/reset-repeatability.json').read_text(encoding='utf-8'))
+          assert report.get('verified') is True, report.get('errors')
+          assertions = report.get('assertions') or {}
+          assert assertions.get('runtimeGenerationRotated') is True, assertions
+          assert assertions.get('taskCountStable') is True, assertions
+          assert assertions.get('taskSetSemanticHashStable') is True, assertions
+          assert assertions.get('bothResetsVerifiedEmpty') is True, assertions
+          runs = report.get('runs') or []
+          assert len(runs) == 2, runs
+          assert runs[0]['taskFingerprint']['taskCount'] == runs[1]['taskFingerprint']['taskCount'], runs
+          assert runs[0]['taskFingerprint']['taskSetSemanticHash'] == runs[1]['taskFingerprint']['taskSetSemanticHash'], runs
+          print(json.dumps({
+              'verified': True,
+              'taskCount': runs[0]['taskFingerprint']['taskCount'],
+              'taskSetSemanticHash': runs[0]['taskFingerprint']['taskSetSemanticHash'],
+              'generation1': runs[0]['preReset']['generationHash'],
+              'generation2': runs[1]['preReset']['generationHash'],
+          }, ensure_ascii=False, sort_keys=True))
+          PY

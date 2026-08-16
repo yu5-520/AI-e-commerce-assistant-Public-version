@@ -1,10 +1,10 @@
 """V22.5.15 binding for the existing single station worker.
 
-This module does not create a second thread or queue. It replaces runtime callables
-imported by the V22.5.14 worker before that worker is started, then reuses the same
-state, loop and lifecycle owner.  Competition mode also injects the registered
-formal-signal handoff into that same loop, so signalRef reaches Agent1 without making
-the legacy station queue a critical dependency.
+V23.3 Runtime Generation Barrier keeps the existing one-thread/one-queue ownership
+model and serializes each complete worker iteration against demo Reset. A Reset waits
+for any in-flight Provider/station iteration to finish before rotating the generation
+and deleting mutable runtime state, so an old Agent result cannot repopulate the new
+empty generation.
 """
 from __future__ import annotations
 
@@ -21,6 +21,13 @@ from src.services.agent_runtime_hard_interface_v22515_service import (
 from src.services.competition_signal_handoff_service import (
     seed_ready_competition_handoffs,
 )
+from src.services.runtime_generation_barrier_v1_service import (
+    RUNTIME_GENERATION_VERSION,
+    current_runtime_generation,
+    ensure_runtime_generation_state,
+    mark_runtime_generation_active,
+    runtime_execution_guard,
+)
 
 THREE_AGENT_PIPELINE_VERSION = legacy.THREE_AGENT_PIPELINE_VERSION
 STATION_AGENT_WORKER_VERSION = "22.5.15"
@@ -32,16 +39,43 @@ legacy.select_runnable_data_version_v225 = select_runnable_data_version_v225
 _original_run_one = legacy._run_one
 
 
-def _competition_run_one(worker_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
-    """Seed exact formal signalRefs, then delegate to the existing single worker."""
+def _selected_data_version(result: Dict[str, Any]) -> str | None:
+    inner = result.get("result") if isinstance(result.get("result"), dict) else {}
+    for value in (
+        inner.get("selectedDataVersion"),
+        inner.get("dataVersion"),
+        result.get("selectedDataVersion"),
+        result.get("dataVersion"),
+    ):
+        if value:
+            return str(value)
+    return None
 
-    handoff = seed_ready_competition_handoffs(
-        limit_versions=max(1, min(8, int(config.get("maxJobsPerTick") or 4))),
-    )
-    result = _original_run_one(worker_id, config)
+
+def _competition_run_one(worker_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    """Run one complete iteration under the same exclusive barrier used by Reset."""
+
+    with runtime_execution_guard(f"station_worker:{worker_id}") as generation:
+        handoff = seed_ready_competition_handoffs(
+            limit_versions=max(1, min(8, int(config.get("maxJobsPerTick") or 4))),
+        )
+        result = _original_run_one(worker_id, config)
+        selected = _selected_data_version(result if isinstance(result, dict) else {})
+        if selected:
+            mark_runtime_generation_active(selected)
+
     if isinstance(result, dict):
         result["competitionSignalHandoff"] = handoff
         result["competitionLegacyStationQueueCriticalPath"] = False
+        result["runtimeGeneration"] = {
+            "version": RUNTIME_GENERATION_VERSION,
+            "generationSeq": generation.get("generationSeq"),
+            "generationHash": generation.get("generationHash"),
+            "claimGenerationHash": generation.get("claimGenerationHash"),
+            "commitGenerationHash": generation.get("commitGenerationHash"),
+            "generationMatch": generation.get("generationMatch") is True,
+            "state": current_runtime_generation().get("state"),
+        }
     return result
 
 
@@ -76,6 +110,8 @@ def worker_config() -> Dict[str, Any]:
         hardAgentRuntimeVersion=AGENT_RUNTIME_HARD_INTERFACE_VERSION,
         agent2EvidenceSliceVersion="22.5.14",
         agent2HashProofBridgeVersion="22.5.15",
+        runtimeGenerationBarrierVersion=RUNTIME_GENERATION_VERSION,
+        runtimeGeneration=current_runtime_generation(),
         activeAgent1RuntimeBinding=active_agent1_runtime_binding(),
         dataVersionSelection=(
             "oldest_highest_priority_after_registered_signal_handoff_and_agent2_hash_reconciliation"
@@ -95,6 +131,10 @@ def worker_config() -> Dict[str, Any]:
         executionMode=(
             "agent1_full_audit_then_agent2_evidence_slice_then_hash_proof"
         ),
+        runtimeResetConcurrency=(
+            "one_complete_worker_iteration_and_reset_share_exclusive_generation_barrier"
+        ),
+        oldGenerationWriteAllowed=False,
         secondWorkerAllowed=False,
         fallbackAllowed=False,
     )
@@ -108,6 +148,8 @@ def worker_status(include_queue: bool = True) -> Dict[str, Any]:
         hardAgentRuntimeVersion=AGENT_RUNTIME_HARD_INTERFACE_VERSION,
         agent2EvidenceSliceVersion="22.5.14",
         agent2HashProofBridgeVersion="22.5.15",
+        runtimeGenerationBarrierVersion=RUNTIME_GENERATION_VERSION,
+        runtimeGeneration=current_runtime_generation(),
         activeAgent1RuntimeBinding=active_agent1_runtime_binding(),
         config=worker_config(),
         executionMode=(
@@ -115,6 +157,7 @@ def worker_status(include_queue: bool = True) -> Dict[str, Any]:
         ),
         competitionSignalHandoff="registered_signalRef_to_agent1_pending_v1",
         competitionLegacyStationQueueCriticalPath=False,
+        oldGenerationWriteAllowed=False,
         secondWorkerAllowed=False,
         fallbackAllowed=False,
     )
@@ -125,7 +168,9 @@ def start_station_queue_worker(
     worker_id: str = "fastapi-three-agent-worker",
 ) -> Dict[str, Any]:
     assert_active_agent1_runtime_binding()
-    seed_ready_competition_handoffs(limit_versions=8)
+    ensure_runtime_generation_state()
+    with runtime_execution_guard(f"worker_start_seed:{worker_id}"):
+        seed_ready_competition_handoffs(limit_versions=8)
     legacy.start_station_queue_worker(worker_id=worker_id)
     return worker_status(include_queue=False)
 
@@ -140,9 +185,9 @@ def run_worker_tick(
     limit: int | None = None,
 ) -> Dict[str, Any]:
     assert_active_agent1_runtime_binding()
-    seed_ready_competition_handoffs(
-        limit_versions=max(1, min(8, int(limit or 4))),
-    )
+    ensure_runtime_generation_state()
+    # Every actual legacy _run_one call is already rebound to _competition_run_one,
+    # so manual ticks use the same barrier as the background thread.
     return _upgrade(
         legacy.run_worker_tick(
             worker_id=worker_id,

@@ -1,12 +1,10 @@
-"""V22.5.12 active-dataVersion/current-state gate for the pipeline-live projection.
+"""Generation-bound current-state projection for the competition pipeline.
 
-The underlying V22.5.9 model can read historical latest state when called without a
-dataVersion. That behavior is useful for generic history/debug reads, but it is not
-valid for the operator-center *current run* projection after Reset. This facade
-binds the live view to the active imported-report runtime and also closes a stale
-attention fallback. V22.5.13 additionally projects structured Agent3 contract root
-causes instead of collapsing every ``output_invalid`` state into a generic format
-error label.
+Historical pipeline state is useful for diagnostics, but the operator-center current
+view must never consult it after Reset. V22.5.16 adds the Runtime Generation Barrier:
+no active imported dataVersion returns a synthetic empty projection without calling the
+legacy/latest reader, and the legacy last-good memory cache is cleared whenever the
+runtime generation changes.
 """
 from __future__ import annotations
 
@@ -16,11 +14,15 @@ from typing import Any, Dict, List
 
 from src.repositories.sqlite_repository import connect
 from src.services import pipeline_live_read_model_v2258_service as base
+from src.services.runtime_generation_barrier_v1_service import (
+    current_runtime_generation,
+)
 
-PIPELINE_LIVE_READ_MODEL_VERSION = "22.5.13"
+PIPELINE_LIVE_READ_MODEL_VERSION = "22.5.16"
 THREE_AGENT_PIPELINE_VERSION = base.THREE_AGENT_PIPELINE_VERSION
 ATTENTION_IDENTITY = "dataVersion+storeId+productId"
 _JSON_PATH_RE = re.compile(r"\$\.[A-Za-z_][A-Za-z0-9_]*(?:\[[0-9]+\]|\.[A-Za-z_][A-Za-z0-9_]*)*")
+_LAST_RUNTIME_GENERATION_HASH: str | None = None
 
 
 def _table_exists(conn: Any, table_name: str) -> bool:
@@ -51,6 +53,33 @@ def _active_report_data_version() -> str | None:
     except Exception:
         return None
     return str(row["data_version"]) if row and row["data_version"] else None
+
+
+def _runtime_generation() -> Dict[str, Any]:
+    try:
+        return current_runtime_generation()
+    except Exception as exc:
+        return {
+            "generationSeq": None,
+            "generationHash": None,
+            "state": "unavailable",
+            "error": str(exc)[:240],
+        }
+
+
+def _clear_cross_generation_memory(generation_hash: str | None) -> None:
+    global _LAST_RUNTIME_GENERATION_HASH
+    value = str(generation_hash or "")
+    if _LAST_RUNTIME_GENERATION_HASH == value:
+        return
+    try:
+        legacy = getattr(base, "legacy", None)
+        cache = getattr(legacy, "_LAST_GOOD_SNAPSHOT", None)
+        if isinstance(cache, dict):
+            cache.clear()
+    except Exception:
+        pass
+    _LAST_RUNTIME_GENERATION_HASH = value
 
 
 def _latest_current_rows(data_version: str) -> List[Dict[str, Any]]:
@@ -162,69 +191,101 @@ def _current_attention_items(data_version: str, limit: int) -> List[Dict[str, An
     return result
 
 
-def _zero_current_projection(result: Dict[str, Any]) -> Dict[str, Any]:
-    """Close the current-run projection without deleting historical snapshots."""
-    output = dict(result or {})
-    summary = dict(output.get("summary") or {})
-    for key in [
-        "totalItems",
-        "productCount",
-        "productTotal",
-        "canonicalProductCount",
-        "observed",
-        "actionCandidates",
-        "productFailed",
-        "batchFailed",
-        "failed",
-        "baselineEstablished",
-        "agent1Failed",
-        "agent1OutputInvalid",
-        "agent1DecisionUnresolved",
-        "agent1Observed",
-        "agent1Current",
-    ]:
-        summary[key] = 0
-
-    stages = []
-    for raw in output.get("stages") or []:
-        item = dict(raw) if isinstance(raw, dict) else {}
-        for key in ["queued", "running", "completed", "failed", "observed", "admitted", "currentCount"]:
-            if key in item:
-                item[key] = 0
-        item["current"] = {
+def _empty_stages() -> List[Dict[str, Any]]:
+    definitions = getattr(base, "_NODE_CONTRACT", []) or [
+        ("agent1", "Agent1研判"),
+        ("action_matrix", "动作矩阵"),
+        ("agent2_draft", "Agent2草案"),
+        ("agent3_sop", "Agent3 SOP"),
+        ("task_mapping", "任务映射"),
+        ("task_pool", "任务池"),
+        ("task_loop", "任务闭环"),
+    ]
+    return [
+        {
+            "nodeCode": code,
+            "node": label,
+            "label": label,
+            "status": "waiting",
+            "total": 0,
             "queued": 0,
             "running": 0,
             "completed": 0,
             "failed": 0,
             "observed": 0,
             "admitted": 0,
+            "currentCount": 0,
+            "historyCompleted": 0,
+            "current": {
+                "queued": 0,
+                "running": 0,
+                "completed": 0,
+                "failed": 0,
+                "observed": 0,
+                "admitted": 0,
+            },
+            "history": {"completed": 0},
         }
-        stages.append(item)
+        for code, label in definitions
+    ]
 
-    for key in ["totalItems", "productCount", "productTotal", "canonicalProductCount"]:
-        if key in output:
-            output[key] = 0
 
-    output.update(
-        version=PIPELINE_LIVE_READ_MODEL_VERSION,
-        dataVersion=None,
-        summary=summary,
-        stages=stages,
-        items=[],
-        activeDataVersion=None,
-        activeDataVersionGate="closed_no_active_import_runtime",
-        attentionStateAuthority="none_current_runtime",
-        attentionHistoryFallbackAllowed=False,
-        attentionIdentity=ATTENTION_IDENTITY,
-        productTruthSource="none_current_runtime",
-        countBasis="active imported dataVersion required for current-run projection",
-        failureProjectionContract="structured_root_cause_first.v1",
-        rule=(
-            "Historical canonical snapshots are preserved, but current operator-center "
-            "counts and attention are zero until imported_report_rows establishes an active dataVersion."
+def _empty_generation_projection(
+    generation: Dict[str, Any],
+    *,
+    requested_data_version: str | None,
+) -> Dict[str, Any]:
+    """Return current empty state without touching latest/history readers."""
+    return {
+        "version": PIPELINE_LIVE_READ_MODEL_VERSION,
+        "threeAgentPipelineVersion": THREE_AGENT_PIPELINE_VERSION,
+        "ready": False,
+        "interfaceStatus": "ok",
+        "dataVersion": None,
+        "requestedDataVersion": requested_data_version,
+        "activeDataVersion": None,
+        "activeDataVersionGate": "closed_no_active_import_runtime",
+        "displaySnapshotId": f"generation-empty:{generation.get('generationHash') or 'unknown'}",
+        "headline": "等待数据接入",
+        "flowStatus": "waiting",
+        "snapshotStatus": "empty",
+        "baselineOnly": False,
+        "batchState": {},
+        "summary": {
+            "totalItems": 0,
+            "productCount": 0,
+            "productTotal": 0,
+            "canonicalProductCount": 0,
+            "observed": 0,
+            "actionCandidates": 0,
+            "productFailed": 0,
+            "batchFailed": 0,
+            "failed": 0,
+            "baselineEstablished": 0,
+            "agent1Failed": 0,
+            "agent1OutputInvalid": 0,
+            "agent1DecisionUnresolved": 0,
+            "agent1Observed": 0,
+            "agent1Current": 0,
+            "taskAdmitted": 0,
+        },
+        "stages": _empty_stages(),
+        "items": [],
+        "runtimeGeneration": generation,
+        "runtimeGenerationHash": generation.get("generationHash"),
+        "attentionStateAuthority": "none_current_runtime",
+        "attentionHistoryFallbackAllowed": False,
+        "attentionIdentity": ATTENTION_IDENTITY,
+        "productTruthSource": "none_current_runtime",
+        "countBasis": "active imported dataVersion required for current-run projection",
+        "failureProjectionContract": "structured_root_cause_first.v1",
+        "historicalReaderInvoked": False,
+        "crossGenerationLastGoodFallbackAllowed": False,
+        "rule": (
+            "Reset-empty current projection is synthesized from the active Runtime Generation "
+            "and never calls latest/history pipeline readers."
         ),
-    )
-    return output
+    }
 
 
 def read_pipeline_live_model(
@@ -232,10 +293,13 @@ def read_pipeline_live_model(
     *,
     limit: int = 80,
 ) -> Dict[str, Any]:
+    generation = _runtime_generation()
+    _clear_cross_generation_memory(generation.get("generationHash"))
     active = _active_report_data_version()
     if not active:
-        return _zero_current_projection(
-            base.read_pipeline_live_model(data_version=None, limit=limit)
+        return _empty_generation_projection(
+            generation,
+            requested_data_version=data_version,
         )
 
     # The live operator-center follows the active import runtime, never a stale
@@ -246,6 +310,8 @@ def read_pipeline_live_model(
     result["activeDataVersion"] = active
     result["activeDataVersionGate"] = "open_active_import_runtime"
     result["requestedDataVersion"] = data_version
+    result["runtimeGeneration"] = generation
+    result["runtimeGenerationHash"] = generation.get("generationHash")
     result["attentionStateAuthority"] = "latest_pipeline_item_row_per_current_product"
     result["attentionHistoryFallbackAllowed"] = False
     result["attentionIdentity"] = ATTENTION_IDENTITY
@@ -254,6 +320,7 @@ def read_pipeline_live_model(
         "observed_soft_gate never falls back to older Agent1 history."
     )
     result["failureProjectionContract"] = "structured_root_cause_first.v1"
+    result["crossGenerationLastGoodFallbackAllowed"] = False
     result["countBasis"] = "canonical inventory scoped to active imported dataVersion"
     return result
 
