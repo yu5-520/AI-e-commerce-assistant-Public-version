@@ -1,0 +1,110 @@
+name: V24 Java Deterministic Core Phase1
+
+on:
+  pull_request:
+    paths:
+      - 'java-control-plane/**'
+      - 'governance/v24/**'
+      - 'contracts/v24/**'
+      - 'contracts/registry/**'
+      - 'config/competition_runtime_scope.json'
+      - 'config/competition_source_identity.json'
+      - 'config/v23_registry_runtime.json'
+      - 'scripts/compile_competition_lineage.py'
+      - 'scripts/competition_interface_gate.py'
+      - 'scripts/verify_v24_java_phase1.sh'
+      - '.github/workflows/v24-java-deterministic-core-phase1.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'java-control-plane/**'
+      - 'governance/v24/**'
+      - 'contracts/v24/**'
+      - 'contracts/registry/**'
+      - 'config/competition_runtime_scope.json'
+      - 'config/competition_source_identity.json'
+      - 'config/v23_registry_runtime.json'
+      - 'scripts/compile_competition_lineage.py'
+      - 'scripts/competition_interface_gate.py'
+      - 'scripts/verify_v24_java_phase1.sh'
+      - '.github/workflows/v24-java-deterministic-core-phase1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v24-java-deterministic-core-phase1-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase1-shadow-authority:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Prepare JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Resolve Python 3.10+
+        shell: bash
+        run: |
+          set -euo pipefail
+          for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
+            if command -v "$candidate" >/dev/null 2>&1 \
+              && "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
+              echo "PYTHON_BIN=$(command -v "$candidate")" >> "$GITHUB_ENV"
+              "$candidate" -c 'import platform; print("python=" + platform.python_version())'
+              exit 0
+            fi
+          done
+          echo 'Python 3.10+ is required.' >&2
+          exit 1
+
+      - name: Verify V24.0-V24.5 shadow authority
+        env:
+          V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          bash scripts/verify_v24_java_phase1.sh
+
+      - name: Verify evidence is default-deny and exact
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('dist/v24-java-phase1')
+          graph = json.loads((root / 'active-runtime-graph.json').read_text(encoding='utf-8'))
+          manifest = json.loads((root / 'active-runtime-manifest.json').read_text(encoding='utf-8'))
+          phase = json.loads((root / 'phase1-verification-report.json').read_text(encoding='utf-8'))
+          admission = json.loads((root / 'runtime-admission-report.json').read_text(encoding='utf-8'))
+          assert graph['defaultRuntimeEligibility'] == 'DENY'
+          assert graph['compatibilityDefault'] == 'DENY'
+          assert manifest['unknownRuntimeNode'] == 'BLOCK'
+          assert manifest['compatibilityDefault'] == 'DENY'
+          assert phase['verified'] is True
+          assert admission['verified'] is True
+          print('V24_PHASE1_EVIDENCE_GATE=PASS')
+          PY
+
+      - name: Upload V24 phase1 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v24-java-deterministic-core-phase1-${{ github.sha }}
+          path: |
+            dist/competition-lineage-v24/*.json
+            dist/competition-lineage-v24/runtime-files.txt
+            dist/competition-lineage-v24/runtime-files.sha256
+            dist/v24-java-phase1/*.json
+          if-no-files-found: error
+          retention-days: 14
