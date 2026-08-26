@@ -1,0 +1,54 @@
+{
+  "schema": "v24.runtime_exclusivity_policy.v1",
+  "version": "24.0.0-phase1.1",
+  "phase": "V24.0-V24.5",
+  "enforcementMode": "SHADOW",
+  "defaultRuntimeEligibility": "DENY",
+  "unknownRuntimeNode": "BLOCK",
+  "compatibilityDefault": "DENY",
+  "authoritativeActiveSet": "dist/competition-lineage/lineage-graph.json",
+  "productionEntrypointAuthority": "config/competition_runtime_scope.json#productionEntrypoints",
+  "registryAuthority": "config/v23_registry_runtime.json",
+  "sourceIdentityAuthority": "config/competition_source_identity.json",
+  "rules": {
+    "exactlyOneProductionEntrypointRequired": true,
+    "registryRootMustMatchSourceIdentity": true,
+    "lineageGraphHashMustRecompute": true,
+    "everyActiveFileHashMustMatch": true,
+    "onlyActiveGraphFilesMayEnterBuildCandidate": true,
+    "runtimeCandidateFileSetMustExactlyMatchManifest": true,
+    "unregisteredCompatibilityAllowed": false,
+    "filenameSimilarityMayRestoreRuntime": false,
+    "retiredNodeMayBeAutoRecalled": false,
+    "tombstonedNodeMayBeRecreated": false,
+    "unknownNodeMayEnterRuntime": false
+  },
+  "retirement": {
+    "mode": "NOT_IN_ACTIVE_RUNTIME_GRAPH",
+    "rule": "Any implementation outside the compiled active runtime graph has no V24 production runtime eligibility. Existing legacy-named files that are still proven members of the V23 active import closure remain migration-bound ACTIVE dependencies until a later phase replaces and tombstones them; filename age alone never decides retirement.",
+    "historicalSourceMayRemainInRepository": true,
+    "historicalSourceMayEnterProductionBuild": false
+  },
+  "buildLock": {
+    "manifestSchema": "v24.active_runtime_manifest.v1",
+    "exactFileSet": true,
+    "contentHash": "sha256",
+    "extraRuntimeFileAllowed": false,
+    "missingRuntimeFileAllowed": false
+  },
+  "runtimeAdmission": {
+    "manifestRequired": true,
+    "activeRuntimeGraphRequired": true,
+    "registryRootRequired": true,
+    "unknownRuntimeNodeAction": "BLOCK",
+    "retiredRuntimeNodeAction": "BLOCK",
+    "tombstonedRuntimeNodeAction": "BLOCK"
+  },
+  "migrationBoundary": {
+    "pythonProductionRuntimeReplaced": false,
+    "javaWriteAuthorityEnabled": false,
+    "javaShadowIdentityAuthorityEnabled": true,
+    "javaShadowBuildAdmissionEnabled": true,
+    "reason": "Phase 1 proves identity and runtime exclusivity before any production write authority moves from the sealed Python runtime."
+  }
+}
