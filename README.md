@@ -321,6 +321,20 @@ mappingMode = deterministic_agent3_projection_only
 
 公开仓采用白名单精准抽取，不通过“仅隐藏前端按钮”保护私有能力。企业 RAG 配方、客户定制规则、内部部署脚本、密钥与母仓治理架构不会进入公开发布包。
 
+### Z-Century 技术授权边界
+
+本项目 V25 Unified RAG / Knowledge Plane 中由 Z 架构派生的通用框架结构，使用 **Z-Century（Z世纪）技术体系及其适用权利人**提供的有限授权。相关通用架构不会因为代码被集成、构建或部署在本仓库而发生知识产权转让。
+
+AI 电商项目仅取得本项目范围内的有限、非独占、不可转让使用权，**不取得 Z 派生通用框架的所有权、转让权、再许可权或再授权权**。AI 电商项目自身独立形成的电商业务逻辑、业务数据、项目特定 Agent 规则、页面与产品实现仍按自身权利来源处理，不因该授权声明被归入 Z 通用框架。
+
+授权 ID：`Z-AUTH-AIECOM-V25-KNOWLEDGE-PLANE-001`
+
+- 人类可读声明：[Z_CENTURY_TECHNOLOGY_NOTICE.md](Z_CENTURY_TECHNOLOGY_NOTICE.md)
+- 消费者侧机器授权记录：`governance/ip/z-century-v25-technology-license.json`
+- 授权源侧记录：`yu5-520/Z-Century` → `licenses/authorized-projects/AI_ECOMMERCE_V25_KNOWLEDGE_PLANE.json`
+
+> **Integration ≠ Assignment：技术集成不等于知识产权转让。**
+
 ---
 
 ## 唯一运行入口
