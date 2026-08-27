@@ -8,7 +8,8 @@
     "rightsHolderDesignation": "Z-Century（Z世纪）技术体系及其权利人",
     "sourceBaselineCommit": "94ada00288c0774b039916faca36397b1d1d9a98",
     "authorizationRecordPath": "licenses/authorized-projects/AI_ECOMMERCE_V25_KNOWLEDGE_PLANE.json",
-    "authorizationRecordCommit": "88bf5c9c2e7d9f3ca30686ed94654aa21d981ccc"
+    "authorizationReleaseCommit": "c63439d621a43c28928238d27e38ab89fbf76ef7",
+    "authorizationRecordCommit": "8df552c01057d4a834ba7c3481042faeb0c5233a"
   },
   "consumer": {
     "project": "AI-e-commerce-assistant-Public-version",
@@ -65,7 +66,8 @@
   "evidence": {
     "humanReadableNotice": "Z_CENTURY_TECHNOLOGY_NOTICE.md",
     "consumerManifest": "governance/ip/z-century-v25-technology-license.json",
-    "providerRecord": "yu5-520/Z-Century:licenses/authorized-projects/AI_ECOMMERCE_V25_KNOWLEDGE_PLANE.json"
+    "providerRecord": "yu5-520/Z-Century:licenses/authorized-projects/AI_ECOMMERCE_V25_KNOWLEDGE_PLANE.json",
+    "providerAuthorityEnvelope": "yu5-520/Z-Century:.z-authority/mutation-envelope.json"
   },
   "legalBoundary": {
     "repositoryRecordIsNotAnAssignment": true,
