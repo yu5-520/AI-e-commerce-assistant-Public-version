@@ -42,6 +42,8 @@ jobs:
     timeout-minutes: 30
     env:
       V25_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
     steps:
       - name: Materialize exact source archive
         env:
@@ -75,6 +77,7 @@ jobs:
           test -s "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
           test -f "$EXTRACTED/scripts/verify_v25_java_phase4.sh"
+          test -f "$EXTRACTED/scripts/prepare_competition_runtime_venv.sh"
           test -f "$EXTRACTED/src/services/v25_knowledge_asset_install_service.py"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
@@ -86,29 +89,30 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Resolve Python 3.10+
+      - name: Prepare verified application runtime
         shell: bash
         run: |
           set -euo pipefail
-          for candidate in \
-            /opt/python/3.11.9/bin/python3.11 \
-            python3.13 python3.12 python3.11 python3.10 python3; do
-            if { command -v "$candidate" >/dev/null 2>&1 || [ -x "$candidate" ]; } \
-              && "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
-              if command -v "$candidate" >/dev/null 2>&1; then candidate="$(command -v "$candidate")"; fi
-              echo "PYTHON_BIN=$candidate" >> "$GITHUB_ENV"
-              "$candidate" -c 'import platform; print("python=" + platform.python_version())'
-              exit 0
-            fi
-          done
-          echo 'Python 3.10+ is required.' >&2
-          exit 1
+          EVIDENCE_DIR="$GITHUB_WORKSPACE/dist/v25-phase4-runtime-env"
+          rm -rf "$EVIDENCE_DIR"
+          mkdir -p "$EVIDENCE_DIR"
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_BASE_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" "$EVIDENCE_DIR" \
+              | tee "$EVIDENCE_DIR/runtime-prepare.log" | tail -n 1
+          )"
+          test -x "$RUNTIME_PYTHON"
+          "$RUNTIME_PYTHON" -c 'import fastapi, sqlalchemy, openpyxl, uvicorn'
+          echo "RUNTIME_PYTHON=$RUNTIME_PYTHON" >> "$GITHUB_ENV"
 
       - name: Compile exact Phase4 runtime scope
         shell: bash
         run: |
           set -euo pipefail
-          "$PYTHON_BIN" -m py_compile \
+          "$RUNTIME_PYTHON" -m py_compile \
             src/services/v25_knowledge_revision_v2510_service.py \
             src/services/v25_knowledge_lifecycle_v2511_service.py \
             src/services/v25_knowledge_index_v2512_service.py \
@@ -120,19 +124,19 @@ jobs:
         run: |
           set -euo pipefail
           rm -f logs/product_workbench.sqlite3 logs/product_workbench.sqlite3-shm logs/product_workbench.sqlite3-wal
-          PYTHON_BIN="$PYTHON_BIN" bash scripts/verify_v25_java_phase4.sh
+          PYTHON_BIN="$RUNTIME_PYTHON" bash scripts/verify_v25_java_phase4.sh
 
       - name: Verify retained Phase3 knowledge ingress boundary
         shell: bash
         run: |
           set -euo pipefail
-          PYTHON_BIN="$PYTHON_BIN" bash scripts/verify_v25_java_phase3.sh
+          PYTHON_BIN="$RUNTIME_PYTHON" bash scripts/verify_v25_java_phase3.sh
 
       - name: Verify Phase4 release boundary
         shell: bash
         run: |
           set -euo pipefail
-          "$PYTHON_BIN" - <<'PY'
+          "$RUNTIME_PYTHON" - <<'PY'
           import json
           from pathlib import Path
           runtime = json.loads(Path('dist/v25-phase4/knowledge-runtime-verification.json').read_text(encoding='utf-8'))
@@ -155,6 +159,7 @@ jobs:
           name: v25-unified-rag-phase4-${{ github.sha }}
           path: |
             dist/v25-phase4/*.json
+            dist/v25-phase4-runtime-env/*.json
             dist/v25-phase3/*.json
           if-no-files-found: error
           retention-days: 14
