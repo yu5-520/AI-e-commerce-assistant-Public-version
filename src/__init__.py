@@ -25,6 +25,9 @@ from src.services.hard_interface_bridge_v2301_service import (
 from src.services.task_evidence_canonical_history_install_v1_service import (
     install_task_evidence_canonical_history_v1,
 )
+from src.services.unified_agent_knowledge_v25_service import (
+    install_v25_unified_agent_knowledge,
+)
 
 # bind_end_to_end_agent_flow is retired as an Agent runtime overlay. Its evidence
 # admission and layered read-model functions are exposed only through the V22.3
@@ -39,3 +42,7 @@ bind_agent1_dual_channel_contract()
 bind_pipeline_reference_runtime()
 bind_station_truth_contract()
 bind_hard_interface_bridge_v2301()
+# V25 knowledge migration is intentionally last: existing runtime/interface binders
+# remain authoritative for execution, while only their knowledge-provider references
+# are moved behind the registered Knowledge Composition Table and unified envelope.
+install_v25_unified_agent_knowledge()
