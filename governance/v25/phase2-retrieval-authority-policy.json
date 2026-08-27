@@ -1,0 +1,70 @@
+{
+  "schema": "v25.phase2_retrieval_authority_policy.v1",
+  "version": "25.5.0",
+  "enforcementMode": "SHADOW",
+  "authority": "JAVA_SHADOW_FIELD_FIRST_RETRIEVAL",
+  "principles": {
+    "fieldFirst": true,
+    "exactFieldBeforeSemantic": true,
+    "aliasMayOnlyCanonicalizeRegisteredField": true,
+    "structuredFilterAllowlistRequired": true,
+    "structuredBeforeVector": true,
+    "vectorSupplementOnly": true,
+    "graphSupplementOnly": true,
+    "graphRequiresScopedVectorStage": true,
+    "sourceHashRequired": true,
+    "sourceRefRequired": true,
+    "providerRoutingAuthority": false,
+    "globalFallbackAllowed": false,
+    "crossDomainWideningAllowed": false,
+    "insufficientEvidenceMustRemainVisible": true,
+    "retrievalMayCreateSystemFact": false,
+    "productionAgentInputsUnchanged": true,
+    "productionRagWriterUnchanged": true,
+    "productionRetrievalCutoverEnabled": false
+  },
+  "layers": [
+    {
+      "layer": 1,
+      "name": "FIELD_DIRECT",
+      "modes": [
+        "EXACT_FIELD"
+      ],
+      "stopWhen": "REGISTERED_FIELD_RECORD_FOUND"
+    },
+    {
+      "layer": 2,
+      "name": "CANONICAL_STRUCTURED",
+      "modes": [
+        "ALIAS",
+        "STRUCTURED_FILTER"
+      ],
+      "stopWhen": "REGISTERED_STRUCTURED_RECORD_FOUND"
+    },
+    {
+      "layer": 3,
+      "name": "SEMANTIC_SUPPLEMENT",
+      "modes": [
+        "VECTOR"
+      ],
+      "eligibleWhen": "LAYERS_1_2_INSUFFICIENT"
+    },
+    {
+      "layer": 4,
+      "name": "RELATIONSHIP_SUPPLEMENT",
+      "modes": [
+        "GRAPH"
+      ],
+      "eligibleWhen": "LAYERS_1_2_INSUFFICIENT_AND_SCOPED_VECTOR_STAGE_COMPLETE_AND_RELATIONSHIP_REQUIRED"
+    }
+  ],
+  "blockedPromotions": [
+    "VECTOR_RESULT_TO_SYSTEM_FACT",
+    "GRAPH_RESULT_TO_SYSTEM_PERMISSION",
+    "ALIAS_TO_UNREGISTERED_FIELD",
+    "STRUCTURED_FILTER_TO_UNREGISTERED_METADATA",
+    "PROVIDER_SELECTED_ROUTE",
+    "GLOBAL_VECTOR_FALLBACK",
+    "CROSS_DOMAIN_GRAPH_WIDENING"
+  ]
+}

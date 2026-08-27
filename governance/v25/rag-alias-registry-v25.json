@@ -1,0 +1,27 @@
+{
+  "schema": "rag.alias_registry.v1",
+  "version": "25.4.0",
+  "normalization": "NFKC_CASEFOLD_WHITESPACE",
+  "defaultDecision": "BLOCK",
+  "rule": "Alias仅用于把查询字段名归一到已注册canonicalField，不创建新字段、不补事实。",
+  "entries": [
+    {"canonicalField": "metric.ctr.interpretation", "aliases": ["CTR", "点击率", "点击率解释", "点击表现解释"]},
+    {"canonicalField": "metric.ctr.related_metrics", "aliases": ["CTR相关指标", "点击率相关指标", "点击率联动指标"]},
+    {"canonicalField": "traffic.organic.decline_causes", "aliases": ["自然流量下降原因", "免费流量下降原因", "自然流量下滑"]},
+    {"canonicalField": "diagnosis.cross_metric.patterns", "aliases": ["跨指标诊断", "指标联动诊断", "多指标诊断模式"]},
+    {"canonicalField": "lifecycle.product.context", "aliases": ["商品生命周期", "生命周期上下文", "产品生命周期"]},
+    {"canonicalField": "platform.operation.context", "aliases": ["平台运营上下文", "平台规则背景", "平台运营知识"]},
+    {"canonicalField": "category.operation.context", "aliases": ["类目运营上下文", "类目知识", "品类运营背景"]},
+    {"canonicalField": "action.title_image.strategy", "aliases": ["标题主图策略", "标题与主图", "创意表达策略"]},
+    {"canonicalField": "action.roas.scale.strategy", "aliases": ["ROAS放量策略", "投放放量策略", "广告扩量策略"]},
+    {"canonicalField": "action.roas.guard.strategy", "aliases": ["ROAS止损策略", "投放止损策略", "广告守线策略"]},
+    {"canonicalField": "action.platform_activity.strategy", "aliases": ["平台活动策略", "活动报名策略", "平台促销策略"]},
+    {"canonicalField": "action.conversion_repair.strategy", "aliases": ["转化修复策略", "转化率修复", "详情转化优化"]},
+    {"canonicalField": "experience.positive.applicability", "aliases": ["正向经验适用性", "成功经验", "有效经验卡"]},
+    {"canonicalField": "experience.negative.risk", "aliases": ["负向经验风险", "失败经验", "风险经验卡"]},
+    {"canonicalField": "company.sop.execution_principles", "aliases": ["公司执行原则", "企业SOP原则", "执行SOP原则"]},
+    {"canonicalField": "company.sop.task_timing", "aliases": ["任务时限", "SOP时限", "执行时效"]},
+    {"canonicalField": "brand.expression.style", "aliases": ["品牌表达风格", "品牌语气", "品牌调性"]},
+    {"canonicalField": "company.sop.historical_cases", "aliases": ["历史SOP案例", "公司历史案例", "历史执行案例"]}
+  ]
+}
