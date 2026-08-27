@@ -20,6 +20,7 @@
     "receiptBound": true,
     "manifestBound": true,
     "metricSnapshotImmutable": true,
+    "groundTruthMetricsRequireEvalSet": true,
     "retrievalMetrics": [
       "zeroHitRate",
       "hitAt1",
