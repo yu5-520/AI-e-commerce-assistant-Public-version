@@ -1,0 +1,62 @@
+{
+  "schema": "v25.phase4_knowledge_asset_governance_policy.v1",
+  "version": "25.12.0",
+  "enforcementMode": "VERSIONED_KNOWLEDGE_ASSET_GOVERNANCE",
+  "phaseCoverage": {
+    "V25.10": "KNOWLEDGE_PROMOTION_AND_REVIEW_AUDIT",
+    "V25.11": "KNOWLEDGE_LIFECYCLE_AUTHORITY",
+    "V25.12": "KNOWLEDGE_INDEX_MANIFEST_AND_HEAD"
+  },
+  "promotionAudit": {
+    "version": "25.10.0",
+    "candidateState": "pending_review",
+    "reviewDecisions": ["approved", "rejected"],
+    "humanReviewRequired": true,
+    "automaticApprovalAllowed": false,
+    "immutableRevision": true,
+    "reviewEventBeforeAfterHashRequired": true,
+    "approvedRevisionAutoOverwriteAllowed": false,
+    "sourceTaskProvenanceRequiredForProductionExperience": true
+  },
+  "lifecycle": {
+    "version": "25.11.0",
+    "states": [
+      "pending_review",
+      "active",
+      "stale",
+      "re_review",
+      "superseded",
+      "deprecated",
+      "archived",
+      "rejected"
+    ],
+    "allowedTransitions": {
+      "pending_review": ["active", "re_review", "rejected"],
+      "active": ["stale", "superseded", "deprecated"],
+      "stale": ["re_review", "deprecated", "archived"],
+      "re_review": ["active", "rejected", "deprecated"],
+      "superseded": ["archived"],
+      "deprecated": ["archived"],
+      "archived": [],
+      "rejected": []
+    },
+    "expiryTransition": {
+      "from": "active",
+      "to": "stale",
+      "rule": "validUntil_before_current_date"
+    },
+    "newActiveRevisionSupersedesPreviousActiveRevision": true,
+    "automaticDeleteAllowed": false,
+    "reuseOutcomeMayAutoChangeLifecycle": false,
+    "staleKnowledgeRetrievalEligible": false,
+    "supersededKnowledgeRetrievalEligible": false
+  },
+  "runtimeBoundary": {
+    "newAgentRuntimeIntroduced": false,
+    "physicalRagProviderReplaced": false,
+    "existingSqliteProviderRetained": true,
+    "phase3UnifiedKnowledgeIngressRetained": true,
+    "knowledgeGovernanceInstalledBeforePhase3KnowledgeCapture": true,
+    "knowledgeMayCreateSystemFact": false
+  }
+}
