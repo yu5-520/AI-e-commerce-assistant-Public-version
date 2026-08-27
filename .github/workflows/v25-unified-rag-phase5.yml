@@ -1,0 +1,189 @@
+name: V25 Unified RAG Phase5
+
+on:
+  pull_request:
+    paths:
+      - 'java-control-plane/**'
+      - 'governance/v25/**'
+      - 'scripts/verify_v25_phase5_rag_runtime.py'
+      - 'scripts/verify_v25_java_phase5.sh'
+      - 'src/services/v25_rag_quant_v2513_service.py'
+      - 'src/services/v25_rag_eval_v2514_service.py'
+      - 'src/api/routes/__init__.py'
+      - 'src/api/routes/knowledge_center.py'
+      - 'web_demo/index.html'
+      - 'web_demo/bootstrap.js'
+      - 'web_demo/knowledge-center-v2515.css'
+      - 'web_demo/modules/knowledge-center/page.js'
+      - '.github/workflows/v25-unified-rag-phase5.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'java-control-plane/**'
+      - 'governance/v25/**'
+      - 'scripts/verify_v25_phase5_rag_runtime.py'
+      - 'scripts/verify_v25_java_phase5.sh'
+      - 'src/services/v25_rag_quant_v2513_service.py'
+      - 'src/services/v25_rag_eval_v2514_service.py'
+      - 'src/api/routes/__init__.py'
+      - 'src/api/routes/knowledge_center.py'
+      - 'web_demo/index.html'
+      - 'web_demo/bootstrap.js'
+      - 'web_demo/knowledge-center-v2515.css'
+      - 'web_demo/modules/knowledge-center/page.js'
+      - '.github/workflows/v25-unified-rag-phase5.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v25-unified-rag-phase5-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase5-rag-quant-eval-knowledge-center:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      V25_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
+    steps:
+      - name: Materialize exact source archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_COMMIT="$V25_SOURCE_COMMIT"
+          ARCHIVE="${RUNNER_TEMP}/v25-phase5-${SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/v25-phase5-${SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download ${SOURCE_COMMIT} attempt ${attempt}/8"
+            if curl \
+              --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/verify_v25_java_phase5.sh"
+          test -f "$EXTRACTED/scripts/prepare_competition_runtime_venv.sh"
+          test -f "$EXTRACTED/src/services/v25_rag_quant_v2513_service.py"
+          test -f "$EXTRACTED/src/services/v25_rag_eval_v2514_service.py"
+          test -f "$EXTRACTED/src/api/routes/knowledge_center.py"
+          test -f "$EXTRACTED/web_demo/modules/knowledge-center/page.js"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$SOURCE_COMMIT" > .v25-phase5-source-commit
+
+      - name: Prepare JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare verified application runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          EVIDENCE_DIR="$GITHUB_WORKSPACE/dist/v25-phase5-runtime-env"
+          rm -rf "$EVIDENCE_DIR"
+          mkdir -p "$EVIDENCE_DIR"
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_BASE_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" "$EVIDENCE_DIR" \
+              | tee "$EVIDENCE_DIR/runtime-prepare.log" | tail -n 1
+          )"
+          test -x "$RUNTIME_PYTHON"
+          "$RUNTIME_PYTHON" -c 'import fastapi, sqlalchemy, openpyxl, uvicorn'
+          echo "RUNTIME_PYTHON=$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+
+      - name: Compile exact Phase5 runtime scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNTIME_PYTHON" -m py_compile \
+            src/services/v25_rag_quant_v2513_service.py \
+            src/services/v25_rag_eval_v2514_service.py \
+            src/api/routes/__init__.py \
+            src/api/routes/knowledge_center.py \
+            scripts/verify_v25_phase5_rag_runtime.py
+
+      - name: Verify V25.13-V25.15 RAG quant Eval and Knowledge Center
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f logs/product_workbench.sqlite3 logs/product_workbench.sqlite3-shm logs/product_workbench.sqlite3-wal
+          PYTHON_BIN="$RUNTIME_PYTHON" bash scripts/verify_v25_java_phase5.sh
+
+      - name: Verify retained Phase4 knowledge governance boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f logs/product_workbench.sqlite3 logs/product_workbench.sqlite3-shm logs/product_workbench.sqlite3-wal
+          PYTHON_BIN="$RUNTIME_PYTHON" bash scripts/verify_v25_java_phase4.sh
+
+      - name: Verify Phase5 release boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNTIME_PYTHON" - <<'PY'
+          import json
+          from pathlib import Path
+          runtime = json.loads(Path('dist/v25-phase5/rag-runtime-verification.json').read_text(encoding='utf-8'))
+          report = json.loads(Path('dist/v25-phase5/phase5-verification-report.json').read_text(encoding='utf-8'))
+          phase4 = json.loads(Path('dist/v25-phase4/phase4-verification-report.json').read_text(encoding='utf-8'))
+          assert runtime['verified'] is True
+          assert runtime['receiptBoundMetrics'] is True
+          assert runtime['tamperedReceiptBlocked'] is True
+          assert runtime['groundTruthMetricsRequireEvalSet'] is True
+          assert runtime['evalSetImmutable'] is True
+          assert runtime['baseTargetEvalRequired'] is True
+          assert runtime['regressionGateBlocksDegradation'] is True
+          assert runtime['staleLeakGateBlocksDegradation'] is True
+          assert runtime['chineseKnowledgeCenterRegistered'] is True
+          assert runtime['directDatabaseMutationAllowed'] is False
+          assert runtime['activeRevisionInPlaceEditAllowed'] is False
+          assert runtime['physicalRagProviderReplaced'] is False
+          assert runtime['vectorIndexRequired'] is False
+          assert runtime['newAgentRuntimeIntroduced'] is False
+          assert report['verified'] is True
+          assert report['enforcementMode'] == 'VERSIONED_RAG_QUANT_EVAL_KNOWLEDGE_CENTER'
+          assert report['phase4KnowledgeGovernanceRetained'] is True
+          assert phase4['verified'] is True
+          assert phase4['enforcementMode'] == 'VERSIONED_KNOWLEDGE_ASSET_GOVERNANCE'
+          assert phase4['physicalRagProviderReplaced'] is False
+          assert phase4['newAgentRuntimeIntroduced'] is False
+          print('V25_PHASE5_RELEASE_BOUNDARY=PASS')
+          print('V25_PHASE4_RETAINED_BOUNDARY=PASS')
+          PY
+
+      - name: Upload V25 phase5 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v25-unified-rag-phase5-${{ github.sha }}
+          path: |
+            dist/v25-phase5/*.json
+            dist/v25-phase5-runtime-env/*.json
+            dist/v25-phase4/*.json
+          if-no-files-found: error
+          retention-days: 14

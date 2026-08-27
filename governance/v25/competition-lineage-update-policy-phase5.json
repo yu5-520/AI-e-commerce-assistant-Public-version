@@ -1,0 +1,31 @@
+{
+  "schema": "competition.lineage_update_policy.v1",
+  "version": "25.15.0",
+  "defaultProfile": "v25_phase5_rag_quant_eval_knowledge_center",
+  "profiles": {
+    "v25_phase5_rag_quant_eval_knowledge_center": {
+      "description": "Exact V25.13-V25.15 Runtime scope. Permit only RAG quantification, immutable Eval authority, Knowledge Center API wiring, Chinese frontend projection and the exact layered VERSION.md identity declaration. Phase4 immutable knowledge governance, existing Agent runtimes, physical RAG provider, Registry module membership and unrelated Runtime files remain fail-closed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": true,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "VERSION.md",
+        "src/services/v25_rag_quant_v2513_service.py",
+        "src/services/v25_rag_eval_v2514_service.py",
+        "src/api/routes/__init__.py",
+        "src/api/routes/knowledge_center.py",
+        "web_demo/index.html",
+        "web_demo/bootstrap.js",
+        "web_demo/knowledge-center-v2515.css",
+        "web_demo/modules/knowledge-center/page.js"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "schema": "v25.phase5_rag_quant_eval_policy.v1",
+  "version": "25.15.0",
+  "enforcementMode": "VERSIONED_RAG_QUANT_EVAL_KNOWLEDGE_CENTER",
+  "phaseCoverage": [
+    {
+      "version": "25.13.0",
+      "authority": "RAG_QUANTIFICATION_AND_RETRIEVAL_OBSERVABILITY"
+    },
+    {
+      "version": "25.14.0",
+      "authority": "RAG_EVAL_AND_REGRESSION"
+    },
+    {
+      "version": "25.15.0",
+      "authority": "CHINESE_RAG_KNOWLEDGE_CENTER"
+    }
+  ],
+  "quantification": {
+    "receiptBound": true,
+    "manifestBound": true,
+    "metricSnapshotImmutable": true,
+    "groundTruthMetricsRequireEvalSet": true,
+    "retrievalMetrics": [
+      "zeroHitRate",
+      "hitAt1",
+      "hitAt3",
+      "hitAt5",
+      "mrr",
+      "candidateCount",
+      "eligibleCount",
+      "matchedCount",
+      "filteredLifecycleCount",
+      "latencyMs"
+    ],
+    "knowledgeHealthMetrics": [
+      "pendingReview",
+      "active",
+      "stale",
+      "reReview",
+      "superseded",
+      "deprecated",
+      "archived",
+      "rejected"
+    ]
+  },
+  "eval": {
+    "evalSetImmutable": true,
+    "evalSetVersioned": true,
+    "evalRunImmutable": true,
+    "baseTargetRequired": true,
+    "retrievalEvalSeparatedFromAnswerEval": true,
+    "llmJudgeAllowedAsSupplement": true,
+    "llmJudgeSoleReleaseAuthority": false,
+    "releaseRegressionGate": true
+  },
+  "knowledgeCenter": {
+    "language": "zh-CN",
+    "directDatabaseMutationAllowed": false,
+    "allWritesUseGovernanceAuthority": true,
+    "activeRevisionInPlaceEditAllowed": false,
+    "rollbackUsesIndexHead": true,
+    "mockKnowledgeFallbackAllowed": false
+  },
+  "runtimeBoundary": {
+    "physicalRagProviderReplaced": false,
+    "vectorIndexRequired": false,
+    "newAgentRuntimeIntroduced": false,
+    "phase4KnowledgeGovernanceRetained": true,
+    "phase3UnifiedKnowledgeIngressRetained": true,
+    "knowledgeMayCreateSystemFact": false
+  }
+}

@@ -18,6 +18,16 @@ Frontend View Manifest Version: 22.5.9
 Interface Documentation Sync: 22.5.10
 Canonical Interface Document: docs/V22.5.9_INTERFACE_AND_MIGRATION.md
 
+Knowledge Promotion & Review Audit Version: 25.10.0
+Knowledge Lifecycle Authority Version: 25.11.0
+Knowledge Index Manifest & Head Version: 25.12.0
+RAG Quantification & Retrieval Observability Version: 25.13.0
+RAG Eval & Regression Authority Version: 25.14.0
+Chinese RAG Knowledge Center Version: 25.15.0
+V25 Physical RAG Provider Cutover: false
+V25 Vector Index Required: false
+V25 New Agent Runtime: false
+
 Release Identity Contract: release.identity.v1
 Release Manifest Contract: release.manifest.v1
 Data Identity Contract: data.identity.v1
@@ -36,6 +46,21 @@ Station Truth Contract Version: 22.2.5
 Public Task DTO Version: 22.2.3
 
 Repository Commit identifies source. Release Hash identifies the complete sealed file set. Dependency Lock Hash and the live environment Hash identify the exact Python environment. Test Run Hash identifies packaged gray-test evidence. Data Lineage binds the live SQLite schema and rollback backup to the deployed Release Hash. A deployable Artifact additionally requires a successful `push` run on `main`, with Workflow SHA, Artifact identity, Manifest `sourceCommit` and test-attestation `sourceCommit` all bound to the same commit.
+
+# V25.10-V25.15 — Versioned Knowledge, Quantification and Eval Layer
+
+The V25 knowledge subsystem is versioned independently from the public product/API and deployment authority. It retains the existing physical RAG provider and Three-Agent runtime while adding governed immutable knowledge revisions, lifecycle authority, manifest/head binding, receipt-bound quantification, immutable EvalSet/EvalRun regression authority, and the Chinese RAG Knowledge Center.
+
+```text
+Knowledge promotion/review audit       25.10.0
+Knowledge lifecycle authority          25.11.0
+Knowledge index manifest/head          25.12.0
+RAG quantification/observability        25.13.0
+RAG Eval/regression authority           25.14.0
+Chinese RAG Knowledge Center            25.15.0
+```
+
+These versions do not replace `Current Product Version`, `Public API Version`, the V22.5 deployment authority, the physical RAG provider, or the existing Agent runtime. V25 knowledge cannot create a system fact, direct database mutation from the Knowledge Center is forbidden, and Active knowledge revisions cannot be edited in place.
 
 # V22.5.10 — Interface Contract Synchronization
 
