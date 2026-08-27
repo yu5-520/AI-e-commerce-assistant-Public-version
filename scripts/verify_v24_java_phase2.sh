@@ -38,9 +38,27 @@ rm -rf dist/v24-java-phase2 dist/v24-java-classes-phase2
 mkdir -p dist/v24-java-phase2 dist/v24-java-classes-phase2
 
 "$PYTHON_BIN" -m py_compile scripts/export_v24_phase2_shadow_evidence.py
-"$PYTHON_BIN" scripts/export_v24_phase2_shadow_evidence.py \
-  --output dist/v24-java-phase2/python-shadow-evidence.json \
-  | tee dist/v24-java-phase2/python-shadow-summary.json
+"$PYTHON_BIN" - "$ROOT_DIR" <<'PY' | tee dist/v24-java-phase2/python-shadow-summary.json
+import runpy
+import sys
+import types
+from pathlib import Path
+
+root = Path(sys.argv[1]).resolve()
+# The evidence exporter needs pure service modules, not src/__init__.py runtime installation.
+# Pre-register src as a namespace-like package so importing src.services.* resolves files
+# without executing the production runtime bootstrap.
+src_pkg = types.ModuleType("src")
+src_pkg.__path__ = [str(root / "src")]
+src_pkg.__package__ = "src"
+sys.modules["src"] = src_pkg
+sys.argv = [
+    str(root / "scripts" / "export_v24_phase2_shadow_evidence.py"),
+    "--output",
+    str(root / "dist" / "v24-java-phase2" / "python-shadow-evidence.json"),
+]
+runpy.run_path(str(root / "scripts" / "export_v24_phase2_shadow_evidence.py"), run_name="__main__")
+PY
 
 mapfile -t JAVA_SOURCES < <(find java-control-plane/src/main/java -type f -name '*.java' | sort)
 [ "${#JAVA_SOURCES[@]}" -gt 0 ] || { echo "No Java control-plane sources found." >&2; exit 2; }
