@@ -1,0 +1,73 @@
+{
+  "schema": "v24.phase3.queue_authority_policy.v1",
+  "version": "24.15.0-phase3.1",
+  "enforcementMode": "SHADOW",
+  "phaseCoverage": [
+    "V24.9_QUEUE_SPLIT",
+    "V24.10_AGENT1_QUEUE",
+    "V24.11_AGENT2_ASYNC",
+    "V24.12_AGENT3_ASYNC",
+    "V24.13_IDEMPOTENCY",
+    "V24.14_CONCURRENCY_BACKPRESSURE",
+    "V24.15_GENERATION_FENCING"
+  ],
+  "queueModel": {
+    "pipelineItem": "BUSINESS_STATE_ONLY",
+    "stageJob": "EXECUTION_WORK_ONLY",
+    "artifact": "IMMUTABLE_INPUT_OUTPUT_ONLY",
+    "outbox": "NEXT_STAGE_HANDOFF_ONLY",
+    "legacyPipelineItemsMultiplexing": "READ_ONLY_BASELINE"
+  },
+  "stages": {
+    "AGENT1": {
+      "capacity": 4,
+      "providerAuthority": "PYTHON_UNCHANGED",
+      "queueAuthority": "JAVA_SHADOW",
+      "nextStage": "AGENT2"
+    },
+    "AGENT2": {
+      "capacity": 3,
+      "providerAuthority": "PYTHON_UNCHANGED",
+      "queueAuthority": "JAVA_SHADOW",
+      "nextStage": "AGENT3"
+    },
+    "AGENT3": {
+      "capacity": 2,
+      "providerAuthority": "PYTHON_UNCHANGED",
+      "queueAuthority": "JAVA_SHADOW",
+      "nextStage": "COMPLETE"
+    }
+  },
+  "idempotency": {
+    "algorithm": "SHA-256",
+    "material": ["stage", "itemId", "inputArtifactHash", "contractVersion"],
+    "databaseConstraint": "UNIQUE(stage,idempotency_key)",
+    "duplicateMessageAllowed": true,
+    "duplicateBusinessExecutionAllowed": false
+  },
+  "claim": {
+    "singleWinner": true,
+    "leaseRequired": true,
+    "recommendedDatabaseClaim": "FOR UPDATE SKIP LOCKED",
+    "staleLeaseRecovery": "REQUEUE_WITH_ATTEMPT_INCREMENT"
+  },
+  "concurrency": {
+    "globalStageBarrierAllowed": false,
+    "stageWorkerPoolsIndependent": true,
+    "backpressureScope": "STAGE_LOCAL",
+    "agent1BlockedByAgent2OrAgent3Backlog": false
+  },
+  "generation": {
+    "mode": "FENCING_TOKEN",
+    "globalWorkerResetBarrierProductionStillEnabled": true,
+    "staleGenerationCommit": "BLOCK",
+    "generationFields": ["generationSeq", "generationHash", "fencingToken"]
+  },
+  "productionBoundary": {
+    "pythonProductionQueueWriteAuthorityUnchanged": true,
+    "pythonAgentProviderAuthorityUnchanged": true,
+    "postgreSqlSourceOfTruthEnabled": false,
+    "javaProductionQueueCutoverEnabled": false,
+    "reason": "Phase3 proves queue split, overlap, idempotency, claim and fencing before live scheduler cutover."
+  }
+}
