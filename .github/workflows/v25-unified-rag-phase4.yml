@@ -1,0 +1,160 @@
+name: V25 Unified RAG Phase4
+
+on:
+  pull_request:
+    paths:
+      - 'java-control-plane/**'
+      - 'governance/v25/**'
+      - 'scripts/verify_v25_phase4_knowledge_runtime.py'
+      - 'scripts/verify_v25_java_phase4.sh'
+      - 'src/__init__.py'
+      - 'src/services/v25_knowledge_revision_v2510_service.py'
+      - 'src/services/v25_knowledge_lifecycle_v2511_service.py'
+      - 'src/services/v25_knowledge_index_v2512_service.py'
+      - 'src/services/v25_knowledge_asset_install_service.py'
+      - '.github/workflows/v25-unified-rag-phase4.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'java-control-plane/**'
+      - 'governance/v25/**'
+      - 'scripts/verify_v25_phase4_knowledge_runtime.py'
+      - 'scripts/verify_v25_java_phase4.sh'
+      - 'src/__init__.py'
+      - 'src/services/v25_knowledge_revision_v2510_service.py'
+      - 'src/services/v25_knowledge_lifecycle_v2511_service.py'
+      - 'src/services/v25_knowledge_index_v2512_service.py'
+      - 'src/services/v25_knowledge_asset_install_service.py'
+      - '.github/workflows/v25-unified-rag-phase4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v25-unified-rag-phase4-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase4-knowledge-asset-authority:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      V25_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Materialize exact source archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_COMMIT="$V25_SOURCE_COMMIT"
+          ARCHIVE="${RUNNER_TEMP}/v25-phase4-${SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/v25-phase4-${SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download ${SOURCE_COMMIT} attempt ${attempt}/8"
+            if curl \
+              --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/verify_v25_java_phase4.sh"
+          test -f "$EXTRACTED/src/services/v25_knowledge_asset_install_service.py"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$SOURCE_COMMIT" > .v25-phase4-source-commit
+
+      - name: Prepare JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Resolve Python 3.10+
+        shell: bash
+        run: |
+          set -euo pipefail
+          for candidate in \
+            /opt/python/3.11.9/bin/python3.11 \
+            python3.13 python3.12 python3.11 python3.10 python3; do
+            if { command -v "$candidate" >/dev/null 2>&1 || [ -x "$candidate" ]; } \
+              && "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
+              if command -v "$candidate" >/dev/null 2>&1; then candidate="$(command -v "$candidate")"; fi
+              echo "PYTHON_BIN=$candidate" >> "$GITHUB_ENV"
+              "$candidate" -c 'import platform; print("python=" + platform.python_version())'
+              exit 0
+            fi
+          done
+          echo 'Python 3.10+ is required.' >&2
+          exit 1
+
+      - name: Compile exact Phase4 runtime scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" -m py_compile \
+            src/services/v25_knowledge_revision_v2510_service.py \
+            src/services/v25_knowledge_lifecycle_v2511_service.py \
+            src/services/v25_knowledge_index_v2512_service.py \
+            src/services/v25_knowledge_asset_install_service.py \
+            scripts/verify_v25_phase4_knowledge_runtime.py
+
+      - name: Verify V25.10-V25.12 knowledge asset governance
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f logs/product_workbench.sqlite3 logs/product_workbench.sqlite3-shm logs/product_workbench.sqlite3-wal
+          PYTHON_BIN="$PYTHON_BIN" bash scripts/verify_v25_java_phase4.sh
+
+      - name: Verify retained Phase3 knowledge ingress boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHON_BIN="$PYTHON_BIN" bash scripts/verify_v25_java_phase3.sh
+
+      - name: Verify Phase4 release boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          from pathlib import Path
+          runtime = json.loads(Path('dist/v25-phase4/knowledge-runtime-verification.json').read_text(encoding='utf-8'))
+          report = json.loads(Path('dist/v25-phase4/phase4-verification-report.json').read_text(encoding='utf-8'))
+          assert runtime['verified'] is True
+          assert runtime['pendingReviewRetrievalBlocked'] is True
+          assert runtime['headRollbackExact'] is True
+          assert runtime['staleKnowledgeRetrievalBlocked'] is True
+          assert runtime['physicalRagProviderReplaced'] is False
+          assert runtime['newAgentRuntimeIntroduced'] is False
+          assert report['verified'] is True
+          assert report['enforcementMode'] == 'VERSIONED_KNOWLEDGE_ASSET_GOVERNANCE'
+          assert report['vectorIndexRequired'] is False
+          print('V25_PHASE4_RELEASE_BOUNDARY=PASS')
+          PY
+
+      - name: Upload V25 phase4 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v25-unified-rag-phase4-${{ github.sha }}
+          path: |
+            dist/v25-phase4/*.json
+            dist/v25-phase3/*.json
+          if-no-files-found: error
+          retention-days: 14
