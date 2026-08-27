@@ -25,6 +25,9 @@ from src.services.hard_interface_bridge_v2301_service import (
 from src.services.task_evidence_canonical_history_install_v1_service import (
     install_task_evidence_canonical_history_v1,
 )
+from src.services.v25_knowledge_runtime_projection_install_service import (
+    install_v25_knowledge_runtime_projection,
+)
 from src.services.unified_agent_knowledge_v25_service import (
     install_v25_unified_agent_knowledge,
 )
@@ -45,9 +48,10 @@ bind_agent1_dual_channel_contract()
 bind_pipeline_reference_runtime()
 bind_station_truth_contract()
 bind_hard_interface_bridge_v2301()
-# V25 knowledge migration is intentionally last: existing runtime/interface binders
-# remain authoritative for execution.  First move every knowledge provider behind
-# the registered composition table, then seal that envelope into immutable Agent
-# input Artifacts so pre-V25 semantic inputs cannot be reused after cutover.
+# V25 keeps governance files outside the production runtime package. The verified
+# minimal projection is bound first, then knowledge-provider references are moved
+# behind the composition table, and finally that envelope is sealed into immutable
+# Agent input Artifacts so pre-V25 semantic inputs cannot be reused after cutover.
+install_v25_knowledge_runtime_projection()
 install_v25_unified_agent_knowledge()
 install_v25_agent_input_ingress()
