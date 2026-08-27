@@ -1,0 +1,33 @@
+{
+  "schema": "v24.frontend_view.contract.v1",
+  "version": "24.17.0",
+  "head": {
+    "identity": ["viewKey", "userId"],
+    "fields": ["headVersion", "manifestHash", "runtimeStateHash", "generationSeq", "generationHash"],
+    "readSideEffectsAllowed": false,
+    "publishMode": "COMPARE_AND_SET",
+    "staleGenerationDecision": "STALE_GENERATION",
+    "versionConflictDecision": "HEAD_VERSION_CONFLICT"
+  },
+  "manifest": {
+    "immutable": true,
+    "hashAlgorithm": "SHA-256",
+    "moduleIdentity": "contentHash",
+    "unknownModule": "BLOCK",
+    "changedModules": "CONTENT_HASH_DIFF"
+  },
+  "sse": {
+    "event": "view-head-changed",
+    "id": "manifestHash",
+    "emitOn": "SUCCESSFUL_CHANGED_HEAD_PUBLISH_ONLY",
+    "duplicateManifest": "SUPPRESS",
+    "payloadFields": ["headVersion", "manifestHash", "runtimeStateHash", "generationSeq", "generationHash", "changedModules"]
+  },
+  "browser": {
+    "runtime": "JavaScript",
+    "head": "mutable_pointer",
+    "manifest": "immutable_hash_cache",
+    "module": "immutable_hash_cache",
+    "onEvent": "compare_manifest_hash_then_fetch_changed_content_hashes_only"
+  }
+}
