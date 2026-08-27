@@ -188,7 +188,7 @@ def main() -> int:
         "manifest2": manifest2.get("manifestHash"),
         "retrievalReceiptHash": latest.get("retrievalReceiptHash"),
     }
-    material["evidenceHash"] = revision.hash_value(material)
+    material["evidenceHash"] = "sha256:" + revision.hash_value(material)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(material, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
