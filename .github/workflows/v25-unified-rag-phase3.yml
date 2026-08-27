@@ -6,10 +6,13 @@ on:
       - 'java-control-plane/**'
       - 'governance/v25/**'
       - 'scripts/export_v25_phase3_agent_knowledge_evidence.py'
+      - 'scripts/verify_v25_knowledge_runtime_projection.py'
       - 'scripts/verify_v25_agent_input_ingress.py'
       - 'scripts/verify_v25_java_phase3.sh'
       - 'src/__init__.py'
       - 'src/services/unified_agent_knowledge_v25_service.py'
+      - 'src/services/v25_knowledge_runtime_projection.py'
+      - 'src/services/v25_knowledge_runtime_projection_install_service.py'
       - 'src/services/v25_agent_input_ingress_service.py'
       - 'src/services/agent_input_contract_v230_service.py'
       - 'src/services/agent_input_contract_v2258_service.py'
@@ -30,10 +33,13 @@ on:
       - 'java-control-plane/**'
       - 'governance/v25/**'
       - 'scripts/export_v25_phase3_agent_knowledge_evidence.py'
+      - 'scripts/verify_v25_knowledge_runtime_projection.py'
       - 'scripts/verify_v25_agent_input_ingress.py'
       - 'scripts/verify_v25_java_phase3.sh'
       - 'src/__init__.py'
       - 'src/services/unified_agent_knowledge_v25_service.py'
+      - 'src/services/v25_knowledge_runtime_projection.py'
+      - 'src/services/v25_knowledge_runtime_projection_install_service.py'
       - 'src/services/v25_agent_input_ingress_service.py'
       - 'src/services/agent_input_contract_v230_service.py'
       - 'src/services/agent_input_contract_v2258_service.py'
@@ -95,6 +101,7 @@ jobs:
           test -s "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
           test -f "$EXTRACTED/scripts/verify_v25_java_phase3.sh"
+          test -f "$EXTRACTED/src/services/v25_knowledge_runtime_projection.py"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
           printf '%s\n' "$SOURCE_COMMIT" > .v25-phase3-source-commit
@@ -137,6 +144,7 @@ jobs:
           import json
           from pathlib import Path
           report = json.loads(Path('dist/v25-phase3/phase3-verification-report.json').read_text(encoding='utf-8'))
+          projection = json.loads(Path('dist/v25-phase3/knowledge-runtime-projection-verification.json').read_text(encoding='utf-8'))
           ingress = json.loads(Path('dist/v25-phase3/agent-input-ingress-verification.json').read_text(encoding='utf-8'))
           assert report['verified'] is True
           assert report['enforcementMode'] == 'PRODUCTION_KNOWLEDGE_INGRESS'
@@ -148,6 +156,11 @@ jobs:
           assert report['newAgent3RuntimeIntroduced'] is False
           assert report['runtimeEntrypointsUnchanged'] is True
           assert report['retrievalMayCreateSystemFact'] is False
+          assert projection['verified'] is True
+          assert projection['fieldProjectionExact'] is True
+          assert projection['compositionProjectionExact'] is True
+          assert projection['governanceFilesystemReadRequiredAtRuntime'] is False
+          assert projection['runtimePackageGovernanceExpansionRequired'] is False
           assert ingress['verified'] is True
           assert ingress['artifactKnowledgeIngressRequired'] is True
           assert ingress['preV25AgentInputReuseAllowed'] is False
@@ -155,6 +168,7 @@ jobs:
           assert ingress['tokenRuntimeEntrypointsReplaced'] is False
           assert ingress['promptBuildersConsumeArtifactKnowledge'] is True
           print('V25_PHASE3_RUNTIME_BOUNDARY=PASS')
+          print('V25_PHASE3_RUNTIME_PROJECTION_BOUNDARY=PASS')
           print('V25_PHASE3_ARTIFACT_INGRESS_BOUNDARY=PASS')
           PY
 
