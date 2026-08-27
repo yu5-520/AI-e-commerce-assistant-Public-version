@@ -1,0 +1,80 @@
+{
+  "schema": "v25.knowledge_baseline.v1",
+  "version": "25.0.0",
+  "inventorySources": [
+    {
+      "sourceId": "src-operating-policy",
+      "path": "src/services/operating_policy_context_v2028_service.py",
+      "classification": "MIXED_SPLIT_REQUIRED",
+      "knowledgeSections": ["principles", "familyGuidance"],
+      "systemSections": ["permissionBoundary", "ragBoundary", "projectionContract"],
+      "targetDomains": ["rag-domain-operating-diagnosis", "rag-domain-metric-relation", "rag-domain-platform-operation", "rag-domain-category-operation"]
+    },
+    {
+      "sourceId": "src-dynamic-experience-rag",
+      "path": "src/services/agent_rag_context_v2028_service.py",
+      "classification": "MIGRATE_TO_RAG",
+      "knowledgeSections": ["rag_experience_cards", "positiveExperienceCards", "negativeCases", "applicableConditions", "notApplicableConditions"],
+      "systemSections": ["approved/effective/sourceTaskId filtering remains admission policy"],
+      "targetDomains": ["rag-domain-execution-experience"]
+    },
+    {
+      "sourceId": "src-company-sop-context",
+      "path": "src/services/company_sop_rag_context_v225_service.py",
+      "classification": "MIXED_SPLIT_REQUIRED",
+      "knowledgeSections": ["managementStyle", "principles", "taskTimingPolicy", "brandStyleSnapshot", "companyExecutionPrinciples", "historical cases"],
+      "systemSections": ["approval hard triggers and authorization boundaries must remain policy/contract"],
+      "targetDomains": ["rag-domain-company-sop", "rag-domain-brand-expression", "rag-domain-execution-experience"]
+    },
+    {
+      "sourceId": "src-agent2-family-contract",
+      "path": "src/services/agent2_action_draft_core_v225_service.py",
+      "classification": "SYSTEM_CONTRACT",
+      "knowledgeSections": [],
+      "systemSections": ["familyContract", "required fields", "single locked action family", "final SOP forbidden"],
+      "targetDomains": []
+    },
+    {
+      "sourceId": "src-agent3-family-policy",
+      "path": "src/services/agent3_system_constraint_base_v23214_service.py",
+      "classification": "SYSTEM_CONTRACT",
+      "knowledgeSections": [],
+      "systemSections": ["allowedActionTypes", "forbiddenActions", "requiredActionTypeGroups", "blocked terms", "step contract"],
+      "targetDomains": []
+    },
+    {
+      "sourceId": "src-hash-routed-rag",
+      "path": "src/services/hash_routed_rag_service.py",
+      "classification": "SYSTEM_CONTRACT",
+      "knowledgeSections": [],
+      "systemSections": ["hash route", "exact route scope", "provider no routing authority", "fail closed"],
+      "targetDomains": []
+    },
+    {
+      "sourceId": "src-agent-rag-bridge",
+      "path": "src/services/agent_hash_routed_rag_bridge_v1_service.py",
+      "classification": "SYSTEM_CONTRACT",
+      "knowledgeSections": [],
+      "systemSections": ["Agent2/Agent3 provider-boundary route binding"],
+      "targetDomains": []
+    }
+  ],
+  "nonKnowledgeBoundary": [
+    "permission",
+    "task_state",
+    "input_schema",
+    "output_schema",
+    "execution_lock",
+    "gate",
+    "action_family_mutation_boundary",
+    "runtime_generation",
+    "deployment_authority"
+  ],
+  "currentState": {
+    "agent1": "固定运营Policy/思维知识投影，动态RAG在Agent1锁定动作族之后。",
+    "agent2": "已有approved/effective经验卡召回和Hash Route桥，但不是统一知识库。",
+    "agent3": "Company Context含固定默认值/ENV和历史经验投影，不是统一可版本知识库。",
+    "ragRouting": "已有Hash Route/Exact Route Scope/Vector+Graph契约骨架。",
+    "knowledgeStore": "尚未形成统一RAG Knowledge Store与统一字段注册表。"
+  }
+}

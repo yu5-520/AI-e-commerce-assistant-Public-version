@@ -1,0 +1,106 @@
+{
+  "schema": "rag.knowledge_distribution_domains.v1",
+  "version": "25.2.0",
+  "defaultDecision": "BLOCK",
+  "domains": [
+    {
+      "domainId": "rag-domain-operating-diagnosis",
+      "nameZh": "经营诊断域",
+      "domainType": "DIAGNOSTIC_KNOWLEDGE",
+      "scope": "cross_metric_business_diagnosis",
+      "vectorAllowed": true,
+      "graphAllowed": true,
+      "domainHash": "sha256:4b2e4201575d039705977948f6c0f0893023361ef4017c6a39ff2b670ba7ded2"
+    },
+    {
+      "domainId": "rag-domain-metric-relation",
+      "nameZh": "指标关系域",
+      "domainType": "RELATION_KNOWLEDGE",
+      "scope": "metric_relation_and_cross_validation",
+      "vectorAllowed": true,
+      "graphAllowed": true,
+      "domainHash": "sha256:f5cf989f713e8d5b53bf4f9e89322f14e820e0884b3a7f05fcd715f92fc74423"
+    },
+    {
+      "domainId": "rag-domain-platform-operation",
+      "nameZh": "平台运营域",
+      "domainType": "PLATFORM_KNOWLEDGE",
+      "scope": "platform_rules_and_operation_context",
+      "vectorAllowed": true,
+      "graphAllowed": false,
+      "domainHash": "sha256:9451238e938abf05586f3d5e6b7032ac35e3331ff8454a37b337f1ab2f243c43"
+    },
+    {
+      "domainId": "rag-domain-category-operation",
+      "nameZh": "类目运营域",
+      "domainType": "CATEGORY_KNOWLEDGE",
+      "scope": "category_behavior_and_operation_context",
+      "vectorAllowed": true,
+      "graphAllowed": false,
+      "domainHash": "sha256:75325f50d51ba80c208b8c42dfa20428e14c6253720edaa510798cea76e736a8"
+    },
+    {
+      "domainId": "rag-domain-creative-operation",
+      "nameZh": "创意运营域",
+      "domainType": "ACTION_KNOWLEDGE",
+      "scope": "title_image_and_creative_operation",
+      "vectorAllowed": true,
+      "graphAllowed": false,
+      "domainHash": "sha256:9edc722bb9260ac11dbf3cd68a90d47224105fe1815b328cab7e761f3d995246"
+    },
+    {
+      "domainId": "rag-domain-paid-operation",
+      "nameZh": "付费运营域",
+      "domainType": "ACTION_KNOWLEDGE",
+      "scope": "roas_budget_bid_and_paid_operation",
+      "vectorAllowed": true,
+      "graphAllowed": false,
+      "domainHash": "sha256:cd50e1223d9d60ffaf660d5fc28aa09b366c267daf74cbb1b258cf1f0d9ccc4a"
+    },
+    {
+      "domainId": "rag-domain-activity-operation",
+      "nameZh": "活动运营域",
+      "domainType": "ACTION_KNOWLEDGE",
+      "scope": "platform_activity_and_benefit_operation",
+      "vectorAllowed": true,
+      "graphAllowed": false,
+      "domainHash": "sha256:a93104bfdfc814075d9cdb9fc97c8b4fafdfa9784bfc2176216fd2305f723ae4"
+    },
+    {
+      "domainId": "rag-domain-conversion-operation",
+      "nameZh": "转化优化域",
+      "domainType": "ACTION_KNOWLEDGE",
+      "scope": "conversion_detail_trust_and_service_repair",
+      "vectorAllowed": true,
+      "graphAllowed": false,
+      "domainHash": "sha256:4011dcd8bc23ba143f05e3270676918c5a0e3767e38ceb2dea26662c7c1d9b19"
+    },
+    {
+      "domainId": "rag-domain-company-sop",
+      "nameZh": "企业SOP域",
+      "domainType": "EXECUTION_KNOWLEDGE",
+      "scope": "company_execution_principles_and_sop",
+      "vectorAllowed": true,
+      "graphAllowed": false,
+      "domainHash": "sha256:4718bd8c5d6d5a673f487f579d24ac0c963fc0d954075825b0774837fc902925"
+    },
+    {
+      "domainId": "rag-domain-brand-expression",
+      "nameZh": "品牌表达域",
+      "domainType": "STYLE_KNOWLEDGE",
+      "scope": "brand_tone_and_expression_guidance",
+      "vectorAllowed": true,
+      "graphAllowed": false,
+      "domainHash": "sha256:817e1d5ff7c089b4793af511dfdf5a54d3ba15f54450692c49ac6cc1b0a11976"
+    },
+    {
+      "domainId": "rag-domain-execution-experience",
+      "nameZh": "执行经验域",
+      "domainType": "EXPERIENCE_KNOWLEDGE",
+      "scope": "reviewed_positive_negative_task_experience",
+      "vectorAllowed": true,
+      "graphAllowed": true,
+      "domainHash": "sha256:c76efdbe7b3b6c4a687c4c6a121da890fb217f5a4ffdb20455ec58aa84c2b0e1"
+    }
+  ]
+}
