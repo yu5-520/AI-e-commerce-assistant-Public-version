@@ -4,7 +4,7 @@
   "defaultProfile": "v25_phase4_knowledge_asset_governance",
   "profiles": {
     "v25_phase4_knowledge_asset_governance": {
-      "description": "Exact V25.10-V25.12 Runtime scope. Permit only bootstrap binding plus the Phase4 knowledge revision/lifecycle/index governance overlay. Existing Agent runtime, physical RAG provider, Registry module membership, unrelated Runtime files, external interfaces and special hashes remain fail-closed.",
+      "description": "Exact V25.10-V25.12 Runtime scope. Permit only bootstrap binding plus separated Revision, Lifecycle, Index and installation authorities. Existing Agent runtime, physical RAG provider, Registry module membership, unrelated Runtime files, external interfaces and special hashes remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -14,7 +14,10 @@
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
         "src/__init__.py",
-        "src/services/v25_knowledge_asset_governance_v2512_service.py"
+        "src/services/v25_knowledge_revision_v2510_service.py",
+        "src/services/v25_knowledge_lifecycle_v2511_service.py",
+        "src/services/v25_knowledge_index_v2512_service.py",
+        "src/services/v25_knowledge_asset_install_service.py"
       ],
       "allowedRegistryModules": [],
       "allowedNodePrefixes": [],
