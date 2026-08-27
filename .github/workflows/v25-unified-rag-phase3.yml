@@ -6,9 +6,16 @@ on:
       - 'java-control-plane/**'
       - 'governance/v25/**'
       - 'scripts/export_v25_phase3_agent_knowledge_evidence.py'
+      - 'scripts/verify_v25_agent_input_ingress.py'
       - 'scripts/verify_v25_java_phase3.sh'
       - 'src/__init__.py'
       - 'src/services/unified_agent_knowledge_v25_service.py'
+      - 'src/services/v25_agent_input_ingress_service.py'
+      - 'src/services/agent_input_contract_v230_service.py'
+      - 'src/services/agent_input_contract_v2258_service.py'
+      - 'src/services/agent_input_transport_v230_service.py'
+      - 'src/services/agent_input_transport_v2258_service.py'
+      - 'src/services/agent_token_runtime_v230_service.py'
       - 'src/services/real_product_judgment_agent_v196_service.py'
       - 'src/services/agent_rag_context_v2028_service.py'
       - 'src/services/action_pack_core_v20_service.py'
@@ -23,9 +30,16 @@ on:
       - 'java-control-plane/**'
       - 'governance/v25/**'
       - 'scripts/export_v25_phase3_agent_knowledge_evidence.py'
+      - 'scripts/verify_v25_agent_input_ingress.py'
       - 'scripts/verify_v25_java_phase3.sh'
       - 'src/__init__.py'
       - 'src/services/unified_agent_knowledge_v25_service.py'
+      - 'src/services/v25_agent_input_ingress_service.py'
+      - 'src/services/agent_input_contract_v230_service.py'
+      - 'src/services/agent_input_contract_v2258_service.py'
+      - 'src/services/agent_input_transport_v230_service.py'
+      - 'src/services/agent_input_transport_v2258_service.py'
+      - 'src/services/agent_token_runtime_v230_service.py'
       - 'src/services/real_product_judgment_agent_v196_service.py'
       - 'src/services/agent_rag_context_v2028_service.py'
       - 'src/services/action_pack_core_v20_service.py'
@@ -123,6 +137,7 @@ jobs:
           import json
           from pathlib import Path
           report = json.loads(Path('dist/v25-phase3/phase3-verification-report.json').read_text(encoding='utf-8'))
+          ingress = json.loads(Path('dist/v25-phase3/agent-input-ingress-verification.json').read_text(encoding='utf-8'))
           assert report['verified'] is True
           assert report['enforcementMode'] == 'PRODUCTION_KNOWLEDGE_INGRESS'
           assert report['agent1KnowledgeMigrated'] is True
@@ -133,7 +148,14 @@ jobs:
           assert report['newAgent3RuntimeIntroduced'] is False
           assert report['runtimeEntrypointsUnchanged'] is True
           assert report['retrievalMayCreateSystemFact'] is False
+          assert ingress['verified'] is True
+          assert ingress['artifactKnowledgeIngressRequired'] is True
+          assert ingress['preV25AgentInputReuseAllowed'] is False
+          assert ingress['runtimeGuardrailsSeparatedFromKnowledge'] is True
+          assert ingress['tokenRuntimeEntrypointsReplaced'] is False
+          assert ingress['promptBuildersConsumeArtifactKnowledge'] is True
           print('V25_PHASE3_RUNTIME_BOUNDARY=PASS')
+          print('V25_PHASE3_ARTIFACT_INGRESS_BOUNDARY=PASS')
           PY
 
       - name: Upload V25 phase3 evidence
