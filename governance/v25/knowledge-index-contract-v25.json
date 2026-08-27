@@ -1,0 +1,56 @@
+{
+  "schema": "rag.knowledge_index_contract.v1",
+  "version": "25.12.0",
+  "indexEngine": "sqlite_structured_v1",
+  "vectorIndexRequired": false,
+  "principle": "Index identity and lifecycle governance precede any future vector-engine cutover.",
+  "manifest": {
+    "schema": "rag.knowledge_index_manifest.v1",
+    "immutable": true,
+    "activeRevisionState": "active",
+    "identityFields": [
+      "indexVersion",
+      "knowledgeSnapshotHash",
+      "sourceRevisionSetHash",
+      "retrievalContractVersion",
+      "indexEngine",
+      "activeRevisions"
+    ],
+    "activeRevisionFields": [
+      "revisionId",
+      "caseId",
+      "contentHash",
+      "sourceTaskId"
+    ]
+  },
+  "head": {
+    "singleton": true,
+    "keepsActiveAndPrevious": true,
+    "atomicSwitch": true,
+    "rollbackByHeadSwap": true,
+    "rollbackPinPersistsUntilKnowledgeMutationOrSafetyLifecycleChange": true
+  },
+  "retrievalReceipt": {
+    "schema": "rag.knowledge_retrieval_receipt.v1",
+    "requiredFields": [
+      "queryFingerprint",
+      "knowledgeSnapshotHash",
+      "indexVersion",
+      "indexManifestHash",
+      "retrievalPolicyVersion",
+      "matchedRevisionIds",
+      "retrievalReceiptHash"
+    ],
+    "snapshotReuseRequiresCurrentManifest": true,
+    "excludedLifecycleStates": [
+      "pending_review",
+      "stale",
+      "re_review",
+      "superseded",
+      "deprecated",
+      "archived",
+      "rejected"
+    ],
+    "immutableRevisionContentRequiredAfterRollback": true
+  }
+}
