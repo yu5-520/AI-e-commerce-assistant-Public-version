@@ -4,7 +4,7 @@
   "defaultProfile": "v25_phase5_rag_quant_eval_knowledge_center",
   "profiles": {
     "v25_phase5_rag_quant_eval_knowledge_center": {
-      "description": "Exact V25.13-V25.15 Runtime scope. Permit only RAG quantification, immutable Eval authority, Knowledge Center API wiring and Chinese frontend projection. Phase4 immutable knowledge governance, existing Agent runtimes, physical RAG provider, Registry module membership and unrelated Runtime files remain fail-closed.",
+      "description": "Exact V25.13-V25.15 Runtime scope. Permit only RAG quantification, immutable Eval authority, Knowledge Center API wiring, Chinese frontend projection and the exact layered VERSION.md identity declaration. Phase4 immutable knowledge governance, existing Agent runtimes, physical RAG provider, Registry module membership and unrelated Runtime files remain fail-closed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -13,6 +13,7 @@
       "allowEdgeChanges": true,
       "allowRegistryModuleChanges": false,
       "allowedRuntimePathPrefixes": [
+        "VERSION.md",
         "src/services/v25_rag_quant_v2513_service.py",
         "src/services/v25_rag_eval_v2514_service.py",
         "src/api/routes/__init__.py",
