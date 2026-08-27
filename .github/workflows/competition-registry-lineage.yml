@@ -112,94 +112,125 @@ jobs:
           TARGET_CONTRACT_REGISTRY="$TARGET_EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
           BASE_CONTRACT_REGISTRY="$BASE_EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
           if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
-            V25_PHASE4_CHANGED=0
+            V25_PHASE5_CHANGED=0
             for relative in \
-              governance/v25/phase4-knowledge-asset-governance-policy.json \
-              governance/v25/knowledge-index-contract-v25.json \
-              governance/v25/competition-lineage-update-policy-phase4.json \
-              src/services/v25_knowledge_revision_v2510_service.py \
-              src/services/v25_knowledge_lifecycle_v2511_service.py \
-              src/services/v25_knowledge_index_v2512_service.py \
-              src/services/v25_knowledge_asset_install_service.py \
-              src/__init__.py \
-              scripts/verify_v25_phase4_knowledge_runtime.py \
-              scripts/verify_v25_java_phase4.sh \
-              java-control-plane/src/main/java/com/zcentury/v24/V25Phase4Main.java \
-              .github/workflows/v25-unified-rag-phase4.yml; do
+              governance/v25/phase5-rag-quant-eval-policy.json \
+              governance/v25/rag-eval-contract-v25.json \
+              governance/v25/competition-lineage-update-policy-phase5.json \
+              src/services/v25_rag_quant_v2513_service.py \
+              src/services/v25_rag_eval_v2514_service.py \
+              src/api/routes/__init__.py \
+              src/api/routes/knowledge_center.py \
+              web_demo/index.html \
+              web_demo/bootstrap.js \
+              web_demo/knowledge-center-v2515.css \
+              web_demo/modules/knowledge-center/page.js \
+              scripts/verify_v25_phase5_rag_runtime.py \
+              scripts/verify_v25_java_phase5.sh \
+              java-control-plane/src/main/java/com/zcentury/v24/V25Phase5Main.java \
+              .github/workflows/v25-unified-rag-phase5.yml; do
               if [ ! -f "$TARGET_EXTRACTED/$relative" ]; then
                 continue
               fi
               if [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; then
-                V25_PHASE4_CHANGED=1
+                V25_PHASE5_CHANGED=1
                 break
               fi
             done
-            if [ "$V25_PHASE4_CHANGED" = "1" ]; then
-              test -f "$TARGET_EXTRACTED/governance/v25/competition-lineage-update-policy-phase4.json"
-              PROFILE="v25_phase4_knowledge_asset_governance"
-              POLICY="governance/v25/competition-lineage-update-policy-phase4.json"
+            if [ "$V25_PHASE5_CHANGED" = "1" ]; then
+              test -f "$TARGET_EXTRACTED/governance/v25/competition-lineage-update-policy-phase5.json"
+              PROFILE="v25_phase5_rag_quant_eval_knowledge_center"
+              POLICY="governance/v25/competition-lineage-update-policy-phase5.json"
             else
-              V25_PHASE3_CHANGED=0
+              V25_PHASE4_CHANGED=0
               for relative in \
+                governance/v25/phase4-knowledge-asset-governance-policy.json \
+                governance/v25/knowledge-index-contract-v25.json \
+                governance/v25/competition-lineage-update-policy-phase4.json \
+                src/services/v25_knowledge_revision_v2510_service.py \
+                src/services/v25_knowledge_lifecycle_v2511_service.py \
+                src/services/v25_knowledge_index_v2512_service.py \
+                src/services/v25_knowledge_asset_install_service.py \
                 src/__init__.py \
-                src/services/unified_agent_knowledge_v25_service.py \
-                src/services/v25_agent_input_ingress_service.py \
-                src/services/v25_knowledge_runtime_projection.py \
-                src/services/v25_knowledge_runtime_projection_install_service.py \
-                governance/v25/knowledge-composition-table-v25.json \
-                governance/v25/phase3-agent-knowledge-migration-policy.json; do
+                scripts/verify_v25_phase4_knowledge_runtime.py \
+                scripts/verify_v25_java_phase4.sh \
+                java-control-plane/src/main/java/com/zcentury/v24/V25Phase4Main.java \
+                .github/workflows/v25-unified-rag-phase4.yml; do
                 if [ ! -f "$TARGET_EXTRACTED/$relative" ]; then
                   continue
                 fi
                 if [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; then
-                  V25_PHASE3_CHANGED=1
+                  V25_PHASE4_CHANGED=1
                   break
                 fi
               done
-              if [ "$V25_PHASE3_CHANGED" = "1" ]; then
-                test -f "$TARGET_EXTRACTED/governance/v25/competition-lineage-update-policy-phase3.json"
-                PROFILE="v25_phase3_knowledge_ingress"
-                POLICY="governance/v25/competition-lineage-update-policy-phase3.json"
-              elif [ -f "$TARGET_CONTRACT_REGISTRY" ] && { [ ! -f "$BASE_CONTRACT_REGISTRY" ] || ! cmp -s "$BASE_CONTRACT_REGISTRY" "$TARGET_CONTRACT_REGISTRY"; }; then
-                PROFILE="runtime_contract_lineage_repair"
-                POLICY="governance/runtime_contract_lineage_repair_policy.json"
+              if [ "$V25_PHASE4_CHANGED" = "1" ]; then
+                test -f "$TARGET_EXTRACTED/governance/v25/competition-lineage-update-policy-phase4.json"
+                PROFILE="v25_phase4_knowledge_asset_governance"
+                POLICY="governance/v25/competition-lineage-update-policy-phase4.json"
               else
-                TASK_EVIDENCE_REPAIR_CHANGED=0
+                V25_PHASE3_CHANGED=0
                 for relative in \
-                  governance/task_evidence_canonical_history_repair_v1.json \
-                  src/services/task_evidence_canonical_history_v1_service.py \
-                  src/services/task_evidence_canonical_history_install_v1_service.py \
-                  scripts/verify_task_evidence_canonical_history.py; do
+                  src/__init__.py \
+                  src/services/unified_agent_knowledge_v25_service.py \
+                  src/services/v25_agent_input_ingress_service.py \
+                  src/services/v25_knowledge_runtime_projection.py \
+                  src/services/v25_knowledge_runtime_projection_install_service.py \
+                  governance/v25/knowledge-composition-table-v25.json \
+                  governance/v25/phase3-agent-knowledge-migration-policy.json; do
                   if [ ! -f "$TARGET_EXTRACTED/$relative" ]; then
                     continue
                   fi
                   if [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; then
-                    TASK_EVIDENCE_REPAIR_CHANGED=1
+                    V25_PHASE3_CHANGED=1
                     break
                   fi
                 done
-                if [ "$TASK_EVIDENCE_REPAIR_CHANGED" = "1" ]; then
-                  test -f "$TARGET_EXTRACTED/governance/task_evidence_canonical_history_repair_v1.json"
+                if [ "$V25_PHASE3_CHANGED" = "1" ]; then
+                  test -f "$TARGET_EXTRACTED/governance/v25/competition-lineage-update-policy-phase3.json"
+                  PROFILE="v25_phase3_knowledge_ingress"
+                  POLICY="governance/v25/competition-lineage-update-policy-phase3.json"
+                elif [ -f "$TARGET_CONTRACT_REGISTRY" ] && { [ ! -f "$BASE_CONTRACT_REGISTRY" ] || ! cmp -s "$BASE_CONTRACT_REGISTRY" "$TARGET_CONTRACT_REGISTRY"; }; then
                   PROFILE="runtime_contract_lineage_repair"
                   POLICY="governance/runtime_contract_lineage_repair_policy.json"
                 else
-                  PRECACHE_CHANGED=0
+                  TASK_EVIDENCE_REPAIR_CHANGED=0
                   for relative in \
-                    config/competition_hash_precache_registry_v1.json \
-                    src/services/competition_hash_precache_registry_v1_service.py \
-                    src/services/competition_evidence_v215_runtime_service.py; do
+                    governance/task_evidence_canonical_history_repair_v1.json \
+                    src/services/task_evidence_canonical_history_v1_service.py \
+                    src/services/task_evidence_canonical_history_install_v1_service.py \
+                    scripts/verify_task_evidence_canonical_history.py; do
                     if [ ! -f "$TARGET_EXTRACTED/$relative" ]; then
                       continue
                     fi
                     if [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; then
-                      PRECACHE_CHANGED=1
+                      TASK_EVIDENCE_REPAIR_CHANGED=1
                       break
                     fi
                   done
-                  if [ "$PRECACHE_CHANGED" = "1" ]; then
-                    test -f "$TARGET_EXTRACTED/governance/competition_hash_precache_lineage_policy.json"
-                    PROFILE="hash_precache_registry"
-                    POLICY="governance/competition_hash_precache_lineage_policy.json"
+                  if [ "$TASK_EVIDENCE_REPAIR_CHANGED" = "1" ]; then
+                    test -f "$TARGET_EXTRACTED/governance/task_evidence_canonical_history_repair_v1.json"
+                    PROFILE="runtime_contract_lineage_repair"
+                    POLICY="governance/runtime_contract_lineage_repair_policy.json"
+                  else
+                    PRECACHE_CHANGED=0
+                    for relative in \
+                      config/competition_hash_precache_registry_v1.json \
+                      src/services/competition_hash_precache_registry_v1_service.py \
+                      src/services/competition_evidence_v215_runtime_service.py; do
+                      if [ ! -f "$TARGET_EXTRACTED/$relative" ]; then
+                        continue
+                      fi
+                      if [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; then
+                        PRECACHE_CHANGED=1
+                        break
+                      fi
+                    done
+                    if [ "$PRECACHE_CHANGED" = "1" ]; then
+                      test -f "$TARGET_EXTRACTED/governance/competition_hash_precache_lineage_policy.json"
+                      PROFILE="hash_precache_registry"
+                      POLICY="governance/competition_hash_precache_lineage_policy.json"
+                    fi
                   fi
                 fi
               fi
