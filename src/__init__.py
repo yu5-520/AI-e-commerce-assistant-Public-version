@@ -28,6 +28,9 @@ from src.services.task_evidence_canonical_history_install_v1_service import (
 from src.services.v25_knowledge_runtime_projection_install_service import (
     install_v25_knowledge_runtime_projection,
 )
+from src.services.v25_knowledge_asset_install_service import (
+    install_v25_knowledge_asset_governance,
+)
 from src.services.unified_agent_knowledge_v25_service import (
     install_v25_unified_agent_knowledge,
 )
@@ -49,9 +52,10 @@ bind_pipeline_reference_runtime()
 bind_station_truth_contract()
 bind_hard_interface_bridge_v2301()
 # V25 keeps governance files outside the production runtime package. The verified
-# minimal projection is bound first, then knowledge-provider references are moved
-# behind the composition table, and finally that envelope is sealed into immutable
-# Agent input Artifacts so pre-V25 semantic inputs cannot be reused after cutover.
+# projection is bound first. Phase4 then governs immutable knowledge revisions,
+# lifecycle and Index Head before Phase3 captures physical knowledge providers.
+# The unified envelope is finally sealed into immutable Agent input Artifacts.
 install_v25_knowledge_runtime_projection()
+install_v25_knowledge_asset_governance()
 install_v25_unified_agent_knowledge()
 install_v25_agent_input_ingress()
