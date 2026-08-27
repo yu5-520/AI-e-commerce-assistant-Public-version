@@ -12,6 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from src.api.routes.knowledge_center import knowledge_center_overview
 from src.services import experience_memory_service as memory
 from src.services import v25_knowledge_index_v2512_service as index
 from src.services import v25_knowledge_lifecycle_v2511_service as lifecycle
@@ -60,9 +61,7 @@ def approve(case_id: str) -> str:
         reason="phase5 verifier human approval",
     )
     require(bool(value), f"approval failed for {case_id}")
-    revision_id = str(memory.get_case(case_id).get("knowledgeRevisionId") or "")
-    if not revision_id:
-        revision_id = str(revision.latest_revision(case_id) or "")
+    revision_id = str(revision.latest_revision(case_id) or "")
     require(revision_id.startswith("kr-"), f"revision missing for {case_id}")
     require(lifecycle.state_of(revision_id) == "active", f"revision not active for {case_id}")
     return revision_id
@@ -249,6 +248,11 @@ def main() -> int:
     require(leak_comparison["verified"] is False, "stale revision leak was not blocked")
     require("stale_revision_leak" in leak_comparison["findings"], "stale leak finding missing")
 
+    overview = knowledge_center_overview()
+    require(overview.get("language") == "zh-CN", "Knowledge Center language contract missing")
+    require(dict(overview.get("index") or {}).get("manifestHash"), "Knowledge Center index projection missing")
+    require(dict(overview.get("governance") or {}).get("directDatabaseMutationAllowed") is False, "Knowledge Center governance projection drifted")
+
     index_html = (ROOT_DIR / "web_demo/index.html").read_text(encoding="utf-8")
     bootstrap_js = (ROOT_DIR / "web_demo/bootstrap.js").read_text(encoding="utf-8")
     page_js = (ROOT_DIR / "web_demo/modules/knowledge-center/page.js").read_text(encoding="utf-8")
@@ -260,7 +264,7 @@ def main() -> int:
     require("/api/system/knowledge-center/overview" in page_js, "Knowledge Center governed API binding missing")
     require("UPDATE " not in page_js.upper() and "DELETE FROM" not in page_js.upper(), "frontend contains direct database mutation")
     require("system.router.include_router(knowledge_center.router)" in route_init, "Knowledge Center is not nested under system router")
-    require("connect()" in api_route and "@router.post(\"/eval/sets\")" in api_route, "Knowledge Center API proof incomplete")
+    require("@router.post(\"/eval/sets\")" in api_route, "Knowledge Center EvalSet authority route missing")
     require("UPDATE rag_knowledge" not in api_route and "DELETE FROM rag_knowledge" not in api_route, "Knowledge Center API bypasses governance authority")
 
     material = {
