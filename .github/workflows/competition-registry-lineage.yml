@@ -117,9 +117,11 @@ jobs:
               governance/v25/phase4-knowledge-asset-governance-policy.json \
               governance/v25/knowledge-index-contract-v25.json \
               governance/v25/competition-lineage-update-policy-phase4.json \
-              src/services/v25_knowledge_asset_governance_v2512_service.py \
+              src/services/v25_knowledge_revision_v2510_service.py \
+              src/services/v25_knowledge_lifecycle_v2511_service.py \
+              src/services/v25_knowledge_index_v2512_service.py \
+              src/services/v25_knowledge_asset_install_service.py \
               src/__init__.py \
-              scripts/export_v25_phase4_knowledge_asset_evidence.py \
               scripts/verify_v25_phase4_knowledge_runtime.py \
               scripts/verify_v25_java_phase4.sh \
               java-control-plane/src/main/java/com/zcentury/v24/V25Phase4Main.java \
