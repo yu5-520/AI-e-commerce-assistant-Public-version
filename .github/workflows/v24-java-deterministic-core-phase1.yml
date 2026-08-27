@@ -42,11 +42,43 @@ jobs:
   phase1-shadow-authority:
     runs-on: self-hosted
     timeout-minutes: 30
+    env:
+      V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - name: Checkout exact source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - name: Materialize exact source archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SOURCE_COMMIT="$V24_SOURCE_COMMIT"
+          ARCHIVE="${RUNNER_TEMP}/v24-phase1-${SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/v24-phase1-${SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download ${SOURCE_COMMIT} attempt ${attempt}/8"
+            if curl \
+              --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/verify_v24_java_phase1.sh"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$SOURCE_COMMIT" > .v24-phase1-source-commit
 
       - name: Prepare JDK 17
         uses: actions/setup-java@v4
@@ -58,10 +90,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
-            if command -v "$candidate" >/dev/null 2>&1 \
+          for candidate in \
+            /opt/python/3.11.9/bin/python3.11 \
+            python3.13 python3.12 python3.11 python3.10 python3; do
+            if { command -v "$candidate" >/dev/null 2>&1 || [ -x "$candidate" ]; } \
               && "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
-              echo "PYTHON_BIN=$(command -v "$candidate")" >> "$GITHUB_ENV"
+              if command -v "$candidate" >/dev/null 2>&1; then candidate="$(command -v "$candidate")"; fi
+              echo "PYTHON_BIN=$candidate" >> "$GITHUB_ENV"
               "$candidate" -c 'import platform; print("python=" + platform.python_version())'
               exit 0
             fi
@@ -70,8 +105,6 @@ jobs:
           exit 1
 
       - name: Verify V24.0-V24.5 shadow authority
-        env:
-          V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           bash scripts/verify_v24_java_phase1.sh
