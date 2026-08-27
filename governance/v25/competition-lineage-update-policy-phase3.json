@@ -1,0 +1,27 @@
+{
+  "schema": "competition.lineage_update_policy.v1",
+  "version": "25.9.0",
+  "defaultProfile": "v25_phase3_knowledge_ingress",
+  "profiles": {
+    "v25_phase3_knowledge_ingress": {
+      "description": "Exact V25.6-V25.9 Runtime scope. Permit only bootstrap binding plus the unified Agent knowledge adapter, immutable Agent-input ingress, and the CI-sealed governance-to-runtime knowledge projection. Registry module membership, unrelated Runtime files, external interfaces and special hashes remain fail-closed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": true,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "src/__init__.py",
+        "src/services/unified_agent_knowledge_v25_service.py",
+        "src/services/v25_agent_input_ingress_service.py",
+        "src/services/v25_knowledge_runtime_projection.py",
+        "src/services/v25_knowledge_runtime_projection_install_service.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    }
+  }
+}
