@@ -15,7 +15,13 @@
     "agent1LegacyExperienceDirectReadAllowed": false,
     "agent2LegacyExperienceProviderAllowedBehindAdapter": true,
     "agent3SemanticRuntimeCreated": false,
-    "currentSopRuntimeUnchanged": true
+    "currentSopRuntimeUnchanged": true,
+    "artifactKnowledgeIngressRequired": true,
+    "preV25AgentInputArtifactReuseAllowed": false,
+    "runtimeGuardrailsSeparatedFromKnowledge": true,
+    "knowledgeEnvelopeHashRequired": true,
+    "knowledgeCompositionHashRequired": true,
+    "tokenRuntimeMayReadLegacyKnowledgePayload": false
   },
   "authority": {
     "javaCompositionAuthority": "RELEASE_GATE",
@@ -23,12 +29,14 @@
     "knowledgeStorageAuthority": "LEGACY_PROVIDER_BEHIND_UNIFIED_ADAPTER",
     "agent1KnowledgeIngress": "V25_UNIFIED",
     "agent2KnowledgeIngress": "V25_UNIFIED",
-    "agent3KnowledgeIngress": "V25_UNIFIED_SOP_PROJECTION"
+    "agent3KnowledgeIngress": "V25_UNIFIED_SOP_PROJECTION",
+    "agentInputArtifactAuthority": "V25_UNIFIED_KNOWLEDGE_ENVELOPE",
+    "tokenRuntimeKnowledgeSource": "AGENT_INPUT_ARTIFACT_UNIFIED_KNOWLEDGE"
   },
   "migration": {
     "V25.6": "KNOWLEDGE_COMPOSITION_TABLE",
-    "V25.7": "AGENT1_KNOWLEDGE_INGRESS",
-    "V25.8": "AGENT2_KNOWLEDGE_INGRESS",
+    "V25.7": "AGENT1_KNOWLEDGE_INGRESS_AND_INPUT_ARTIFACT_SEAL",
+    "V25.8": "AGENT2_KNOWLEDGE_INGRESS_AND_INPUT_ARTIFACT_SEAL",
     "V25.9": "AGENT3_SOP_KNOWLEDGE_PROJECTION"
   },
   "runtimeBoundary": {
@@ -36,6 +44,9 @@
     "agent1RuntimeEntryReplaced": false,
     "agent2RuntimeEntryReplaced": false,
     "sopRuntimeEntryReplaced": false,
-    "onlyKnowledgeProviderReferencesPatched": true
+    "tokenRuntimeEntryReplaced": false,
+    "onlyKnowledgeProviderReferencesPatched": true,
+    "agentInputProjectionContractExtended": true,
+    "preV25InputArtifactMustRebuild": true
   }
 }
