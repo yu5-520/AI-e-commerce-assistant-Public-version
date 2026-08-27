@@ -14,6 +14,10 @@ mkdir -p "$CLASS_DIR"
   --root "$ROOT_DIR" \
   --output "$OUT_DIR/agent-knowledge-migration-evidence.json"
 
+"$PYTHON_BIN" scripts/verify_v25_agent_input_ingress.py \
+  --root "$ROOT_DIR" \
+  --output "$OUT_DIR/agent-input-ingress-verification.json"
+
 find java-control-plane/src/main/java -name '*.java' -print0 \
   | sort -z \
   | xargs -0 javac -encoding UTF-8 -d "$CLASS_DIR"
@@ -32,6 +36,7 @@ import json
 from pathlib import Path
 
 report = json.loads(Path("dist/v25-phase3/phase3-verification-report.json").read_text(encoding="utf-8"))
+ingress = json.loads(Path("dist/v25-phase3/agent-input-ingress-verification.json").read_text(encoding="utf-8"))
 assert report["verified"] is True
 assert report["enforcementMode"] == "PRODUCTION_KNOWLEDGE_INGRESS"
 assert report["compositionAuthority"] == "JAVA_RELEASE_GATE"
@@ -51,6 +56,19 @@ assert report["unsupportedPredicateBlocked"] is True
 assert report["consumerLeakBlocked"] is True
 assert report["retrievalMayCreateSystemFact"] is False
 assert report["insufficientEvidenceMustRemainVisible"] is True
+assert ingress["verified"] is True
+assert ingress["artifactKnowledgeIngressRequired"] is True
+assert ingress["preV25AgentInputReuseAllowed"] is False
+assert ingress["agent1ArtifactCarriesUnifiedKnowledge"] is True
+assert ingress["agent2ArtifactCarriesUnifiedKnowledge"] is True
+assert ingress["runtimeGuardrailsSeparatedFromKnowledge"] is True
+assert ingress["agent1LegacyExperiencePayloadBlocked"] is True
+assert ingress["agent2LegacyRagPayloadBlocked"] is True
+assert ingress["knowledgeEnvelopeHashRequired"] is True
+assert ingress["knowledgeCompositionHashRequired"] is True
+assert ingress["tokenRuntimeEntrypointsReplaced"] is False
+assert ingress["promptBuildersConsumeArtifactKnowledge"] is True
 print("V25_PHASE3_AGENT_KNOWLEDGE_GATE=PASS")
+print("V25_PHASE3_ARTIFACT_INGRESS_GATE=PASS")
 print("verificationHash=" + report["verificationHash"])
 PY
