@@ -33,6 +33,7 @@ JAVA="${JAVA_BIN:-$(dirname "$JAVAC")/java}"
 [ -n "$JAVA" ] || { echo "Java runtime is required for V24 phase2 verification." >&2; exit 2; }
 
 cd "$ROOT_DIR"
+export PYTHONPATH="$ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
 rm -rf dist/v24-java-phase2 dist/v24-java-classes-phase2
 mkdir -p dist/v24-java-phase2 dist/v24-java-classes-phase2
 
