@@ -1,0 +1,41 @@
+{
+  "schema": "v24.unified_gate_definitions.v1",
+  "version": "24.7.0",
+  "defaultDecision": "BLOCK",
+  "gates": [
+    {
+      "gateId": "PRODUCT_SNAPSHOT_ADMISSION",
+      "description": "A canonical product snapshot may enter the Agent projection path only when identity, schema, hash and permission references are explicit.",
+      "passDecision": "PASS",
+      "failDecision": "BLOCK",
+      "predicates": [
+        {"path": "schemaVersion", "op": "equals", "value": "canonicalProductSnapshot.v1"},
+        {"path": "objectId", "op": "nonBlank"},
+        {"path": "productId", "op": "nonBlank"},
+        {"path": "productSnapshotHash", "op": "prefix", "value": "sha256:"},
+        {"path": "snapshotHash", "op": "sameAs", "value": "productSnapshotHash"},
+        {"path": "parentSnapshotHash", "op": "sameAs", "value": "productSnapshotHash"},
+        {"path": "permissionGateStatus", "op": "equals", "value": "passed"}
+      ]
+    },
+    {
+      "gateId": "TASK_TRANSITION_ADMISSION",
+      "description": "A task transition may become authoritative only when the Java task-state authority marks it legal and the caller version is current.",
+      "passDecision": "PASS",
+      "failDecision": "BLOCK",
+      "predicates": [
+        {"path": "transitionAllowed", "op": "equals", "value": true},
+        {"path": "versionMatch", "op": "equals", "value": true}
+      ]
+    },
+    {
+      "gateId": "STATE_VERSION_CONFLICT",
+      "description": "Stale callers are rejected before state mutation.",
+      "passDecision": "PASS",
+      "failDecision": "BLOCK",
+      "predicates": [
+        {"path": "expectedVersion", "op": "equalsPath", "value": "currentVersion"}
+      ]
+    }
+  ]
+}
