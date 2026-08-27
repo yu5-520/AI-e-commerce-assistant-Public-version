@@ -1,0 +1,181 @@
+name: V25 Unified RAG Phase3
+
+on:
+  pull_request:
+    paths:
+      - 'java-control-plane/**'
+      - 'governance/v25/**'
+      - 'scripts/export_v25_phase3_agent_knowledge_evidence.py'
+      - 'scripts/verify_v25_knowledge_runtime_projection.py'
+      - 'scripts/verify_v25_agent_input_ingress.py'
+      - 'scripts/verify_v25_java_phase3.sh'
+      - 'src/__init__.py'
+      - 'src/services/unified_agent_knowledge_v25_service.py'
+      - 'src/services/v25_knowledge_runtime_projection.py'
+      - 'src/services/v25_knowledge_runtime_projection_install_service.py'
+      - 'src/services/v25_agent_input_ingress_service.py'
+      - 'src/services/agent_input_contract_v230_service.py'
+      - 'src/services/agent_input_contract_v2258_service.py'
+      - 'src/services/agent_input_transport_v230_service.py'
+      - 'src/services/agent_input_transport_v2258_service.py'
+      - 'src/services/agent_token_runtime_v230_service.py'
+      - 'src/services/real_product_judgment_agent_v196_service.py'
+      - 'src/services/agent_rag_context_v2028_service.py'
+      - 'src/services/action_pack_core_v20_service.py'
+      - 'src/services/agent2_action_plan_core_v20_service.py'
+      - 'src/services/sop_builder_core_v20_service.py'
+      - 'src/services/v22_runtime_service.py'
+      - '.github/workflows/v25-unified-rag-phase3.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'java-control-plane/**'
+      - 'governance/v25/**'
+      - 'scripts/export_v25_phase3_agent_knowledge_evidence.py'
+      - 'scripts/verify_v25_knowledge_runtime_projection.py'
+      - 'scripts/verify_v25_agent_input_ingress.py'
+      - 'scripts/verify_v25_java_phase3.sh'
+      - 'src/__init__.py'
+      - 'src/services/unified_agent_knowledge_v25_service.py'
+      - 'src/services/v25_knowledge_runtime_projection.py'
+      - 'src/services/v25_knowledge_runtime_projection_install_service.py'
+      - 'src/services/v25_agent_input_ingress_service.py'
+      - 'src/services/agent_input_contract_v230_service.py'
+      - 'src/services/agent_input_contract_v2258_service.py'
+      - 'src/services/agent_input_transport_v230_service.py'
+      - 'src/services/agent_input_transport_v2258_service.py'
+      - 'src/services/agent_token_runtime_v230_service.py'
+      - 'src/services/real_product_judgment_agent_v196_service.py'
+      - 'src/services/agent_rag_context_v2028_service.py'
+      - 'src/services/action_pack_core_v20_service.py'
+      - 'src/services/agent2_action_plan_core_v20_service.py'
+      - 'src/services/sop_builder_core_v20_service.py'
+      - 'src/services/v22_runtime_service.py'
+      - '.github/workflows/v25-unified-rag-phase3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v25-unified-rag-phase3-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase3-agent-knowledge-authority:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      V25_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Materialize exact source archive
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_COMMIT="$V25_SOURCE_COMMIT"
+          ARCHIVE="${RUNNER_TEMP}/v25-phase3-${SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/v25-phase3-${SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          downloaded=0
+          for attempt in $(seq 1 8); do
+            echo "Archive download ${SOURCE_COMMIT} attempt ${attempt}/8"
+            if curl \
+              --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              downloaded=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$downloaded" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/verify_v25_java_phase3.sh"
+          test -f "$EXTRACTED/src/services/v25_knowledge_runtime_projection.py"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          printf '%s\n' "$SOURCE_COMMIT" > .v25-phase3-source-commit
+
+      - name: Prepare JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Resolve Python 3.10+
+        shell: bash
+        run: |
+          set -euo pipefail
+          for candidate in \
+            /opt/python/3.11.9/bin/python3.11 \
+            python3.13 python3.12 python3.11 python3.10 python3; do
+            if { command -v "$candidate" >/dev/null 2>&1 || [ -x "$candidate" ]; } \
+              && "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
+              if command -v "$candidate" >/dev/null 2>&1; then candidate="$(command -v "$candidate")"; fi
+              echo "PYTHON_BIN=$candidate" >> "$GITHUB_ENV"
+              "$candidate" -c 'import platform; print("python=" + platform.python_version())'
+              exit 0
+            fi
+          done
+          echo 'Python 3.10+ is required.' >&2
+          exit 1
+
+      - name: Verify V25.6-V25.9 Agent knowledge migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/verify_v25_java_phase3.sh
+
+      - name: Verify Phase3 runtime boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$PYTHON_BIN" - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('dist/v25-phase3/phase3-verification-report.json').read_text(encoding='utf-8'))
+          projection = json.loads(Path('dist/v25-phase3/knowledge-runtime-projection-verification.json').read_text(encoding='utf-8'))
+          ingress = json.loads(Path('dist/v25-phase3/agent-input-ingress-verification.json').read_text(encoding='utf-8'))
+          assert report['verified'] is True
+          assert report['enforcementMode'] == 'PRODUCTION_KNOWLEDGE_INGRESS'
+          assert report['agent1KnowledgeMigrated'] is True
+          assert report['agent2KnowledgeMigrated'] is True
+          assert report['agent3KnowledgeMigrated'] is True
+          assert report['legacyDirectAgentKnowledgeRead'] is False
+          assert report['physicalRagProviderCutover'] is False
+          assert report['newAgent3RuntimeIntroduced'] is False
+          assert report['runtimeEntrypointsUnchanged'] is True
+          assert report['retrievalMayCreateSystemFact'] is False
+          assert projection['verified'] is True
+          assert projection['fieldProjectionExact'] is True
+          assert projection['compositionProjectionExact'] is True
+          assert projection['governanceFilesystemReadRequiredAtRuntime'] is False
+          assert projection['runtimePackageGovernanceExpansionRequired'] is False
+          assert ingress['verified'] is True
+          assert ingress['artifactKnowledgeIngressRequired'] is True
+          assert ingress['preV25AgentInputReuseAllowed'] is False
+          assert ingress['runtimeGuardrailsSeparatedFromKnowledge'] is True
+          assert ingress['tokenRuntimeEntrypointsReplaced'] is False
+          assert ingress['promptBuildersConsumeArtifactKnowledge'] is True
+          print('V25_PHASE3_RUNTIME_BOUNDARY=PASS')
+          print('V25_PHASE3_RUNTIME_PROJECTION_BOUNDARY=PASS')
+          print('V25_PHASE3_ARTIFACT_INGRESS_BOUNDARY=PASS')
+          PY
+
+      - name: Upload V25 phase3 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v25-unified-rag-phase3-${{ github.sha }}
+          path: dist/v25-phase3/*.json
+          if-no-files-found: error
+          retention-days: 14

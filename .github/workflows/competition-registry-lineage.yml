@@ -112,7 +112,28 @@ jobs:
           TARGET_CONTRACT_REGISTRY="$TARGET_EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
           BASE_CONTRACT_REGISTRY="$BASE_EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
           if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
-            if [ -f "$TARGET_CONTRACT_REGISTRY" ] && { [ ! -f "$BASE_CONTRACT_REGISTRY" ] || ! cmp -s "$BASE_CONTRACT_REGISTRY" "$TARGET_CONTRACT_REGISTRY"; }; then
+            V25_PHASE3_CHANGED=0
+            for relative in \
+              src/__init__.py \
+              src/services/unified_agent_knowledge_v25_service.py \
+              src/services/v25_agent_input_ingress_service.py \
+              src/services/v25_knowledge_runtime_projection.py \
+              src/services/v25_knowledge_runtime_projection_install_service.py \
+              governance/v25/knowledge-composition-table-v25.json \
+              governance/v25/phase3-agent-knowledge-migration-policy.json; do
+              if [ ! -f "$TARGET_EXTRACTED/$relative" ]; then
+                continue
+              fi
+              if [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; then
+                V25_PHASE3_CHANGED=1
+                break
+              fi
+            done
+            if [ "$V25_PHASE3_CHANGED" = "1" ]; then
+              test -f "$TARGET_EXTRACTED/governance/v25/competition-lineage-update-policy-phase3.json"
+              PROFILE="v25_phase3_knowledge_ingress"
+              POLICY="governance/v25/competition-lineage-update-policy-phase3.json"
+            elif [ -f "$TARGET_CONTRACT_REGISTRY" ] && { [ ! -f "$BASE_CONTRACT_REGISTRY" ] || ! cmp -s "$BASE_CONTRACT_REGISTRY" "$TARGET_CONTRACT_REGISTRY"; }; then
               PROFILE="runtime_contract_lineage_repair"
               POLICY="governance/runtime_contract_lineage_repair_policy.json"
             else
