@@ -132,6 +132,7 @@ jobs:
           test "$($RUNTIME_LAUNCHER -c 'import uvicorn, platform; print(platform.python_version())')" = "3.11.9"
           printf 'COMPETITION_RUNTIME_PYTHON=%s\n' "$RUNTIME_LAUNCHER" >> "$GITHUB_ENV"
 
+      # V24 Java phase1 governance files are control-plane only; this probe still validates the unchanged Python production runtime.
       - name: Run page-like autonomous worker probe
         run: |
           set -euo pipefail
