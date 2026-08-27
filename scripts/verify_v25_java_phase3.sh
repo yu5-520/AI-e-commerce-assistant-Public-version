@@ -14,6 +14,10 @@ mkdir -p "$CLASS_DIR"
   --root "$ROOT_DIR" \
   --output "$OUT_DIR/agent-knowledge-migration-evidence.json"
 
+"$PYTHON_BIN" scripts/verify_v25_knowledge_runtime_projection.py \
+  --root "$ROOT_DIR" \
+  --output "$OUT_DIR/knowledge-runtime-projection-verification.json"
+
 "$PYTHON_BIN" scripts/verify_v25_agent_input_ingress.py \
   --root "$ROOT_DIR" \
   --output "$OUT_DIR/agent-input-ingress-verification.json"
@@ -36,6 +40,7 @@ import json
 from pathlib import Path
 
 report = json.loads(Path("dist/v25-phase3/phase3-verification-report.json").read_text(encoding="utf-8"))
+projection = json.loads(Path("dist/v25-phase3/knowledge-runtime-projection-verification.json").read_text(encoding="utf-8"))
 ingress = json.loads(Path("dist/v25-phase3/agent-input-ingress-verification.json").read_text(encoding="utf-8"))
 assert report["verified"] is True
 assert report["enforcementMode"] == "PRODUCTION_KNOWLEDGE_INGRESS"
@@ -56,6 +61,14 @@ assert report["unsupportedPredicateBlocked"] is True
 assert report["consumerLeakBlocked"] is True
 assert report["retrievalMayCreateSystemFact"] is False
 assert report["insufficientEvidenceMustRemainVisible"] is True
+assert projection["verified"] is True
+assert projection["fieldProjectionExact"] is True
+assert projection["compositionProjectionExact"] is True
+assert projection["registeredFieldCount"] == 18
+assert projection["registeredCompositionCount"] == 3
+assert projection["governanceFilesystemReadRequiredAtRuntime"] is False
+assert projection["runtimePackageGovernanceExpansionRequired"] is False
+assert projection["bootstrapProjectionBeforeKnowledgeIngress"] is True
 assert ingress["verified"] is True
 assert ingress["artifactKnowledgeIngressRequired"] is True
 assert ingress["preV25AgentInputReuseAllowed"] is False
@@ -69,6 +82,7 @@ assert ingress["knowledgeCompositionHashRequired"] is True
 assert ingress["tokenRuntimeEntrypointsReplaced"] is False
 assert ingress["promptBuildersConsumeArtifactKnowledge"] is True
 print("V25_PHASE3_AGENT_KNOWLEDGE_GATE=PASS")
+print("V25_PHASE3_RUNTIME_PROJECTION_GATE=PASS")
 print("V25_PHASE3_ARTIFACT_INGRESS_GATE=PASS")
 print("verificationHash=" + report["verificationHash"])
 PY
