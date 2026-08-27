@@ -1,0 +1,33 @@
+{
+  "schema": "v24.legacy_removal_contract.v1",
+  "version": "24.20.0",
+  "entries": [
+    {
+      "legacyId": "python_deployment_writer",
+      "currentOwner": "src/deployment/deploy_release_core_v22516.sh",
+      "replacementAuthority": "java.deployment.v24",
+      "removalRequires": [
+        "replacement_authority_active",
+        "compatibility_proven",
+        "zero_execution_rights",
+        "zero_writers",
+        "zero_references"
+      ]
+    },
+    {
+      "legacyId": "mutable_repository_working_tree",
+      "currentOwner": "scripts/runtime_exclusivity_guard.sh",
+      "replacementAuthority": "sealed.release.root",
+      "removalRequires": [
+        "replacement_authority_active",
+        "compatibility_proven",
+        "zero_execution_rights",
+        "zero_writers",
+        "zero_references"
+      ]
+    }
+  ],
+  "automaticFallbackAllowed": false,
+  "restoreRequiresNewTransaction": true,
+  "rule": "Legacy removal is a state transition backed by replacement, compatibility and zero-rights evidence; deletion itself never creates fallback authority."
+}
