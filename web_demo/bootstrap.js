@@ -135,7 +135,7 @@
 
 
 (async function () {
-  const ASSET_VERSION = "23.2.11-competition-operator";
+  const ASSET_VERSION = "25.15.0-knowledge-center";
   const PAGE_MANIFEST = [
     ["dashboard", "总览", "DashboardPage", "dashboard/page.js"],
     ["data-check", "AI 经营链路", "ReportPage", "report/page.js"],
@@ -148,6 +148,7 @@
     ["task-report", "任务报告", "TaskReportPage", "task-report/page.js"],
     ["task-submit", "提交任务", "TaskSubmitPage", "task-submit/page.js"],
     ["business-report", "日志", "LogPage", "log/page.js"],
+    ["knowledge-center", "RAG知识中心", "KnowledgeCenterPage", "knowledge-center/page.js"],
     ["system-status", "系统状态", "SystemStatusPage", "system-status/page.js"],
   ];
 
