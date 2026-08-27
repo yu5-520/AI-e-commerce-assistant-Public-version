@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "v24.active_runtime_manifest.v1",
+  "title": "V24 Active Runtime Manifest",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "version",
+    "registryRootHash",
+    "sourceLineageGraphHash",
+    "activeRuntimeGraphHash",
+    "productionEntrypoint",
+    "defaultRuntimeEligibility",
+    "unknownRuntimeNode",
+    "compatibilityDefault",
+    "files",
+    "manifestHash"
+  ],
+  "properties": {
+    "schema": {"const": "v24.active_runtime_manifest.v1"},
+    "registryRootHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "sourceLineageGraphHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "activeRuntimeGraphHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "productionEntrypoint": {"type": "string", "minLength": 1},
+    "defaultRuntimeEligibility": {"const": "DENY"},
+    "unknownRuntimeNode": {"const": "BLOCK"},
+    "compatibilityDefault": {"const": "DENY"},
+    "manifestHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "path", "sha256", "status", "runtimeEligible"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "status": {"const": "ACTIVE"},
+          "runtimeEligible": {"const": true}
+        }
+      }
+    }
+  }
+}

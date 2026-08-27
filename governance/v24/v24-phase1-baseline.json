@@ -1,0 +1,38 @@
+{
+  "schema": "v24.phase1_baseline.v1",
+  "version": "24.0.0-phase1.1",
+  "phase": "V24.0-V24.5",
+  "baselineBranch": "main",
+  "baselineCommit": "e532a5614c770bd9f8f7c410630dcbea0d36486e",
+  "baselineCommitPurpose": "Merged Runtime Generation Barrier baseline before Java deterministic-core extraction.",
+  "productionEntrypoint": "src.api.main:app",
+  "registryProjection": "config/v23_registry_runtime.json",
+  "registryRootHash": "sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac",
+  "lineageCompiler": "scripts/compile_competition_lineage.py",
+  "lineageCompilerSchema": "competition.lineage.compiler.v1",
+  "canonicalIdentity": {
+    "json": "UTF-8 JSON; recursive object-key sort; compact separators; arrays retain order",
+    "hash": "SHA-256",
+    "prefix": "sha256:"
+  },
+  "frozenAuthorities": {
+    "pythonProductionRuntime": true,
+    "pythonAgentRuntime": true,
+    "pythonTaskAndQueueRuntime": true,
+    "shellDeploymentRuntime": true,
+    "javaProductionWriteAuthority": false
+  },
+  "phase1TargetAuthorities": {
+    "javaRegistryShadowRead": true,
+    "javaHashLineageShadowRead": true,
+    "javaRuntimeExclusivityShadow": true,
+    "javaBuildLockShadow": true,
+    "javaRuntimeAdmissionShadow": true
+  },
+  "nonGoals": [
+    "Do not replace Agent1/Agent2/Agent3 in Phase 1.",
+    "Do not move task, queue or database write authority in Phase 1.",
+    "Do not retire a legacy-named file solely because of its filename; retirement requires absence from ActiveRuntimeGraph or an explicit tombstone.",
+    "Do not introduce a second production entrypoint or compatibility fallback."
+  ]
+}
