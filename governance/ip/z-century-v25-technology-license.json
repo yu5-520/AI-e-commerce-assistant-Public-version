@@ -1,0 +1,76 @@
+{
+  "schema": "z.technology_license.v1",
+  "authorizationId": "Z-AUTH-AIECOM-V25-KNOWLEDGE-PLANE-001",
+  "status": "ACTIVE",
+  "provider": {
+    "name": "Z-Century (Z世纪) Technical System",
+    "repository": "yu5-520/Z-Century",
+    "rightsHolderDesignation": "Z-Century（Z世纪）技术体系及其权利人",
+    "sourceBaselineCommit": "94ada00288c0774b039916faca36397b1d1d9a98",
+    "authorizationRecordPath": "licenses/authorized-projects/AI_ECOMMERCE_V25_KNOWLEDGE_PLANE.json",
+    "authorizationRecordCommit": "88bf5c9c2e7d9f3ca30686ed94654aa21d981ccc"
+  },
+  "consumer": {
+    "project": "AI-e-commerce-assistant-Public-version",
+    "repository": "yu5-520/AI-e-commerce-assistant-Public-version",
+    "consumerBaselineCommit": "35c488132248b55a2b947177c1da6e066c096c92",
+    "implementedSubsystem": "V25 Unified RAG / Knowledge Plane"
+  },
+  "technologyScope": {
+    "classification": "Z_DERIVED_GENERIC_FRAMEWORK",
+    "includes": [
+      "unified knowledge and RAG field governance",
+      "field-first structured retrieval governance",
+      "knowledge revision and human-review governance",
+      "knowledge lifecycle authority",
+      "knowledge index manifest and Head governance",
+      "retrieval receipt and knowledge lineage patterns",
+      "RAG quantification and retrieval observability authority",
+      "versioned EvalSet, EvalRun and regression-gate authority",
+      "Knowledge Center governance model and projection boundary"
+    ],
+    "projectOwnedOrSeparatelySourcedExclusions": [
+      "e-commerce-specific business logic",
+      "project-specific Agent prompts and e-commerce decision rules",
+      "business data and customer data",
+      "competition fixtures and desensitized reports",
+      "project-specific UI copy and product presentation",
+      "independently authored e-commerce workflows outside the generic Z-derived framework"
+    ]
+  },
+  "grant": {
+    "licenseType": "LIMITED_NON_EXCLUSIVE_NON_TRANSFERABLE_USE",
+    "ownershipTransferred": false,
+    "transferAllowed": false,
+    "assignmentAllowed": false,
+    "sublicenseAllowed": false,
+    "reauthorizationAllowed": false,
+    "standaloneRedistributionAuthority": false,
+    "standaloneResaleAllowed": false,
+    "authorizedPurposes": [
+      "competition",
+      "demonstration",
+      "product validation",
+      "authorized operation of this AI e-commerce project",
+      "commercial delivery where the Z-derived framework remains embedded in this authorized project scope"
+    ]
+  },
+  "runtimeInterpretation": {
+    "codePresenceDoesNotImplyOwnership": true,
+    "deploymentDoesNotExpandLicense": true,
+    "forkDoesNotExpandLicense": true,
+    "releaseArtifactDoesNotCreateSublicenseAuthority": true,
+    "consumerCannotGrantThirdPartyFrameworkRights": true
+  },
+  "evidence": {
+    "humanReadableNotice": "Z_CENTURY_TECHNOLOGY_NOTICE.md",
+    "consumerManifest": "governance/ip/z-century-v25-technology-license.json",
+    "providerRecord": "yu5-520/Z-Century:licenses/authorized-projects/AI_ECOMMERCE_V25_KNOWLEDGE_PLANE.json"
+  },
+  "legalBoundary": {
+    "repositoryRecordIsNotAnAssignment": true,
+    "repositoryRecordDoesNotReplaceARequiredSignedCommercialAgreement": true,
+    "repositoryNameIsNotASeparateLegalPerson": true,
+    "rightsRemainWithApplicableRightsHolderUnlessExpresslyAssignedInWriting": true
+  }
+}
