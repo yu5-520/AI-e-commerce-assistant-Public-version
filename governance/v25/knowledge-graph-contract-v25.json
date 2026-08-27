@@ -1,0 +1,35 @@
+{
+  "schema": "rag.knowledge_graph_contract.v1",
+  "version": "25.5.0",
+  "defaultDecision": "BLOCK",
+  "graphRole": "SUPPLEMENT_ONLY",
+  "requiresScopedVectorStage": true,
+  "maxDepth": 2,
+  "crossDomainWideningAllowed": false,
+  "allowedEdgeTypes": [
+    "FIELD_RELATED_TO_FIELD",
+    "FIELD_BELONGS_TO_DOMAIN",
+    "RECORD_SUPPORTS_FIELD",
+    "RECORD_RELATED_TO_RECORD"
+  ],
+  "nodeTypes": [
+    "KNOWLEDGE_FIELD",
+    "DISTRIBUTION_DOMAIN",
+    "KNOWLEDGE_RECORD"
+  ],
+  "forbiddenTargetPrefixes": [
+    "permission.",
+    "state.",
+    "schema.",
+    "execution_lock.",
+    "gate.",
+    "runtime.",
+    "deployment."
+  ],
+  "rules": [
+    "图谱只能连接已注册知识字段、知识域或带来源哈希的知识记录。",
+    "图谱结果不得授予权限、改变状态或生成系统事实。",
+    "跨域遍历只能发生在请求字段已注册的domains闭包内。",
+    "relationshipRequired=false时不得自动图谱扩展。"
+  ]
+}

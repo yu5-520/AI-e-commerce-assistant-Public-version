@@ -1,0 +1,17 @@
+{
+  "schema": "rag.structured_filter_contract.v1",
+  "version": "25.4.0",
+  "defaultDecision": "BLOCK",
+  "rule": "结构化过滤只能作用于显式登记的知识元数据；未知过滤键不得转成自然语言猜测。",
+  "filters": [
+    {"key": "platform", "valueType": "string", "normalization": "NFKC_CASEFOLD", "operators": ["EQ"]},
+    {"key": "category", "valueType": "string", "normalization": "NFKC_CASEFOLD", "operators": ["EQ"]},
+    {"key": "lifecycleStage", "valueType": "string", "normalization": "NFKC_CASEFOLD", "operators": ["EQ"]},
+    {"key": "actionFamily", "valueType": "string", "normalization": "NFKC_CASEFOLD", "operators": ["EQ"]},
+    {"key": "riskLevel", "valueType": "string", "normalization": "NFKC_CASEFOLD", "operators": ["EQ"]},
+    {"key": "experiencePolarity", "valueType": "string", "normalization": "NFKC_CASEFOLD", "operators": ["EQ"]},
+    {"key": "brand", "valueType": "string", "normalization": "NFKC_CASEFOLD", "operators": ["EQ"]},
+    {"key": "tenantScope", "valueType": "string", "normalization": "NFKC_CASEFOLD", "operators": ["EQ"]}
+  ],
+  "forbiddenDynamicKeys": true
+}
