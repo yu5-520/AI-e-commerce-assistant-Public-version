@@ -1,0 +1,45 @@
+{
+  "schema": "v24.deployment_compatibility_contract.v1",
+  "version": "24.19.0",
+  "requiredIdentityFields": [
+    "releaseHash",
+    "sourceCommit",
+    "productVersion",
+    "publicApiVersion",
+    "stateMachineVersion",
+    "frontendContractVersion",
+    "runtimeMode",
+    "pythonVersion",
+    "dataSchemaVersion",
+    "callableAuthorityVersion"
+  ],
+  "stableExactFields": [
+    "publicApiVersion",
+    "stateMachineVersion",
+    "frontendContractVersion",
+    "runtimeMode",
+    "pythonVersion",
+    "callableAuthorityVersion"
+  ],
+  "requiredCapabilities": [
+    "registry",
+    "lineage",
+    "task",
+    "queue",
+    "frontend"
+  ],
+  "capabilitySupersetRequired": true,
+  "schemaMigrations": [
+    {
+      "migrationId": "db-v1-to-v2",
+      "from": "db.v1",
+      "to": "db.v2",
+      "explicit": true,
+      "preflightRequired": true,
+      "rollbackRequired": true
+    }
+  ],
+  "defaultDecision": "INCOMPATIBLE",
+  "implicitFallbackAllowed": false,
+  "rule": "A semantically plausible candidate is not deployable until every stable contract is exact and every schema transition is explicitly registered."
+}
