@@ -1,0 +1,32 @@
+{
+  "schema": "v24.phase5_authority_policy.v1",
+  "version": "24.20.0",
+  "enforcementMode": "SHADOW",
+  "deploymentAuthority": {
+    "mode": "SHADOW",
+    "publishMode": "COMPARE_AND_SET",
+    "generationFenceRequired": true,
+    "verifiedCandidateRequired": true,
+    "rollbackProofRequired": true,
+    "productionDeploymentWriterUnchanged": true,
+    "javaProductionDeploymentCutoverEnabled": false
+  },
+  "compatibilityAuthority": {
+    "mode": "SHADOW",
+    "defaultDecision": "DENY",
+    "implicitFallbackAllowed": false,
+    "explicitMigrationRequired": true,
+    "crossContractGuessingAllowed": false
+  },
+  "legacyRemovalAuthority": {
+    "mode": "SHADOW",
+    "replacementAuthorityRequired": true,
+    "zeroReferencesRequired": true,
+    "zeroWritersRequired": true,
+    "executionRightsRevokedRequired": true,
+    "automaticRestoreAllowed": false,
+    "productionLegacyDeletionByJavaEnabled": false
+  },
+  "cutoverRule": "Compatibility proof must exist before Deployment CAS; Legacy Removal may consume only an authoritative deployed replacement and zero-rights/zero-reference evidence.",
+  "safetyRule": "No Java destructive production deployment or legacy deletion is enabled until the Java deployment runtime itself owns production execution."
+}
