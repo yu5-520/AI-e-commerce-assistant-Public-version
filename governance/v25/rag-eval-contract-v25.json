@@ -1,0 +1,72 @@
+{
+  "schema": "rag.eval_contract.v1",
+  "version": "25.14.0",
+  "evalSet": {
+    "immutable": true,
+    "versioned": true,
+    "identityFields": [
+      "evalSetId",
+      "evalSetVersion",
+      "evalSetHash"
+    ],
+    "caseFields": [
+      "evalCaseId",
+      "query",
+      "expectedRelevantRevisionIds",
+      "expectedRelevantCaseIds",
+      "expectedAbstention",
+      "category",
+      "humanLabel",
+      "provenance"
+    ]
+  },
+  "evalRun": {
+    "immutable": true,
+    "requiredBindings": [
+      "evalSetHash",
+      "indexVersion",
+      "indexManifestHash",
+      "knowledgeSnapshotHash",
+      "retrievalPolicyVersion",
+      "runtimeVersion",
+      "evalRunHash"
+    ],
+    "roles": [
+      "BASE",
+      "TARGET"
+    ]
+  },
+  "retrievalEval": {
+    "metrics": [
+      "zeroHitRate",
+      "hitAt1",
+      "hitAt3",
+      "hitAt5",
+      "mrr",
+      "staleLeakCount",
+      "supersededLeakCount"
+    ],
+    "separateFromAnswerEval": true
+  },
+  "answerEval": {
+    "separateFromRetrievalEval": true,
+    "llmJudgeAllowed": true,
+    "llmJudgeSoleReleaseAuthority": false,
+    "judgeModelAndPromptVersionRequiredWhenUsed": true,
+    "rawEvidenceRequired": true
+  },
+  "regressionGate": {
+    "baseTargetRequired": true,
+    "maximumHitAt3Regression": 0.03,
+    "maximumZeroHitRateIncrease": 0.02,
+    "maximumStaleLeakCount": 0,
+    "maximumSupersededLeakCount": 0,
+    "failClosed": true
+  },
+  "runtimeBoundary": {
+    "productionRetrievalImplementationChangedByEval": false,
+    "physicalRagProviderReplaced": false,
+    "vectorIndexRequired": false,
+    "newAgentRuntimeIntroduced": false
+  }
+}
