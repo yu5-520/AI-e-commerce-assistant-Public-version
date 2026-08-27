@@ -1,0 +1,33 @@
+{
+  "schema": "v24.phase4_frontend_authority.policy.v1",
+  "version": "24.17.0",
+  "enforcementMode": "SHADOW",
+  "frontendAuthority": {
+    "mode": "SHADOW",
+    "browserRuntime": "JS_UNCHANGED",
+    "pythonProductionViewWriteAuthorityUnchanged": true,
+    "javaProductionViewCutoverEnabled": false,
+    "headReadTarget": "PURE_READ",
+    "projectionTriggerTarget": "DOMAIN_EVENT_ONLY",
+    "publishMode": "CAS",
+    "unknownModule": "BLOCK",
+    "generationFence": "REQUIRED",
+    "canonicalHashAlgorithm": "SHA-256"
+  },
+  "sseAuthority": {
+    "mode": "SHADOW",
+    "eventName": "view-head-changed",
+    "eventIdentity": "manifestHash",
+    "duplicateManifestEvent": "SUPPRESS",
+    "changedModuleDelivery": "HASH_ONLY",
+    "browserPollingFallbackDuringShadow": true,
+    "networkCutoverEnabled": false
+  },
+  "migrationBoundary": {
+    "existingPythonHeadRouteRemainsProduction": true,
+    "existingBrowserHashCacheRemainsProduction": true,
+    "existingHeadGetMayMaterialize": true,
+    "javaShadowMustNotWriteProductionHead": true,
+    "javaShadowMustNotExposeProductionSseEndpoint": true
+  }
+}
