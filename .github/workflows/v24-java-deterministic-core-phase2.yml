@@ -1,45 +1,41 @@
-name: V24 Java Deterministic Core Phase1
+name: V24 Java Deterministic Core Phase2
 
 on:
   pull_request:
     paths:
       - 'java-control-plane/**'
       - 'governance/v24/**'
-      - 'contracts/v24/**'
-      - 'contracts/registry/**'
-      - 'config/competition_runtime_scope.json'
-      - 'config/competition_source_identity.json'
-      - 'config/v23_registry_runtime.json'
-      - 'scripts/compile_competition_lineage.py'
-      - 'scripts/competition_interface_gate.py'
-      - 'scripts/verify_v24_java_phase1.sh'
-      - '.github/workflows/v24-java-deterministic-core-phase1.yml'
+      - 'scripts/export_v24_phase2_shadow_evidence.py'
+      - 'scripts/verify_v24_java_phase2.sh'
+      - 'src/services/canonical_product_snapshot_service.py'
+      - 'src/services/pipeline_gate_service.py'
+      - 'src/services/task_state_machine_service.py'
+      - 'src/services/task_lifecycle_state_machine_service.py'
+      - '.github/workflows/v24-java-deterministic-core-phase2.yml'
   push:
     branches:
       - main
     paths:
       - 'java-control-plane/**'
       - 'governance/v24/**'
-      - 'contracts/v24/**'
-      - 'contracts/registry/**'
-      - 'config/competition_runtime_scope.json'
-      - 'config/competition_source_identity.json'
-      - 'config/v23_registry_runtime.json'
-      - 'scripts/compile_competition_lineage.py'
-      - 'scripts/competition_interface_gate.py'
-      - 'scripts/verify_v24_java_phase1.sh'
-      - '.github/workflows/v24-java-deterministic-core-phase1.yml'
+      - 'scripts/export_v24_phase2_shadow_evidence.py'
+      - 'scripts/verify_v24_java_phase2.sh'
+      - 'src/services/canonical_product_snapshot_service.py'
+      - 'src/services/pipeline_gate_service.py'
+      - 'src/services/task_state_machine_service.py'
+      - 'src/services/task_lifecycle_state_machine_service.py'
+      - '.github/workflows/v24-java-deterministic-core-phase2.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: v24-java-deterministic-core-phase1-${{ github.event_name }}-${{ github.ref }}
+  group: v24-java-deterministic-core-phase2-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  phase1-shadow-authority:
+  phase2-shadow-authority:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
@@ -51,8 +47,8 @@ jobs:
         run: |
           set -euo pipefail
           SOURCE_COMMIT="$V24_SOURCE_COMMIT"
-          ARCHIVE="${RUNNER_TEMP}/v24-phase1-${SOURCE_COMMIT}.tar.gz"
-          EXTRACTED="${RUNNER_TEMP}/v24-phase1-${SOURCE_COMMIT}"
+          ARCHIVE="${RUNNER_TEMP}/v24-phase2-${SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/v24-phase2-${SOURCE_COMMIT}"
           rm -rf "$ARCHIVE" "$EXTRACTED"
           mkdir -p "$EXTRACTED"
           downloaded=0
@@ -75,10 +71,10 @@ jobs:
           test "$downloaded" = "1"
           test -s "$ARCHIVE"
           tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
-          test -f "$EXTRACTED/scripts/verify_v24_java_phase1.sh"
+          test -f "$EXTRACTED/scripts/verify_v24_java_phase2.sh"
           find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
           cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
-          printf '%s\n' "$SOURCE_COMMIT" > .v24-phase1-source-commit
+          printf '%s\n' "$SOURCE_COMMIT" > .v24-phase2-source-commit
 
       - name: Prepare JDK 17
         uses: actions/setup-java@v4
@@ -104,40 +100,33 @@ jobs:
           echo 'Python 3.10+ is required.' >&2
           exit 1
 
-      - name: Verify V24.0-V24.5 shadow authority
+      - name: Verify V24.6-V24.8 shadow authority
         run: |
           set -euo pipefail
-          bash scripts/verify_v24_java_phase1.sh
+          bash scripts/verify_v24_java_phase2.sh
 
-      - name: Verify evidence is default-deny and exact
+      - name: Verify phase2 authority boundary
         run: |
           set -euo pipefail
           "$PYTHON_BIN" - <<'PY'
           import json
           from pathlib import Path
-
-          root = Path('dist/v24-java-phase1')
-          graph = json.loads((root / 'active-runtime-graph.json').read_text(encoding='utf-8'))
-          manifest = json.loads((root / 'active-runtime-manifest.json').read_text(encoding='utf-8'))
-          phase = json.loads((root / 'phase1-verification-report.json').read_text(encoding='utf-8'))
-          admission = json.loads((root / 'runtime-admission-report.json').read_text(encoding='utf-8'))
-          assert graph['defaultRuntimeEligibility'] == 'DENY'
-          assert graph['compatibilityDefault'] == 'DENY'
-          assert manifest['unknownRuntimeNode'] == 'BLOCK'
-          assert manifest['compatibilityDefault'] == 'DENY'
-          assert phase['verified'] is True
-          assert admission['verified'] is True
-          print('V24_PHASE1_EVIDENCE_GATE=PASS')
+          report = json.loads(Path('dist/v24-java-phase2/phase2-verification-report.json').read_text(encoding='utf-8'))
+          assert report['verified'] is True
+          assert report['enforcementMode'] == 'SHADOW'
+          assert report['pythonProductionWriteAuthorityUnchanged'] is True
+          assert report['postgreSqlSourceOfTruthEnabled'] is False
+          assert report['unknownGate'] == 'BLOCK'
+          assert report['unknownTaskState'] == 'BLOCK'
+          assert report['terminalReopen'] == 'BLOCK'
+          print('V24_PHASE2_AUTHORITY_BOUNDARY=PASS')
           PY
 
-      - name: Upload V24 phase1 evidence
+      - name: Upload V24 phase2 evidence
         uses: actions/upload-artifact@v4
         with:
-          name: v24-java-deterministic-core-phase1-${{ github.sha }}
+          name: v24-java-deterministic-core-phase2-${{ github.sha }}
           path: |
-            dist/competition-lineage-v24/*.json
-            dist/competition-lineage-v24/runtime-files.txt
-            dist/competition-lineage-v24/runtime-files.sha256
-            dist/v24-java-phase1/*.json
+            dist/v24-java-phase2/*.json
           if-no-files-found: error
           retention-days: 14
