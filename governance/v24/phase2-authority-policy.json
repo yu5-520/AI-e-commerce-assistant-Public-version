@@ -1,0 +1,32 @@
+{
+  "schema": "v24.phase2_authority_policy.v1",
+  "version": "24.6.0",
+  "enforcementMode": "SHADOW",
+  "mappingAuthority": {
+    "mode": "SHADOW",
+    "canonicalHashAlgorithm": "SHA-256",
+    "pythonProductionWriterUnchanged": true,
+    "unknownFieldPolicy": "PRESERVE_INPUT_BUT_DO_NOT_INVENT"
+  },
+  "gateAuthority": {
+    "mode": "SHADOW",
+    "decisionSet": ["PASS", "BLOCK", "RETRY", "REVIEW_REQUIRED"],
+    "unknownGate": "BLOCK",
+    "canonicalHashAlgorithm": "SHA-256",
+    "legacyPipelineGateHashAlgorithm": "SHA-1_READ_ONLY_COMPATIBILITY"
+  },
+  "taskStateAuthority": {
+    "mode": "SHADOW",
+    "unknownState": "BLOCK",
+    "terminalReopen": "BLOCK",
+    "expectedVersionRequiredForAuthoritativeWrite": true,
+    "pythonTaskWriteAuthorityUnchanged": true,
+    "postgreSqlSourceOfTruthEnabled": false
+  },
+  "phaseCoverage": [
+    "V24.6_MAPPING",
+    "V24.7_UNIFIED_GATE",
+    "V24.8_TASK_STATE"
+  ],
+  "promotionRule": "Java must reproduce current deterministic behavior in shadow evidence before any production write authority is transferred."
+}
