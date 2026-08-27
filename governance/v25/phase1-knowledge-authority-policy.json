@@ -1,0 +1,28 @@
+{
+  "schema": "v25.phase1.knowledge_authority_policy.v1",
+  "version": "25.2.0-phase1",
+  "enforcementMode": "SHADOW",
+  "goal": "建立统一RAG知识盘点、统一RAG字段注册表和知识分布域，不改变现有生产Agent输入与RAG写入权。",
+  "principles": {
+    "onePhysicalKnowledgeStore": true,
+    "agentOwnsKnowledgeStore": false,
+    "fieldFirst": true,
+    "distributionDomainBeforeVector": true,
+    "systemContractMayEnterRag": false,
+    "unknownFieldDecision": "BLOCK",
+    "unknownDomainDecision": "BLOCK",
+    "vectorRetrievalCutoverEnabled": false,
+    "productionAgentInputsUnchanged": true,
+    "productionRagWriterUnchanged": true
+  },
+  "classification": {
+    "MIGRATE_TO_RAG": "可更新知识、经验、诊断逻辑、平台类目知识、公司SOP与品牌表达。",
+    "SYSTEM_CONTRACT": "权限、状态、Schema、Execution Lock、Gate、动作族不可变边界、输出结构等确定性规则。",
+    "MIXED_SPLIT_REQUIRED": "同一源文件同时包含知识和系统规则，必须按字段拆分，禁止整文件迁移。"
+  },
+  "phaseCoverage": [
+    "V25.0_KNOWLEDGE_BASELINE",
+    "V25.1_UNIFIED_RAG_FIELD_REGISTRY",
+    "V25.2_KNOWLEDGE_DISTRIBUTION_DOMAIN"
+  ]
+}
