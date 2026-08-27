@@ -1,0 +1,41 @@
+{
+  "schema": "v25.phase3_agent_knowledge_migration_policy.v1",
+  "version": "25.9.0",
+  "enforcementMode": "PRODUCTION_KNOWLEDGE_INGRESS",
+  "principles": {
+    "compositionTableRequired": true,
+    "registeredFieldHashRequired": true,
+    "consumerAuthorizationRequired": true,
+    "deterministicPredicateOnly": true,
+    "legacyDirectAgentKnowledgeRead": false,
+    "legacyProviderBehindUnifiedAdapter": true,
+    "physicalRagProviderCutover": false,
+    "retrievalMayCreateSystemFact": false,
+    "insufficientEvidenceMustRemainVisible": true,
+    "agent1LegacyExperienceDirectReadAllowed": false,
+    "agent2LegacyExperienceProviderAllowedBehindAdapter": true,
+    "agent3SemanticRuntimeCreated": false,
+    "currentSopRuntimeUnchanged": true
+  },
+  "authority": {
+    "javaCompositionAuthority": "RELEASE_GATE",
+    "pythonRuntimeProjection": "PRODUCTION_INGRESS",
+    "knowledgeStorageAuthority": "LEGACY_PROVIDER_BEHIND_UNIFIED_ADAPTER",
+    "agent1KnowledgeIngress": "V25_UNIFIED",
+    "agent2KnowledgeIngress": "V25_UNIFIED",
+    "agent3KnowledgeIngress": "V25_UNIFIED_SOP_PROJECTION"
+  },
+  "migration": {
+    "V25.6": "KNOWLEDGE_COMPOSITION_TABLE",
+    "V25.7": "AGENT1_KNOWLEDGE_INGRESS",
+    "V25.8": "AGENT2_KNOWLEDGE_INGRESS",
+    "V25.9": "AGENT3_SOP_KNOWLEDGE_PROJECTION"
+  },
+  "runtimeBoundary": {
+    "newAgent3RuntimeIntroduced": false,
+    "agent1RuntimeEntryReplaced": false,
+    "agent2RuntimeEntryReplaced": false,
+    "sopRuntimeEntryReplaced": false,
+    "onlyKnowledgeProviderReferencesPatched": true
+  }
+}
