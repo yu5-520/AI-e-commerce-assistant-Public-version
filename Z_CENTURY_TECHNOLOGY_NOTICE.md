@@ -71,9 +71,15 @@ AI 电商 / 智策产品实现
 
 `yu5-520/Z-Century` → `licenses/authorized-projects/AI_ECOMMERCE_V25_KNOWLEDGE_PLANE.json`
 
-Z-Century 授权源记录创建于授权分支 commit：
+Z Trusted Runtime 签封并发布的授权 release commit：
 
-`88bf5c9c2e7d9f3ca30686ed94654aa21d981ccc`
+`c63439d621a43c28928238d27e38ab89fbf76ef7`
+
+Z-Century 正式主线授权记录 merge commit：
+
+`8df552c01057d4a834ba7c3481042faeb0c5233a`
+
+对应的 Z 授权证据由 `.z-authority/mutation-envelope.json` 提供，并已通过 public-key Mutation Authority Gate 验证。
 
 ## 法律与主体边界
 
