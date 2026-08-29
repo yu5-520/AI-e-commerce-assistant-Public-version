@@ -162,7 +162,9 @@ def main() -> None:
         "tests/test_v22_4_static_path_contract.py",
         "java-control-plane/src/main/java/com/zcentury/v24/ProductionAuthorityMain.java",
         "governance/v24/production-authority-bundle-v24.json",
+        "governance/v24/authority-generation-policy-v24.json",
         "scripts/build_v24_production_bundle.sh",
+        "scripts/verify_v24_authority_generation.sh",
         "scripts/verify_v24_production_bundle.sh",
         "scripts/start_v24_authority.sh",
         ".github/workflows/v24-production-authority-bundle.yml",
@@ -218,7 +220,9 @@ def main() -> None:
     for java_attested_path in (
         "java-control-plane/src/main/java/**/*",
         "governance/v24/production-authority-bundle-v24.json",
+        "governance/v24/authority-generation-policy-v24.json",
         "scripts/build_v24_production_bundle.sh",
+        "scripts/verify_v24_authority_generation.sh",
         "scripts/verify_v24_production_bundle.sh",
         ".github/workflows/v24-production-authority-bundle.yml",
     ):
