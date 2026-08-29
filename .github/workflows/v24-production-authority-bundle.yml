@@ -7,6 +7,8 @@ on:
       - 'governance/v24/production-authority-bundle-v24.json'
       - 'scripts/build_v24_production_bundle.sh'
       - 'scripts/verify_v24_production_bundle.sh'
+      - 'scripts/verify_v24_authority_generation.sh'
+      - 'governance/v24/authority-generation-policy-v24.json'
       - 'scripts/start_v24_authority.sh'
       - 'release/release-policy.json'
       - 'scripts/release_verifier.py'
@@ -21,6 +23,8 @@ on:
       - 'governance/v24/production-authority-bundle-v24.json'
       - 'scripts/build_v24_production_bundle.sh'
       - 'scripts/verify_v24_production_bundle.sh'
+      - 'scripts/verify_v24_authority_generation.sh'
+      - 'governance/v24/authority-generation-policy-v24.json'
       - 'scripts/start_v24_authority.sh'
       - 'release/release-policy.json'
       - 'scripts/release_verifier.py'
@@ -77,6 +81,16 @@ jobs:
           set -euo pipefail
           chmod +x scripts/build_v24_production_bundle.sh scripts/verify_v24_production_bundle.sh
           V24_JAVA_HOME="$JAVA_HOME"           V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT"             bash scripts/verify_v24_production_bundle.sh
+
+      - name: Verify durable Authority Generation prepare and rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x scripts/verify_v24_authority_generation.sh
+          V24_JAVA_HOME="$JAVA_HOME" \
+          V24_BUILD_PYTHON="$GITHUB_WORKSPACE/.venv/bin/python" \
+          V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT" \
+            bash scripts/verify_v24_authority_generation.sh
 
       - name: Verify retained V24 Phase1-Phase5 boundaries
         shell: bash

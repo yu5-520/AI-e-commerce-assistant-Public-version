@@ -113,7 +113,9 @@ jobs:
           BASE_CONTRACT_REGISTRY="$BASE_EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
           if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
             V24_PRODUCTION_BUNDLE="governance/v24/production-authority-bundle-v24.json"
-            if [ -f "$TARGET_EXTRACTED/$V24_PRODUCTION_BUNDLE" ] && { [ ! -f "$BASE_EXTRACTED/$V24_PRODUCTION_BUNDLE" ] || ! cmp -s "$BASE_EXTRACTED/$V24_PRODUCTION_BUNDLE" "$TARGET_EXTRACTED/$V24_PRODUCTION_BUNDLE"; }; then
+            V24_AUTHORITY_GENERATION="governance/v24/authority-generation-policy-v24.json"
+            if { [ -f "$TARGET_EXTRACTED/$V24_PRODUCTION_BUNDLE" ] && { [ ! -f "$BASE_EXTRACTED/$V24_PRODUCTION_BUNDLE" ] || ! cmp -s "$BASE_EXTRACTED/$V24_PRODUCTION_BUNDLE" "$TARGET_EXTRACTED/$V24_PRODUCTION_BUNDLE"; }; } || \
+               { [ -f "$TARGET_EXTRACTED/$V24_AUTHORITY_GENERATION" ] && { [ ! -f "$BASE_EXTRACTED/$V24_AUTHORITY_GENERATION" ] || ! cmp -s "$BASE_EXTRACTED/$V24_AUTHORITY_GENERATION" "$TARGET_EXTRACTED/$V24_AUTHORITY_GENERATION"; }; }; then
               PROFILE="production_authority_bundle"
               POLICY="governance/competition_lineage_update_policy.json"
             fi
