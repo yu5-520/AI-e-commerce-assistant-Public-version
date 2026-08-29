@@ -25,7 +25,7 @@ fail() { printf 'ERROR: %s\n' "$1" >&2; exit 1; }
 JAVA_VERSION_OUTPUT="$("$JAVA_HOME_RESOLVED/bin/java" -version 2>&1)"
 printf '%s\n' "$JAVA_VERSION_OUTPUT"
 printf '%s\n' "$JAVA_VERSION_OUTPUT" | grep -F '17.0.20' >/dev/null || fail "exact Java 17.0.20 is required"
-printf '%s\n' "$JAVA_VERSION_OUTPUT" | grep -F 'Temurin-17.0.20+1' >/dev/null || fail "exact Temurin 17.0.20+1 runtime is required"
+printf '%s\n' "$JAVA_VERSION_OUTPUT" | grep -F 'Temurin-17.0.20+8' >/dev/null || fail "exact Temurin 17.0.20+8 runtime is required"
 
 rm -rf "$BUILD_ROOT" "$RUNTIME_ROOT"
 mkdir -p "$CLASS_ROOT" "$RUNTIME_ROOT"
@@ -75,7 +75,7 @@ payload = {
     "version": "24.21.0",
     "sourceCommit": os.environ["SOURCE_COMMIT"],
     "distribution": "Temurin",
-    "javaRuntimeVersion": "17.0.20+1",
+    "javaRuntimeVersion": "17.0.20+8",
     "javaFeatureVersion": 17,
     "architecture": "x64",
     "mainClass": "com.zcentury.v24.ProductionAuthorityMain",
