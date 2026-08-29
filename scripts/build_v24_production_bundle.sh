@@ -10,6 +10,7 @@ RUNTIME_ROOT="$ROOT_DIR/runtime/java"
 JAR_PATH="$RUNTIME_ROOT/v24-production-authority.jar"
 JRE_ROOT="$RUNTIME_ROOT/jre"
 CONTRACT_PATH="$RUNTIME_ROOT/runtime-contract.json"
+BUILD_PYTHON="${V24_BUILD_PYTHON:-$ROOT_DIR/.venv/bin/python}"
 
 fail() { printf 'ERROR: %s\n' "$1" >&2; exit 1; }
 
@@ -18,6 +19,7 @@ fail() { printf 'ERROR: %s\n' "$1" >&2; exit 1; }
 [ -x "$JAVA_HOME_RESOLVED/bin/javac" ] || fail "javac executable is missing"
 [ -x "$JAVA_HOME_RESOLVED/bin/jar" ] || fail "jar executable is missing"
 [ -x "$JAVA_HOME_RESOLVED/bin/jlink" ] || fail "jlink executable is missing"
+[ -x "$BUILD_PYTHON" ] || fail "V24_BUILD_PYTHON is not executable"
 [[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]] || fail "V24_SOURCE_COMMIT must be an exact lowercase commit SHA"
 
 JAVA_VERSION_OUTPUT="$("$JAVA_HOME_RESOLVED/bin/java" -version 2>&1)"
@@ -41,7 +43,7 @@ mapfile -d '' JAVA_SOURCES < <(
 "$JRE_ROOT/bin/java" -version 2>&1 | grep -F '17.0.20' >/dev/null
 "$JRE_ROOT/bin/java" -cp "$JAR_PATH" com.zcentury.v24.Phase1Main --help >/dev/null 2>&1 || true
 
-ROOT_DIR="$ROOT_DIR" SOURCE_COMMIT="$SOURCE_COMMIT" "$ROOT_DIR/.venv/bin/python" - <<'PY'
+ROOT_DIR="$ROOT_DIR" SOURCE_COMMIT="$SOURCE_COMMIT" "$BUILD_PYTHON" - <<'PY'
 import hashlib
 import json
 import os
