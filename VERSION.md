@@ -29,10 +29,13 @@ V25 Vector Index Required: false
 V25 New Agent Runtime: false
 
 V24 Production Authority Bundle Version: 24.21.0
+V24 Authority Generation Controller Version: 24.22.0
 V24 Java Runtime: Temurin 17.0.20.1+1 embedded jlink
 V24 Java Enforcement Mode: READY_NO_AUTHORITY
+V24 Durable Generation State: prepare-and-rollback-enabled
 V24 Java Production Mutation: false
-V24 Atomic Five-Authority Cutover: pending
+V24 Atomic Five-Authority Cutover: prepared-not-active
+V24 Five-Authority Activation: forbidden-until-durable-runtime-bridge
 V24 Deployment Authority Transfer: false
 V24 Legacy Removal: disabled
 
