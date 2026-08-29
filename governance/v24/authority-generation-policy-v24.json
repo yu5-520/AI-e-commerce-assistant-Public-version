@@ -1,0 +1,53 @@
+{
+  "schema": "v24.authority-generation-policy.v1",
+  "version": "24.22.0",
+  "statePath": "/opt/ai-ecommerce-assistant/shared/v24/authority-generation.json",
+  "persistence": {
+    "outsideImmutableRelease": true,
+    "rootManaged": true,
+    "canonicalJson": true,
+    "stateHashRequired": true,
+    "compareAndSetRequired": true,
+    "fileLockRequired": true,
+    "fsyncRequired": true,
+    "atomicRenameRequired": true,
+    "restartRecoveryRequired": true
+  },
+  "generationIdentity": {
+    "fields": ["generationSeq", "generationHash", "fencingToken"],
+    "rotateOnPrepare": true,
+    "rotateOnRollback": true,
+    "staleGenerationMatch": false
+  },
+  "allowedTransitions": [
+    "READY_NO_AUTHORITY->CUTOVER_PREPARED",
+    "CUTOVER_PREPARED->READY_NO_AUTHORITY"
+  ],
+  "forbiddenTransitions": [
+    "READY_NO_AUTHORITY->FIVE_AUTHORITY_ACTIVE",
+    "CUTOVER_PREPARED->FIVE_AUTHORITY_ACTIVE"
+  ],
+  "preparedOwners": {
+    "compatibility": "PYTHON_BASH_PRODUCTION",
+    "runtimeAdmission": "PYTHON_BASH_PRODUCTION",
+    "gateAndTaskState": "PYTHON_PRODUCTION",
+    "queueAndGeneration": "PYTHON_PRODUCTION",
+    "frontendHeadAndSse": "PYTHON_PRODUCTION",
+    "deployment": "BASH_SYSTEMD_PRODUCTION",
+    "agentProvider": "PYTHON_PRODUCTION",
+    "legacyRemoval": "DISABLED"
+  },
+  "requiredProofGates": [
+    "SEALED_JAVA_RUNTIME_VERIFIED",
+    "JAVA_SERVICE_READY_NO_AUTHORITY",
+    "PYTHON_JAVA_MIRROR_PARITY_PROVEN",
+    "DURABLE_STATE_ADAPTER_VERIFIED",
+    "SINGLE_WRITER_GENERATION_ROTATION_PREPARED",
+    "FULL_ROLLBACK_PROVEN"
+  ],
+  "productionMutationAllowed": false,
+  "fiveAuthorityActivationEnabled": false,
+  "deploymentAuthorityTransferAllowed": false,
+  "legacyRemovalAllowed": false,
+  "nextPhase": "Seal durable Queue/Frontend persistence bridge and Python provider adapter before enabling one atomic five-authority activation."
+}
