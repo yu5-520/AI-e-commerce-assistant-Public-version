@@ -5,8 +5,8 @@
   "javaRuntime": {
     "distribution": "Temurin",
     "featureVersion": 17,
-    "exactRuntimeVersion": "17.0.20+1",
-    "exactBuild": "17.0.20+1",
+    "exactRuntimeVersion": "17.0.20+8",
+    "exactBuild": "17.0.20+8",
     "architecture": "x64",
     "embeddedJlinkRuntimeRequired": true,
     "globalJavaAllowed": false,
