@@ -69,7 +69,7 @@ assert set(status["owners"].values()) <= {
     "BASH_SYSTEMD_PRODUCTION",
     "DISABLED",
 }
-assert contract["javaRuntimeVersion"] == "17.0.20+1"
+assert contract["javaRuntimeVersion"] == "17.0.20.1+1"
 assert contract["enforcementMode"] == "READY_NO_AUTHORITY"
 assert contract["productionMutationAllowed"] is False
 assert contract["sourceCommit"] == os.environ["V24_SOURCE_COMMIT"]
