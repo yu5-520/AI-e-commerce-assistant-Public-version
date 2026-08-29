@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${V24_VERIFY_PORT:-39025}"
+BUILD_PYTHON="${V24_BUILD_PYTHON:-$ROOT_DIR/.venv/bin/python}"
 LOG_FILE="${TMPDIR:-/tmp}/v24-production-authority-$$.log"
 PID=""
 
@@ -15,7 +16,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-V24_JAVA_HOME="${V24_JAVA_HOME:-${JAVA_HOME:-}}"   V24_SOURCE_COMMIT="${V24_SOURCE_COMMIT:?V24_SOURCE_COMMIT is required}"   bash "$ROOT_DIR/scripts/build_v24_production_bundle.sh"
+V24_JAVA_HOME="${V24_JAVA_HOME:-${JAVA_HOME:-}}" V24_SOURCE_COMMIT="${V24_SOURCE_COMMIT:?V24_SOURCE_COMMIT is required}" V24_BUILD_PYTHON="$BUILD_PYTHON" bash "$ROOT_DIR/scripts/build_v24_production_bundle.sh"
 
 JRE="$ROOT_DIR/runtime/java/jre/bin/java"
 JAR="$ROOT_DIR/runtime/java/v24-production-authority.jar"
@@ -41,7 +42,7 @@ done
   exit 1
 }
 
-ROOT_DIR="$ROOT_DIR" PORT="$PORT" "$ROOT_DIR/.venv/bin/python" - <<'PY'
+ROOT_DIR="$ROOT_DIR" PORT="$PORT" V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT" "$BUILD_PYTHON" - <<'PY'
 import json
 import os
 import urllib.request
