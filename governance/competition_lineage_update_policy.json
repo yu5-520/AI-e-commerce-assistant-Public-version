@@ -49,6 +49,25 @@
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": ["productBoundaryHash"]
     },
+    "production_authority_bundle": {
+      "description": "Exact V24 production-readiness packaging scope. Only the release identity, release allowlist and the two fail-closed release verifiers may change inside the Competition Runtime graph; Registry modules, application services, frontend behavior and production authority remain sealed.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": false,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": false,
+      "allowedRuntimePathPrefixes": [
+        "VERSION.md",
+        "release/release-policy.json",
+        "scripts/check_release_contract.py",
+        "scripts/release_verifier.py"
+      ],
+      "allowedRegistryModules": [],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": []
+    },
     "baseline_history_gate": {
       "description": "Exact H2 repair scope for first-report baseline semantics. Only the Signal/Agent history facade and the two artifact station boundaries may change; Agent1 runtime, identity binding and downstream action stages remain sealed.",
       "requireBaselineVerified": true,

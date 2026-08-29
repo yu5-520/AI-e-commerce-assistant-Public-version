@@ -80,6 +80,12 @@ jobs:
           printf 'sourceCommit=%s\nsourceRef=%s\nmode=%s\n' \
             "$RELEASE_SOURCE_COMMIT" "$RELEASE_SOURCE_REF" "$RELEASE_MODE"
 
+      - name: Prepare exact Temurin JDK tool 17.0.20+101
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17.0.20+101'
+
       - name: Prepare exact cached Python environments
         run: |
           set -euo pipefail
@@ -163,6 +169,14 @@ jobs:
           [ -n "$NODE_BIN" ] && [ -x "$NODE_BIN" ]
           printf '%s\n' "$(dirname "$NODE_BIN")" >> "$GITHUB_PATH"
           "$NODE_BIN" --version | tee dist/release-meta/node-version.txt
+
+      - name: Build and verify sealed V24 Java readiness runtime
+        env:
+          V24_SOURCE_COMMIT: ${{ env.RELEASE_SOURCE_COMMIT }}
+        run: |
+          set -euo pipefail
+          chmod +x             scripts/build_v24_production_bundle.sh             scripts/verify_v24_production_bundle.sh             scripts/start_v24_authority.sh
+          V24_JAVA_HOME="$JAVA_HOME"           V24_BUILD_PYTHON="$RELEASE_VALIDATION_PYTHON"           V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT"             bash scripts/verify_v24_production_bundle.sh             | tee dist/release-meta/v24-production-authority-bundle.log
 
       - name: Produce sealed gray-test evidence
         env:

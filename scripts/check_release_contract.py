@@ -160,6 +160,12 @@ def main() -> None:
         "tests/test_v22_4_release_hash_seal.py",
         "tests/test_v22_4_app_route_smoke.py",
         "tests/test_v22_4_static_path_contract.py",
+        "java-control-plane/src/main/java/com/zcentury/v24/ProductionAuthorityMain.java",
+        "governance/v24/production-authority-bundle-v24.json",
+        "scripts/build_v24_production_bundle.sh",
+        "scripts/verify_v24_production_bundle.sh",
+        "scripts/start_v24_authority.sh",
+        ".github/workflows/v24-production-authority-bundle.yml",
     )
     for path in required:
         assert (ROOT / path).is_file(), path
@@ -202,11 +208,21 @@ def main() -> None:
         "scripts/check_dependency_lock.py",
         "scripts/runtime_exclusivity_guard.sh",
         "scripts/sqlite_backup_rotate.py",
+        "runtime/java/**/*",
+        "scripts/start_v24_authority.sh",
     ):
         assert runtime_path in runtime_globs, runtime_path
     assert "requirements-dev.lock" in attested_globs
     assert "tests/**/*" in attested_globs
     assert "scripts/check_python36_bootstrap.py" in attested_globs
+    for java_attested_path in (
+        "java-control-plane/src/main/java/**/*",
+        "governance/v24/production-authority-bundle-v24.json",
+        "scripts/build_v24_production_bundle.sh",
+        "scripts/verify_v24_production_bundle.sh",
+        ".github/workflows/v24-production-authority-bundle.yml",
+    ):
+        assert java_attested_path in attested_globs, java_attested_path
     for path in removed:
         assert path in forbidden_paths, path
     assert rules["deployCurrentBranchDirectly"] is False

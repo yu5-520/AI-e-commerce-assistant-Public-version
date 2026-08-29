@@ -28,6 +28,14 @@ V25 Physical RAG Provider Cutover: false
 V25 Vector Index Required: false
 V25 New Agent Runtime: false
 
+V24 Production Authority Bundle Version: 24.21.0
+V24 Java Runtime: Temurin 17.0.20.1+1 embedded jlink
+V24 Java Enforcement Mode: READY_NO_AUTHORITY
+V24 Java Production Mutation: false
+V24 Atomic Five-Authority Cutover: pending
+V24 Deployment Authority Transfer: false
+V24 Legacy Removal: disabled
+
 Release Identity Contract: release.identity.v1
 Release Manifest Contract: release.manifest.v1
 Data Identity Contract: data.identity.v1

@@ -1,0 +1,55 @@
+{
+  "schema": "v24.production-authority-bundle.v1",
+  "version": "24.21.0",
+  "enforcementMode": "READY_NO_AUTHORITY",
+  "javaRuntime": {
+    "distribution": "Temurin",
+    "featureVersion": 17,
+    "exactRuntimeVersion": "17.0.20.1+1",
+    "exactBuild": "17.0.20.1+1",
+    "architecture": "x64",
+    "embeddedJlinkRuntimeRequired": true,
+    "globalJavaAllowed": false,
+    "runnerToolcacheDirectUseAllowed": false,
+    "runtimeTreeHashRequired": true
+  },
+  "candidateAuthorityBundle": {
+    "atomicGenerationTransferRequired": true,
+    "partialTransferAllowed": false,
+    "authorities": [
+      "COMPATIBILITY",
+      "RUNTIME_ADMISSION",
+      "GATE_TASK_STATE",
+      "QUEUE_GENERATION",
+      "FRONTEND_HEAD_SSE"
+    ]
+  },
+  "retainedOwners": {
+    "deploymentAuthority": "BASH_SYSTEMD_PRODUCTION",
+    "agentProviderRuntime": "PYTHON_PRODUCTION",
+    "legacyRemoval": "DISABLED"
+  },
+  "readiness": {
+    "bindHost": "127.0.0.1",
+    "defaultPort": 39024,
+    "productionMutationAllowed": false,
+    "authorityGeneration": null,
+    "healthPath": "/healthz",
+    "readyPath": "/readyz",
+    "statusPath": "/v1/authority/status"
+  },
+  "resourceContract": {
+    "xms": "64m",
+    "xmx": "256m",
+    "maxMetaspaceSize": "128m",
+    "activeProcessorCount": 2
+  },
+  "cutoverBlockedUntil": [
+    "SEALED_JAVA_RUNTIME_VERIFIED",
+    "JAVA_SERVICE_READY_NO_AUTHORITY",
+    "PYTHON_JAVA_MIRROR_PARITY_PROVEN",
+    "DURABLE_STATE_ADAPTER_VERIFIED",
+    "SINGLE_WRITER_GENERATION_ROTATION_PREPARED",
+    "FULL_ROLLBACK_PROVEN"
+  ]
+}
