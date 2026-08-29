@@ -83,5 +83,5 @@ jobs:
         run: |
           set -euo pipefail
           for phase in 1 2 3 4 5; do
-            V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT"               bash "scripts/verify_v24_java_phase${phase}.sh"
+            PATH="$GITHUB_WORKSPACE/.venv/bin:$PATH" V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT"               bash "scripts/verify_v24_java_phase${phase}.sh"
           done
