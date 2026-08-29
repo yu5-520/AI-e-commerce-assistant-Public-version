@@ -65,6 +65,8 @@ EXPECTED_RUNTIME_GLOBS = {
     "requirements.lock",
     "release/release-policy.json",
     "release/release-manifest.schema.json",
+    "runtime/java/**/*",
+    "scripts/start_v24_authority.sh",
 }
 EXPECTED_ATTESTED_GLOBS = {
     "tests/**/*",
@@ -80,6 +82,11 @@ EXPECTED_ATTESTED_GLOBS = {
     "VERSION.md",
     "docs/V22.4.0_RELEASE_HASH_SEAL.md",
     "docs/V22.4.0.7_GITHUB_ARTIFACT_TRANSPORT.md",
+    "java-control-plane/src/main/java/**/*",
+    "governance/v24/production-authority-bundle-v24.json",
+    "scripts/build_v24_production_bundle.sh",
+    "scripts/verify_v24_production_bundle.sh",
+    ".github/workflows/v24-production-authority-bundle.yml",
 }
 EXPECTED_EXCLUDE_GLOBS = {
     "**/__pycache__/**",
