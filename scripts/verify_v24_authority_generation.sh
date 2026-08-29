@@ -22,7 +22,7 @@ export V24_AUTHORITY_STATE_PATH="$WORK_DIR/authority-generation.json"
 
 RELEASE_HASH="sha256:$(printf '%064d' 2422)"
 PROOF="$WORK_DIR/proof.json"
-SOURCE_COMMIT="$SOURCE_COMMIT" RELEASE_HASH="$RELEASE_HASH" "$BUILD_PYTHON" - <<'PY'
+SOURCE_COMMIT="$SOURCE_COMMIT" RELEASE_HASH="$RELEASE_HASH" PROOF="$PROOF" "$BUILD_PYTHON" - <<'PY'
 import json
 import os
 from pathlib import Path
