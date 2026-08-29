@@ -178,6 +178,18 @@ jobs:
           chmod +x             scripts/build_v24_production_bundle.sh             scripts/verify_v24_production_bundle.sh             scripts/start_v24_authority.sh
           V24_JAVA_HOME="$JAVA_HOME"           V24_BUILD_PYTHON="$RELEASE_VALIDATION_PYTHON"           V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT"             bash scripts/verify_v24_production_bundle.sh             | tee dist/release-meta/v24-production-authority-bundle.log
 
+      - name: Verify durable V24 Authority Generation controller
+        env:
+          V24_SOURCE_COMMIT: ${{ env.RELEASE_SOURCE_COMMIT }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/verify_v24_authority_generation.sh
+          V24_JAVA_HOME="$JAVA_HOME" \
+          V24_BUILD_PYTHON="$RELEASE_VALIDATION_PYTHON" \
+          V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT" \
+            bash scripts/verify_v24_authority_generation.sh \
+            | tee dist/release-meta/v24-authority-generation.log
+
       - name: Produce sealed gray-test evidence
         env:
           PYTHONPATH: .
