@@ -29,7 +29,7 @@ V25 Vector Index Required: false
 V25 New Agent Runtime: false
 
 V24 Production Authority Bundle Version: 24.21.0
-V24 Java Runtime: Temurin 17.0.20+1 embedded jlink
+V24 Java Runtime: Temurin 17.0.20+8 embedded jlink
 V24 Java Enforcement Mode: READY_NO_AUTHORITY
 V24 Java Production Mutation: false
 V24 Atomic Five-Authority Cutover: pending
