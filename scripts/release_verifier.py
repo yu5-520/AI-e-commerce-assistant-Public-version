@@ -84,7 +84,9 @@ EXPECTED_ATTESTED_GLOBS = {
     "docs/V22.4.0.7_GITHUB_ARTIFACT_TRANSPORT.md",
     "java-control-plane/src/main/java/**/*",
     "governance/v24/production-authority-bundle-v24.json",
+    "governance/v24/authority-generation-policy-v24.json",
     "scripts/build_v24_production_bundle.sh",
+    "scripts/verify_v24_authority_generation.sh",
     "scripts/verify_v24_production_bundle.sh",
     ".github/workflows/v24-production-authority-bundle.yml",
 }
