@@ -1,17 +1,6 @@
 name: V24 Java Deterministic Core Phase2
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v24/**'
-      - 'scripts/export_v24_phase2_shadow_evidence.py'
-      - 'scripts/verify_v24_java_phase2.sh'
-      - 'src/services/canonical_product_snapshot_service.py'
-      - 'src/services/pipeline_gate_service.py'
-      - 'src/services/task_state_machine_service.py'
-      - 'src/services/task_lifecycle_state_machine_service.py'
-      - '.github/workflows/v24-java-deterministic-core-phase2.yml'
   push:
     branches:
       - main
@@ -39,7 +28,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V24_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:
