@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - '.github/workflows/public-runner-migration-pr-once.yml'
-      - '.github/workflows/public-runner-migration-once.yml'
       - 'scripts/migrate_public_runner_triggers.py'
 
 permissions:
@@ -23,22 +22,22 @@ jobs:
           fetch-depth: 1
           persist-credentials: true
 
-      - name: Migrate remaining self-hosted PR triggers
+      - name: Migrate remaining private-runner PR triggers
         run: |
           set -euo pipefail
           python3 scripts/migrate_public_runner_triggers.py
 
-      - name: Verify repository-wide public runner boundary
-        run: |
-          set -euo pipefail
-          python3 scripts/check_public_runner_boundary.py
-
-      - name: Remove one-time migration artifacts
+      - name: Remove one-time migration artifacts before final scan
         run: |
           set -euo pipefail
           rm -f scripts/migrate_public_runner_triggers.py
           rm -f .github/workflows/public-runner-migration-once.yml
           rm -f .github/workflows/public-runner-migration-pr-once.yml
+
+      - name: Verify repository-wide public runner boundary
+        run: |
+          set -euo pipefail
+          python3 scripts/check_public_runner_boundary.py
 
       - name: Commit hardened workflow boundary
         run: |
