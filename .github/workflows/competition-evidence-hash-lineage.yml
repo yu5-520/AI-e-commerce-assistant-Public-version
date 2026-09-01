@@ -1,21 +1,6 @@
 name: Competition Evidence Hash Lineage
 
 on:
-  pull_request:
-    paths:
-      - 'src/services/product_signal_snapshot_service.py'
-      - 'src/services/v215_report_batch_evidence_service.py'
-      - 'src/services/competition_evidence_v215_runtime_service.py'
-      - 'src/services/v22_runtime_service.py'
-      - 'src/services/station_alignment_v225_service.py'
-      - 'src/services/station_business_artifact_service.py'
-      - 'src/services/artifact_signal_admission_v225_service.py'
-      - 'src/services/artifact_transport_service.py'
-      - 'config/runtime_contract_lineage_registry_v1.json'
-      - 'config/v23_registry_runtime.json'
-      - 'governance/runtime_contract_lineage_repair_policy.json'
-      - 'scripts/verify_competition_evidence_hash_lineage.py'
-      - '.github/workflows/competition-evidence-hash-lineage.yml'
   push:
     branches:
       - main
@@ -33,7 +18,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 25
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact TARGET source archive
         env:
