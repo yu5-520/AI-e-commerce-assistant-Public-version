@@ -1,18 +1,6 @@
 name: V25 Unified RAG Phase4
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v25/**'
-      - 'scripts/verify_v25_phase4_knowledge_runtime.py'
-      - 'scripts/verify_v25_java_phase4.sh'
-      - 'src/__init__.py'
-      - 'src/services/v25_knowledge_revision_v2510_service.py'
-      - 'src/services/v25_knowledge_lifecycle_v2511_service.py'
-      - 'src/services/v25_knowledge_index_v2512_service.py'
-      - 'src/services/v25_knowledge_asset_install_service.py'
-      - '.github/workflows/v25-unified-rag-phase4.yml'
   push:
     branches:
       - main
@@ -41,7 +29,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V25_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V25_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
     steps:
