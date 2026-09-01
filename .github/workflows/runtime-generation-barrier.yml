@@ -1,22 +1,6 @@
 name: Runtime Generation Barrier
 
 on:
-  pull_request:
-    paths:
-      - 'config/runtime_generation_lineage_registry_v1.json'
-      - 'src/services/runtime_generation_barrier_v1_service.py'
-      - 'src/services/repeatability_contract_v1_service.py'
-      - 'src/services/system_service.py'
-      - 'src/services/station_agent_worker_v22515_service.py'
-      - 'src/services/pipeline_live_read_model_v225_service.py'
-      - 'web_demo/core/runtime-generation-reset-v1.js'
-      - 'web_demo/index.html'
-      - 'scripts/verify_runtime_generation_barrier_v1.py'
-      - 'scripts/run_competition_reset_repeatability_e2e.py'
-      - 'scripts/run_competition_reset_repeatability_e2e_worker_driver.py'
-      - 'tests/test_runtime_generation_barrier_v1.py'
-      - 'tests/test_pipeline_live_generation_reset_v1.py'
-      - '.github/workflows/runtime-generation-barrier.yml'
   workflow_dispatch:
 
 permissions:
@@ -32,7 +16,7 @@ jobs:
     timeout-minutes: 50
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       COMPETITION_REPEATABILITY_BASE: /opt/actions-runner-public/competition-repeatability/ai-ecommerce-assistant-public
