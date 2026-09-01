@@ -5,6 +5,8 @@ on:
     paths:
       - 'scripts/scan_public_release_history.py'
       - '.github/workflows/public-release-history-audit.yml'
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
