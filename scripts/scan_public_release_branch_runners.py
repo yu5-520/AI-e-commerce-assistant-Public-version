@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 
+# This scanner is intentionally branch-tip scoped: historical blobs are audited separately.
 PULL_REQUEST_TRIGGER = re.compile(r"(?m)^  pull_request:\s*(?:#.*)?$")
 
 
