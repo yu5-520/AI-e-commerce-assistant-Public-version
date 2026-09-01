@@ -1,0 +1,48 @@
+{
+  "schema": "v24.unified_authority_generation_root.policy.v1",
+  "version": "24.24.0",
+  "enforcementMode": "SHADOW",
+  "root": {
+    "source": "com.zcentury.v24.AuthorityGenerationStore",
+    "identityFields": [
+      "generationSeq",
+      "generationHash",
+      "fencingToken",
+      "stateHash"
+    ],
+    "singleWriter": true,
+    "durable": true,
+    "casProtected": true,
+    "domainMayRotateGeneration": false,
+    "modelMayRotateGeneration": false
+  },
+  "consumers": {
+    "INFORMATION": {
+      "adapter": "com.zcentury.v24.V25RetrievalAuthority",
+      "binding": "ROOT_CONSUMER"
+    },
+    "INVOCATION": {
+      "adapter": "com.zcentury.v24.QueueAuthority",
+      "binding": "ROOT_CONSUMER"
+    },
+    "TEMPORAL": {
+      "adapter": "com.zcentury.v24.TaskStateAuthority",
+      "binding": "ROOT_CONSUMER"
+    },
+    "MUTATION": {
+      "adapter": "com.zcentury.v24.GateEngine",
+      "binding": "ROOT_CONSUMER"
+    }
+  },
+  "invariants": {
+    "oneAuthorityGenerationIdentityPerRuntimeDecision": true,
+    "staleConsumerFenceMustFailClosed": true,
+    "staleKernelRequestMustConflict": true,
+    "rootBoundConsumerRotationForbidden": true,
+    "legacyLocalGenerationMayNotChangeAuthorityRoot": true,
+    "productionMutationAllowed": false,
+    "productionAuthorityOwnershipChangedByThisPhase": false,
+    "existingAuthorityAdaptersReplaced": false,
+    "authorityGrantCreated": false
+  }
+}
