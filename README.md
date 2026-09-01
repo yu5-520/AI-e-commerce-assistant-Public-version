@@ -1,390 +1,389 @@
-<div align="center">
+# AI 电商公开版
 
-# AI 经营参谋
+面向电商业务的受治理多 Agent 决策运行系统。
 
-### 面向电商团队的经营数据 → 可执行任务 Agent
+当前架构由 **Java V24 确定性控制平面**、**Python / LLM 智能计算平面**、**结构化 Agent 运行链** 与 **V25 知识平面** 组成。
 
-**上传经营报表后，系统自动完成数据比对、问题判断、行动规划、SOP 生成与任务流转。**  
-**让一个运营管理更多店铺，让经营经验沉淀为企业资产，让人员变化不再打断店铺经营。**
-
-当前阶段：**可运行 MVP · 首批企业试点招募**  
-当前部署：**阿里云 ECS**  
-当前推理平台：**阿里云百炼 · 通义千问**  
-公开比赛版：**唯一稳定业务主链**
-
-</div>
+> 当前 Runtime：V24 Authority Runtime + V25 Knowledge Plane
 
 ---
 
-## 项目定位
+## 1. 系统架构
 
-AI 经营参谋不是一个只回答问题或生成文案的聊天工具，而是一套以经营数据为输入、以任务为执行载体、以复盘为知识回流入口的电商经营 Agent 系统。
+```text
+                    经营数据
+                       │
+                 标准事实层
+                       │
+                       ▼
+┌──────────────────────────────────────────────┐
+│           Java V24 确定性控制平面            │
+│                                              │
+│ Authority Generation                        │
+│ Gate Engine                                  │
+│ Queue Authority                              │
+│ Task State Authority                         │
+│ Generation Fencing                           │
+│ 信息 / 调用 / 时间 / 执行权限                 │
+└──────────────────────┬───────────────────────┘
+                       │ Authority Envelope
+                       ▼
+┌──────────────────────────────────────────────┐
+│          Python / LLM 智能计算平面            │
+│                                              │
+│ Agent1 / Agent2 / Agent3                     │
+│ LLM / RAG / Semantic Reasoning               │
+└──────────────────────┬───────────────────────┘
+                       │ Proposal Artifact
+                       ▼
+┌──────────────────────────────────────────────┐
+│              Java 确定性验收                 │
+│                                              │
+│ Schema / Hash / Generation / Authority       │
+│ Allowed Edge / Temporal Scope / Gate         │
+└──────────────────────┬───────────────────────┘
+                       │
+                       ▼
+                任务 / 验收 / 复盘 / 回流
+```
+
+核心原则：
+
+> **系统拥有调用图，AI 只拥有节点内判断权。**
+
+---
+
+## 2. 核心技术模型
+
+### 真实性偏差 → 权限穿透模型
+
+| 真实性偏差 | 系统行为 | 权限穿透 | 工程控制 |
+| --- | --- | --- | --- |
+| 补完式偏差 | 根据上下文补全缺失信息 | 信息权限穿透 | Information Authority |
+| 完美式偏差 | 为完整完成任务扩大 Agent 调用范围 | 调用权限穿透 | Invocation Authority |
+| 回溯式偏差 | 回看旧任务并重新激活执行链 | 时间权限穿透 | Temporal Authority |
+
+模型能力可以增强推理质量，但事实边界、调用边界、时间边界和执行边界仍由确定性系统控制。
+
+```text
+Generative Completion Pressure
+            │
+            ▼
+   Reality Fidelity Bias
+       真实性偏差
+            │
+   ┌────────┼────────┐
+   │        │        │
+补完式    完美式    回溯式
+   │        │        │
+信息穿透  调用穿透  时间穿透
+   └────────┼────────┘
+            ▼
+    Authority Penetration
+            │
+            ▼
+Java V24 Deterministic Control Plane
+```
+
+---
+
+## 3. Java V24 确定性控制平面
+
+```text
+java-control-plane/
+└── src/main/java/com/zcentury/v24/
+    ├── AuthorityGenerationStore.java
+    ├── GenerationFencer.java
+    ├── GateEngine.java
+    ├── QueueAuthority.java
+    ├── TaskStateAuthority.java
+    ├── CompatibilityAuthority.java
+    ├── DeploymentAuthority.java
+    ├── FrontendViewAuthority.java
+    ├── V25RetrievalAuthority.java
+    ├── V25KnowledgeCompositionAuthority.java
+    └── V25KnowledgeDomainAuthority.java
+```
+
+| 组件 | 工程职责 |
+| --- | --- |
+| `AuthorityGenerationStore` | 权限代际、单写者、CAS、状态持久化、Rollback |
+| `GenerationFencer` | 旧 Generation 写入隔离与 Fencing |
+| `GateEngine` | Fail-Closed 确定性门控 |
+| `QueueAuthority` | Agent Stage Claim / Lease / Handoff / Retry / Idempotency |
+| `TaskStateAuthority` | 任务生命周期状态权 |
+| `CompatibilityAuthority` | Python / Java 兼容与迁移边界 |
+| `DeploymentAuthority` | 部署 Authority 与生产切换边界 |
+| `V25RetrievalAuthority` | 知识检索 Authority |
+| `V25KnowledgeCompositionAuthority` | 知识组合与上下文构造 Authority |
+
+Java 控制平面负责确定性状态、权限、队列、生命周期、Generation、Fencing 与最终验收；Python / LLM 不拥有最终 Authority。
+
+---
+
+## 4. Python / LLM 智能计算平面
+
+Python 侧保留模型与业务语义计算能力：
+
+```text
+LLM Provider
+RAG
+Embedding
+Agent 业务判断
+Prompt / Output Parsing
+Semantic Reasoning
+业务快速迭代
+```
+
+运行边界：
+
+```text
+Python != Authority Owner
+Python != Workflow Owner
+Python != State Authority
+Python != Execution Authority
+```
+
+Python / LLM 在 Java 授予的事实、调用、时间与执行范围内完成推理，并输出 Proposal Artifact 交由确定性控制平面验收。
+
+---
+
+## 5. Agent 业务运行链
 
 ```text
 经营报表
-→ 数据清洗与多期比对
-→ 商品级经营证据
-→ Agent 经营判断
-→ 平台与类目动作草案
-→ 企业执行 SOP
-→ 确定性任务映射
-→ 执行、验收与复盘
+   ↓
+事实清洗 / 商品快照
+   ↓
+信号准入
+   ↓
+Agent1：经营判断
+   ↓
+动作族锁定
+   ↓
+Agent2：动作方案
+   ↓
+Agent3：企业 SOP
+   ↓
+确定性任务映射
+   ↓
+任务池
+   ↓
+执行 / 验收 / 复盘
 ```
 
-比赛公开版本聚焦一条经过验证的稳定链路，用于证明产品核心价值和端到端交付能力。完整母仓保留企业级增值能力与定制接口，比赛仓不公开其具体实现。
-
----
-
-## 客户为什么选择
-
-### 1. 减少繁琐的数据处理，让一个运营管理更多店铺
-
-传统运营需要反复下载报表、整理字段、清洗数据、跨周期比对、寻找异常并撰写执行方案。系统把这些机械环节压缩为自动化链路，让运营人员直接处理已经定位的经营问题和执行任务。
-
-企业由此可以：
-
-- 缩短从数据产生到经营动作落地的时间；
-- 减少重复报表整理和人工比对；
-- 提高单个运营人员的店铺与商品管理半径；
-- 在扩大业务规模时，降低人员同比例扩张的压力。
-
-### 2. 把个人经验沉淀为企业经营资产
-
-系统记录任务产生依据、执行过程、人工修改、审批结果和经营效果。经过验证与审核的经验可以回流企业 RAG，逐步形成企业自己的类目知识、平台经验、品牌规则和管理方法。
+### Agent 运行硬约束
 
 ```text
-经营数据
-→ Agent 判断
-→ 人员执行
-→ 结果验证
-→ 人工复盘与审核
-→ 企业 RAG
-→ 下一轮任务质量提升
-```
-
-这使企业从依赖个别运营人员的个人能力，转向依靠可继承、可复用、可持续积累的组织能力运行。
-
-### 3. 用任务驱动组织，降低培训、离职与岗位调动风险
-
-每项任务都保留数据依据、问题解释、执行步骤、权限边界、验收标准和历史记录。新人可以在真实任务中边执行边学习，减少对资深运营一对一带教的依赖。
-
-当人员离职、休假或调岗时，其他运营可以沿着已有任务链、经营证据和复盘记录继续接手，显著降低交接成本和业务中断风险。
-
-### 4. 从单一结果指标升级为多证据经营评价
-
-ROI、ROAS 等结果指标仍然重要，但无法单独解释库存、审批、美工、采购和市场变化等外部影响。任务生命周期可以提供完整证据链：
-
-```text
-经营问题
-→ 任务生成
-→ 责任部门
-→ 执行与阻塞
-→ 审批与返工
-→ 验收结果
-→ 经营数据变化
-```
-
-系统可基于真实日志自动形成日报、周报和月报，减少员工重复整理汇报的时间，并为管理者提供结果、过程、协作和外部条件的交叉验证依据。
-
----
-
-## 比赛版唯一稳定主链
-
-公开比赛版本只保留以下端到端主链，不把母仓中的企业增值接口重新塞入公开运行路径：
-
-```text
-真实/脱敏经营报表 Artifact
-→ 最近五份事实比较与历史趋势
-→ operatingEvidenceGraph.v1
-→ signalRef
-→ agent1InputRef
-→ executionHash / itemExecutionId
-→ Agent1 经营判断
-→ agent2DraftInputRef
-→ Agent2 平台与类目动作草案
-→ agent3SopInputRef
-→ Agent3 企业执行 SOP
-→ 确定性任务映射
-→ 权限准入、任务生命周期与复盘
-```
-
-观察类商品在 Agent1 后形成合法终态，不进入后续动作生成，避免为了“多生成任务”而制造无效运营动作。
-
-### 三 Agent 职责
-
-| 阶段 | 职责 | 明确边界 |
-|---|---|---|
-| Agent1 | 读取经营证据，识别主问题并锁定唯一动作方向 | 不生成最终成稿或完整 SOP |
-| Agent2 | 结合平台、类目、商品角色与参数边界形成动作草案 | 不改变 Agent1 的主动作，不生成公司审批流程 |
-| Agent3 | 结合企业规则与 RAG 生成可执行 SOP | 不扩大权限，不增加第二个执行目标 |
-| 确定性映射 | 将 Agent3 SOP 转换为任务并执行准入校验 | 不再调用 LLM，不增加或改写业务步骤 |
-
----
-
-## 阿里云技术架构
-
-当前真实运行链路已经使用阿里云技术栈：
-
-| 层级 | 当前运行方案 |
-|---|---|
-| 云基础设施 | 阿里云 ECS |
-| 模型平台 | 阿里云百炼 |
-| 当前主模型 | 通义千问 |
-| Agent 调用 | Agent1 / Agent2 / Agent3 均通过统一 Provider 层调用百炼千问 |
-| 模型扩展 | 保留其他云模型与企业内部模型适配接口 |
-| 稳定控制 | 输入引用边界、执行 Hash、不可变 Artifact、确定性任务映射 |
-| 业务闭环 | 任务准入、执行、验收、复盘与知识回流 |
-
-统一模型适配接口不是对当前主模型的弱化，而是面向企业选型、容灾和私有化部署的扩展设计。比赛版本的当前正式主链仍以 **阿里云百炼通义千问** 为推理服务。
-
-### 智能与确定性的分工
-
-```text
-通义千问
-→ 负责理解、判断、规划和 SOP 生成
-
-系统规则与 Hash 运行时
-→ 负责身份、权限、重放、审计和确定性映射
-```
-
-系统避免让大模型直接拥有完整业务状态机和任务数据库修改权，从而提高企业场景下的可追溯性、可复现性和可控制性。
-
----
-
-## 核心技术特点
-
-### Hash 定向执行
-
-每个 Agent 执行条件形成唯一 `executionHash`。完全相同的执行条件返回同一个不可变输出 Artifact，不重复调用模型；输入、策略、模型或参数变化时生成新的执行身份，不覆盖旧结果。
-
-```text
-相同 executionHash
-→ 返回同一 acceptedOutputRef
-→ Provider 调用次数为 0
-
-执行条件变化
-→ 新 executionHash
-→ 新不可变输出
-```
-
-### 商品级微批次隔离
-
-Agent1 单次 Provider 请求最多处理 8 个商品，通过 `itemExecutionId + inputContentHash` 匹配每个商品的输入与输出。单个商品失败不会导致同批已接受商品重跑。
-
-### 输入引用硬边界
-
-```text
-Agent1 只读取 artifactRefs.agent1InputRef
-Agent2 只读取 artifactRefs.agent2DraftInputRef
-Agent3 只读取 artifactRefs.agent3SopInputRef
-```
-
-原始报表、历史流水和完整审计内容不会被无边界地塞入每个 Agent 上下文。
-
-### 确定性任务映射
-
-```text
-noMappingLlm = true
-compilerAddedStepCount = 0
-mappingMode = deterministic_agent3_projection_only
-```
-
-模型负责智能判断，系统负责把已经通过合同校验的 SOP 投影为任务，避免在最后一步再次发生不可控改写。
-
----
-
-## 企业级扩展能力
-
-完整母仓保留以下增值能力。为保证比赛版本稳定性、公开安全边界和知识产权保护，相关执行接口不进入公开比赛主链。
-
-| 能力 | 比赛版状态 | 商业交付方式 |
-|---|---|---|
-| 报表上传、数据比对、三 Agent 与任务生成 | 公开可运行 | 标准 SaaS |
-| 通用电商 RAG 与平台风格能力 | 比赛场景可用 | 月费基础能力 |
-| 多租户数据库隔离 | 比赛版关闭 | 企业年费 |
-| ERP / CRM / 数据仓库自动接入 | 接口不公开 | 企业接口服务 |
-| 垂直类目 RAG | 实现留在母仓 | 企业增值服务 |
-| 公司经营管理与权限 RAG | 实现留在母仓 | 企业年费 / 定制 |
-| 跨部门父事务与任务依赖编排 | 业务方案公开，执行接口关闭 | 企业协同版 |
-| 自动日报、周报、月报 | 方案与数据基础公开 | 管理增值模块 |
-| 多证据绩效辅助分析 | 方案公开，AI 不直接决定绩效 | 企业管理模块 |
-| 企业内部服务器与数据库部署 | 部署细节不公开 | 一次性部署费 |
-| 1V1 运维与驻场服务 | 非公开代码能力 | 年度服务费 |
-
-更完整的状态说明见：[比赛能力状态矩阵](docs/COMPETITION_CAPABILITY_MATRIX.md)。
-
----
-
-## 跨部门经营编排示例
-
-企业版本可以围绕一个经营目标生成父事务，并按照真实依赖关系拆分部门任务。
-
-### ROAS 增投
-
-```text
-高 ROAS 商品具备增投价值
-├─ 主管 / 财务：预算审批
-├─ 仓储：库存与可售天数检查
-├─ 采购：库存不足时生成补货任务
-├─ 运营：调整预算、出价和投放计划
-└─ 系统：观察销量、利润、库存与 ROAS 变化
-```
-
-### 标题主图优化
-
-```text
-点击率异常
-→ 运营确认问题与目标人群
-→ 美工制作主图
-→ 品牌 / 主管审核
-→ 运营上线或发起 A/B 测试
-→ 系统进入观察与复盘
-```
-
-这使产品从“给运营建议”升级为“让经营数据按照正确顺序变成跨部门协同任务”。
-
----
-
-## 商业模式
-
-### 个人与小型电商公司：标准 SaaS 月费
-
-提供报表上传、数据比对、通用电商 RAG、通用平台风格模型、经营任务与 SOP 生成。核心价值是节省报表处理时间，提高单个运营的店铺管理数量。
-
-### 中大型电商公司：企业年费 + 增值服务
-
-提供独立租户、ERP 自动接入、垂直类目 RAG、公司管理权限 RAG、跨部门任务编排、任务生命周期和经验审核回流。核心价值是组织效率、经验资产化和业务连续性。
-
-### 大型品牌电商：私有化部署 + 年度服务
-
-部署到企业内部服务器和数据库，提供全链路 RAG 定制、部门权限隔离、内部系统接入，以及远程 1V1 或驻场运维服务。
-
-```text
-月费订阅
-＋ 企业年费
-＋ 接口接入费
-＋ RAG 定制费
-＋ 私有化部署费
-＋ 年度运维服务费
+完整 Artifact 直接读取      : 禁止
+Agent 输入 fallback          : 禁止
+模型动态扩张调用图           : 禁止
+跨动作族重写                 : 禁止
+LLM 二次任务映射             : 禁止
+旧 Generation 写入           : 禁止
+未审核知识直接进入 Agent RAG : 禁止
 ```
 
 ---
 
-## 当前阶段与比赛目标
+## 6. 权限边界
 
-本项目已经完成可运行 MVP、核心主链测试和关键接口验证，当前尚未进入规模化客户运营阶段。
+### Information Authority
 
-本次参赛的目的不是把未来市场数据伪装成当前成绩，而是借助比赛完成从技术验证到市场验证的跨越：
-
-```text
-稳定公开比赛版
-→ 获得赛事曝光与行业背书
-→ 招募首批企业试点
-→ 形成真实使用数据
-→ 沉淀行业案例
-→ 企业销售与规模化
-→ 融资或持续经营增长
-```
-
-首批试点重点量化：
-
-- 报表处理与分析时间；
-- 单个运营可管理店铺数量；
-- Agent 任务采用率和人工修改率；
-- 新人适应周期与带教时间；
-- 店铺交接周期；
-- 跨部门任务完成与阻塞时间；
-- 日报、周报、月报编写时间；
-- 企业 RAG 回流前后的任务质量变化。
-
----
-
-## 公开比赛仓与完整母仓边界
-
-比赛仓不是母仓的完整开源副本，而是面向公开验证的稳定产品核心。
+控制 Agent 可以读取、推理和使用哪些信息。
 
 ```text
-比赛仓
-= 唯一稳定运行链路
-+ 脱敏演示数据
-+ 必要测试与公开证明
-+ 商业模式与战略规划
-
-完整母仓
-= 企业增值接口
-+ 私有 RAG 与权限规则
-+ ERP / 内部系统适配
-+ 跨部门定制编排
-+ 私有化部署与运维能力
-+ 内部架构治理能力
+Source Artifact
+      ↓
+Field / Ownership Registry
+      ↓
+System Projection
+      ↓
+Agent Input Ref
+      ↓
+Agent
 ```
 
-公开仓采用白名单精准抽取，不通过“仅隐藏前端按钮”保护私有能力。企业 RAG 配方、客户定制规则、内部部署脚本、密钥与母仓治理架构不会进入公开发布包。
+关键约束：
 
-### Z-Century 技术授权边界
+- 仅允许注册字段进入 Agent 投影；
+- 输入必须绑定 Source Artifact / Content Hash；
+- 完整 Artifact 不直接进入模型上下文；
+- 推理结果不能自动晋升为事实或执行参数；
+- 缺失权限参数时 Fail Closed，不按动作族或上下文猜测。
 
-本项目 V25 Unified RAG / Knowledge Plane 中由 Z 架构派生的通用框架结构，使用 **Z-Century（Z世纪）技术体系及其适用权利人**提供的有限授权。相关通用架构不会因为代码被集成、构建或部署在本仓库而发生知识产权转让。
+### Invocation Authority
 
-AI 电商项目仅取得本项目范围内的有限、非独占、不可转让使用权，**不取得 Z 派生通用框架的所有权、转让权、再许可权或再授权权**。AI 电商项目自身独立形成的电商业务逻辑、业务数据、项目特定 Agent 规则、页面与产品实现仍按自身权利来源处理，不因该授权声明被归入 Z 通用框架。
-
-授权 ID：`Z-AUTH-AIECOM-V25-KNOWLEDGE-PLANE-001`
-
-- 人类可读声明：[Z_CENTURY_TECHNOLOGY_NOTICE.md](Z_CENTURY_TECHNOLOGY_NOTICE.md)
-- 消费者侧机器授权记录：`governance/ip/z-century-v25-technology-license.json`
-- 授权源侧记录：`yu5-520/Z-Century` → `licenses/authorized-projects/AI_ECOMMERCE_V25_KNOWLEDGE_PLANE.json`
-
-> **Integration ≠ Assignment：技术集成不等于知识产权转让。**
-
----
-
-## 唯一运行入口
+控制当前任务允许进入哪些 Agent、Stage 和调用边。
 
 ```text
-src.api.main:app
+Allowed Stage / Edge
+        ↓
+Queue Authority
+        ↓
+Agent Node
+        ↓
+Deterministic Handoff
 ```
 
-本地开发入口示例：
+模型可以提出建议，但不能自行增加 Agent、Stage 或调用边。
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.lock
-uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+### Temporal Authority
+
+控制已完成任务的历史访问与重新执行边界。
+
+```text
+Task T1
+  ↓
+Frozen Evidence
+  ↓
+RETROSPECTIVE_READONLY
+  ↓
+Recap / Knowledge Candidate
 ```
 
-生产环境通过不可变发布包部署到阿里云 ECS。密钥、数据库地址和百炼配置均由 ECS 外部环境变量注入，不写入公开仓库。
+旧任务不直接重新获得执行权；新的行动应生成新的任务、Execution Identity 与 Authority Generation。
 
 ---
 
-## 版本、发布与验证
+## 7. 工程能力
 
-详细版本矩阵见：[VERSION.md](VERSION.md)。
-
-当前发布体系以精确 Git Commit、依赖锁、运行文件清单、测试证据和 Release Hash 共同确定服务器运行身份。正式发布目录不可原地修改，通过新发布目录验证后再原子切换。
-
-### Release Hash 证据合同
-
-发布清单把运行代码与测试证据分开签封：`attestedFiles` 记录受签封源码，`testEvidenceFiles` 记录编译、静态合同、路由烟雾、测试日志、依赖环境与运行时身份等证据，并由 `testRunHash` 汇总。运行时还会校验 `runtimePipFreezeHash` 与构建时依赖指纹一致，并以 `evidenceSemanticVerified` 表示测试证据的来源 Commit、发布事件、工作流身份和语义边界均通过验证。
-
-这些字段用于证明“部署包、依赖环境和测试证据属于同一次精确发布”，而不是把一次普通 PR 校验伪装成可部署发布包。PR 只执行非封印校验；只有合并进入 `main` 后，正式发布工作流才生成不可变 Release Hash Artifact。
-
-当前有效技术文档：
-
-- [V22.4.0 Release Hash Seal](docs/V22.4.0_RELEASE_HASH_SEAL.md)
-- [V22.4.0.7 GitHub Artifact Transport](docs/V22.4.0.7_GITHUB_ARTIFACT_TRANSPORT.md)
-- [比赛能力状态矩阵](docs/COMPETITION_CAPABILITY_MATRIX.md)
-- [比赛版筛选、部署与验证计划](docs/COMPETITION_RELEASE_PLAN.md)
+| 工程能力 | 实现方式 | 状态 |
+| --- | --- | ---: |
+| 确定性执行身份 | ExecutionHash / Hash | ✅ |
+| 不可变节点传输 | Artifact Ref | ✅ |
+| 默认拒绝门控 | Java GateEngine | ✅ |
+| 单写者 Authority | Authority Generation | ✅ |
+| 旧代写入隔离 | Generation Fencing | ✅ |
+| 重复执行抑制 | Idempotency Key | ✅ |
+| Agent 输入隔离 | Hard Input Contract | ✅ |
+| 动作族锁定 | Agent Runtime Contract | ✅ |
+| 最终任务确定性映射 | Agent3 Projection | ✅ |
+| 历史证据冻结 | dataVersion / frozenAt | ✅ |
+| 知识不可变 Revision | Knowledge Revision | ✅ |
+| 人工审核知识回流 | Human Review Gate | ✅ |
+| Hash / Lineage 审计 | Registry / Governance | ✅ |
 
 ---
 
-## MVP 边界
+## 8. V25 统一知识平面
 
-比赛阶段优先保证一条主链稳定、可交付、可重复验证。当前不为了增加技术名词而引入不必要的 Merkle Tree、Ed25519 发布签名或蓝绿双实例；继续采用轻量 Hash 签封、不可变 Artifact、精确执行索引、单实例 Worker 和可回滚发布目录。
+### 检索链
 
-> **先用唯一稳定链路证明产品能解决真实问题，再通过企业试点把架构价值转化为真实使用数据和商业飞轮。**
+```text
+Query / Agent Need
+        ↓
+字段约束
+        ↓
+结构化过滤
+        ↓
+语义检索
+        ↓
+Retrieval Receipt
+        ↓
+Agent Context
+```
 
-## 比赛版身份与外部接口边界
+### 知识回流链
 
-公开比赛运行环境不提供应用内登录、账号密码、角色切换或租户创建。页面直接进入由服务端固定注入的运营工作台；`competition_operator` 只是比赛运行身份标签，不宣称具备企业级账号安全或多租户隔离。老板、主管、多部门账号、审批与组织权限属于企业组织协同增值能力。
+```text
+任务结果
+   ↓
+复盘
+   ↓
+Knowledge Candidate
+   ↓
+人工审核
+   ↓
+Immutable Revision
+   ↓
+Knowledge Index
+   ↓
+未来 Agent Retrieval
+```
 
-外部能力执行采用默认拒绝：接口必须先登记到 `config/external_interface_registry.json`，绑定实现 Hash、输入输出合同、凭证来源与允许的网络目标，再进入哈希血缘和发布验证门。当前唯一启用的外部推理接口是阿里云百炼通义千问；身份代理、OSS、钉钉组织目录和 ERP 接入仅登记为企业扩展，比赛运行链路未绑定、未启用。
+未审核的 `pending_review` 经验不进入生产 Agent 检索。
+
+---
+
+## 9. 仓库结构
+
+```text
+.
+├── java-control-plane/   # Java 确定性控制平面
+├── src/                  # Python 智能计算与业务服务
+├── contracts/            # 字段 / 接口 / Ownership 注册表
+├── governance/           # Hash 血缘、Authority 与治理证据
+├── config/               # Runtime / Registry 配置
+├── fixtures/             # 脱敏测试与公开数据
+├── release/              # 发布、校验与运行证明
+├── tests/                # Contract / Runtime / Regression 测试
+├── web_demo/             # 演示前端
+└── docs/                 # 架构与技术文档
+```
+
+---
+
+## 10. 版本演进
+
+```text
+V22  Python Agent 稳定链
+V23  Hard Interface / Registry / Artifact
+V24  Java Deterministic Authority Runtime
+V25  Unified Knowledge Plane
+```
+
+当前重点：
+
+- Java Authority Runtime；
+- Python / Java Authority 边界；
+- Information / Invocation / Temporal Authority；
+- Agent Hard Interface；
+- Hash / Artifact / Generation / Fencing；
+- V25 Knowledge Retrieval / Revision / Review。
+
+---
+
+## 11. 构建、运行与验证
+
+### 环境
+
+- Java 17+
+- Python 3.x
+- FastAPI
+- SQLite / Runtime Adapter
+- LLM Provider
+
+仓库中的具体构建、运行、测试与部署脚本以当前版本目录和 `release/`、`scripts/`、`.github/workflows/` 中的实现为准。
+
+公开版重点保留：
+
+- 可运行业务链；
+- Java Control Plane；
+- Agent Contract；
+- Hash / Artifact / Lineage；
+- Knowledge Plane；
+- 测试与验证证据。
+
+---
+
+## 12. 技术说明与授权
+
+本仓库公开 AI 电商业务实现、工程设计与部分治理能力。
+
+通用 Z-Century 技术体系的独立实现、完整治理框架及未授权能力不属于本仓库公开范围。
+
+请参阅：
+
+- [`LICENSE`](./LICENSE)
+- [`Z_CENTURY_TECHNOLOGY_NOTICE.md`](./Z_CENTURY_TECHNOLOGY_NOTICE.md)
+
+---
+
+## 13. 联系方式
+
+**商务联系**  
+225447370@qq.com
+
+**技术探索 / 交流**  
+2254473740
