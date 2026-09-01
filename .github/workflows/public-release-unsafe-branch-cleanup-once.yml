@@ -63,22 +63,24 @@ jobs:
                   raise SystemExit(f'GitHub API {method} {path} failed: {exc.code} {body}')
 
           manifest = json.loads(Path('governance/public_release_archived_unsafe_branch_tips.json').read_text(encoding='utf-8'))
-          tips = [str(item['tipSha']) for item in manifest['branches']]
+          branch_tips = [str(item['tipSha']) for item in manifest['branches']]
+          unique_tips = sorted(set(branch_tips))
           assert manifest['unsafeBranchCount'] == 71, manifest['unsafeBranchCount']
           assert manifest['unsafeWorkflowCount'] == 1081, manifest['unsafeWorkflowCount']
-          assert len(tips) == 71 and len(set(tips)) == 71
-          assert all(len(sha) == 40 for sha in tips)
+          assert len(branch_tips) == 71
+          assert unique_tips
+          assert all(len(sha) == 40 for sha in unique_tips)
 
           ref = call('GET', f'/git/ref/tags/{tag}', allow_404=True)
           if ref is None:
-              for sha in tips:
+              for sha in unique_tips:
                   assert call('GET', f'/git/commits/{sha}', allow_404=True) is not None, f'missing archived commit {sha}'
               head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
               tree = subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip()
               archive_commit = call('POST', '/git/commits', {
                   'message': 'Public release archive: preserve removed unsafe branch tips',
                   'tree': tree,
-                  'parents': [head, *tips],
+                  'parents': [head, *unique_tips],
               })
               ref = call('POST', '/git/refs', {
                   'ref': f'refs/tags/{tag}',
@@ -88,11 +90,12 @@ jobs:
           archive_sha = ref['object']['sha']
           archive_commit = call('GET', f'/git/commits/{archive_sha}')
           parents = {item['sha'] for item in archive_commit['parents']}
-          missing = sorted(set(tips) - parents)
+          missing = sorted(set(unique_tips) - parents)
           assert not missing, f'archive tag is missing preserved tips: {missing}'
           print(f'PUBLIC_RELEASE_ARCHIVE_TAG={tag}')
           print(f'PUBLIC_RELEASE_ARCHIVE_COMMIT={archive_sha}')
-          print(f'PUBLIC_RELEASE_ARCHIVED_TIP_COUNT={len(tips)}')
+          print(f'PUBLIC_RELEASE_ARCHIVED_BRANCH_RECORDS={len(branch_tips)}')
+          print(f'PUBLIC_RELEASE_ARCHIVED_UNIQUE_TIPS={len(unique_tips)}')
           print('PUBLIC_RELEASE_ARCHIVE_TAG_BOUNDARY=verified')
           PY
 
