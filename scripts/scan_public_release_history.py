@@ -20,8 +20,12 @@ STRONG_PATTERNS = {
     "jwt": re.compile(rb"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
 }
 
+# Credential words must be standalone underscore/dash-delimited segments. This excludes
+# domain metadata such as tokenRuntime, tokenBudget, sourceResetToken, and tokenHash.
 CREDENTIAL_NAME = (
-    rb"[A-Z0-9_]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD)[A-Z0-9_]*"
+    rb"(?:[A-Z0-9]+[_-])*"
+    rb"(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET(?:[_-]?KEY)?|TOKEN|PASSWORD|PASSWD)"
+    rb"(?:[_-][A-Z0-9]+)*"
 )
 
 # Generic credential detection is intentionally literal-only. Runtime expressions such as
@@ -51,7 +55,10 @@ SAFE_VALUE_MARKERS = (
     b"your-",
     b"dummy",
     b"fake",
-    b"test",
+    b"fixture",
+    b"must-never",
+    b"test-secret",
+    b"test-token",
     b"redacted",
     b"xxxx",
     b"<",
