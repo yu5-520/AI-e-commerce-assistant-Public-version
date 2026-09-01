@@ -1,22 +1,6 @@
 name: Competition Agent3 Semantic Microbatch
 
 on:
-  pull_request:
-    paths:
-      - 'src/services/agent3_runtime_v23215_service.py'
-      - 'src/services/agent_token_runtime_v225_service.py'
-      - 'src/services/agent_runtime_contract_v225_service.py'
-      - 'src/services/agent3_sop_core_v225_service.py'
-      - 'src/services/agent3_system_constraint_v23215_service.py'
-      - 'src/services/hash_directed_artifact_runtime_v2259_service.py'
-      - 'src/services/station_agent_worker_v2259_service.py'
-      - 'config/v23_registry_runtime.json'
-      - 'tests/test_agent3_semantic_sop_microbatch_v1.py'
-      - 'scripts/verify_agent3_semantic_sop_microbatch.py'
-      - 'scripts/prepare_competition_runtime_venv.sh'
-      - 'governance/agent3_semantic_sop_microbatch_v1.json'
-      - 'governance/competition_lineage_update_policy.json'
-      - '.github/workflows/competition-agent3-semantic-microbatch.yml'
   push:
     branches: [main]
   workflow_dispatch:
@@ -33,7 +17,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       PYTHONDONTWRITEBYTECODE: '1'
