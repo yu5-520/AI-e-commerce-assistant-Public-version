@@ -20,12 +20,27 @@ STRONG_PATTERNS = {
     "jwt": re.compile(rb"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
 }
 
-# Horizontal whitespace is intentional. `\s` would cross a newline and could turn an
-# empty KEY= line into a false positive by consuming the next configuration line.
-KEY_VALUE_PATTERN = re.compile(
-    rb"(?im)^[ \t]*(?:export[ \t]+)?"
-    rb"([A-Z0-9_]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD)[A-Z0-9_]*)"
-    rb"[ \t]*[:=][ \t]*['\"]?([^'\"\r\n#]{16,})"
+CREDENTIAL_NAME = (
+    rb"[A-Z0-9_]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD)[A-Z0-9_]*"
+)
+
+# Generic credential detection is intentionally literal-only. Runtime expressions such as
+# TOKEN="${GITHUB_TOKEN:-}", token = sha256(...), api_key = os.getenv(...), or values read
+# from `gh auth` / git credential helpers are not repository-embedded credentials.
+QUOTED_CREDENTIAL_PATTERN = re.compile(
+    rb"(?im)^[ \t]*(?:export[ \t]+)?(" + CREDENTIAL_NAME + rb")"
+    rb"[ \t]*[:=][ \t]*(['\"])([^'\"\r\n]{16,})\2[ \t]*(?:[,;]?[ \t]*(?:#.*)?)?$",
+    re.I,
+)
+UNQUOTED_CREDENTIAL_PATTERN = re.compile(
+    rb"(?im)^[ \t]*(?:export[ \t]+)?(" + CREDENTIAL_NAME + rb")"
+    rb"[ \t]*[:=][ \t]*([A-Za-z0-9_./+=:@-]{16,})[ \t]*(?:#.*)?$",
+    re.I,
+)
+JSON_CREDENTIAL_PATTERN = re.compile(
+    rb"(?im)^[ \t]*['\"](" + CREDENTIAL_NAME + rb")['\"]"
+    rb"[ \t]*:[ \t]*(['\"])([^'\"\r\n]{16,})\2[ \t]*,?[ \t]*$",
+    re.I,
 )
 
 SAFE_VALUE_MARKERS = (
@@ -41,6 +56,7 @@ SAFE_VALUE_MARKERS = (
     b"xxxx",
     b"<",
     b"${",
+    b"$(",
     b"{{",
 )
 
@@ -57,6 +73,7 @@ UPPER_IDENTIFIER = re.compile(rb"^[A-Z][A-Z0-9_]{7,}$")
 DESCRIPTIVE_SNAKE_CASE = re.compile(rb"^[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+){2,}$")
 URL_VALUE = re.compile(rb"^https?://", re.I)
 VERSION_VALUE = re.compile(rb"^v?\d+(?:\.\d+){1,4}(?:[-+][A-Za-z0-9_.-]+)?$", re.I)
+HEX_DIGEST = re.compile(rb"^[0-9a-f]{32,128}$", re.I)
 
 
 def run_git(*args: str, input_bytes: bytes | None = None) -> bytes:
@@ -106,11 +123,8 @@ def probable_literal_secret(value: bytes) -> bool:
         return False
     if URL_VALUE.match(value) or VERSION_VALUE.match(value):
         return False
-    if value.lower().startswith((b"sha256:", b"sha1:", b"md5:")):
+    if value.lower().startswith((b"sha256:", b"sha1:", b"md5:")) or HEX_DIGEST.fullmatch(value):
         return False
-    # Code metadata such as AGENT_TOKEN_RUNTIME_VERSION = THREE_AGENT_PIPELINE_VERSION
-    # and EPOCH_SOURCE_RESET_TOKEN_KEY = "competition_history_epoch_source_reset_token"
-    # is not credential material.
     if UPPER_IDENTIFIER.fullmatch(value) or DESCRIPTIVE_SNAKE_CASE.fullmatch(value):
         return False
     if len(set(value)) < 8:
@@ -126,6 +140,18 @@ def probable_literal_secret(value: bytes) -> bool:
 
 def line_number(data: bytes, offset: int) -> int:
     return data.count(b"\n", 0, offset) + 1
+
+
+def literal_credential_matches(data: bytes):
+    for pattern, value_group in (
+        (QUOTED_CREDENTIAL_PATTERN, 3),
+        (UNQUOTED_CREDENTIAL_PATTERN, 2),
+        (JSON_CREDENTIAL_PATTERN, 3),
+    ):
+        for match in pattern.finditer(data):
+            value = match.group(value_group).strip()
+            if probable_literal_secret(value):
+                yield match
 
 
 def main() -> int:
@@ -158,10 +184,8 @@ def main() -> int:
             for match in pattern.finditer(data):
                 findings.append((label, sha, primary_path, line_number(data, match.start())))
 
-        for match in KEY_VALUE_PATTERN.finditer(data):
-            value = match.group(2).strip()
-            if probable_literal_secret(value):
-                findings.append(("credential_assignment", sha, primary_path, line_number(data, match.start())))
+        for match in literal_credential_matches(data):
+            findings.append(("credential_literal", sha, primary_path, line_number(data, match.start())))
 
     print(f"HISTORY_OBJECT_COUNT={len(objects)}")
     print(f"HISTORY_BLOB_SCANNED={scanned_blobs}")
