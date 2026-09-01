@@ -1,0 +1,64 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Local databases and runtime state
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Java / build outputs
+*.class
+build/
+target/
+out/
+
+# Generated artifacts, logs and caches
+dist/
+*.log
+*.tmp
+*.cache
+.cache/
+coverage/
+.coverage
+htmlcov/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local runner and deployment state
+.runner
+.credentials
+.credentials_rsaparams
+_svc.sh
+_diag/
+.actions-runner/
+competition-candidates/
+competition-runtime-venvs/
+competition-qwen-live/
+competition-autonomous-worker/
+
+# Committed sanitized competition fixtures under web_demo/sample-data/ remain tracked.
