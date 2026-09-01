@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/scan_public_release_history.py'
+      - 'scripts/scan_public_release_branch_runners.py'
       - '.github/workflows/public-release-history-audit.yml'
   push:
     branches: [main]
@@ -13,11 +14,11 @@ permissions:
   contents: read
 
 jobs:
-  history-secret-scan:
+  public-release-ref-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout complete Git history
+      - name: Checkout complete Git history and refs
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -27,3 +28,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/scan_public_release_history.py
+
+      - name: Scan every non-main branch for public-PR self-hosted exposure
+        run: |
+          set -euo pipefail
+          python3 scripts/scan_public_release_branch_runners.py
