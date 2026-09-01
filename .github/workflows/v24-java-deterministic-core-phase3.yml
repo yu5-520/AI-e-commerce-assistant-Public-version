@@ -1,17 +1,6 @@
 name: V24 Java Deterministic Core Phase3
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v24/phase3-**'
-      - 'scripts/export_v24_phase3_queue_evidence.py'
-      - 'scripts/verify_v24_java_phase3.sh'
-      - 'src/services/pipeline_item_service.py'
-      - 'src/services/agent_runtime_hard_interface_v22515_service.py'
-      - 'src/services/station_agent_worker_v22515_service.py'
-      - 'src/services/runtime_generation_barrier_v1_service.py'
-      - '.github/workflows/v24-java-deterministic-core-phase3.yml'
   push:
     branches:
       - main
@@ -39,7 +28,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V24_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:
