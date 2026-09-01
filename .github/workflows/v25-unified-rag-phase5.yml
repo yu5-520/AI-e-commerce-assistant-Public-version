@@ -1,21 +1,6 @@
 name: V25 Unified RAG Phase5
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v25/**'
-      - 'scripts/verify_v25_phase5_rag_runtime.py'
-      - 'scripts/verify_v25_java_phase5.sh'
-      - 'src/services/v25_rag_quant_v2513_service.py'
-      - 'src/services/v25_rag_eval_v2514_service.py'
-      - 'src/api/routes/__init__.py'
-      - 'src/api/routes/knowledge_center.py'
-      - 'web_demo/index.html'
-      - 'web_demo/bootstrap.js'
-      - 'web_demo/knowledge-center-v2515.css'
-      - 'web_demo/modules/knowledge-center/page.js'
-      - '.github/workflows/v25-unified-rag-phase5.yml'
   push:
     branches:
       - main
@@ -47,7 +32,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V25_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V25_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
     steps:
