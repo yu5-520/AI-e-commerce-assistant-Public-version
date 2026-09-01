@@ -1,0 +1,72 @@
+name: Public Release Unsafe Branch Cleanup Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/public-release-unsafe-branch-cleanup-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  archive-and-remove-unsafe-refs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout complete repository refs
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Archive exact unsafe branch tips and workflow evidence
+        run: |
+          set -euo pipefail
+          python3 scripts/cleanup_public_release_unsafe_branches.py \
+            --output governance/public_release_archived_unsafe_branch_tips.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          payload=json.loads(Path('governance/public_release_archived_unsafe_branch_tips.json').read_text(encoding='utf-8'))
+          assert payload['unsafeBranchCount'] > 0, payload
+          assert payload['unsafeWorkflowCount'] > 0, payload
+          assert all(item['branch'] != 'main' for item in payload['branches'])
+          assert all(len(item['tipSha']) == 40 for item in payload['branches'])
+          print('UNSAFE_BRANCH_ARCHIVE=verified')
+          PY
+
+      - name: Commit archive manifest before deleting refs
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add governance/public_release_archived_unsafe_branch_tips.json
+          git diff --cached --check
+          git commit -m 'Governance: archive unsafe branch tips before public release'
+          git push origin HEAD:main
+
+      - name: Delete only archived unsafe branch refs
+        run: |
+          set -euo pipefail
+          python3 scripts/cleanup_public_release_unsafe_branches.py \
+            --manifest governance/public_release_archived_unsafe_branch_tips.json \
+            --delete
+
+      - name: Refresh refs and verify no unsafe PR base remains
+        run: |
+          set -euo pipefail
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          python3 scripts/scan_public_release_branch_runners.py
+
+      - name: Verify archived tips remain auditable in manifest
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          payload=json.loads(Path('governance/public_release_archived_unsafe_branch_tips.json').read_text(encoding='utf-8'))
+          print('ARCHIVED_BRANCH_TIP_RECORDS=' + str(len(payload['branches'])))
+          print('ARCHIVED_WORKFLOW_VIOLATIONS=' + str(payload['unsafeWorkflowCount']))
+          print('PUBLIC_RELEASE_UNSAFE_REF_CLEANUP=verified')
+          PY
