@@ -16,10 +16,16 @@ STRONG_PATTERNS = {
     "aws_access_key": re.compile(rb"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
     "aliyun_access_key": re.compile(rb"\bLTAI[A-Za-z0-9]{12,24}\b"),
     "slack_token": re.compile(rb"\bxox[baprs]-[A-Za-z0-9-]{20,}\b"),
+    "provider_sk_token": re.compile(rb"\bsk-[A-Za-z0-9_-]{20,}\b"),
+    "jwt": re.compile(rb"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
 }
 
+# Horizontal whitespace is intentional. `\s` would cross a newline and could turn an
+# empty KEY= line into a false positive by consuming the next configuration line.
 KEY_VALUE_PATTERN = re.compile(
-    rb"(?im)^(?:export\s+)?(?:[A-Z0-9_]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD)[A-Z0-9_]*)\s*[:=]\s*['\"]?([^'\"\s#]{16,})"
+    rb"(?im)^[ \t]*(?:export[ \t]+)?"
+    rb"([A-Z0-9_]*(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD)[A-Z0-9_]*)"
+    rb"[ \t]*[:=][ \t]*['\"]?([^'\"\r\n#]{16,})"
 )
 
 SAFE_VALUE_MARKERS = (
@@ -46,6 +52,11 @@ SENSITIVE_BASENAMES = {
     "service-account.json",
 }
 SENSITIVE_SUFFIXES = {".pem", ".p12", ".pfx", ".key"}
+
+UPPER_IDENTIFIER = re.compile(rb"^[A-Z][A-Z0-9_]{7,}$")
+DESCRIPTIVE_SNAKE_CASE = re.compile(rb"^[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+){2,}$")
+URL_VALUE = re.compile(rb"^https?://", re.I)
+VERSION_VALUE = re.compile(rb"^v?\d+(?:\.\d+){1,4}(?:[-+][A-Za-z0-9_.-]+)?$", re.I)
 
 
 def run_git(*args: str, input_bytes: bytes | None = None) -> bytes:
@@ -89,6 +100,30 @@ def looks_placeholder(value: bytes) -> bool:
     return any(marker in lowered for marker in SAFE_VALUE_MARKERS)
 
 
+def probable_literal_secret(value: bytes) -> bool:
+    value = value.strip().rstrip(b";,)")
+    if not value or looks_placeholder(value):
+        return False
+    if URL_VALUE.match(value) or VERSION_VALUE.match(value):
+        return False
+    if value.lower().startswith((b"sha256:", b"sha1:", b"md5:")):
+        return False
+    # Code metadata such as AGENT_TOKEN_RUNTIME_VERSION = THREE_AGENT_PIPELINE_VERSION
+    # and EPOCH_SOURCE_RESET_TOKEN_KEY = "competition_history_epoch_source_reset_token"
+    # is not credential material.
+    if UPPER_IDENTIFIER.fullmatch(value) or DESCRIPTIVE_SNAKE_CASE.fullmatch(value):
+        return False
+    if len(set(value)) < 8:
+        return False
+
+    has_lower = any(97 <= ch <= 122 for ch in value)
+    has_upper = any(65 <= ch <= 90 for ch in value)
+    has_digit = any(48 <= ch <= 57 for ch in value)
+    has_symbol = any(not (48 <= ch <= 57 or 65 <= ch <= 90 or 97 <= ch <= 122) for ch in value)
+    classes = sum((has_lower, has_upper, has_digit, has_symbol))
+    return len(value) >= 20 and classes >= 2
+
+
 def line_number(data: bytes, offset: int) -> int:
     return data.count(b"\n", 0, offset) + 1
 
@@ -124,12 +159,9 @@ def main() -> int:
                 findings.append((label, sha, primary_path, line_number(data, match.start())))
 
         for match in KEY_VALUE_PATTERN.finditer(data):
-            value = match.group(1)
-            if looks_placeholder(value):
-                continue
-            if len(set(value)) < 6:
-                continue
-            findings.append(("credential_assignment", sha, primary_path, line_number(data, match.start())))
+            value = match.group(2).strip()
+            if probable_literal_secret(value):
+                findings.append(("credential_assignment", sha, primary_path, line_number(data, match.start())))
 
     print(f"HISTORY_OBJECT_COUNT={len(objects)}")
     print(f"HISTORY_BLOB_SCANNED={scanned_blobs}")
