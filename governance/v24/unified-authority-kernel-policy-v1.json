@@ -1,0 +1,115 @@
+{
+  "schema": "v24.unified_authority_kernel.policy.v1",
+  "version": "24.23.0",
+  "enforcementMode": "SHADOW",
+  "defaultDecision": "BLOCK",
+  "principles": {
+    "taskScopedAuthorityRequired": true,
+    "effectiveAuthorityMustRemainSubsetOfPreGrantedAuthority": true,
+    "modelMayGrantAuthority": false,
+    "modelMayExpandInvocationGraph": false,
+    "derivedInformationMayCreateSystemFact": false,
+    "terminalTransactionMutationAllowed": false,
+    "staleGenerationAllowed": false,
+    "evidenceRefsRequired": true,
+    "singleAuthorityGenerationRootRequired": true,
+    "productionAuthorityOwnershipChangedByThisPhase": false
+  },
+  "rootActors": [
+    "SYSTEM_PIPELINE"
+  ],
+  "domains": [
+    "INFORMATION",
+    "INVOCATION",
+    "TEMPORAL",
+    "MUTATION"
+  ],
+  "adapters": {
+    "INFORMATION": "com.zcentury.v24.V25RetrievalAuthority",
+    "INVOCATION": "com.zcentury.v24.QueueAuthority",
+    "TEMPORAL": "com.zcentury.v24.TaskStateAuthority",
+    "MUTATION": "com.zcentury.v24.GateEngine"
+  },
+  "semanticAuthority": {
+    "FACT": {
+      "read": true,
+      "derive": true,
+      "promoteToFact": false,
+      "useForMutation": true
+    },
+    "INFERENCE": {
+      "read": true,
+      "derive": true,
+      "promoteToFact": false,
+      "useForMutation": false
+    },
+    "HYPOTHESIS": {
+      "read": true,
+      "derive": true,
+      "promoteToFact": false,
+      "useForMutation": false
+    },
+    "UNKNOWN": {
+      "read": false,
+      "derive": false,
+      "promoteToFact": false,
+      "useForMutation": false
+    },
+    "HUMAN_APPROVED": {
+      "read": true,
+      "derive": true,
+      "promoteToFact": false,
+      "useForMutation": true
+    }
+  },
+  "invocationEdges": [
+    {
+      "from": "SYSTEM_PIPELINE",
+      "to": "AGENT1",
+      "goals": ["OPERATING_DIAGNOSIS"],
+      "states": ["SIGNAL_ADMITTED"]
+    },
+    {
+      "from": "AGENT1",
+      "to": "AGENT2",
+      "goals": ["BUILD_ACTION_DRAFT"],
+      "states": ["AGENT1_COMPLETED", "ACTION_PACK_READY"]
+    },
+    {
+      "from": "AGENT2",
+      "to": "AGENT3",
+      "goals": ["BUILD_ENTERPRISE_SOP"],
+      "states": ["AGENT2_COMPLETED"]
+    },
+    {
+      "from": "AGENT3",
+      "to": "TASK_MAPPING",
+      "goals": ["DETERMINISTIC_TASK_PROJECTION"],
+      "states": ["AGENT3_COMPLETED", "SOP_READY"]
+    }
+  ],
+  "temporalModes": {
+    "ACTIVE": [
+      "READ",
+      "DERIVE",
+      "INVOKE",
+      "MUTATE"
+    ],
+    "RETROSPECTIVE_READONLY": [
+      "RETROSPECTIVE_READ"
+    ],
+    "CLOSED": []
+  },
+  "terminalStates": [
+    "COMPLETED",
+    "REJECTED",
+    "ARCHIVED",
+    "CLOSED"
+  ],
+  "mutationResources": [
+    "TASK_PLAN",
+    "TASK_STATE",
+    "KNOWLEDGE_CANDIDATE",
+    "KNOWLEDGE_REVISION_HEAD"
+  ]
+}
