@@ -1,19 +1,6 @@
 name: Competition Runtime Package
 
 on:
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'web_demo/**'
-      - 'config/**'
-      - 'contracts/**'
-      - 'scripts/compile_competition_lineage.py'
-      - 'scripts/build_competition_runtime_package.py'
-      - 'scripts/verify_competition_runtime_package.py'
-      - 'release/**'
-      - 'requirements.lock'
-      - 'VERSION.md'
-      - '.github/workflows/competition-runtime-package.yml'
   push:
     branches:
       - main
@@ -31,7 +18,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source commit archive
         env:

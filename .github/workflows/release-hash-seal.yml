@@ -1,7 +1,6 @@
 name: V22.4.0 Release Hash Seal
 
 on:
-  pull_request:
   push:
     branches:
       - main
@@ -17,11 +16,11 @@ concurrency:
 jobs:
   release-seal:
     name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'seal-release' || 'pr-validation' }}
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: self-hosted
     timeout-minutes: 60
     env:
-      RELEASE_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      RELEASE_SOURCE_COMMIT: ${{ github.sha }}
       RELEASE_SOURCE_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
       RELEASE_EVENT: ${{ github.event_name }}
       RELEASE_REF: ${{ github.ref }}

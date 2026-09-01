@@ -1,31 +1,6 @@
 name: V25 Unified RAG Phase3
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v25/**'
-      - 'scripts/export_v25_phase3_agent_knowledge_evidence.py'
-      - 'scripts/verify_v25_knowledge_runtime_projection.py'
-      - 'scripts/verify_v25_agent_input_ingress.py'
-      - 'scripts/verify_v25_java_phase3.sh'
-      - 'src/__init__.py'
-      - 'src/services/unified_agent_knowledge_v25_service.py'
-      - 'src/services/v25_knowledge_runtime_projection.py'
-      - 'src/services/v25_knowledge_runtime_projection_install_service.py'
-      - 'src/services/v25_agent_input_ingress_service.py'
-      - 'src/services/agent_input_contract_v230_service.py'
-      - 'src/services/agent_input_contract_v2258_service.py'
-      - 'src/services/agent_input_transport_v230_service.py'
-      - 'src/services/agent_input_transport_v2258_service.py'
-      - 'src/services/agent_token_runtime_v230_service.py'
-      - 'src/services/real_product_judgment_agent_v196_service.py'
-      - 'src/services/agent_rag_context_v2028_service.py'
-      - 'src/services/action_pack_core_v20_service.py'
-      - 'src/services/agent2_action_plan_core_v20_service.py'
-      - 'src/services/sop_builder_core_v20_service.py'
-      - 'src/services/v22_runtime_service.py'
-      - '.github/workflows/v25-unified-rag-phase3.yml'
   push:
     branches:
       - main
@@ -67,7 +42,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V25_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V25_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:

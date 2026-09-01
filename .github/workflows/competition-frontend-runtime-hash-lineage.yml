@@ -1,16 +1,6 @@
 name: Competition Frontend Runtime Hash Lineage
 
 on:
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'web_demo/**'
-      - 'config/**'
-      - 'contracts/**'
-      - 'governance/frontend_runtime_hash_field_semantics_v1.json'
-      - 'scripts/verify_baseline_signal_field_lineage.py'
-      - 'scripts/verify_frontend_runtime_hash_behavior.py'
-      - '.github/workflows/competition-frontend-runtime-hash-lineage.yml'
   push:
     branches:
       - main
@@ -28,7 +18,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 25
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
     steps:
       - name: Materialize exact TARGET source archive

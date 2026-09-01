@@ -1,20 +1,6 @@
 name: V24 Production Authority Bundle
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v24/production-authority-bundle-v24.json'
-      - 'scripts/build_v24_production_bundle.sh'
-      - 'scripts/verify_v24_production_bundle.sh'
-      - 'scripts/verify_v24_authority_generation.sh'
-      - 'governance/v24/authority-generation-policy-v24.json'
-      - 'scripts/start_v24_authority.sh'
-      - 'release/release-policy.json'
-      - 'scripts/release_verifier.py'
-      - 'scripts/check_release_contract.py'
-      - '.github/workflows/release-hash-seal.yml'
-      - '.github/workflows/v24-production-authority-bundle.yml'
   push:
     branches:
       - main
@@ -45,7 +31,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V24_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:

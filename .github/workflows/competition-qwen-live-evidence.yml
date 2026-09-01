@@ -1,17 +1,6 @@
 name: Competition Qwen Live Evidence
 
 on:
-  pull_request:
-    paths:
-      - 'scripts/run_competition_qwen_live_evidence.py'
-      - 'scripts/resolve_competition_qwen_credential.py'
-      - 'tests/test_competition_qwen_live_evidence_contract.py'
-      - 'web_demo/sample-data/*.xlsx'
-      - 'src/services/llm_gateway_v196_service.py'
-      - 'src/services/llm_gateway_v196_legacy_service.py'
-      - 'src/services/llm_gateway_hash_directed_v2259_service.py'
-      - 'config/external_interface_registry.json'
-      - '.github/workflows/competition-qwen-live-evidence.yml'
   push:
     branches: [main]
     paths:
@@ -37,7 +26,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 60
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       COMPETITION_QWEN_BASE: /opt/actions-runner-public/competition-qwen-live/ai-ecommerce-assistant-public
@@ -209,7 +198,7 @@ jobs:
               echo "::error::Manual live-evidence execution is strict and requires a provisioned Bailian/Qwen credential."
               exit 86
             fi
-            echo "::warning::Bailian/Qwen credential is not provisioned on this runner/repository yet. PR validation records a sanitized pending preflight; it does not claim model-quality proof."
+            echo "::warning::Bailian/Qwen credential is not provisioned on this runner/repository yet. Non-manual trusted validation records a sanitized pending preflight; it does not claim model-quality proof."
             exit 0
           fi
 
@@ -321,7 +310,7 @@ jobs:
           }, ensure_ascii=False, sort_keys=True))
           PY
 
-      - name: Verify credential-pending PR state
+      - name: Verify credential-pending trusted state
         if: steps.qwen_credential.outputs.available != 'true' && github.event_name != 'workflow_dispatch'
         run: |
           set -euo pipefail

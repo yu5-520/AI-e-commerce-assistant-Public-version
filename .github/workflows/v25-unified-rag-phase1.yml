@@ -1,20 +1,6 @@
 name: V25 Unified RAG Phase1
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v25/**'
-      - 'scripts/export_v25_phase1_knowledge_baseline.py'
-      - 'scripts/verify_v25_java_phase1.sh'
-      - 'src/services/operating_policy_context_v2028_service.py'
-      - 'src/services/agent_rag_context_v2028_service.py'
-      - 'src/services/company_sop_rag_context_v225_service.py'
-      - 'src/services/agent2_action_draft_core_v225_service.py'
-      - 'src/services/agent3_system_constraint_base_v23214_service.py'
-      - 'src/services/hash_routed_rag_service.py'
-      - 'src/services/agent_hash_routed_rag_bridge_v1_service.py'
-      - '.github/workflows/v25-unified-rag-phase1.yml'
   push:
     branches:
       - main
@@ -45,7 +31,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V25_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V25_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:

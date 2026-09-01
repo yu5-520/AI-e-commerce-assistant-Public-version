@@ -1,18 +1,6 @@
 name: V25 Unified RAG Phase2
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v25/**'
-      - 'scripts/export_v25_phase2_retrieval_evidence.py'
-      - 'scripts/verify_v25_java_phase2.sh'
-      - 'src/services/hash_routed_rag_service.py'
-      - 'src/services/agent_hash_routed_rag_bridge_v1_service.py'
-      - 'src/services/indicator_rag_service.py'
-      - 'src/services/company_sop_rag_context_v225_service.py'
-      - 'config/v23_hash_routed_rag.json'
-      - '.github/workflows/v25-unified-rag-phase2.yml'
   push:
     branches:
       - main
@@ -41,7 +29,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V25_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V25_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:

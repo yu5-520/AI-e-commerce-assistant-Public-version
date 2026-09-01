@@ -1,19 +1,6 @@
 name: V24 Java Deterministic Core Phase1
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v24/**'
-      - 'contracts/v24/**'
-      - 'contracts/registry/**'
-      - 'config/competition_runtime_scope.json'
-      - 'config/competition_source_identity.json'
-      - 'config/v23_registry_runtime.json'
-      - 'scripts/compile_competition_lineage.py'
-      - 'scripts/competition_interface_gate.py'
-      - 'scripts/verify_v24_java_phase1.sh'
-      - '.github/workflows/v24-java-deterministic-core-phase1.yml'
   push:
     branches:
       - main
@@ -43,7 +30,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V24_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:

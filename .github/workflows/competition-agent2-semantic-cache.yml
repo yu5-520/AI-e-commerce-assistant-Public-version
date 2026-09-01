@@ -1,21 +1,6 @@
 name: Competition Agent2 Semantic Cache
 
 on:
-  pull_request:
-    paths:
-      - 'src/services/agent_token_runtime_v22520_service.py'
-      - 'src/services/agent_token_runtime_v225_service.py'
-      - 'src/services/agent2_action_draft_core_v225_service.py'
-      - 'src/services/agent2_hash_proof_bridge_v22515_service.py'
-      - 'src/services/hash_directed_artifact_runtime_v2259_service.py'
-      - 'src/services/station_agent_worker_v2259_service.py'
-      - 'config/v23_registry_runtime.json'
-      - 'tests/test_agent2_family_payload_semantic_cache_v1.py'
-      - 'scripts/verify_agent2_family_payload_semantic_cache.py'
-      - 'scripts/prepare_competition_runtime_venv.sh'
-      - 'governance/agent2_family_payload_semantic_cache_v1.json'
-      - 'governance/competition_lineage_update_policy.json'
-      - '.github/workflows/competition-agent2-semantic-cache.yml'
   push:
     branches: [main]
   workflow_dispatch:
@@ -32,7 +17,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_BASE_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       PYTHONDONTWRITEBYTECODE: '1'

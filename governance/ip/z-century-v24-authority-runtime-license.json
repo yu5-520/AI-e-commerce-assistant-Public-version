@@ -1,0 +1,78 @@
+{
+  "schema": "z.technology_license.v1",
+  "authorizationId": "Z-AUTH-AIECOM-V24-AUTHORITY-RUNTIME-001",
+  "status": "ACTIVE",
+  "provider": {
+    "name": "Z-Century (Z世纪) Technical System",
+    "repository": "yu5-520/Z-Century",
+    "rightsHolderDesignation": "Z-Century（Z世纪）技术体系及其权利人",
+    "sourceBaselineCommit": "89c0467007d04b98b003b9f0aed0aeef1168ff73",
+    "authorizationRecordPath": "licenses/authorized-projects/AI_ECOMMERCE_V24_AUTHORITY_RUNTIME.json",
+    "authorizationRecordCommit": "3412619dfd904db7870f81f8079724ab574c9754"
+  },
+  "consumer": {
+    "project": "AI-e-commerce-assistant-Public-version",
+    "repository": "yu5-520/AI-e-commerce-assistant-Public-version",
+    "consumerBaselineCommit": "b44c233dbd2b99011318444eac30e0a87b460b74",
+    "implementedSubsystem": "V24 Authority Runtime / Durable Authority Generation Controller"
+  },
+  "technologyScope": {
+    "classification": "Z_DERIVED_GENERIC_FRAMEWORK",
+    "includes": [
+      "durable authority-generation state governance outside immutable releases",
+      "compare-and-set and single-writer authority transition governance",
+      "generation sequence, generation hash and fencing-token identity patterns",
+      "file-lock, fsync, canonical-state-hash and atomic-rename durability requirements",
+      "restart recovery and tamper-rejection patterns",
+      "proof-gated prepare and rollback authority transitions",
+      "fail-closed prohibition of authority activation before required runtime bridges are sealed",
+      "authority-owner and cutover-preparation governance patterns",
+      "rollback proof and stale-generation rejection patterns"
+    ],
+    "projectOwnedOrSeparatelySourcedExclusions": [
+      "e-commerce-specific business logic",
+      "project-specific production paths, service names and deployment topology",
+      "project-specific Agent prompts and e-commerce decision rules",
+      "business data and customer data",
+      "competition fixtures and desensitized reports",
+      "project-specific UI copy and product presentation",
+      "independently authored e-commerce workflows outside the generic Z-derived framework"
+    ]
+  },
+  "grant": {
+    "licenseType": "LIMITED_NON_EXCLUSIVE_NON_TRANSFERABLE_USE",
+    "ownershipTransferred": false,
+    "transferAllowed": false,
+    "assignmentAllowed": false,
+    "sublicenseAllowed": false,
+    "reauthorizationAllowed": false,
+    "standaloneRedistributionAuthority": false,
+    "standaloneResaleAllowed": false,
+    "authorizedPurposes": [
+      "competition",
+      "demonstration",
+      "product validation",
+      "authorized operation of this AI e-commerce project",
+      "commercial delivery where the Z-derived framework remains embedded in this authorized project scope"
+    ]
+  },
+  "runtimeInterpretation": {
+    "codePresenceDoesNotImplyOwnership": true,
+    "deploymentDoesNotExpandLicense": true,
+    "forkDoesNotExpandLicense": true,
+    "publicRepositoryDoesNotExpandLicense": true,
+    "releaseArtifactDoesNotCreateSublicenseAuthority": true,
+    "consumerCannotGrantThirdPartyFrameworkRights": true
+  },
+  "evidence": {
+    "humanReadableNotice": "Z_CENTURY_TECHNOLOGY_NOTICE.md",
+    "consumerManifest": "governance/ip/z-century-v24-authority-runtime-license.json",
+    "providerRecord": "yu5-520/Z-Century:licenses/authorized-projects/AI_ECOMMERCE_V24_AUTHORITY_RUNTIME.json"
+  },
+  "legalBoundary": {
+    "repositoryRecordIsNotAnAssignment": true,
+    "repositoryRecordDoesNotReplaceARequiredSignedCommercialAgreement": true,
+    "repositoryNameIsNotASeparateLegalPerson": true,
+    "rightsRemainWithApplicableRightsHolderUnlessExpresslyAssignedInWriting": true
+  }
+}

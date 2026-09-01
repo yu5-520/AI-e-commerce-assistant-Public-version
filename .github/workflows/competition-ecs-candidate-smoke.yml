@@ -1,17 +1,6 @@
 name: Competition ECS Candidate Smoke
 
 on:
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'web_demo/**'
-      - 'config/**'
-      - 'contracts/**'
-      - 'scripts/**'
-      - 'release/**'
-      - 'requirements.lock'
-      - 'VERSION.md'
-      - '.github/workflows/competition-ecs-candidate-smoke.yml'
   push:
     branches:
       - main
@@ -29,7 +18,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 35
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_CANDIDATE_BASE: /opt/actions-runner-public/competition-candidates/ai-ecommerce-assistant-public
       COMPETITION_PRODUCTION_ROOT: /opt/ai-ecommerce-assistant

@@ -1,30 +1,6 @@
 name: Competition Three Report E2E
 
 on:
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'web_demo/**'
-      - 'config/**'
-      - 'contracts/**'
-      - 'fixtures/competition/**'
-      - 'governance/competition_misrouted_fix_recovery_v1.json'
-      - 'scripts/compile_competition_lineage.py'
-      - 'scripts/build_competition_runtime_package.py'
-      - 'scripts/verify_competition_runtime_package.py'
-      - 'scripts/deploy_competition_candidate.py'
-      - 'scripts/competition_contract_fixture_provider.py'
-      - 'scripts/competition_e2e_compat_runtime/**'
-      - 'scripts/run_competition_three_report_e2e.py'
-      - 'scripts/run_competition_three_report_e2e_compat.py'
-      - 'scripts/run_competition_three_report_e2e_history_warmup.py'
-      - 'scripts/verify_competition_recovery_behavior.py'
-      - 'scripts/verify_competition_era_recovery_contract.py'
-      - 'scripts/finalize_competition_recovery_verification.py'
-      - 'release/**'
-      - 'requirements.lock'
-      - 'VERSION.md'
-      - '.github/workflows/competition-three-report-e2e.yml'
   push:
     branches:
       - main
@@ -42,7 +18,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 45
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       COMPETITION_E2E_BASE: /opt/actions-runner-public/competition-e2e/ai-ecommerce-assistant-public

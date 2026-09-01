@@ -1,25 +1,13 @@
 name: Competition Registry Lineage
 
 on:
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'web_demo/**'
-      - 'config/**'
-      - 'contracts/**'
-      - 'scripts/**'
-      - 'release/**'
-      - 'governance/**'
-      - 'requirements.lock'
-      - 'VERSION.md'
-      - '.github/workflows/competition-registry-lineage.yml'
   push:
     branches:
       - main
   workflow_dispatch:
     inputs:
       baseline_commit:
-        description: 'Optional exact BASE commit. Defaults to PR base, push before, or current SHA.'
+        description: 'Optional exact BASE commit. Defaults to push before or current SHA.'
         required: false
         type: string
       profile:
@@ -40,8 +28,8 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-      COMPETITION_BASELINE_COMMIT: ${{ github.event.pull_request.base.sha || inputs.baseline_commit || github.event.before || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
+      COMPETITION_BASELINE_COMMIT: ${{ inputs.baseline_commit || github.event.before || github.sha }}
       LINEAGE_UPDATE_PROFILE: ${{ inputs.profile || 'governance_bootstrap' }}
       LINEAGE_UPDATE_POLICY: governance/competition_lineage_update_policy.json
     steps:

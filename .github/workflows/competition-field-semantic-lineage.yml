@@ -1,17 +1,6 @@
 name: Competition Field Semantic Lineage
 
 on:
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'config/**'
-      - 'contracts/**'
-      - 'governance/baseline_signal_field_semantics_v1.json'
-      - 'scripts/verify_baseline_signal_field_lineage.py'
-      - 'scripts/verify_runtime_contract_lineage.py'
-      - 'scripts/compile_runtime_contract_lineage_overlay.py'
-      - 'scripts/repair_competition_runtime_contracts.sh'
-      - '.github/workflows/competition-field-semantic-lineage.yml'
   push:
     branches:
       - main
@@ -29,7 +18,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact TARGET source archive
         env:

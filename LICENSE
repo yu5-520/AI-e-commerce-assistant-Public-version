@@ -1,0 +1,40 @@
+AI E-commerce Assistant Source-Available License v1.0
+Copyright (c) 2026. All rights reserved except as expressly granted below.
+
+1. Permitted public-use scope
+
+Permission is granted to access, view, clone and fork this repository for personal evaluation, research, security review, technical discussion, competition/demo review, and for preparing contributions back to this repository.
+
+Permission is also granted to run the project locally or in a private test environment solely for the purposes above, provided that all copyright, attribution, technology-origin and license notices are retained.
+
+2. Uses not granted
+
+Unless separately authorized in writing by the applicable rights holder, this license does not grant permission to:
+
+- use the repository or substantial portions of it for commercial production or paid delivery;
+- sell, sublicense, relicense, reauthorize or commercially redistribute the repository or a derived product;
+- extract and reuse project-specific business logic, Agent prompts, operating rules, SOP content or other protected project assets as the basis of a competing commercial product;
+- remove or alter copyright, technology-origin, authorization or license notices;
+- use project names, marks or branding in a way that suggests endorsement or authorization.
+
+3. Z-Century derived technology
+
+Some generic framework structures in this repository are derived from or authorized by the Z-Century (Z世纪) technical system. Those components are subject to separate technology-origin and authorization records, including Z_CENTURY_TECHNOLOGY_NOTICE.md and machine-readable records under governance/ip/.
+
+Public availability of this repository does not transfer ownership of Z-Century derived technology and does not create any right to independently transfer, sublicense, reauthorize, resell, extract or reuse that generic framework outside the authorized AI e-commerce project scope.
+
+4. Project-owned and separately sourced assets
+
+E-commerce-specific business logic, project-specific Agent prompts and decision rules, SOP content, product presentation, sanitized competition fixtures and independently authored workflow implementations remain subject to their own applicable rights and provenance. Third-party dependencies remain governed by their respective licenses.
+
+5. Contributions
+
+Submitting a contribution does not by itself transfer ownership of the contributor's pre-existing intellectual property. By submitting a contribution, the contributor represents that they have the right to submit it and grants the repository maintainers the rights reasonably necessary to review, reproduce, modify and incorporate the contribution into this project under this repository's licensing model.
+
+6. No warranty
+
+THE SOFTWARE AND MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE RIGHTS HOLDERS SHALL NOT BE LIABLE FOR CLAIMS, DAMAGES OR OTHER LIABILITY ARISING FROM USE OF THE SOFTWARE OR MATERIALS.
+
+7. Separate authorization
+
+Commercial use, broader redistribution, standalone framework reuse or any use outside the permissions above requires separate written authorization from the applicable rights holder(s).

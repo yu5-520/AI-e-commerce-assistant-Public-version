@@ -1,25 +1,6 @@
 name: Competition Agent1 Exact-Hash Normalization Lineage
 
 on:
-  pull_request:
-    paths:
-      - 'src/services/real_product_judgment_agent_v2259_service.py'
-      - 'src/services/real_product_judgment_agent_v2258_service.py'
-      - 'src/services/real_product_judgment_agent_v2255_service.py'
-      - 'src/services/real_product_judgment_agent_v196_service.py'
-      - 'src/services/agent_execution_lock_v2255_service.py'
-      - 'src/services/agent_token_runtime_hash_exact_v2259_service.py'
-      - 'src/services/hash_directed_artifact_runtime_v2259_service.py'
-      - 'src/services/agent_input_transport_v2258_service.py'
-      - 'src/services/agent_pipeline_item_worker_v2010_service.py'
-      - 'contracts/registry/**'
-      - 'config/v23_registry_runtime.json'
-      - 'governance/agent1_exact_hash_normalization_field_semantics_v1.json'
-      - 'governance/competition_lineage_update_policy.json'
-      - 'scripts/compile_competition_lineage.py'
-      - 'scripts/verify_agent1_exact_hash_normalization_lineage.py'
-      - 'tests/test_agent1_exact_hash_native_normalizer_v22510.py'
-      - '.github/workflows/competition-agent1-exact-hash-normalization-lineage.yml'
   push:
     branches:
       - main
@@ -37,7 +18,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      TARGET_SHA: ${{ github.sha }}
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       OVERLAY: governance/agent1_exact_hash_normalization_field_semantics_v1.json
       LINEAGE_DIR: dist/competition-agent1-normalization-lineage

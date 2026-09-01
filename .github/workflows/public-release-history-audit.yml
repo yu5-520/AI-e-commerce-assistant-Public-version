@@ -1,0 +1,27 @@
+name: Public Release History Audit
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/scan_public_release_history.py'
+      - '.github/workflows/public-release-history-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  history-secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout complete Git history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Scan all historical blobs for public-release secrets
+        run: |
+          set -euo pipefail
+          python3 scripts/scan_public_release_history.py

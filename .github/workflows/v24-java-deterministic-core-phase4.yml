@@ -1,17 +1,6 @@
 name: V24 Java Deterministic Core Phase4
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v24/phase4-**'
-      - 'governance/v24/frontend-view-contract-v24.json'
-      - 'scripts/export_v24_phase4_frontend_evidence.py'
-      - 'scripts/verify_v24_java_phase4.sh'
-      - 'src/api/routes/frontend_views.py'
-      - 'src/services/frontend_view_artifact_v2259_service.py'
-      - 'web_demo/core/hash-view-client-v2259.js'
-      - '.github/workflows/v24-java-deterministic-core-phase4.yml'
   push:
     branches:
       - main
@@ -39,7 +28,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V24_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:

@@ -1,23 +1,6 @@
 name: Competition Autonomous Worker Handoff
 
 on:
-  pull_request:
-    paths:
-      - 'src/api/**'
-      - 'src/services/station_agent_worker_v22514_service.py'
-      - 'src/services/station_agent_worker_v22515_service.py'
-      - 'src/services/station_agent_worker_v2259_service.py'
-      - 'src/services/agent_runtime_hard_interface_v22515_service.py'
-      - 'src/services/agent_token_runtime_hash_exact_v2259_service.py'
-      - 'scripts/run_competition_autonomous_worker_probe.py'
-      - 'scripts/run_competition_autonomous_worker_probe_stage_v2.py'
-      - 'scripts/run_competition_three_report_e2e.py'
-      - 'scripts/competition_e2e_compat_runtime/**'
-      - 'fixtures/competition/three_report_scenario.json'
-      - 'config/**'
-      - 'contracts/**'
-      - 'requirements.lock'
-      - '.github/workflows/competition-autonomous-worker-handoff.yml'
   push:
     branches: [main]
   workflow_dispatch:
@@ -34,7 +17,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_SOURCE_COMMIT: ${{ github.sha }}
       COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       COMPETITION_AUTO_BASE: /opt/actions-runner-public/competition-autonomous-worker/ai-ecommerce-assistant-public

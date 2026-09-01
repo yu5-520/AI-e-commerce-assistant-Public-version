@@ -1,12 +1,6 @@
 name: Competition Runtime Verification Pilot
 
 on:
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'scripts/**'
-      - 'config/**'
-      - '.github/workflows/competition-runtime-verification-pilot.yml'
   push:
     branches:
       - main
@@ -24,7 +18,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      TARGET_SHA: ${{ github.sha }}
       PYTHON_BIN: /opt/python/3.11.9/bin/python3.11
       AI_RELEASE_PYTHON: /opt/python/3.11.9/bin/python3.11
       AI_ECOMMERCE_ROOT: /opt/ai-ecommerce-assistant

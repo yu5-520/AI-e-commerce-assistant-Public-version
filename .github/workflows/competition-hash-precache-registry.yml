@@ -1,15 +1,6 @@
 name: Competition Hash Precache Registry
 
 on:
-  pull_request:
-    paths:
-      - 'config/competition_hash_precache_registry_v1.json'
-      - 'src/services/competition_hash_precache_registry_v1_service.py'
-      - 'src/services/competition_evidence_v215_runtime_service.py'
-      - 'scripts/verify_competition_hash_precache_registry.py'
-      - 'scripts/repair_competition_hash_precache.sh'
-      - 'tests/test_competition_hash_precache_registry_v1.py'
-      - '.github/workflows/competition-hash-precache-registry.yml'
   workflow_dispatch:
 
 permissions:
@@ -31,7 +22,7 @@ jobs:
       - name: Materialize exact source commit archive
         env:
           GH_READ_TOKEN: ${{ github.token }}
-          SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          SOURCE_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
           ARCHIVE="${RUNNER_TEMP}/hash-precache-${SOURCE_COMMIT}.tar.gz"

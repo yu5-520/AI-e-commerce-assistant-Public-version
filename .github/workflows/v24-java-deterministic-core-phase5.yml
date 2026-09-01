@@ -1,19 +1,6 @@
 name: V24 Java Deterministic Core Phase5
 
 on:
-  pull_request:
-    paths:
-      - 'java-control-plane/**'
-      - 'governance/v24/phase5-**'
-      - 'governance/v24/deployment-compatibility-contract-v24.json'
-      - 'governance/v24/legacy-removal-contract-v24.json'
-      - 'scripts/export_v24_phase5_deployment_evidence.py'
-      - 'scripts/verify_v24_java_phase5.sh'
-      - 'src/deployment/**'
-      - 'scripts/runtime_exclusivity_guard.sh'
-      - 'scripts/check_release_contract.py'
-      - 'config/deployment/runtime_callable_authority_v1.json'
-      - '.github/workflows/v24-java-deterministic-core-phase5.yml'
   push:
     branches:
       - main
@@ -43,7 +30,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V24_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:

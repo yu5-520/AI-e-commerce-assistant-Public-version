@@ -1,18 +1,6 @@
 name: Competition Current-State Attention Lineage
 
 on:
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'web_demo/**'
-      - 'config/**'
-      - 'contracts/**'
-      - 'governance/current_state_attention_field_semantics_v1.json'
-      - 'governance/competition_lineage_update_policy.json'
-      - 'scripts/compile_competition_lineage.py'
-      - 'scripts/verify_current_state_attention_lineage.py'
-      - 'tests/test_current_state_attention_projection_v22512.py'
-      - '.github/workflows/competition-current-state-attention-lineage.yml'
   push:
     branches:
       - main
@@ -30,7 +18,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      TARGET_SHA: ${{ github.sha }}
       COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
       OVERLAY: governance/current_state_attention_field_semantics_v1.json
       LINEAGE_DIR: dist/competition-current-state-attention-lineage
