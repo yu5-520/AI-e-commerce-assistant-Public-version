@@ -1,0 +1,26 @@
+{
+  "schema": "v24.production_mirror_parity_policy.v1",
+  "version": "24.26.0",
+  "enforcementMode": "SHADOW",
+  "requiredDomains": [
+    "INFORMATION",
+    "INVOCATION",
+    "TEMPORAL",
+    "MUTATION"
+  ],
+  "minimumSamplesPerDomainPerWindow": 3,
+  "requiredConsecutiveParityWindows": 2,
+  "maximumDecisionMismatchCount": 0,
+  "requiresExternalProductionReceipt": true,
+  "repositoryReplayMayProveMechanismOnly": true,
+  "productionReceiptSource": "EXTERNAL_PRODUCTION_MIRROR",
+  "legacyProductionRemainsOwner": true,
+  "javaProductionMutationAllowed": false,
+  "authorityOwnerTransferAllowed": false,
+  "rollbackWindowRequired": true,
+  "inFlightDrainRequired": true,
+  "staleGenerationMustFailClosed": true,
+  "freshGenerationMustRemainAdmissible": true,
+  "preparedGenerationMustFailAfterRollback": true,
+  "defaultDecision": "BLOCK"
+}
