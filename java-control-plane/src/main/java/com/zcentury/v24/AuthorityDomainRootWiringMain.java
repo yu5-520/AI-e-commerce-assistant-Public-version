@@ -3,7 +3,6 @@ package com.zcentury.v24;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -155,11 +154,11 @@ public final class AuthorityDomainRootWiringMain {
         );
         boolean legacyLaneUnaffectedByShadowRootRotation = legacyLaneCommitAfterRootRotation.accepted();
 
-        boolean freshInformationPass = information.execute(
+        boolean freshInformationPass = "PASS".equals(text(information.execute(
             preparedTokens.get("INFORMATION"),
             "FRESH_INFORMATION",
             () -> Map.of("decision", "PASS")
-        ).get("decision").equals("PASS");
+        ).get("decision")));
         boolean freshTemporalPass = "PASS".equals(text(temporal.execute(
             preparedTokens.get("TEMPORAL"),
             "FRESH_TEMPORAL",
@@ -234,7 +233,8 @@ public final class AuthorityDomainRootWiringMain {
         report.put("mutationSemanticParity", mutationSemanticParity);
         report.put("legacyDeterministicSemanticParity", legacyDeterministicSemanticParity);
         report.put("pythonJavaMirrorParityRequired", true);
-        report.put("pythonJavaMirrorParityVerifiedByWorkflow", true);
+        report.put("pythonJavaMirrorParityProvenByThisHarness", false);
+        report.put("pythonJavaMirrorParityEvidenceSource", "scripts/verify_v24_java_phase2.sh");
         report.put("allDomainsObservedPreparedGeneration", allDomainsObservedPreparedGeneration);
         report.put("staleInformationBlocked", staleInformationBlocked);
         report.put("staleInvocationBlocked", staleInvocationBlocked);
