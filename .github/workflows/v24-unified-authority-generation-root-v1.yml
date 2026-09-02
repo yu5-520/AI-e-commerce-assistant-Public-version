@@ -7,10 +7,13 @@ on:
       - 'governance/v24/unified-authority-kernel-policy-v1.json'
       - 'governance/v24/unified-authority-generation-root-v1.json'
       - 'governance/v24/unified-authority-domain-root-binding-v1.json'
+      - 'governance/v24/production-mirror-parity-policy-v1.json'
       - 'scripts/verify_v24_java_phase2.sh'
       - 'scripts/export_v24_phase2_shadow_evidence.py'
       - 'scripts/verify_v24_unified_authority_generation_root_v1.sh'
       - 'scripts/verify_v24_unified_authority_domain_root_wiring_v1.sh'
+      - 'scripts/verify_v24_26_production_mirror_parity_v1.sh'
+      - 'scripts/build_v24_26_external_mirror_evidence.py'
       - '.github/workflows/v24-unified-authority-generation-root-v1.yml'
   push:
     branches:
@@ -20,10 +23,13 @@ on:
       - 'governance/v24/unified-authority-kernel-policy-v1.json'
       - 'governance/v24/unified-authority-generation-root-v1.json'
       - 'governance/v24/unified-authority-domain-root-binding-v1.json'
+      - 'governance/v24/production-mirror-parity-policy-v1.json'
       - 'scripts/verify_v24_java_phase2.sh'
       - 'scripts/export_v24_phase2_shadow_evidence.py'
       - 'scripts/verify_v24_unified_authority_generation_root_v1.sh'
       - 'scripts/verify_v24_unified_authority_domain_root_wiring_v1.sh'
+      - 'scripts/verify_v24_26_production_mirror_parity_v1.sh'
+      - 'scripts/build_v24_26_external_mirror_evidence.py'
       - '.github/workflows/v24-unified-authority-generation-root-v1.yml'
   workflow_dispatch:
 
@@ -37,7 +43,7 @@ concurrency:
 jobs:
   unified-authority-generation-root-shadow-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@v4
@@ -115,6 +121,35 @@ jobs:
           print('V24_25_CUTOVER_PREPARE_BOUNDARY=PASS')
           PY
 
+      - name: Verify V24.26 production mirror parity mechanics
+        run: |
+          set -euo pipefail
+          chmod +x scripts/verify_v24_26_production_mirror_parity_v1.sh
+          bash scripts/verify_v24_26_production_mirror_parity_v1.sh
+
+      - name: Verify V24.26 external evidence remains mandatory
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('dist/v24-production-mirror-parity-v1/verification-report.json').read_text(encoding='utf-8'))
+          assert report['verified'] is True
+          assert report['mirrorMechanismVerified'] is True
+          assert report['repositoryReplayMechanismOnly'] is True
+          assert report['mismatchEvidenceFailClosed'] is True
+          assert report['externalEvidencePresent'] is False
+          assert report['externalProductionMirrorParityProven'] is False
+          assert report['cutoverQualificationReady'] is False
+          assert report['productionAuthorityOwnershipChanged'] is False
+          assert report['productionMutationAllowed'] is False
+          assert report['authorityGrantCreated'] is False
+          assert report['cutoverAllowed'] is False
+          assert report['status'] == 'MIRROR_MECHANISM_VERIFIED_EXTERNAL_EVIDENCE_REQUIRED'
+          assert report['nextRequiredGate'] == 'SEALED_EXTERNAL_PRODUCTION_MIRROR_RECEIPTS'
+          print('V24_26_EXTERNAL_PRODUCTION_EVIDENCE_BOUNDARY=PASS')
+          PY
+
       - name: Upload generation root evidence
         uses: actions/upload-artifact@v4
         with:
@@ -134,5 +169,15 @@ jobs:
             dist/v24-java-phase2/phase2-verification-report.json
             dist/v24-java-phase2/python-shadow-evidence.json
             governance/v24/unified-authority-domain-root-binding-v1.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload V24.26 mirror parity evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v24-production-mirror-parity-v1-${{ github.sha }}
+          path: |
+            dist/v24-production-mirror-parity-v1/*.json
+            governance/v24/production-mirror-parity-policy-v1.json
           if-no-files-found: error
           retention-days: 14
