@@ -1,0 +1,37 @@
+{
+  "schema": "v24.unified_authority_domain_root_binding.policy.v1",
+  "version": "24.25.0",
+  "enforcementMode": "SHADOW",
+  "defaultDecision": "BLOCK",
+  "principles": {
+    "allDomainsMustBindSingleRoot": true,
+    "domainMayRotateGeneration": false,
+    "generationAdmissionBeforeDomainExecution": true,
+    "generationAdmissionRecheckAfterDomainExecution": true,
+    "staleGenerationMustFailClosed": true,
+    "legacyDeterministicSemanticsMustRemainIdentical": true,
+    "pythonJavaMirrorParityMustRemainProven": true,
+    "productionOwnerMustRemainUnchanged": true,
+    "productionMutationAllowed": false,
+    "authorityGrantCreatedByThisPhase": false,
+    "externalProductionMirrorRequiredBeforeCutover": true,
+    "cutoverAllowedByThisPhase": false
+  },
+  "domains": [
+    "INFORMATION",
+    "INVOCATION",
+    "TEMPORAL",
+    "MUTATION"
+  ],
+  "root": {
+    "source": "AuthorityGenerationStore",
+    "runtime": "UnifiedAuthorityGenerationRoot",
+    "singleDurableWriterRequired": true
+  },
+  "cutoverPrepare": {
+    "currentPhase": "ROOT_BOUND_SHADOW_WIRING",
+    "readyState": "ROOT_WIRING_VERIFIED_EXTERNAL_MIRROR_REQUIRED",
+    "nextRequiredGate": "PRODUCTION_MIRROR_PARITY_AND_ROLLBACK_WINDOW",
+    "productionOwnerTransferAllowed": false
+  }
+}
