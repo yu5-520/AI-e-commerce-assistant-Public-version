@@ -6,7 +6,11 @@ on:
       - 'java-control-plane/**'
       - 'governance/v24/unified-authority-kernel-policy-v1.json'
       - 'governance/v24/unified-authority-generation-root-v1.json'
+      - 'governance/v24/unified-authority-domain-root-binding-v1.json'
+      - 'scripts/verify_v24_java_phase2.sh'
+      - 'scripts/export_v24_phase2_shadow_evidence.py'
       - 'scripts/verify_v24_unified_authority_generation_root_v1.sh'
+      - 'scripts/verify_v24_unified_authority_domain_root_wiring_v1.sh'
       - '.github/workflows/v24-unified-authority-generation-root-v1.yml'
   push:
     branches:
@@ -15,7 +19,11 @@ on:
       - 'java-control-plane/**'
       - 'governance/v24/unified-authority-kernel-policy-v1.json'
       - 'governance/v24/unified-authority-generation-root-v1.json'
+      - 'governance/v24/unified-authority-domain-root-binding-v1.json'
+      - 'scripts/verify_v24_java_phase2.sh'
+      - 'scripts/export_v24_phase2_shadow_evidence.py'
       - 'scripts/verify_v24_unified_authority_generation_root_v1.sh'
+      - 'scripts/verify_v24_unified_authority_domain_root_wiring_v1.sh'
       - '.github/workflows/v24-unified-authority-generation-root-v1.yml'
   workflow_dispatch:
 
@@ -29,7 +37,7 @@ concurrency:
 jobs:
   unified-authority-generation-root-shadow-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@v4
@@ -75,6 +83,38 @@ jobs:
           print('V24_UNIFIED_AUTHORITY_GENERATION_ROOT_SHADOW=PASS')
           PY
 
+      - name: Verify V24.25 domain Root wiring and mirror evidence
+        run: |
+          set -euo pipefail
+          chmod +x scripts/verify_v24_unified_authority_domain_root_wiring_v1.sh
+          bash scripts/verify_v24_unified_authority_domain_root_wiring_v1.sh
+
+      - name: Verify V24.25 cutover-prepare boundary
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('dist/v24-unified-authority-domain-root-wiring-v1/cutover-prepare-evidence.json').read_text(encoding='utf-8'))
+          assert report['verified'] is True
+          assert report['enforcementMode'] == 'SHADOW'
+          assert report['allDomainsRootBound'] is True
+          assert report['legacyDeterministicSemanticParity'] is True
+          assert report['pythonJavaMirrorParityProven'] is True
+          assert report['pythonProductionWriteAuthorityUnchanged'] is True
+          assert report['allOldDomainTokensFailClosed'] is True
+          assert report['freshRootBoundOperationsPass'] is True
+          assert report['productionOwnerBoundaryStable'] is True
+          assert report['productionMutationAllowed'] is False
+          assert report['productionAuthorityOwnershipChanged'] is False
+          assert report['authorityGrantCreated'] is False
+          assert report['externalProductionMirrorRequiredBeforeCutover'] is True
+          assert report['externalProductionMirrorParityProven'] is False
+          assert report['cutoverAllowed'] is False
+          assert report['cutoverPrepareStatus'] == 'ROOT_WIRING_VERIFIED_EXTERNAL_MIRROR_REQUIRED'
+          print('V24_25_CUTOVER_PREPARE_BOUNDARY=PASS')
+          PY
+
       - name: Upload generation root evidence
         uses: actions/upload-artifact@v4
         with:
@@ -82,5 +122,17 @@ jobs:
           path: |
             dist/v24-unified-authority-generation-root-v1/*.json
             governance/v24/unified-authority-generation-root-v1.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload V24.25 domain Root wiring evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: v24-unified-authority-domain-root-wiring-v1-${{ github.sha }}
+          path: |
+            dist/v24-unified-authority-domain-root-wiring-v1/*.json
+            dist/v24-java-phase2/phase2-verification-report.json
+            dist/v24-java-phase2/python-shadow-evidence.json
+            governance/v24/unified-authority-domain-root-binding-v1.json
           if-no-files-found: error
           retention-days: 14

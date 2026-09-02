@@ -4,10 +4,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * V24.23 adapter registry for the Unified Authority Kernel.
+ * V24.23-V24.25 adapter registry for the Unified Authority Kernel.
  *
- * The registry only binds protocol domains to existing deterministic authority owners.
- * It does not transfer production write authority or replace domain implementations.
+ * V24.23 verifies protocol-domain -> deterministic implementation registration.
+ * V24.25 adds a shadow runtime binding layer: every registered implementation must be
+ * consumed through one RootBoundAuthorityAdapter backed by UnifiedAuthorityGenerationRoot.
+ * This still does not transfer production write authority or replace domain implementations.
  */
 public final class AuthorityAdapterRegistry {
     private static final Map<String, String> EXPECTED = expected();
@@ -41,6 +43,47 @@ public final class AuthorityAdapterRegistry {
         out.put("adapters", resolved);
         out.put("productionAuthorityOwnershipChanged", false);
         out.put("registryHash", Hashing.canonicalHash(out));
+        return out;
+    }
+
+    static Map<String, RootBoundAuthorityAdapter> bind(
+        Map<String, Object> policy,
+        UnifiedAuthorityGenerationRoot root
+    ) {
+        verify(policy);
+        if (root == null) throw new IllegalArgumentException("unified_authority_generation_root_required");
+        LinkedHashMap<String, RootBoundAuthorityAdapter> bound = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : EXPECTED.entrySet()) {
+            bound.put(
+                entry.getKey(),
+                new RootBoundAuthorityAdapter(entry.getKey(), entry.getValue(), root)
+            );
+        }
+        return bound;
+    }
+
+    static Map<String, Object> bindingReport(
+        Map<String, Object> policy,
+        UnifiedAuthorityGenerationRoot root
+    ) {
+        Map<String, RootBoundAuthorityAdapter> bound = bind(policy, root);
+        LinkedHashMap<String, Object> receipts = new LinkedHashMap<>();
+        for (Map.Entry<String, RootBoundAuthorityAdapter> entry : bound.entrySet()) {
+            receipts.put(entry.getKey(), entry.getValue().bindingReceipt());
+        }
+        LinkedHashMap<String, Object> out = new LinkedHashMap<>();
+        out.put("schema", "v24.unified_authority.root_bound_adapter_registry.v1");
+        out.put("version", RootBoundAuthorityAdapter.VERSION);
+        out.put("enforcementMode", "SHADOW");
+        out.put("rootSource", "AuthorityGenerationStore");
+        out.put("rootStatus", root.status());
+        out.put("bindings", receipts);
+        out.put("bindingCount", receipts.size());
+        out.put("allDomainsRootBound", receipts.size() == EXPECTED.size());
+        out.put("domainMayRotateGeneration", false);
+        out.put("productionAuthorityOwnershipChanged", false);
+        out.put("authorityGrantCreated", false);
+        out.put("bindingRegistryHash", Hashing.canonicalHash(out));
         return out;
     }
 
