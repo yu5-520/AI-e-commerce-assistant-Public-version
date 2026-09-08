@@ -32,6 +32,7 @@
       "implementationPaths": [
         "config/runtime_contract_lineage_registry_v1.json",
         "src/services/canonical_product_snapshot_service.py",
+        "src/services/v24_live_information_mirror_service.py",
         "src/services/canonical_product_trend_v2_service.py",
         "src/services/product_signal_snapshot_service.py",
         "src/services/v215_report_batch_evidence_service.py",
@@ -220,6 +221,7 @@
         "config/v23_registry_runtime.json",
         "src/api/routes/frontend_views.py",
         "src/services/canonical_product_snapshot_service.py",
+        "src/services/v24_live_information_mirror_service.py",
         "src/services/system_product_snapshot_service.py",
         "src/services/frontend_view_artifact_v2259_service.py",
         "src/services/public_task_dto_service.py",

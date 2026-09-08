@@ -564,7 +564,9 @@ def materialize_canonical_product_snapshot(
         if existing:
             return {**existing, "idempotentHit": True}
 
-    products = [build_canonical_product_snapshot_item(item, data_version) for item in projected_products(user_id)]
+    source_products = list(projected_products(user_id))
+    products = [build_canonical_product_snapshot_item(item, data_version) for item in source_products]
+    mirror_pairs = list(zip(source_products, products))
     if data_version:
         filtered: List[Dict[str, Any]] = []
         for item in products:
@@ -639,6 +641,12 @@ def materialize_canonical_product_snapshot(
             (snapshot_id, data_version, set_hash, len(products), dumps(payload), snapshot_id, now, now),
         )
         conn.commit()
+    # Observe only actual committed products; never rerun or replace a Python decision.
+    from src.services.v24_live_information_mirror_service import observe_committed_products
+    committed_hashes = {item["productSnapshotHash"] for item in products}
+    observe_committed_products(
+        ((source, product) for source, product in mirror_pairs
+         if product["productSnapshotHash"] in committed_hashes), data_version)
     return {
         "version": CANONICAL_PRODUCT_SNAPSHOT_VERSION,
         "schemaVersion": SCHEMA_VERSION,

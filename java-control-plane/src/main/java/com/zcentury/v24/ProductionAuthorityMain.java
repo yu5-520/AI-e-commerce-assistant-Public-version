@@ -37,6 +37,7 @@ public final class ProductionAuthorityMain {
         server.createContext("/healthz", exchange -> write(exchange, 200, health()));
         server.createContext("/readyz", exchange -> write(exchange, 200, status()));
         server.createContext("/v1/authority/status", exchange -> write(exchange, 200, status()));
+        server.createContext(LiveInformationMirror.PATH, LiveInformationMirror::handle);
         server.setExecutor(Executors.newFixedThreadPool(2));
         Runtime.getRuntime().addShutdownHook(new Thread(() -> server.stop(1), "v24-authority-shutdown"));
         server.start();
@@ -90,6 +91,9 @@ public final class ProductionAuthorityMain {
         value.put("productionMutationAllowed", false);
         value.put("deploymentAuthorityTransferAllowed", false);
         value.put("legacyRemovalAllowed", false);
+        value.put("liveMirrorDomains", List.of("INFORMATION"));
+        value.put("liveMirrorOperation", "canonical-product");
+        value.put("externalProductionMirrorParityProven", false);
         value.put("statusHash", Hashing.canonicalHash(value));
         return value;
     }
