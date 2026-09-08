@@ -36,7 +36,8 @@ The preflight endpoint is a local process probe, not an external business API.
 
 ## Verification and boundaries
 
-`tests/test_v24_java_deployment_lifecycle.py` covers missing/tampered Java,
+`tests/test_v22_4_v24_java_deployment_lifecycle.py` follows the existing release
+test discovery pattern in `pytest.ini` and covers missing/tampered Java,
 commit mismatch, port collision, failed Java startup, Python exit, Java exit and
 service stop. Release Hash Seal builds the exact JRE before pytest, enabling an
 additional real packaged-Java preflight test. Local runs without a built JRE
