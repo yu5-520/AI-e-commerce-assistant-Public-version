@@ -295,10 +295,26 @@ flowchart TB
 ### 环境
 
 - Java 17+
-- Python 3.x
+- Python 3.11.9（正式运行与发布验证）
 - FastAPI
 - SQLite / Runtime Adapter
 - LLM Provider
+
+### Release Hash 与不可变发布包
+
+正式运行使用 Python `3.11.9`。`requirements.lock` 固定生产依赖，`requirements-dev.lock` 固定验证环境依赖；依赖安装与严格校验遵循发布工作流。
+
+发布沿用 [Release Hash Seal 工作流](.github/workflows/release-hash-seal.yml)：绑定精确 Source Commit，完成静态合同、路由烟雾、测试和依赖校验，再生成 Manifest 与不可变发布包。ECS 使用固定 Root Verifier 验证该包，部署后通过 `/api/system/release-identity` 检查运行身份。
+
+| 发布身份 | 验证含义 |
+| --- | --- |
+| `runtimeFiles` / `attestedFiles` | 运行文件与合同、测试源码的精确集合及内容 Hash |
+| `testEvidenceFiles` / `testRunHash` | CI 实际产生的验证证据集合及其复算 Hash |
+| `runtimePipFreezeHash == pipFreezeHash` | 当前运行依赖与发布时记录的依赖一致 |
+| `evidenceSemanticVerified == true` | 证据内的 Commit、Python 环境、依赖与合同源码摘要属于当前发布 |
+| `releaseHash` / `manifestHash` | 发布包与 Manifest 的内容身份 |
+
+专项验证通过、发布封包成功和 ECS 生产切换分别验收；发布包生成不代表生产权限已转移。完整规则见 [发布合同](docs/V22.4.0_RELEASE_HASH_SEAL.md)。
 
 ### 基础测试
 
