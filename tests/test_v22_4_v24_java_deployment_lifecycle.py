@@ -109,6 +109,18 @@ def test_api_exit_stops_java_and_fails_unit(bundle):
     assert_dead(int((bundle / "java.pid").read_text()))
 
 
+def test_admitted_mirror_identity_and_actual_port_reach_python(bundle):
+    port = lifecycle.free_port(0)
+    code = "import json,os;open('mirror-env.json','w').write(json.dumps({k:v for k,v in os.environ.items() if k.startswith('V24_')}))"
+    assert lifecycle.supervise(bundle, port, [sys.executable, "-c", code]) == 1
+    env = json.loads((bundle / "mirror-env.json").read_text())
+    assert env["V24_AUTHORITY_PORT"] == str(port)
+    assert env["V24_LIVE_MIRROR_ENABLED"] == "1"
+    assert env["V24_MIRROR_SOURCE_COMMIT"] == "a" * 40
+    assert env["V24_MIRROR_RELEASE_HASH"] == "sha256:test"
+    assert env["V24_MIRROR_CONTRACT_HASH"] == "sha256:test"
+
+
 @pytest.mark.parametrize("event", ["java_exit", "systemd_stop"])
 def test_java_failure_or_service_stop_terminates_both_children(bundle, event):
     port = lifecycle.free_port(0)

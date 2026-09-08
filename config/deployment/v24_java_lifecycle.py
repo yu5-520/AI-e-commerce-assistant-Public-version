@@ -102,7 +102,11 @@ def supervise(root: Path, port: int, command: list[str], *, preflight: bool = Fa
     # Refuse occupied ports before starting; never reuse an older Java listener.
     port = free_port(0 if preflight else port)
     env = dict(os.environ, V24_AUTHORITY_MODE=MODE, V24_AUTHORITY_HOST="127.0.0.1",
-               V24_AUTHORITY_PORT=str(port), AI_BOOTSTRAP_PYTHON=sys.executable)
+               V24_AUTHORITY_PORT=str(port), AI_BOOTSTRAP_PYTHON=sys.executable,
+               V24_LIVE_MIRROR_ENABLED="1",
+               V24_MIRROR_SOURCE_COMMIT=identity["sourceCommit"],
+               V24_MIRROR_RELEASE_HASH=identity["releaseHash"],
+               V24_MIRROR_CONTRACT_HASH=identity["contractHash"])
     children: list[subprocess.Popen] = []
     interrupted = False
 
@@ -136,7 +140,7 @@ def supervise(root: Path, port: int, command: list[str], *, preflight: bool = Fa
             return 1
         if not command:
             raise ValueError("Python API command is required")
-        api = subprocess.Popen(command, cwd=root, start_new_session=True)
+        api = subprocess.Popen(command, cwd=root, env=env, start_new_session=True)
         children.append(api)
         while not interrupted:
             if java.poll() is not None or api.poll() is not None:

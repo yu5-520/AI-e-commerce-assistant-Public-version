@@ -1,5 +1,10 @@
 # V24.26 Production Mirror Parity + Rollback Window
 
+Live collection status: [the canonical product INFORMATION observation path](V24_LIVE_INFORMATION_MIRROR.md)
+is connected to actual Python snapshot commits. It is a partial observation source,
+not the four-domain production proof described below; generation and rollback
+qualifications remain unproven.
+
 V24.26 moves the V24 authority migration from repository-only parity toward production-shaped mirror evidence while keeping the legacy production lane authoritative.
 
 ## Authority boundary

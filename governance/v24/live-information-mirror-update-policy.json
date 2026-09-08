@@ -1,0 +1,32 @@
+{
+  "schema": "competition.lineage_update_policy.v1",
+  "version": "2026.09.08.1",
+  "defaultProfile": "live_information_mirror",
+  "profiles": {
+    "live_information_mirror": {
+      "description": "Connect committed canonical product snapshots to independent packaged Java computation and a bounded append-only INFORMATION observation journal. Keep generation, rollback and all authority-transfer qualifications false until separately implemented and verified.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": true,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": true,
+      "allowedRuntimePathPrefixes": [
+        "config/deployment/v24_java_lifecycle.py",
+        "config/v23_registry_runtime.json",
+        "src/services/canonical_product_snapshot_service.py",
+        "src/services/v24_live_information_mirror_service.py"
+      ],
+      "allowedRegistryModules": [
+        "release_governance",
+        "signal_admission",
+        "frontend_view"
+      ],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": [
+        "registryRootHash"
+      ]
+    }
+  }
+}
