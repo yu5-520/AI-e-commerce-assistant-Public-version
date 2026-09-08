@@ -231,6 +231,18 @@ jobs:
               fi
             fi
           fi
+          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+            for relative in \
+              config/deployment/v24_java_lifecycle.py \
+              governance/v24/java-deployment-lifecycle-update-policy.json; do
+              if [ -f "$TARGET_EXTRACTED/$relative" ] && \
+                 { [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; }; then
+                PROFILE="java_deployment_lifecycle"
+                POLICY="governance/v24/java-deployment-lifecycle-update-policy.json"
+                break
+              fi
+            done
+          fi
           printf 'LINEAGE_UPDATE_PROFILE=%s\n' "$PROFILE" >> "$GITHUB_ENV"
           printf 'LINEAGE_UPDATE_POLICY=%s\n' "$POLICY" >> "$GITHUB_ENV"
 

@@ -234,11 +234,18 @@ if [ "$release_required" = true ]; then
 fi
 
 if [ "$APP_RELOAD" = "true" ]; then
-  [ "$release_required" = false ] || {
+  [ "$release_required" = false ] && [ ! -f "$MANIFEST" ] || {
     echo "APP_RELOAD is forbidden for a sealed production release" >&2
     exit 1
   }
   exec python -m uvicorn src.api.main:app --host "$APP_HOST" --port "$APP_PORT" --reload
+fi
+
+if [ "$release_required" = true ] || [ -f "$MANIFEST" ]; then
+  exec python "$ROOT_DIR/config/deployment/v24_java_lifecycle.py" \
+    --root "$ROOT_DIR" --port "${V24_AUTHORITY_PORT:-39024}" -- \
+    "$ROOT_DIR/.venv/bin/python" -m uvicorn src.api.main:app \
+    --host "$APP_HOST" --port "$APP_PORT" --workers "$APP_WORKERS"
 fi
 
 exec python -m uvicorn src.api.main:app --host "$APP_HOST" --port "$APP_PORT" --workers "$APP_WORKERS"
