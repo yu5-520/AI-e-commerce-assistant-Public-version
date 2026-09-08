@@ -1,0 +1,27 @@
+{
+  "schema": "competition.lineage_update_policy.v1",
+  "version": "2026.09.08.1",
+  "defaultProfile": "java_deployment_lifecycle",
+  "profiles": {
+    "java_deployment_lifecycle": {
+      "description": "Register the packaged Java readiness launcher and lifecycle supervisor under release_governance. Verify the sealed JRE on ECS before stopping production and supervise Java/Python in the existing single systemd unit. Only loopback readiness probes are permitted. Java remains READY_NO_AUTHORITY; no Agent, queue, production authority, deployment core or legacy-removal change is part of this repair.",
+      "requireBaselineVerified": true,
+      "requireTargetVerified": true,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": true,
+      "allowEdgeChanges": true,
+      "allowRegistryModuleChanges": true,
+      "allowedRuntimePathPrefixes": [
+        "scripts/start_server.sh",
+        "scripts/start_v24_authority.sh",
+        "scripts/deploy_release.sh",
+        "config/deployment/v24_java_lifecycle.py",
+        "config/v23_registry_runtime.json"
+      ],
+      "allowedRegistryModules": ["release_governance"],
+      "allowedNodePrefixes": [],
+      "allowedSpecialHashChanges": ["registryRootHash"]
+    }
+  }
+}

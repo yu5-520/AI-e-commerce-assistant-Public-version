@@ -249,6 +249,8 @@
         "src/services/release_identity_service.py",
         "src/services/registry_runtime_receipt_v23_service.py",
         "scripts/start_server.sh",
+        "scripts/start_v24_authority.sh",
+        "config/deployment/v24_java_lifecycle.py",
         "scripts/deploy_release.sh",
         "src/deployment/deploy_release_core_v22516.sh",
         "release/release-policy.json",

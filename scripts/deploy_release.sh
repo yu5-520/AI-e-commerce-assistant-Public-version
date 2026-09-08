@@ -179,6 +179,11 @@ cat /tmp/ai-runtime-verification-candidate.out
 printf 'REPOSITORY_GATE_HASH=%s\nECS_CANDIDATE_GATE_REPORT=%s\n' \
   "$REPOSITORY_GATE_HASH" "$ECS_CANDIDATE_GATE_REPORT"
 
+# Exercise the sealed JRE on this ECS before the core stops the current service.
+# An isolated loopback port permits the old release to remain active throughout.
+"$BOOTSTRAP_PYTHON" "$GRAY_ROOT/config/deployment/v24_java_lifecycle.py" \
+  --root "$GRAY_ROOT" --preflight || fail "Sealed Java ECS preflight failed"
+
 set +e
 /bin/bash "$CORE" "$@"
 status=$?
