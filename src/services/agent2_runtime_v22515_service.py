@@ -154,6 +154,45 @@ def _persist_precise_failure_state(
         conn.commit()
 
 
+def bind_agent2_execution_input(item: Dict[str, Any], input_ref: str) -> None:
+    """Persist the exact compiled input under the current worker's claim."""
+    if not str(input_ref).startswith("ART-"):
+        raise Agent2HashProofError("agent2_execution_input_ref_missing")
+    claim_id = str(item.get("claim_id") or "")
+    if not claim_id:
+        raise Agent2HashProofError("agent2_execution_input_claim_missing")
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM pipeline_items WHERE item_id=? AND claim_id=? AND status='running'",
+            (item["item_id"], claim_id),
+        ).fetchone()
+        if row is None:
+            raise Agent2HashProofError("agent2_execution_input_claim_changed")
+        refs = artifact_refs_from_row(dict(row))
+        refs["agent2ExecutionInputRef"] = input_ref
+        serialized = json.dumps(refs, ensure_ascii=False, sort_keys=True)
+        updated = conn.execute(
+            "UPDATE pipeline_items SET artifact_refs_json=? WHERE item_id=? AND claim_id=? AND status='running'",
+            (serialized, item["item_id"], claim_id),
+        )
+        if updated.rowcount != 1:
+            raise Agent2HashProofError("agent2_execution_input_claim_changed")
+        conn.commit()
+    item["artifact_refs_json"] = serialized
+
+
+def agent2_missing_result_reason(provider: Dict[str, Any], package_id: str, bridge_error: str | None) -> str:
+    """Preserve an item-specific preparation failure instead of masking it with proof lookup."""
+    failure = _dict(_dict(provider.get("itemFailures")).get(package_id))
+    if failure:
+        return "agent2_execution_prepare_failed:" + _text(failure.get("reason"), 400)
+    errors = provider.get("errors")
+    if provider.get("inputCount") == 1 and isinstance(errors, list) and errors:
+        return "agent2_execution_failed:" + _text(";".join(str(e) for e in errors[:3]), 420)
+    return (f"agent2_hash_proof_bridge_missing:{bridge_error}" if bridge_error
+            else "agent2_draft_returned_no_plan")
+
+
 def _bridge_candidate(
     *,
     item: Dict[str, Any],
@@ -165,7 +204,10 @@ def _bridge_candidate(
     refs = artifact_refs_from_row(item)
     canonical_input_ref = str(refs.get("agent2DraftInputRef") or "")
     runtime_input_ref = str(_dict(runtime_draft).get("inputArtifactRef") or "")
-    input_ref = runtime_input_ref if runtime_input_ref.startswith("ART-") else canonical_input_ref
+    bound_input_ref = str(refs.get("agent2ExecutionInputRef") or "")
+    if bound_input_ref and runtime_input_ref and bound_input_ref != runtime_input_ref:
+        raise Agent2HashProofError("agent2_execution_input_ref_mismatch")
+    input_ref = bound_input_ref or (runtime_input_ref if runtime_input_ref.startswith("ART-") else canonical_input_ref)
     resolved = bridge_agent2_hash_proof(
         input_ref=input_ref,
         package_id=str(package.get("packageId") or package.get("itemId") or ""),
@@ -628,6 +670,7 @@ def run_agent2_draft_microbatch_hard(
                 **regeneration,
                 "sourceExecutionHash": str(revoked.get("execution_hash") or ""),
             }
+            bind_agent2_execution_input(item, regeneration["runtimeInputArtifactRef"])
         else:
             compilation = build_agent2_generation_envelope(
                 envelope,
@@ -635,6 +678,7 @@ def run_agent2_draft_microbatch_hard(
             )
             runtime_envelopes.append(dict(compilation["envelope"]))
             generation_compilation_by_package[package_id] = compilation
+            bind_agent2_execution_input(item, compilation["compilerInputArtifactRef"])
 
     drafts, provider = run_agent2_draft_projected_inputs(
         runtime_envelopes,
@@ -709,6 +753,7 @@ def run_agent2_draft_microbatch_hard(
                     source_execution_hash=source_execution_hash,
                 )
                 retry_envelope = dict(regeneration["envelope"])
+                bind_agent2_execution_input(item, regeneration["runtimeInputArtifactRef"])
                 retry_drafts, retry_provider = run_agent2_draft_projected_inputs(
                     [retry_envelope],
                     data_version=data_version,
@@ -762,6 +807,7 @@ def run_agent2_draft_microbatch_hard(
                     previous_output=runtime_draft,
                     missing=direct_missing,
                 )
+                bind_agent2_execution_input(item, repair["runtimeInputArtifactRef"])
                 repair_drafts, repair_provider = run_agent2_draft_projected_inputs(
                     [dict(repair["envelope"])],
                     data_version=data_version,
@@ -862,7 +908,8 @@ def run_agent2_draft_microbatch_hard(
         except Exception as exc:
             bridge_error = f"agent2_hash_bridge_unexpected:{_text(exc, 300)}"
 
-        if candidate is None and isinstance(runtime_draft, dict) and runtime_draft:
+        if (candidate is None and isinstance(runtime_draft, dict) and runtime_draft
+                and not artifact_refs_from_row(item).get("agent2ExecutionInputRef")):
             legacy_proof = proof_for_package(provider_for_contract, package_id)
             if valid_agent2_execution_proof(legacy_proof):
                 draft = dict(runtime_draft)
@@ -876,11 +923,7 @@ def run_agent2_draft_microbatch_hard(
 
         if candidate is None or not isinstance(draft, dict) or not draft:
             proof_failed += 1
-            reason = (
-                f"agent2_hash_proof_bridge_missing:{bridge_error}"
-                if bridge_error
-                else "agent2_draft_returned_no_plan"
-            )
+            reason = agent2_missing_result_reason(provider_for_contract, package_id, bridge_error)
             outcome = schedule_agent2_failure(
                 item,
                 package,

@@ -112,6 +112,7 @@
       "schemaIds": ["agent_input.agent1.v3"]
     },
     "agent2_runtime": {
+      "executionInputLineageVersion": "2026.09.09.1",
       "fieldIds": [
         "execution.input_artifact_ref",
         "execution.input_content_hash",
@@ -131,6 +132,9 @@
       "implementationPaths": [
         "src/services/agent_runtime_hard_interface_v22515_service.py",
         "src/services/agent2_runtime_v22515_service.py",
+        "src/services/agent_token_runtime_v22520_service.py",
+        "src/services/agent2_runtime_resilience_v2143_service.py",
+        "config/deployment/agent2_lineage_status.py",
         "src/services/agent_runtime_contract_v225_service.py",
         "src/services/agent2_action_draft_core_v225_service.py",
         "src/services/agent2_hash_proof_bridge_v22515_service.py",
