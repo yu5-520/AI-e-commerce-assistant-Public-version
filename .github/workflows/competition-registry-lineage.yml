@@ -255,6 +255,18 @@ jobs:
               fi
             done
           fi
+          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+            for relative in \
+              governance/agent2-execution-input-lineage-update-policy.json \
+              config/deployment/agent2_lineage_status.py; do
+              if [ -f "$TARGET_EXTRACTED/$relative" ] && \
+                 { [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; }; then
+                PROFILE="agent2_execution_input_lineage"
+                POLICY="governance/agent2-execution-input-lineage-update-policy.json"
+                break
+              fi
+            done
+          fi
           printf 'LINEAGE_UPDATE_PROFILE=%s\n' "$PROFILE" >> "$GITHUB_ENV"
           printf 'LINEAGE_UPDATE_POLICY=%s\n' "$POLICY" >> "$GITHUB_ENV"
 

@@ -397,7 +397,7 @@ def schedule_agent2_failure(
             UPDATE pipeline_items
             SET current_stage=?, status=?, retry_count=?, retry_after=?,
                 claim_id=NULL, lease_expires_at=NULL,
-                failure_code=?, failure_class=?, error_reason=?,
+                failure_code=?, failure_class=?, error_reason=?, last_error_code=?,
                 payload=?, updated_at=?
             WHERE item_id=?
             """,
@@ -409,6 +409,7 @@ def schedule_agent2_failure(
                 classification["failureCode"],
                 classification["failureClass"],
                 reason[:500],
+                classification["failureCode"],
                 dumps(_wrapper(row, payload)),
                 now_dt.isoformat(),
                 item_id,

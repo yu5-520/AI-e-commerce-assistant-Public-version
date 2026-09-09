@@ -677,6 +677,7 @@ def run_agent2_draft_projected_inputs(
     usages: List[Dict[str, Any]] = []
     errors: List[str] = []
     semantic_cache_errors: List[str] = []
+    item_failures: Dict[str, Dict[str, Any]] = {}
     replay_count = busy_count = contract_invalid_count = true_missing_count = 0
     semantic_hit_count = semantic_miss_count = semantic_rebound_count = 0
 
@@ -785,6 +786,11 @@ def run_agent2_draft_projected_inputs(
             claimed.append(entry)
         except Exception as exc:
             errors.append(f"prepare:{_text(exc, 500)}")
+            item_failures[_package_id(envelope)] = {
+                "phase": "prepare",
+                "reason": _text(exc, 500),
+                "providerCallExecuted": False,
+            }
 
     grouped: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for entry in claimed:
@@ -907,6 +913,7 @@ def run_agent2_draft_projected_inputs(
         providerBatchCount=provider_batch_count,
         batchDiagnostics=diagnostics,
         errors=errors,
+        itemFailures=item_failures,
         itemProvenance={},
         runtimeSource="agent2DraftInputArtifact.semanticFamilyPayload+exactHash.v2317",
         hashDirectedExecution=True,
