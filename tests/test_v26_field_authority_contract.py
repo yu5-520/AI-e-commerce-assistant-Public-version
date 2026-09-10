@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+import importlib.util
+from pathlib import Path
+
 import pytest
 
-from src.services.v26_field_authority_contract_service import (
-    FieldAuthorityViolation,
-    V26FieldAuthorityContract,
-)
+
+MODULE_PATH = Path("src/services/v26_field_authority_contract_service.py")
+SPEC = importlib.util.spec_from_file_location("v26_field_authority_contract_service_test", MODULE_PATH)
+assert SPEC is not None and SPEC.loader is not None
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+FieldAuthorityViolation = MODULE.FieldAuthorityViolation
+V26FieldAuthorityContract = MODULE.V26FieldAuthorityContract
 
 
-def authority() -> V26FieldAuthorityContract:
+def authority():
     return V26FieldAuthorityContract()
 
 
