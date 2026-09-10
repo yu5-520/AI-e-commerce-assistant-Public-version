@@ -1,0 +1,163 @@
+{
+  "schema": "field.authority.contract.v1",
+  "version": "26.1.0",
+  "status": "active",
+  "registryProjection": "config/v23_registry_runtime.json",
+  "lineageRegistry": "config/runtime_contract_lineage_registry_v1.json",
+  "principles": {
+    "header": "authority",
+    "type": "contract",
+    "reference": "lineage",
+    "naturalLanguage": "active_surface"
+  },
+  "fieldClasses": {
+    "STRUCTURAL": {
+      "semanticInspection": false,
+      "description": "Identifiers, graph/stage headers and structural routing fields."
+    },
+    "FACT": {
+      "semanticInspection": false,
+      "description": "Immutable observed business facts. Agent writes are forbidden."
+    },
+    "DERIVED": {
+      "semanticInspection": false,
+      "description": "Deterministic system-derived metrics. Agent writes are forbidden."
+    },
+    "PLAN": {
+      "semanticInspection": false,
+      "description": "Proposed operating numbers and plan parameters. Agent2 is the sole model-side writer."
+    },
+    "SEMANTIC": {
+      "semanticInspection": false,
+      "maxTextLength": 12000,
+      "description": "Free-form model reasoning, explanation and operator instruction. Authority validation checks the header and type, not business wording."
+    },
+    "REFERENCE": {
+      "semanticInspection": false,
+      "description": "Artifact/field references. Values must remain references rather than copied authority-bearing values."
+    }
+  },
+  "namespacePolicies": [
+    {
+      "prefix": "snapshot.",
+      "class": "FACT",
+      "owner": "system",
+      "readableBy": ["agent1", "agent2", "agent3", "system", "java-control-plane"],
+      "writableBy": ["system", "java-control-plane"],
+      "lineageRequired": true
+    },
+    {
+      "prefix": "derived.",
+      "class": "DERIVED",
+      "owner": "java-control-plane",
+      "readableBy": ["agent1", "agent2", "agent3", "system", "java-control-plane"],
+      "writableBy": ["system", "java-control-plane"],
+      "lineageRequired": true
+    },
+    {
+      "prefix": "judgement.",
+      "class": "SEMANTIC",
+      "owner": "agent1",
+      "readableBy": ["agent1", "agent2", "agent3", "system", "java-control-plane"],
+      "writableBy": ["agent1"],
+      "lineageRequired": true
+    },
+    {
+      "prefix": "plan.",
+      "class": "PLAN",
+      "owner": "agent2",
+      "readableBy": ["agent2", "agent3", "system", "java-control-plane"],
+      "writableBy": ["agent2"],
+      "lineageRequired": true
+    },
+    {
+      "prefix": "operation.",
+      "class": "SEMANTIC",
+      "owner": "agent3",
+      "readableBy": ["agent3", "system", "java-control-plane", "ui"],
+      "writableBy": ["agent3"],
+      "lineageRequired": true
+    },
+    {
+      "prefix": "system_stage.",
+      "class": "STRUCTURAL",
+      "owner": "java-control-plane",
+      "readableBy": ["agent1", "agent2", "agent3", "system", "java-control-plane"],
+      "writableBy": ["system", "java-control-plane"],
+      "lineageRequired": true
+    },
+    {
+      "prefix": "operation_stage.",
+      "class": "STRUCTURAL",
+      "owner": "agent3",
+      "readableBy": ["agent3", "system", "java-control-plane", "ui"],
+      "writableBy": ["agent3"],
+      "lineageRequired": true
+    }
+  ],
+  "headerOverrides": {
+    "judgement.priority_weight": {
+      "class": "PLAN",
+      "owner": "agent1",
+      "writableBy": ["agent1"]
+    },
+    "judgement.evidence_confidence": {
+      "class": "PLAN",
+      "owner": "agent1",
+      "writableBy": ["agent1"]
+    },
+    "plan.daily_budget": {
+      "class": "PLAN",
+      "owner": "agent2",
+      "writableBy": ["agent2"]
+    },
+    "plan.target_roas": {
+      "class": "PLAN",
+      "owner": "agent2",
+      "writableBy": ["agent2"]
+    },
+    "plan.review_window": {
+      "class": "PLAN",
+      "owner": "agent2",
+      "writableBy": ["agent2"]
+    },
+    "operation.step_instruction": {
+      "class": "SEMANTIC",
+      "owner": "agent3",
+      "writableBy": ["agent3"]
+    },
+    "operation.plan_refs": {
+      "class": "REFERENCE",
+      "owner": "agent3",
+      "writableBy": ["agent3"],
+      "referenceNamespace": "plan."
+    }
+  },
+  "stageAuthority": {
+    "systemStage": {
+      "owner": "java-control-plane",
+      "modelWritable": false,
+      "dynamicModelNodesAllowed": false,
+      "dynamicModelEdgesAllowed": false
+    },
+    "operationStage": {
+      "owner": "agent3",
+      "modelWritableBy": ["agent3"],
+      "dynamicBusinessStagesAllowed": true,
+      "mayCreateSystemNodes": false,
+      "mayCreateSystemEdges": false
+    }
+  },
+  "numericAuthority": {
+    "FACT": "system_only",
+    "DERIVED": "system_only",
+    "PLAN": "agent2_only",
+    "agent3PlanNumberMode": "reference_only"
+  },
+  "semanticPolicy": {
+    "authorityValidatorMayInspectBusinessWording": false,
+    "authorityValidatorMayRequireBusinessKeywords": false,
+    "authorityValidatorMayRewriteBusinessWording": false,
+    "basicTypePresenceLengthChecksAllowed": true
+  }
+}
