@@ -99,6 +99,30 @@ jobs:
           POLICY="$LINEAGE_UPDATE_POLICY"
           TARGET_CONTRACT_REGISTRY="$TARGET_EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
           BASE_CONTRACT_REGISTRY="$BASE_EXTRACTED/config/runtime_contract_lineage_registry_v1.json"
+
+          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+            V26_FIELD_AUTHORITY_CHANGED=0
+            for relative in \
+              config/v26_field_authority_contract.json \
+              src/services/v26_field_authority_contract_service.py \
+              src/services/runtime_contract_guard_v1_service.py \
+              config/v23_registry_runtime.json \
+              governance/v26-field-authority-update-policy.json; do
+              if [ ! -f "$TARGET_EXTRACTED/$relative" ]; then
+                continue
+              fi
+              if [ ! -f "$BASE_EXTRACTED/$relative" ] || ! cmp -s "$BASE_EXTRACTED/$relative" "$TARGET_EXTRACTED/$relative"; then
+                V26_FIELD_AUTHORITY_CHANGED=1
+                break
+              fi
+            done
+            if [ "$V26_FIELD_AUTHORITY_CHANGED" = "1" ]; then
+              test -f "$TARGET_EXTRACTED/governance/v26-field-authority-update-policy.json"
+              PROFILE="v26_field_authority"
+              POLICY="governance/v26-field-authority-update-policy.json"
+            fi
+          fi
+
           if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
             V24_PRODUCTION_BUNDLE="governance/v24/production-authority-bundle-v24.json"
             V24_AUTHORITY_GENERATION="governance/v24/authority-generation-policy-v24.json"
