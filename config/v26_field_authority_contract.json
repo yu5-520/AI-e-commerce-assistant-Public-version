@@ -23,6 +23,10 @@
       "semanticInspection": false,
       "description": "Deterministic system-derived metrics. Agent writes are forbidden."
     },
+    "JUDGEMENT_NUMERIC": {
+      "semanticInspection": false,
+      "description": "Agent1-owned judgement weights/confidence values. These are not plan numbers."
+    },
     "PLAN": {
       "semanticInspection": false,
       "description": "Proposed operating numbers and plan parameters. Agent2 is the sole model-side writer."
@@ -97,37 +101,50 @@
   ],
   "headerOverrides": {
     "judgement.priority_weight": {
-      "class": "PLAN",
+      "class": "JUDGEMENT_NUMERIC",
+      "valueType": "number",
       "owner": "agent1",
-      "writableBy": ["agent1"]
+      "writableBy": ["agent1"],
+      "minimum": 0,
+      "maximum": 1
     },
     "judgement.evidence_confidence": {
-      "class": "PLAN",
+      "class": "JUDGEMENT_NUMERIC",
+      "valueType": "number",
       "owner": "agent1",
-      "writableBy": ["agent1"]
+      "writableBy": ["agent1"],
+      "minimum": 0,
+      "maximum": 1
     },
     "plan.daily_budget": {
       "class": "PLAN",
+      "valueType": "number",
       "owner": "agent2",
-      "writableBy": ["agent2"]
+      "writableBy": ["agent2"],
+      "minimum": 0
     },
     "plan.target_roas": {
       "class": "PLAN",
+      "valueType": "number",
       "owner": "agent2",
-      "writableBy": ["agent2"]
+      "writableBy": ["agent2"],
+      "minimum": 0
     },
     "plan.review_window": {
       "class": "PLAN",
+      "valueType": "string",
       "owner": "agent2",
       "writableBy": ["agent2"]
     },
     "operation.step_instruction": {
       "class": "SEMANTIC",
+      "valueType": "string",
       "owner": "agent3",
       "writableBy": ["agent3"]
     },
     "operation.plan_refs": {
       "class": "REFERENCE",
+      "valueType": "array",
       "owner": "agent3",
       "writableBy": ["agent3"],
       "referenceNamespace": "plan."
@@ -151,6 +168,7 @@
   "numericAuthority": {
     "FACT": "system_only",
     "DERIVED": "system_only",
+    "JUDGEMENT_NUMERIC": "agent1_only",
     "PLAN": "agent2_only",
     "agent3PlanNumberMode": "reference_only"
   },
