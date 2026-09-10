@@ -1,6 +1,9 @@
 {
   "agent3SystemConstraintVersion": "23.2.18",
   "agent2ProofBridgeVersion": "23.2.16",
+  "fieldAuthorityContractVersion": "26.1.0",
+  "fieldAuthorityContractPath": "config/v26_field_authority_contract.json",
+  "stageAuthorityContractVersion": "26.1.0",
   "frontendViewRuntimeScopeVersion": "23.2.13",
   "evidenceHashRuntimeScopeVersion": "23.2.15",
   "runtimeContractLineageRegistryPath": "config/runtime_contract_lineage_registry_v1.json",
@@ -64,6 +67,7 @@
       "schemaIds": ["agent_input.agent1.v3"]
     },
     "agent1_runtime": {
+      "fieldAuthorityContractVersion": "26.1.0",
       "activeBindingProbe": {
         "expectedOwners": {
           "activeFacadeOwner": "src.services.agent_runtime_hard_interface_v22515_service",
@@ -98,6 +102,9 @@
         "agent1.decision_ir"
       ],
       "implementationPaths": [
+        "config/v26_field_authority_contract.json",
+        "src/services/v26_field_authority_contract_service.py",
+        "src/services/runtime_contract_guard_v1_service.py",
         "src/services/agent_token_runtime_hash_exact_v2259_service.py",
         "src/services/real_product_judgment_agent_v2259_service.py",
         "src/services/agent_input_contract_v2258_service.py",
@@ -114,6 +121,8 @@
     "agent2_runtime": {
       "executionInputLineageVersion": "2026.09.09.1",
       "outputIdentityContractVersion": "22.5.20.1",
+      "fieldAuthorityContractVersion": "26.1.0",
+      "planNumericAuthority": "agent2",
       "fieldIds": [
         "execution.input_artifact_ref",
         "execution.input_content_hash",
@@ -131,6 +140,8 @@
         "agent2.creative_draft"
       ],
       "implementationPaths": [
+        "config/v26_field_authority_contract.json",
+        "src/services/v26_field_authority_contract_service.py",
         "src/services/agent_runtime_hard_interface_v22515_service.py",
         "src/services/agent2_runtime_v22515_service.py",
         "src/services/agent_token_runtime_v22520_service.py",
@@ -146,6 +157,7 @@
       "schemaIds": ["agent_input.agent2.v1"]
     },
     "agent3_input_projection": {
+      "fieldAuthorityContractVersion": "26.1.0",
       "fieldIds": [
         "execution.input_artifact_ref",
         "execution.input_content_hash",
@@ -159,6 +171,8 @@
         "agent2.draft_execution_proof"
       ],
       "implementationPaths": [
+        "config/v26_field_authority_contract.json",
+        "src/services/v26_field_authority_contract_service.py",
         "src/services/agent3_system_constraint_base_v23214_service.py",
         "src/services/agent3_system_constraint_v23213_service.py",
         "src/services/agent3_system_constraint_v23214_service.py",
@@ -170,6 +184,9 @@
       "schemaIds": ["agent_input.agent3_sop.v1"]
     },
     "agent3_runtime": {
+      "fieldAuthorityContractVersion": "26.1.0",
+      "planNumericAuthority": "reference_only",
+      "operationStageAuthority": "agent3",
       "fieldIds": [
         "execution.item_execution_id",
         "execution.input_content_hash",
@@ -188,6 +205,8 @@
         "agent3.failure_class"
       ],
       "implementationPaths": [
+        "config/v26_field_authority_contract.json",
+        "src/services/v26_field_authority_contract_service.py",
         "src/services/agent3_runtime_v23215_service.py",
         "src/services/agent3_sop_core_v225_service.py",
         "src/services/agent3_semantic_path_repair_v1_service.py",
@@ -247,6 +266,7 @@
       ]
     },
     "release_governance": {
+      "fieldAuthorityContractVersion": "26.1.0",
       "fieldIds": [
         "registry.root_hash",
         "registry.module_contract_hash",
@@ -255,6 +275,8 @@
       "implementationPaths": [
         "src/services/release_identity_service.py",
         "src/services/registry_runtime_receipt_v23_service.py",
+        "src/services/runtime_contract_guard_v1_service.py",
+        "src/services/v26_field_authority_contract_service.py",
         "scripts/start_server.sh",
         "scripts/start_v24_authority.sh",
         "config/deployment/v24_java_lifecycle.py",
@@ -262,7 +284,8 @@
         "src/deployment/deploy_release_core_v22516.sh",
         "release/release-policy.json",
         "config/v23_registry_runtime.json",
-        "config/runtime_contract_lineage_registry_v1.json"
+        "config/runtime_contract_lineage_registry_v1.json",
+        "config/v26_field_authority_contract.json"
       ],
       "runner": "src.services.release_identity_service:assert_release_identity",
       "schemaIds": []
@@ -319,6 +342,9 @@
   "rules": {
     "activeBindingProbeRequired": true,
     "deploymentMustFailClosed": true,
+    "fieldHeaderAuthorityRequired": true,
+    "semanticBusinessWordingAuthorityInspectionForbidden": true,
+    "systemStageModelMutationForbidden": true,
     "grayProductionModuleContractsMustMatch": true,
     "grayProductionReleaseIdentityMustMatch": true,
     "grayReceiptRequiredForProduction": true,

@@ -1,25 +1,26 @@
-"""Unified runtime contract guards derived from the contract-lineage registry.
+"""Unified runtime contract guards derived from registered runtime contracts.
 
-This module intentionally contains no business fallback.  It installs two narrow
-compatibility guards while preserving the canonical owners declared in
-``config/runtime_contract_lineage_registry_v1.json``:
-
-* ``ensure_hash_directed_runtime_tables`` is owned by the hash-directed Artifact
-  runtime.  A legacy consumer alias may forward to that owner, but the
-  implementation is never duplicated.
-* provider output identity is strict ``itemExecutionId + inputContentHash``.  Store
-  and product identity are diagnostics only and can never rebind a model result.
+The historical compatibility guards remain unchanged. V26.1 adds a registered
+field-header authority layer to the same guard surface: header ownership, value type
+and references are fail-closed, while SEMANTIC business wording is intentionally
+opaque to authority validation.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Mapping
 
 from src.services import agent_token_runtime_v2259_service as token_runtime
 from src.services.hash_directed_artifact_runtime_v2259_service import (
     ensure_hash_directed_runtime_tables,
 )
+from src.services.v26_field_authority_contract_service import (
+    V26_FIELD_AUTHORITY_VERSION,
+    V26FieldAuthorityContract,
+)
 
-RUNTIME_CONTRACT_GUARD_VERSION = "2026.08.11.1"
+RUNTIME_CONTRACT_GUARD_VERSION = "2026.09.10.1"
+
+_FIELD_AUTHORITY: V26FieldAuthorityContract | None = None
 
 
 def _text(value: Any) -> str:
@@ -30,12 +31,7 @@ def strict_descriptor_for_raw(
     raw: Dict[str, Any],
     descriptors: List[Dict[str, Any]],
 ) -> Dict[str, Any] | None:
-    """Resolve a provider item only by its two immutable execution identities.
-
-    Deliberately rejects hash-only, product/store and list-position recovery.  The
-    caller may report those fields as diagnostics, but may not use them to bind an
-    output to an execution.
-    """
+    """Resolve a provider item only by its two immutable execution identities."""
 
     item_execution_id = _text(raw.get("itemExecutionId"))
     input_content_hash = _text(raw.get("inputContentHash"))
@@ -50,8 +46,32 @@ def strict_descriptor_for_raw(
     return matches[0] if len(matches) == 1 else None
 
 
+def field_authority_contract() -> V26FieldAuthorityContract:
+    global _FIELD_AUTHORITY
+    if _FIELD_AUTHORITY is None:
+        _FIELD_AUTHORITY = V26FieldAuthorityContract()
+    return _FIELD_AUTHORITY
+
+
+def assert_field_write(actor: str, header: str, value: Any) -> Dict[str, Any]:
+    """Fail closed on field-header authority; never inspect semantic wording."""
+    return field_authority_contract().assert_write(actor, header, value)
+
+
+def assert_field_read(actor: str, header: str) -> Dict[str, Any]:
+    return field_authority_contract().assert_read(actor, header)
+
+
+def assert_payload_write(actor: str, payload: Mapping[str, Any]) -> None:
+    field_authority_contract().assert_payload_write(actor, payload)
+
+
+def assert_stage_write(actor: str, stage_kind: str) -> None:
+    field_authority_contract().assert_stage_write(actor, stage_kind)
+
+
 def install_runtime_contract_guards() -> Dict[str, Any]:
-    """Install fail-closed compatibility aliases on the active token runtime."""
+    """Install fail-closed compatibility aliases and activate V26.1 authority."""
 
     # The interface implementation remains owned by hash_directed_artifact_runtime;
     # this is only a forwarding alias for older consumers such as Agent3 semantic
@@ -62,6 +82,7 @@ def install_runtime_contract_guards() -> Dict[str, Any]:
     # retain a module reference inherit the same fail-closed identity rule.
     token_runtime._descriptor_for_raw = strict_descriptor_for_raw
 
+    authority_receipt = field_authority_contract().receipt()
     return {
         "version": RUNTIME_CONTRACT_GUARD_VERSION,
         "hashTableInterfaceOwner": (
@@ -73,11 +94,18 @@ def install_runtime_contract_guards() -> Dict[str, Any]:
         "hashOnlyFallbackAllowed": False,
         "productStoreFallbackAllowed": False,
         "fallbackAllowed": False,
+        "fieldAuthorityVersion": V26_FIELD_AUTHORITY_VERSION,
+        "fieldAuthority": authority_receipt,
     }
 
 
 __all__ = [
     "RUNTIME_CONTRACT_GUARD_VERSION",
     "strict_descriptor_for_raw",
+    "field_authority_contract",
+    "assert_field_write",
+    "assert_field_read",
+    "assert_payload_write",
+    "assert_stage_write",
     "install_runtime_contract_guards",
 ]
