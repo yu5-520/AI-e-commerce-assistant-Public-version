@@ -113,6 +113,7 @@
     },
     "agent2_runtime": {
       "executionInputLineageVersion": "2026.09.09.1",
+      "outputIdentityContractVersion": "22.5.20.1",
       "fieldIds": [
         "execution.input_artifact_ref",
         "execution.input_content_hash",

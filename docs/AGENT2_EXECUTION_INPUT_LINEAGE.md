@@ -50,10 +50,30 @@ scheduler and diagnosis implementation. The existing BASE/TARGET compiler checks
 relaxed. Tests cover claimed binding, stale claims, exact compiled lookup when a
 draft is absent, mismatched returned inputs and preparation-error propagation.
 
-This corrects a demonstrated code-level input/proof defect. The underlying failure
-of the existing P10001 task is not yet proven from ECS evidence: only its canonical
-input had been queried. Use the descendant diagnosis before deciding whether to
-retry or repair its provider/input configuration.
+ECS diagnosis on 2026-09-10 followed the compiler descendant and found an
+execution rejected with `contract_invalid_identity`: the stored provider plan
+contained a packageId but no usable itemExecutionId or inputContentHash. The task
+record predates the compiled-input binding release.
+
+### Output identity contract 22.5.20.1
+
+The base business prompt previously said to return only packageId and a business
+channel, and said the system would inject execution identity. The exact runtime
+then appended an instruction requiring both identity fields. The base prompt now
+explicitly distinguishes system-owned business state from transport identity,
+and the exact request includes an outputContract requiring both fields at plan
+top level, copied from the corresponding input. All four business channels use
+the same identity requirement. The gateway already preserves parsed provider
+fields; no response identity is synthesized or rebound.
+
+The token prompt version advances to 22.5.20.1. Both execution identity and
+semantic cache contract include this version, separating new requests from old
+contract results. Regression tests exercise the composed real prompt, per-item
+input identities, all four result channels, and rejection without completion of
+the observed identity-less response. This removes a demonstrated contradictory
+instruction; it does not prove every future model response will satisfy the
+contract. Historical dead letters remain unchanged until an explicit retry
+through the existing task entry after deployment.
 
 This release changes the existing Python Agent2 path. It does not implement Java
 ownership of Gate/Task State, Queue/Generation, Runtime Admission or Frontend/SSE,
