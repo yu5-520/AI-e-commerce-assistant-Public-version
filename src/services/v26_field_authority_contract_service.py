@@ -1,10 +1,10 @@
 """V26.1 field-header authority contract.
 
-Authority validation is deliberately structural.  It validates who may read/write a
-registered field header, value type/range when declared, and reference namespace.
-It does not inspect, require, rewrite or score business wording inside SEMANTIC
-fields.  That separation lets the control plane stay strict while the LLM semantic
-surface remains active.
+Authority validation is deliberately structural. It validates whether an exact field
+header is registered, who may read/write it, declared value type/range, and reference
+namespace. It does not inspect, require, rewrite or score business wording inside
+SEMANTIC fields. That separation lets the control plane stay strict while the LLM
+semantic surface remains active.
 """
 from __future__ import annotations
 
@@ -36,6 +36,12 @@ class V26FieldAuthorityContract:
             raise FieldAuthorityViolation("v26_field_authority_version_mismatch")
         if self.contract.get("status") != "active":
             raise FieldAuthorityViolation("v26_field_authority_not_active")
+        self._registration_required = self.contract.get("headerRegistrationRequired") is not False
+        self._registered_headers = {
+            str(value).strip()
+            for value in self.contract.get("registeredHeaders", [])
+            if str(value).strip()
+        }
         self._namespace_policies = sorted(
             [item for item in self.contract.get("namespacePolicies", []) if isinstance(item, dict)],
             key=lambda item: len(str(item.get("prefix") or "")),
@@ -46,11 +52,15 @@ class V26FieldAuthorityContract:
             for key, value in dict(self.contract.get("headerOverrides") or {}).items()
             if isinstance(value, dict)
         }
+        if self._registration_required and not self._registered_headers:
+            raise FieldAuthorityViolation("v26_registered_headers_missing")
 
     def resolve_policy(self, header: str) -> Dict[str, Any]:
         header = str(header or "").strip()
         if not header or "." not in header:
             raise FieldAuthorityViolation(f"v26_field_header_invalid:{header}")
+        if self._registration_required and header not in self._registered_headers:
+            raise FieldAuthorityViolation(f"v26_field_header_unregistered:{header}")
         base: Dict[str, Any] = {}
         for item in self._namespace_policies:
             prefix = str(item.get("prefix") or "")
@@ -58,7 +68,7 @@ class V26FieldAuthorityContract:
                 base = dict(item)
                 break
         if not base:
-            raise FieldAuthorityViolation(f"v26_field_header_unregistered:{header}")
+            raise FieldAuthorityViolation(f"v26_field_namespace_unregistered:{header}")
         override = self._header_overrides.get(header)
         if override:
             base.update(override)
@@ -111,8 +121,8 @@ class V26FieldAuthorityContract:
             )
             if len(value) > max_len:
                 raise FieldAuthorityViolation(f"v26_semantic_field_too_long:{header}")
-            # Intentionally no keyword, phrase, business-domain or numeric-content
-            # inspection here.  Header ownership is the authority boundary.
+            # Deliberately no keyword, phrase, business-domain or numeric-content
+            # inspection. Header ownership is the authority boundary.
 
         if field_class == "REFERENCE":
             expected_prefix = str(policy.get("referenceNamespace") or "")
@@ -150,6 +160,8 @@ class V26FieldAuthorityContract:
             "version": V26_FIELD_AUTHORITY_VERSION,
             "contractPath": str(self.path),
             "headerAuthority": True,
+            "exactHeaderRegistrationRequired": self._registration_required,
+            "registeredHeaderCount": len(self._registered_headers),
             "semanticBusinessWordingInspected": False,
             "systemStageModelWritable": False,
             "operationStageAgent3Writable": True,
