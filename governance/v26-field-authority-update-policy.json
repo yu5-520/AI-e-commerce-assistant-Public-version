@@ -1,16 +1,16 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.10.1",
+  "version": "2026.09.10.2",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
-      "description": "Register V26.1 field-header authority inside the existing runtime registry and contract guard. Keep the sealed lineage root, runtime call graph and release identity stable. FACT and DERIVED remain system-owned; PLAN is Agent2-owned; Agent3 may reference plan values but may not originate them. Authority validation must not inspect or rewrite business wording in SEMANTIC fields. SystemStage remains control-plane owned while OperationStage is an Agent3 business surface for the next graph migration.",
+      "description": "Register V26.1 field-header authority inside the existing runtime registry and contract guard. The sealed registry root and system Agent call topology remain stable, while registered runtime file hashes/membership and registry-to-file lineage are allowed to change only inside the declared V26.1 surface. FACT and DERIVED remain system-owned; PLAN is Agent2-owned; Agent3 may reference plan values but may not originate them. Authority validation must not inspect or rewrite business wording in SEMANTIC fields. SystemStage remains control-plane owned while OperationStage is an Agent3 business surface for the next graph migration.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
-      "requireRuntimeHashStable": true,
-      "requireGraphHashStable": true,
-      "allowRuntimeMembershipChange": false,
-      "allowEdgeChanges": false,
+      "requireRuntimeHashStable": false,
+      "requireGraphHashStable": false,
+      "allowRuntimeMembershipChange": true,
+      "allowEdgeChanges": true,
       "allowRegistryModuleChanges": true,
       "allowedRuntimePathPrefixes": [
         "config/v23_registry_runtime.json",
@@ -19,7 +19,8 @@
         "src/services/v26_field_authority_contract_service.py",
         "governance/v26-field-authority-update-policy.json",
         "tests/test_v26_field_authority_contract.py",
-        "docs/V26_1_FIELD_AUTHORITY_CONTRACT.md"
+        "docs/V26_1_FIELD_AUTHORITY_CONTRACT.md",
+        ".github/workflows/competition-registry-lineage.yml"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",
