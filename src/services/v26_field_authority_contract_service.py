@@ -134,6 +134,10 @@ class V26FieldAuthorityContract:
                     raise FieldAuthorityViolation(
                         f"v26_reference_namespace_mismatch:{header}:{ref}"
                     )
+                if self._registration_required and ref not in self._registered_headers:
+                    raise FieldAuthorityViolation(
+                        f"v26_reference_header_unregistered:{header}:{ref}"
+                    )
         return policy
 
     def assert_payload_write(self, actor: str, payload: Mapping[str, Any]) -> None:
