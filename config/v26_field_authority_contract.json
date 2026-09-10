@@ -10,6 +10,25 @@
     "reference": "lineage",
     "naturalLanguage": "active_surface"
   },
+  "headerRegistrationRequired": true,
+  "registeredHeaders": [
+    "snapshot.roas",
+    "snapshot.ctr",
+    "snapshot.inventory",
+    "derived.rolling_roas",
+    "derived.volatility",
+    "judgement.reasoning",
+    "judgement.priority_weight",
+    "judgement.evidence_confidence",
+    "plan.daily_budget",
+    "plan.target_roas",
+    "plan.review_window",
+    "operation.step_instruction",
+    "operation.plan_refs",
+    "system_stage.call_graph",
+    "operation_stage.stage_id",
+    "operation_stage.stage_name"
+  ],
   "fieldClasses": {
     "STRUCTURAL": {
       "semanticInspection": false,
@@ -100,6 +119,10 @@
     }
   ],
   "headerOverrides": {
+    "judgement.reasoning": {
+      "class": "SEMANTIC",
+      "valueType": "string"
+    },
     "judgement.priority_weight": {
       "class": "JUDGEMENT_NUMERIC",
       "valueType": "number",
@@ -148,6 +171,18 @@
       "owner": "agent3",
       "writableBy": ["agent3"],
       "referenceNamespace": "plan."
+    },
+    "system_stage.call_graph": {
+      "class": "STRUCTURAL",
+      "valueType": "array"
+    },
+    "operation_stage.stage_id": {
+      "class": "STRUCTURAL",
+      "valueType": "string"
+    },
+    "operation_stage.stage_name": {
+      "class": "SEMANTIC",
+      "valueType": "string"
     }
   },
   "stageAuthority": {
