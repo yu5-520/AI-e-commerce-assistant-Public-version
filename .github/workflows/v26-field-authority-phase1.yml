@@ -1,0 +1,106 @@
+name: V26 Field Authority Phase1
+
+on:
+  pull_request:
+    paths:
+      - 'config/v26_field_authority_contract.json'
+      - 'config/v23_registry_runtime.json'
+      - 'src/services/v26_field_authority_contract_service.py'
+      - 'src/services/runtime_contract_guard_v1_service.py'
+      - 'governance/v26-field-authority-update-policy.json'
+      - 'tests/test_v26_field_authority_contract.py'
+      - 'docs/V26_1_FIELD_AUTHORITY_CONTRACT.md'
+      - '.github/workflows/v26-field-authority-phase1.yml'
+      - '.github/workflows/competition-registry-lineage.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'config/v26_field_authority_contract.json'
+      - 'config/v23_registry_runtime.json'
+      - 'src/services/v26_field_authority_contract_service.py'
+      - 'src/services/runtime_contract_guard_v1_service.py'
+      - 'governance/v26-field-authority-update-policy.json'
+      - 'tests/test_v26_field_authority_contract.py'
+      - '.github/workflows/v26-field-authority-phase1.yml'
+      - '.github/workflows/competition-registry-lineage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v26-field-authority-phase1-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  field-authority-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Prepare Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify V26.1 contract documents and registry projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool config/v26_field_authority_contract.json >/dev/null
+          python -m json.tool config/v23_registry_runtime.json >/dev/null
+          python -m json.tool governance/v26-field-authority-update-policy.json >/dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          contract = json.loads(Path('config/v26_field_authority_contract.json').read_text(encoding='utf-8'))
+          registry = json.loads(Path('config/v23_registry_runtime.json').read_text(encoding='utf-8'))
+          policy = json.loads(Path('governance/v26-field-authority-update-policy.json').read_text(encoding='utf-8'))
+
+          assert contract['version'] == '26.1.0'
+          assert contract['headerRegistrationRequired'] is True
+          assert contract['semanticPolicy']['authorityValidatorMayInspectBusinessWording'] is False
+          assert contract['numericAuthority']['FACT'] == 'system_only'
+          assert contract['numericAuthority']['DERIVED'] == 'system_only'
+          assert contract['numericAuthority']['JUDGEMENT_NUMERIC'] == 'agent1_only'
+          assert contract['numericAuthority']['PLAN'] == 'agent2_only'
+          assert contract['numericAuthority']['agent3PlanNumberMode'] == 'reference_only'
+          assert contract['stageAuthority']['systemStage']['dynamicModelNodesAllowed'] is False
+          assert contract['stageAuthority']['operationStage']['dynamicBusinessStagesAllowed'] is True
+
+          assert registry['fieldAuthorityContractVersion'] == '26.1.0'
+          assert registry['fieldAuthorityContractPath'] == 'config/v26_field_authority_contract.json'
+          assert registry['registryRootHash'] == 'sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac'
+          assert len(registry['requiredModules']) == 10
+          assert registry['rules']['fieldHeaderAuthorityRequired'] is True
+          assert registry['rules']['semanticBusinessWordingAuthorityInspectionForbidden'] is True
+          assert registry['rules']['systemStageModelMutationForbidden'] is True
+
+          assert policy['defaultProfile'] == 'v26_field_authority'
+          profile = policy['profiles']['v26_field_authority']
+          assert profile['allowRegistryModuleChanges'] is True
+          assert profile['allowRuntimeMembershipChange'] is True
+          assert profile['allowEdgeChanges'] is True
+          print('V26_1_REGISTRY_CONTRACT=PASS')
+          PY
+
+      - name: Compile V26.1 authority services
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            src/services/v26_field_authority_contract_service.py \
+            src/services/runtime_contract_guard_v1_service.py
+
+      - name: Run V26.1 field authority regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q tests/test_v26_field_authority_contract.py
