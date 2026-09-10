@@ -69,7 +69,7 @@ from src.services.llm_gateway_hash_directed_v2259_service import (
 from src.services.llm_gateway_v196_service import provider_runtime_config
 
 THREE_AGENT_PIPELINE_VERSION = "22.5.20"
-AGENT_TOKEN_RUNTIME_VERSION = "22.5.20"
+AGENT_TOKEN_RUNTIME_VERSION = "22.5.20.1"
 AGENT2_REQUEST_CACHE_IDENTITY_HOTFIX_VERSION = "22.5.20"
 AGENT2_FAMILY_PAYLOAD_CACHE_VERSION = "23.1.7"
 AGENT2_SEMANTIC_IDENTITY_SCHEMA = "agent2.family_payload_semantic_identity.v1"
@@ -483,6 +483,16 @@ def _inject_exact_contract(
 
     payload["_hashDirectedExecution"] = True
     payload["exactOutputIdentity"] = "itemExecutionId+inputContentHash"
+    payload["outputContract"] = {
+        "version": AGENT_TOKEN_RUNTIME_VERSION,
+        "requiredPlanFields": ["packageId", "itemExecutionId", "inputContentHash"],
+        "identitySource": "corresponding_input_package",
+        "identityPlacement": "plan_top_level",
+        "exactlyOneBusinessChannel": [
+            "familyPayload", "missingData", "conflictReasons", "rejectedReason"
+        ],
+        "systemFillsMissingIdentity": False,
+    }
     result[user_index]["content"] = json.dumps(
         payload,
         ensure_ascii=False,
@@ -491,7 +501,7 @@ def _inject_exact_contract(
     )
     contract = (
         "\nV22.5.20硬合同：plans中的每个输出项必须原样返回输入的"
-        "itemExecutionId和inputContentHash；不得省略、复制、猜测或改写。"
+        "itemExecutionId和inputContentHash；逐项复制对应输入值，不得省略、跨项复制、猜测或改写。"
         "packageId仅用于业务展示，不能替代执行身份。"
     )
     system_index = next(

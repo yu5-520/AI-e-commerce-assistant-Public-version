@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.09.1",
+  "version": "2026.09.10.1",
   "defaultProfile": "agent2_execution_input_lineage",
   "profiles": {
     "agent2_execution_input_lineage": {
-      "description": "Bind the real compiled Agent2 input under its active claim before execution. Verify that exact input on acceptance, preserve preparation/provider failures, and diagnose historical input descendants using Artifact edges. No output acceptance bypass, automatic dead-letter replay, second runtime or Java authority transfer.",
+      "description": "Bind the real compiled Agent2 input under its active claim before execution. Verify that exact input on acceptance, preserve preparation/provider failures, and diagnose historical input descendants using Artifact edges. No output acceptance bypass, automatic dead-letter replay, second runtime or Java authority transfer. Unify model-facing business and transport identity contracts; advance prompt identity to isolate old executions and semantic caches. Strict returned identity validation remains mandatory.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -17,7 +17,8 @@
         "src/services/agent2_runtime_v22515_service.py",
         "src/services/agent_token_runtime_v22520_service.py",
         "src/services/agent2_runtime_resilience_v2143_service.py",
-        "config/deployment/agent2_lineage_status.py"
+        "config/deployment/agent2_lineage_status.py",
+        "src/services/agent2_action_draft_core_v225_service.py"
       ],
       "allowedRegistryModules": [
         "agent2_runtime"

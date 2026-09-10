@@ -217,30 +217,30 @@ def _compact_package(package: Dict[str, Any]) -> Dict[str, Any]:
 def _draft_instruction(family: str) -> str:
     if family == "title_image_test":
         return (
-            "只生成familyPayload。familyPayload必须包含directions，数量2到5。"
+            "业务生成部分只填写familyPayload，传输身份仍须回传。familyPayload必须包含directions，数量2到5。"
             "每个方向必须包含fullTitle、mainImageStructure、testFocusWords、"
             "platformFit、differenceFromOthers。方向必须是同一主动作下的不同候选，"
             "不得生成多个主动作。"
         )
     if family in ROAS_FAMILIES:
         return (
-            "只生成familyPayload。familyPayload是operationPlan，operations至少1项，"
+            "业务生成部分只填写familyPayload，传输身份仍须回传。familyPayload是operationPlan，operations至少1项，"
             "每项围绕同一个锁定动作和对象，写operationType、target、direction、"
             "currentValue、targetValue、参数范围和rollback。"
         )
     if family in {"platform_activity", "activity_apply"}:
         return (
-            "只生成familyPayload。familyPayload是activityDraft，写活动类型、门槛范围、"
+            "业务生成部分只填写familyPayload，传输身份仍须回传。familyPayload是activityDraft，写活动类型、门槛范围、"
             "权益范围、毛利边界、承接条件、退出条件和需要公司确认的字段。"
         )
     if family in {"conversion_repair", "service_repair"}:
         return (
-            "只生成familyPayload。familyPayload是repairDraft，写repairDetail、"
+            "业务生成部分只填写familyPayload，传输身份仍须回传。familyPayload是repairDraft，写repairDetail、"
             "parameterRanges、validationMetrics、riskBoundaries和supportingCoordination。"
         )
     if family == "similar_product_test":
         return (
-            "只生成familyPayload。familyPayload是experimentDraft，写对照对象、唯一变量、"
+            "业务生成部分只填写familyPayload，传输身份仍须回传。familyPayload是experimentDraft，写对照对象、唯一变量、"
             "实验方向、参数范围、验证指标和停止边界。"
         )
     raise ValueError("unsupported_locked_action_family")
@@ -264,8 +264,8 @@ def _build_messages(
     prompt = (
         "你是Agent2动作正文生成器。系统已经完成经营判断、动作族分类、权限校验和执行锁定。"
         "immutableContext只供理解，不得复制、改写或重新判断。系统会自动注入问题、动作族、"
-        "主动作、执行对象、责任人、权限、状态和执行身份。"
-        "每个plan只返回packageId，以及四种结果通道中的一种："
+        "主动作、执行对象、责任人、权限和业务状态。"
+        "每个plan返回packageId；输入含itemExecutionId和inputContentHash时，必须在plan顶层原样回传这两个传输身份字段。系统不会替你补写传输身份。业务正文只返回四种结果通道中的一种："
         "familyPayload、非空missingData、非空conflictReasons、非空rejectedReason。"
         "禁止返回draftStatus；系统将依据内容自动计算状态。"
         "禁止返回primaryProblemNode、primaryAction、primaryExecutionTarget、primaryOwner、"
