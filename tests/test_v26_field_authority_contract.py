@@ -59,6 +59,8 @@ def test_agent3_plan_values_are_referenced_not_reauthored() -> None:
     )
     with pytest.raises(FieldAuthorityViolation, match="v26_reference_namespace_mismatch"):
         guard.assert_write("agent3", "operation.plan_refs", ["snapshot.roas"])
+    with pytest.raises(FieldAuthorityViolation, match="v26_reference_header_unregistered"):
+        guard.assert_write("agent3", "operation.plan_refs", ["plan.unregistered_amount"])
 
 
 def test_exact_header_registration_is_fail_closed() -> None:
