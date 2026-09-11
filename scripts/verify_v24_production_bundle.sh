@@ -26,6 +26,12 @@ CONTRACT="$ROOT_DIR/runtime/java/runtime-contract.json"
 [ -s "$JAR" ]
 [ -s "$CONTRACT" ]
 
+# V26.3 stays inside the existing sealed Java authority bundle. This executable proof
+# must pass before the production readiness service is even started, so an invalid
+# pre-Agent admission contract cannot enter the Release Seal path.
+"$JRE" -cp "$JAR" com.zcentury.v24.V263PreAgentAdmissionMain
+printf 'V26_3_PRE_AGENT_ADMISSION_GATE=PASS\n'
+
 V24_AUTHORITY_MODE=READY_NO_AUTHORITY V24_AUTHORITY_HOST=127.0.0.1 V24_AUTHORITY_PORT="$PORT" "$JRE"   -Xms64m   -Xmx256m   -XX:MaxMetaspaceSize=128m   -XX:ActiveProcessorCount=2   -jar "$JAR" >"$LOG_FILE" 2>&1 &
 PID=$!
 
