@@ -7,6 +7,7 @@ remain available for audit; Agent2 and Agent3 receive only the compact IR handof
 from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
+from copy import deepcopy
 
 from src.services.agent_input_contract_v225_service import (
     AGENT_INPUT_CONTRACT_VERSION,
@@ -376,6 +377,11 @@ def _existing(
     try:
         value = resolve_artifact(artifact_id)
         assert_agent_input_envelope(value, expected_schema=schema)
+        if schema == AGENT3_SOP_INPUT_SCHEMA:
+            graph = _dict(_dict(_dict(value.get("payload")).get("agent2ActionDraft")).get("v26ActionGraph"))
+            if graph:
+                from src.services.v26_revision_acceptance_service import verify_graph
+                verify_graph(graph)
     except Exception:
         return None
     if source_ref not in _arr(value.get("sourceArtifactRefs")):
@@ -488,6 +494,12 @@ def compile_agent3_sop_envelope(
     if not package_id or not product_id or not store_id or not family or not draft:
         raise ValueError("agent3_sop_identity_family_or_draft_missing")
     company = build_agent3_company_context(source)
+    # A sealed graph is an indivisible record: generic compaction changes its hash.
+    projected_draft = _compact(draft, max_depth=8, max_list=24, max_keys=64)
+    if draft.get("v26ActionGraph"):
+        from src.services.v26_revision_acceptance_service import verify_graph
+        verify_graph(draft["v26ActionGraph"])
+        projected_draft["v26ActionGraph"] = deepcopy(draft["v26ActionGraph"])
     payload = {
         "packageId": package_id,
         "itemId": source.get("itemId"),
@@ -506,7 +518,7 @@ def compile_agent3_sop_envelope(
         "recentFiveOrLatestFacts": _compact(
             source.get("recentFiveOrLatestFacts"), max_depth=5, max_list=14, max_keys=24
         ),
-        "agent2ActionDraft": _compact(draft, max_depth=8, max_list=24, max_keys=64),
+        "agent2ActionDraft": projected_draft,
         "agent2DraftExecutionProof": _compact(proof, max_depth=4, max_list=8, max_keys=24),
         **company,
         "inputContract": {
