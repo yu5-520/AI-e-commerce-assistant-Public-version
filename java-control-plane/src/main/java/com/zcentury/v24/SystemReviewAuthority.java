@@ -7,11 +7,12 @@ import java.util.Map;
 import java.util.TreeSet;
 
 /**
- * V26.4 deterministic review evaluator.
+ * Deterministic post-observation review evaluator.
  *
- * It never invents business thresholds. It compares observed facts only against the
- * immutable ReviewContract frozen from Agent2 plan authority. Ambiguous or unsupported
- * expectations fail closed into ADJUSTMENT_REQUIRED so Agent1 may interpret meaning.
+ * V26.4 established deterministic review against the immutable ReviewContract.
+ * V26.6 additionally exposes structured breachedMetrics so the control plane can
+ * locate the exact V26.5 Action/Operation subgraph without parsing human-readable
+ * breach strings. It still never invents business thresholds or plan values.
  */
 final class SystemReviewAuthority {
     enum Decision {
@@ -31,6 +32,7 @@ final class SystemReviewAuthority {
         Decision decision,
         String reason,
         List<String> breaches,
+        List<String> breachedMetrics,
         boolean invokeAgent1,
         String contractHash,
         String reviewHash
@@ -52,7 +54,7 @@ final class SystemReviewAuthority {
 
         if (observation.observedAtMillis() < contract.reviewDueAtMillis()) {
             return result(contract, observation, metrics, evidence,
-                Decision.WAITING_TIME, "REVIEW_WINDOW_NOT_DUE", List.of());
+                Decision.WAITING_TIME, "REVIEW_WINDOW_NOT_DUE", List.of(), List.of());
         }
 
         ArrayList<String> missingEvidence = new ArrayList<>();
@@ -67,7 +69,7 @@ final class SystemReviewAuthority {
         }
         if (!missingEvidence.isEmpty()) {
             return result(contract, observation, metrics, evidence,
-                Decision.WAITING_EVIDENCE, "MINIMUM_EVIDENCE_NOT_MET", missingEvidence);
+                Decision.WAITING_EVIDENCE, "MINIMUM_EVIDENCE_NOT_MET", missingEvidence, List.of());
         }
 
         TreeSet<String> requiredMetrics = new TreeSet<>();
@@ -80,39 +82,47 @@ final class SystemReviewAuthority {
         }
         if (!missingMetrics.isEmpty()) {
             return result(contract, observation, metrics, evidence,
-                Decision.WAITING_EVIDENCE, "REVIEW_METRIC_MISSING", missingMetrics);
+                Decision.WAITING_EVIDENCE, "REVIEW_METRIC_MISSING", missingMetrics, List.of());
         }
 
         if (!contract.deterministicSpec()) {
             return result(contract, observation, metrics, evidence,
                 Decision.ADJUSTMENT_REQUIRED,
                 "NON_DETERMINISTIC_REVIEW_CONTRACT",
-                contract.unsupportedFields());
+                contract.unsupportedFields(),
+                List.of());
         }
 
         ArrayList<String> breaches = new ArrayList<>();
+        TreeSet<String> breachedMetrics = new TreeSet<>();
         for (String metric : requiredMetrics) {
             double actual = metrics.get(metric);
             Double lower = contract.lowerGuard().get(metric);
             if (lower != null && actual < lower) {
                 breaches.add(metric + ":LOWER_GUARD:" + actual + "<" + lower);
+                breachedMetrics.add(metric);
             }
             Double upper = contract.upperGuard().get(metric);
             if (upper != null && actual > upper) {
                 breaches.add(metric + ":UPPER_GUARD:" + actual + ">" + upper);
+                breachedMetrics.add(metric);
             }
             String trend = contract.expectedTrend().get(metric);
             if (trend != null && !trendSatisfied(trend, contract.baselineMetrics().get(metric), actual)) {
                 breaches.add(metric + ":EXPECTED_TREND:" + trend);
+                breachedMetrics.add(metric);
             }
         }
 
         if (!breaches.isEmpty()) {
             return result(contract, observation, metrics, evidence,
-                Decision.ADJUSTMENT_REQUIRED, "EXPECTED_OUTCOME_NOT_MET", breaches);
+                Decision.ADJUSTMENT_REQUIRED,
+                "EXPECTED_OUTCOME_NOT_MET",
+                breaches,
+                List.copyOf(breachedMetrics));
         }
         return result(contract, observation, metrics, evidence,
-            Decision.SETTLED, "EXPECTED_OUTCOME_MET", List.of());
+            Decision.SETTLED, "EXPECTED_OUTCOME_MET", List.of(), List.of());
     }
 
     private static boolean trendSatisfied(String trend, Double baseline, double actual) {
@@ -133,10 +143,11 @@ final class SystemReviewAuthority {
         Map<String, Double> evidence,
         Decision decision,
         String reason,
-        List<String> breaches
+        List<String> breaches,
+        List<String> breachedMetrics
     ) {
         LinkedHashMap<String, Object> material = new LinkedHashMap<>();
-        material.put("schema", "v26.4.system_review_result.v1");
+        material.put("schema", "v26.6.system_review_result.v1");
         material.put("contractHash", contract.contractHash());
         material.put("productId", contract.productId());
         material.put("taskId", contract.taskId());
@@ -146,12 +157,14 @@ final class SystemReviewAuthority {
         material.put("decision", decision.name());
         material.put("reason", reason);
         material.put("breaches", List.copyOf(breaches));
+        material.put("breachedMetrics", List.copyOf(breachedMetrics));
         material.put("invokeAgent1", decision == Decision.ADJUSTMENT_REQUIRED);
         String reviewHash = Hashing.canonicalHash(material);
         return new Result(
             decision,
             reason,
             List.copyOf(breaches),
+            List.copyOf(breachedMetrics),
             decision == Decision.ADJUSTMENT_REQUIRED,
             contract.contractHash(),
             reviewHash
