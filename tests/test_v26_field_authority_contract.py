@@ -99,3 +99,19 @@ def test_registered_stage_headers_follow_same_authority() -> None:
         guard.assert_write("agent3", "system_stage.call_graph", ["agent1", "agent2", "agent3"])
     guard.assert_write("agent3", "operation_stage.stage_id", "STAGE-1")
     guard.assert_write("agent3", "operation_stage.stage_name", "标题与主图准备")
+
+
+def test_v266_revision_scope_is_system_owned_and_model_read_only() -> None:
+    guard = authority()
+    revision_hash = "sha256:" + "a" * 64
+    action_hash = "sha256:" + "b" * 64
+    policy = guard.assert_write("java-control-plane", "revision.revision_hash", revision_hash)
+    assert policy["class"] == "STRUCTURAL"
+    guard.assert_write("java-control-plane", "revision.scope_mode", "LOCAL")
+    guard.assert_write("java-control-plane", "revision.breached_metrics", ["roas"])
+    guard.assert_write("java-control-plane", "revision.reopen_action_node_hashes", [action_hash])
+    for actor in ("agent1", "agent2", "agent3"):
+        with pytest.raises(FieldAuthorityViolation, match="v26_field_write_forbidden"):
+            guard.assert_write(actor, "revision.reopen_action_node_hashes", [action_hash])
+        with pytest.raises(FieldAuthorityViolation, match="v26_field_write_forbidden"):
+            guard.assert_write(actor, "revision.revision_hash", revision_hash)
