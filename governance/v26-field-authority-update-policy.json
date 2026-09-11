@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.11.7",
+  "version": "2026.09.11.7.1",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
@@ -55,7 +55,8 @@
         "java-control-plane/src/main/java/com/zcentury/v24/V267CloseoutMain.java",
         "docs/V26_7_CLOSEOUT.md",
         "README.md",
-        "tests/test_v22_4_v267_task_evidence_chain.py"
+        "tests/test_v22_4_v267_task_evidence_chain.py",
+        "src/services/agent_input_transport_v225_service.py"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",

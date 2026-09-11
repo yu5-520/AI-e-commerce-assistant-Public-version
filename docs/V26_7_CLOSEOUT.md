@@ -51,3 +51,11 @@ python -m pytest -q
 ```
 
 Java 全树编译后运行 V263PreAgentAdmissionMain、V264SystemReviewMain、V266LocalSubgraphRevisionMain、V267CloseoutMain。最后一个也在原 production bundle 验证脚本运行。正式发布仍使用仓库固定 Python 3.11.9 / 依赖锁验证。
+
+## V26.7.1 三报表链路修复
+
+V26.7 主分支封包及 ECS 候选 HTTP 验证通过后，三报表业务端到端发现 `agent3_sop_failed`。失败 Artifact 的 `agent3Provider.errors` 为 `provider_batch:sop_evidence_graph_hash_mismatch`：Agent3 输入投影递归清理了 ActionGraph 中的 null/空集合，却保留原 graphHash。
+
+修复在原 Agent3 输入编译入口先校验完整图，再深拷贝封印图进入输入 Artifact；普通业务字段继续按原规则压缩，最终输入字符预算仍照常检查。禁止重签损坏图或跳过证据校验。回归覆盖 null、空列表、零值、false、超过普通压缩长度的列表，以及篡改拒绝。
+
+本地修复包验证：三报表生成 2 个任务、5 次 provider 调用、终态重放新增调用 0；默认回归 103 passed / 6 skipped。损坏的旧 Agent3 输入投影不再复用，从原始来源重新生成，保留旧 Artifact 审计记录。正式提交仍需原 hosted 血缘门禁及主分支发布验收。
