@@ -1,0 +1,121 @@
+name: V26 Business Graphs Phase2
+
+on:
+  pull_request:
+    paths:
+      - 'config/v26_field_authority_contract.json'
+      - 'src/services/v26_business_graph_bridge_service.py'
+      - 'src/services/agent_token_runtime_v225_service.py'
+      - 'governance/v26-field-authority-update-policy.json'
+      - 'tests/test_v26_business_graph_bridge.py'
+      - 'docs/V26_2_BUSINESS_GRAPH_CUTOVER.md'
+      - '.github/workflows/v26-business-graphs-phase2.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'config/v26_field_authority_contract.json'
+      - 'src/services/v26_business_graph_bridge_service.py'
+      - 'src/services/agent_token_runtime_v225_service.py'
+      - 'governance/v26-field-authority-update-policy.json'
+      - 'tests/test_v26_business_graph_bridge.py'
+      - 'docs/V26_2_BUSINESS_GRAPH_CUTOVER.md'
+      - '.github/workflows/v26-business-graphs-phase2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v26-business-graphs-phase2-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  business-graph-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Prepare Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify V26.2 authority headers and unchanged system topology
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool config/v26_field_authority_contract.json >/dev/null
+          python -m json.tool governance/v26-field-authority-update-policy.json >/dev/null
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          contract = json.loads(Path('config/v26_field_authority_contract.json').read_text(encoding='utf-8'))
+          policy = json.loads(Path('governance/v26-field-authority-update-policy.json').read_text(encoding='utf-8'))
+          headers = set(contract['registeredHeaders'])
+
+          assert contract['version'] == '26.1.0'
+          assert contract['businessGraphVersion'] == '26.2.0'
+          required = {
+              'judgement.primary_issue',
+              'judgement.signal_conflicts',
+              'judgement.recommended_direction',
+              'plan.strategy_summary',
+              'plan.selected_strategy',
+              'plan.expected_trend',
+              'operation.objective',
+              'operation.plan_refs',
+              'operation_stage.stage_id',
+              'operation_stage.steps',
+              'operation_stage.review_entry',
+          }
+          assert required <= headers
+          assert contract['stageAuthority']['systemStage']['modelWritable'] is False
+          assert contract['stageAuthority']['systemStage']['dynamicModelNodesAllowed'] is False
+          assert contract['stageAuthority']['systemStage']['dynamicModelEdgesAllowed'] is False
+          assert contract['stageAuthority']['operationStage']['dynamicBusinessStagesAllowed'] is True
+          assert contract['numericAuthority']['agent3PlanNumberMode'] == 'reference_only'
+
+          profile = policy['profiles']['v26_field_authority']
+          allowed = set(profile['allowedRuntimePathPrefixes'])
+          assert 'src/services/v26_business_graph_bridge_service.py' in allowed
+          assert 'src/services/agent_token_runtime_v225_service.py' in allowed
+          print('V26_2_AUTHORITY_SURFACE=PASS')
+          PY
+
+      - name: Verify bridge installation order
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('src/services/agent_token_runtime_v225_service.py').read_text(encoding='utf-8')
+          install = text.index('V26_BUSINESS_GRAPH_BRIDGE = install_v26_business_graph_bridge()')
+          agent3_import = text.index('from src.services import agent3_runtime_v23215_service')
+          assert install < agent3_import
+          assert 'RUNTIME_CONTRACT_GUARDS = install_runtime_contract_guards()' in text
+          print('V26_2_INSTALL_ORDER=PASS')
+          PY
+
+      - name: Compile V26.2 graph runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            src/services/v26_field_authority_contract_service.py \
+            src/services/v26_business_graph_bridge_service.py \
+            src/services/agent_token_runtime_v225_service.py
+
+      - name: Run V26.1 and V26.2 authority regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q \
+            tests/test_v26_field_authority_contract.py \
+            tests/test_v26_business_graph_bridge.py
