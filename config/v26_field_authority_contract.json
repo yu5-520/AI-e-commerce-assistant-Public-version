@@ -1,4 +1,6 @@
 {
+  "closeoutVersion": "26.7.0",
+  "closeoutLimits": {"maxNodesPerGraph": 64, "maxEdgesPerGraph": 256, "maxDependencyDepth": 16, "maxGraphChars": 120000, "maxFieldChars": 24000, "maxReviewAttempts": 3, "maxObservationWindows": 3},
   "schema": "field.authority.contract.v1",
   "version": "26.1.0",
   "businessGraphVersion": "26.5.0",
@@ -14,6 +16,11 @@
   },
   "headerRegistrationRequired": true,
   "registeredHeaders": [
+    "evidence.receipt_hash",
+    "evidence.cards",
+    "evidence.execution_identity",
+    "evidence.knowledge",
+
     "snapshot.roas",
     "snapshot.ctr",
     "snapshot.inventory",
@@ -120,6 +127,7 @@
     }
   },
   "namespacePolicies": [
+    {"prefix":"evidence.","class":"STRUCTURAL","owner":"system","readableBy":["system","java-control-plane","ui"],"writableBy":["system","java-control-plane"],"lineageRequired":true},
     {
       "prefix": "snapshot.",
       "class": "FACT",
@@ -186,6 +194,10 @@
     }
   ],
   "headerOverrides": {
+    "evidence.receipt_hash":{"class":"STRUCTURAL","valueType":"string"},
+    "evidence.cards":{"class":"STRUCTURAL","valueType":"array"},
+    "evidence.execution_identity":{"class":"STRUCTURAL","valueType":"object"},
+    "evidence.knowledge":{"class":"STRUCTURAL","valueType":"object"},
     "judgement.node_key": {"class": "STRUCTURAL", "valueType": "string"},
     "judgement.reasoning": {"class": "SEMANTIC", "valueType": "string"},
     "judgement.primary_issue": {"class": "SEMANTIC", "valueType": "string"},

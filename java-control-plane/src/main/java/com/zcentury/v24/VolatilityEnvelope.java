@@ -55,10 +55,12 @@ final class VolatilityEnvelope {
             return result(input, Signal.INSUFFICIENT_BASELINE, null, null, null, "baseline_near_zero");
         }
 
-        double relativeDelta = (input.currentValue() - input.baseline()) / input.baseline();
+        double relativeDelta = (input.currentValue() - input.baseline()) / Math.abs(input.baseline());
         double lowerBreakDelta = -(input.historicalVolatilityRate() * input.lowerMultiplier());
         double upperBreakDelta = input.historicalVolatilityRate() * input.upperMultiplier();
 
+        if (!Double.isFinite(relativeDelta) || !Double.isFinite(lowerBreakDelta) || !Double.isFinite(upperBreakDelta))
+            throw new IllegalArgumentException("volatility_calculation_not_finite");
         Signal candidate = Signal.NORMAL;
         if (relativeDelta < lowerBreakDelta) {
             candidate = Signal.LOWER_BREAK;

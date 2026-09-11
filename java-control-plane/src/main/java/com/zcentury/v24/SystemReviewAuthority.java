@@ -151,7 +151,7 @@ final class SystemReviewAuthority {
         material.put("contractHash", contract.contractHash());
         material.put("productId", contract.productId());
         material.put("taskId", contract.taskId());
-        material.put("observedAtMillis", observation.observedAtMillis());
+        material.put("reviewDueAtMillis", contract.reviewDueAtMillis());
         material.put("metrics", metrics);
         material.put("evidence", evidence);
         material.put("decision", decision.name());

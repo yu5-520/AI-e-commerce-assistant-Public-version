@@ -144,6 +144,42 @@ def _edge(
     return {**body, "edgeHash": bridge._canonical_hash(body)}
 
 
+def semantic_graph_identity(graph: Mapping[str, Any]) -> str:
+    """Exclude only execution provenance, never business headers/evidence content."""
+    material = {key: deepcopy(value) for key, value in graph.items()
+                if key not in {"graphHash", "sourceExecutionIdentity"}}
+    identity = _dict(graph.get("sourceExecutionIdentity"))
+    material["businessScope"] = {key: identity[key] for key in ("storeId", "productId") if key in identity}
+    return bridge._canonical_hash(material)
+
+
+def _validate_graph_budget(nodes, edges):
+    limits = bridge._authority().contract["closeoutLimits"]
+    if len(nodes) > limits["maxNodesPerGraph"] or len(edges) > limits["maxEdgesPerGraph"]:
+        raise ValueError("v26_graph_budget_exceeded")
+    parents = {str(n["nodeKey"]): [] for n in nodes}
+    for edge in edges:
+        if edge.get("relation") in {"depends_on", "depends_on_stage"}:
+            parents[edge["targetKey"]].append(edge["sourceKey"])
+    visiting, depths = set(), {}
+    def visit(key):
+        if key in visiting:
+            raise ValueError("v26_dependency_cycle")
+        if key in depths:
+            return depths[key]
+        visiting.add(key)
+        depth = 1 + max((visit(parent) for parent in parents[key]), default=0)
+        visiting.remove(key)
+        if depth > limits["maxDependencyDepth"]:
+            raise ValueError("v26_dependency_depth_exceeded")
+        depths[key] = depth
+        return depth
+    for key in parents:
+        visit(key)
+    if len(__import__("json").dumps([nodes, edges], ensure_ascii=False)) > limits["maxGraphChars"]:
+        raise ValueError("v26_graph_context_budget_exceeded")
+
+
 def _finalize_graph(
     aggregate: Mapping[str, Any],
     *,
@@ -151,6 +187,7 @@ def _finalize_graph(
     edges: List[Dict[str, Any]],
     compatibility_node_projection: bool,
 ) -> Dict[str, Any]:
+    _validate_graph_budget(nodes, edges)
     graph = {
         key: deepcopy(value)
         for key, value in aggregate.items()
@@ -178,7 +215,7 @@ def compile_judgement_graph(
     aggregate_headers = _dict(aggregate.get("authorityHeaders"))
     provider_nodes = [value for value in _arr(raw_item.get("judgementNodes")) if isinstance(value, dict)]
     compatibility = not provider_nodes
-    source_evidence = _source_evidence(item, raw_item)
+    source_evidence = _source_evidence(item, {})
 
     nodes: List[Dict[str, Any]] = []
     raw_relations: Dict[str, List[Dict[str, Any]]] = {}
@@ -188,6 +225,8 @@ def compile_judgement_graph(
             evidence = _unique_texts(raw_node.get("evidenceRefs")) or source_evidence
             if not evidence:
                 raise ValueError(f"v26_judgement_node_evidence_required:{key}")
+            if not set(evidence).issubset(set(source_evidence)):
+                raise ValueError(f"v26_judgement_evidence_outside_authorized_input:{key}")
             headers = {
                 "judgement.node_key": key,
                 "judgement.reasoning": _text(raw_node.get("reasoning") or raw_node.get("decisionSummary")),
@@ -474,6 +513,8 @@ def compile_operation_graph(
         )
         refs = _unique_texts(stage.get("actionRefs"))
         if not refs and action_keys:
+            if not compatibility_stage_projection:
+                raise ValueError(f"v26_new_operation_action_refs_required:{stage_key}")
             refs = list(action_keys)
             compatibility_action_ref_projection = True
         for ref in refs:
@@ -521,6 +562,7 @@ def compile_operation_graph(
                 raise ValueError(f"v26_operation_stage_dependency_self:{stage_key}")
             edges.append(_edge(source=source, target=stage, relation="depends_on_stage"))
 
+    _validate_graph_budget(nodes, edges)
     graph = {
         key: deepcopy(value)
         for key, value in aggregate.items()
@@ -538,6 +580,12 @@ def compile_operation_graph(
     graph["compatibilityStageProjection"] = compatibility_stage_projection
     graph["compatibilityActionRefProjection"] = compatibility_action_ref_projection
     graph["actionGraphHash"] = action_graph.get("graphHash")
+    graph["resolvedPlanReferences"] = [
+        {"actionNodeHash": node.get("nodeHash"), "actionGraphHash": action_graph.get("graphHash"),
+         "field": field, "valueHash": bridge._canonical_hash(value)}
+        for node in action_nodes for field, value in _dict(node.get("authorityHeaders")).items()
+        if field.startswith("plan.")
+    ]
     graph["actionNodeCount"] = len(action_nodes)
     graph["modelMayWriteNodeHashes"] = False
     graph["modelMayWriteEdgeHashes"] = False
@@ -706,7 +754,7 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
         semantic_input_hash = agent2_runtime.hash_value(
             {
                 "legacySemanticInputHash": result.get("semanticInputHash"),
-                "v26JudgementGraphHash": graph_hash,
+                "v26JudgementSemanticHash": semantic_graph_identity(graph),
                 "v26NodeEdgeLineageVersion": V26_NODE_EDGE_LINEAGE_VERSION,
             }
         )
@@ -744,6 +792,12 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
     def agent3_normalize_v265(raw, package, proof=None):
         normalized = agent3_normalize(raw, package, proof)
         normalized["v26OperationGraph"] = compile_operation_graph(normalized, raw, package)
+        if package.get("revisionScope"):
+            from src.services.v26_revision_acceptance_service import verify_revision_result
+            verify_revision_result(package.get("parentOperationGraph"), normalized["v26OperationGraph"],
+                package["revisionScope"], graph_kind="Operation")
+        from src.services.v26_sop_evidence_service import freeze_decision_evidence
+        normalized["sopDecisionEvidence"] = freeze_decision_evidence(package, normalized)
         return normalized
 
     agent3_core._build_messages = agent3_build_v265

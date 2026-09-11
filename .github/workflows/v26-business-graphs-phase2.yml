@@ -139,4 +139,5 @@ jobs:
           python -m pip install --disable-pip-version-check pytest
           python -m pytest -q \
             tests/test_v26_field_authority_contract.py \
-            tests/test_v26_business_graph_bridge.py
+            tests/test_v26_business_graph_bridge.py \
+            tests/test_v22_4_v267_closeout.py

@@ -1,0 +1,171 @@
+"""V26.7 SOP evidence: freeze at execution, verify/project without provider calls.
+
+This is a read model, not an authority or a second task runtime. Missing historical
+receipts remain missing. Never reconstruct a model's private reasoning on a GET.
+"""
+from __future__ import annotations
+
+from copy import deepcopy
+import hashlib
+import json
+import math
+from typing import Any
+
+VERSION = "26.7.0"
+SCHEMA = "v26.sop_evidence.v1"
+
+
+def digest(value):
+    return "sha256:" + hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
+        separators=(",", ":"), allow_nan=False).encode()).hexdigest()
+
+
+def obj(value):
+    return value if isinstance(value, dict) else {}
+
+
+def seal(body):
+    result = deepcopy(body)
+    result["receiptHash"] = digest(body)
+    return result
+
+
+def verified(receipt):
+    if not isinstance(receipt, dict) or not receipt.get("receiptHash"):
+        return False
+    try:
+        return receipt["receiptHash"] == digest({k: v for k, v in receipt.items() if k != "receiptHash"})
+    except (ValueError, TypeError):
+        return False
+
+
+def freeze_decision_evidence(package, sop):
+    """Only accepted structured outputs, never raw prompt/provider response."""
+    draft = obj(package.get("agent2ActionDraft"))
+    graphs = [obj(package.get("v26JudgementGraph")), obj(draft.get("v26ActionGraph")), obj(sop.get("v26OperationGraph"))]
+    cards = []
+    allowed = {
+        "judgement.reasoning": "判断依据", "judgement.primary_issue": "任务问题",
+        "judgement.evidence_refs": "引用证据", "plan.strategy_summary": "方案依据",
+        "plan.candidate_strategies": "已记录候选方案", "plan.selected_strategy": "选择方案",
+        "plan.daily_budget": "每日预算", "plan.target_roas": "目标 ROAS",
+        "plan.review_window": "观察窗口", "plan.lower_guard": "下限",
+        "plan.upper_guard": "上限", "plan.minimum_evidence": "最低证据要求",
+        "plan.judgement_refs": "判断引用", "operation_stage.action_refs": "动作引用",
+        "operation_stage.objective": "步骤目标", "operation_stage.rollback": "停止与恢复条件",
+    }
+    for graph in graphs:
+        if not graph: continue
+        material = {k: v for k, v in graph.items() if k != "graphHash"}
+        if graph.get("graphHash") != digest(material):
+            raise ValueError("sop_evidence_graph_hash_mismatch")
+        for node in graph.get("nodes", []):
+            headers = obj(node.get("authorityHeaders"))
+            for header, label in allowed.items():
+                if header not in headers: continue
+                value = headers[header]
+                # Only bounded JSON from the already-validated structured output.
+                if len(json.dumps(value, ensure_ascii=False, allow_nan=False)) > 12000:
+                    raise ValueError("sop_evidence_card_budget")
+                cards.append({"label": label, "field": header, "value": deepcopy(value),
+                    "kind": "PLAN" if header.startswith("plan.") else "DECISION",
+                    "nodeKey": node.get("nodeKey"), "nodeHash": node.get("nodeHash"),
+                    "sourceHash": graph["graphHash"], "actor": graph.get("actor"),
+                    "status": "RECORDED", "formula": None})
+    knowledge = obj(package.get("unifiedKnowledge"))
+    # Receipts are summaries; no RAG documents/full database content is published.
+    knowledge_summary = {k: deepcopy(knowledge[k]) for k in
+        ("version", "envelopeHash", "compositionHash", "planHash", "indexManifestHash", "retrievalReceiptHash", "selectedRevisionIds") if k in knowledge}
+    knowledge_summary["compositionHash"] = obj(knowledge.get("composition")).get("compositionHash")
+    knowledge_summary["formalItemCount"] = len(knowledge.get("formalKnowledgeItems", []))
+    knowledge_summary["gapCount"] = len(knowledge.get("insufficientEvidence", []))
+    knowledge_summary["selectedRevisions"] = [{k: item[k] for k in ("revisionId", "fieldHash", "canonicalField", "contentHash") if k in item}
+        for item in knowledge.get("formalKnowledgeItems", []) if isinstance(item, dict)]
+    return seal({"schema": SCHEMA, "version": VERSION, "source": "accepted_agent_execution",
+        "executionIdentity": {k: sop[k] for k in ("itemExecutionId", "inputContentHash", "productId", "storeId") if k in sop},
+        "cards": cards, "knowledge": knowledge_summary,
+        "knowledgeEffect": "NOT_EVALUATED", "feedbackStatus": "NOT_RECORDED",
+        "modelReasoning": "structured_decision_record_only", "onClickProviderCall": False})
+
+
+def freeze_metric_evidence(projection):
+    """Recompute differences from the SAME frozen metric/window; never invent ROAS formula."""
+    observations = projection.get("recentSnapshots") or []
+    labels = {d.get("code"): d.get("label", d.get("code")) for d in projection.get("metricDefinitions", [])}
+    cards = []
+    for index, observation in enumerate(observations):
+        for code, value in obj(observation.get("metrics")).items():
+            if not isinstance(value, (float, int)) or isinstance(value, bool) or not math.isfinite(value): continue
+            source = {"snapshotId": observation.get("snapshotId"), "dataVersion": observation.get("dataVersion"),
+                "businessDate": observation.get("businessDate"), "field": code, "value": value}
+            cards.append({"label": labels.get(code, code), "kind": "FACT", "value": value,
+                "status": "SOURCE_RECORDED", "formula": None, "inputs": [source],
+                "reason": "报表观测值；原始计算过程未记录时不补造公式。"})
+            if index == 0: continue
+            previous = observations[index - 1]
+            baseline = obj(previous.get("metrics")).get(code)
+            if not isinstance(baseline, (int, float)) or isinstance(baseline, bool) or not math.isfinite(baseline): continue
+            delta = value - baseline
+            if not math.isfinite(delta): continue
+            cards.append({"label": labels.get(code, code) + "变化量", "kind": "DERIVED",
+                "value": delta, "status": "RECOMPUTED", "formula": "current - previous",
+                "formulaVersion": "difference.v1", "inputs": [
+                    {"snapshotId": previous.get("snapshotId"), "dataVersion": previous.get("dataVersion"),
+                     "businessDate": previous.get("businessDate"), "field": code, "value": baseline}, source]})
+    return seal({"schema": "v26.metric_evidence.v1", "version": VERSION, "cards": cards,
+        "sourceDataVersion": projection.get("sourceDataVersion"), "frozenAt": projection.get("frozenAt"),
+        "historyIdentityHash": projection.get("historyIdentityHash")})
+
+
+def public_evidence(decisions, metrics):
+    """Do not pass through unknown fields, raw prompts, or storage metadata."""
+    receipts = [("decisions", decisions), ("metrics", metrics)]
+    result = {"version": VERSION, "cards": [], "receipts": [], "missing": []}
+    for name, receipt in receipts:
+        if not verified(receipt):
+            result["missing"].append(name + (":invalid" if receipt else ":not_recorded"))
+            continue
+        for card in receipt.get("cards", []):
+            result["cards"].append({k: deepcopy(card[k]) for k in
+                ("label", "kind", "value", "status", "formula", "formulaVersion", "inputs", "reason", "actor", "nodeKey", "nodeHash", "sourceHash") if k in card})
+        result["receipts"].append({"kind": name, "hash": receipt["receiptHash"], "status": "VERIFIED"})
+    if verified(decisions):
+        result["knowledge"] = deepcopy(decisions.get("knowledge", {}))
+    result.update(knowledgeEffect="尚无对照评测证据", feedbackStatus="未记录审核回流结果",
+        privateReasoningExposed=False, recomputedOnRead=False)
+    return result
+
+
+def read_task_knowledge_audit(task_id):
+    """Read only task-linked V25 revision/review records; never scan arbitrary knowledge."""
+    from src.repositories.sqlite_repository import connect
+    result = {"status": "NOT_RECORDED", "revisions": [], "events": []}
+    with connect() as conn:
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('rag_knowledge_revisions','rag_knowledge_review_events')")}
+        if 'rag_knowledge_revisions' not in tables: return result
+        rows = conn.execute("SELECT revision_id,content_hash,content_json,source_recap_hash,previous_revision_id,created_at FROM rag_knowledge_revisions WHERE source_task_id=? ORDER BY created_at DESC,revision_id DESC LIMIT 50", (str(task_id),)).fetchall()
+        valid_ids = set()
+        for row in rows:
+            try:
+                content_hash = digest(json.loads(row['content_json'])).removeprefix('sha256:')
+            except (ValueError, TypeError):
+                result['status'] = 'INVALID_EVIDENCE'; continue
+            if content_hash != str(row['content_hash']).removeprefix('sha256:'):
+                result['status'] = 'INVALID_EVIDENCE'; continue
+            valid_ids.add(row['revision_id'])
+            result['revisions'].append({'revisionId':row['revision_id'], 'contentHash':row['content_hash'],
+                'sourceRecapHash':row['source_recap_hash'], 'previousRevisionId':row['previous_revision_id'],
+                'createdAt':row['created_at']})
+        if valid_ids and 'rag_knowledge_review_events' in tables:
+            # One task-scoped join; bounded output, no N+1 queries.
+            events = conn.execute("SELECT e.* FROM rag_knowledge_review_events e JOIN rag_knowledge_revisions r ON r.revision_id=e.revision_id WHERE r.source_task_id=? ORDER BY e.created_at DESC,e.event_hash DESC LIMIT 100", (str(task_id),)).fetchall()
+            for row in events:
+                if row['revision_id'] not in valid_ids: continue
+                material={'revisionId':row['revision_id'],'decision':row['decision'],'reviewerId':row['reviewer_id'],
+                    'reason':row['reason'],'beforeHash':row['before_hash'],'afterHash':row['after_hash'],'migration':bool(row['migration'])}
+                if digest(material).removeprefix('sha256:') != str(row['event_hash']).removeprefix('sha256:'):
+                    result['status']='INVALID_EVIDENCE'; continue
+                result['events'].append({k:material[k] for k in ('revisionId','decision','reason','beforeHash','afterHash')}
+                    | {'eventHash':row['event_hash'],'createdAt':row['created_at']})
+    if result['status'] != 'INVALID_EVIDENCE' and result['revisions']: result['status']='RECORDED'
+    return result

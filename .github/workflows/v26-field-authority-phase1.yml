@@ -19,6 +19,10 @@ on:
       - 'java-control-plane/src/main/java/com/zcentury/v24/V266LocalSubgraphRevisionMain.java'
       - 'scripts/verify_v24_production_bundle.sh'
       - 'tests/test_v26_field_authority_contract.py'
+      - 'tests/test_v22_4_v267_closeout.py'
+      - 'src/services/v26_sop_evidence_service.py'
+      - 'src/services/v26_revision_acceptance_service.py'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/V267CloseoutMain.java'
       - 'docs/V26_1_FIELD_AUTHORITY_CONTRACT.md'
       - 'docs/V26_3_PRE_AGENT_ADMISSION.md'
       - 'docs/V26_4_SYSTEM_REVIEW.md'
@@ -45,6 +49,10 @@ on:
       - 'java-control-plane/src/main/java/com/zcentury/v24/V266LocalSubgraphRevisionMain.java'
       - 'scripts/verify_v24_production_bundle.sh'
       - 'tests/test_v26_field_authority_contract.py'
+      - 'tests/test_v22_4_v267_closeout.py'
+      - 'src/services/v26_sop_evidence_service.py'
+      - 'src/services/v26_revision_acceptance_service.py'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/V267CloseoutMain.java'
       - 'docs/V26_4_SYSTEM_REVIEW.md'
       - 'docs/V26_6_LOCAL_SUBGRAPH_REVISION.md'
       - '.github/workflows/v26-field-authority-phase1.yml'
@@ -162,6 +170,7 @@ jobs:
           java -cp "$BUILD_DIR" com.zcentury.v24.V264SystemReviewMain
           printf 'V26_4_SYSTEM_REVIEW_HOSTED_GATE=PASS\n'
           java -cp "$BUILD_DIR" com.zcentury.v24.V266LocalSubgraphRevisionMain
+          java -cp "$BUILD_DIR" com.zcentury.v24.V267CloseoutMain
           printf 'V26_6_LOCAL_SUBGRAPH_REVISION_HOSTED_GATE=PASS\n'
 
       - name: Run V26.1 through V26.6 field authority regressions
@@ -169,4 +178,4 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check pytest
-          python -m pytest -q tests/test_v26_field_authority_contract.py
+          python -m pytest -q tests/test_v26_field_authority_contract.py tests/test_v22_4_v267_closeout.py

@@ -31,7 +31,8 @@ final class PreAgentAdmissionGate {
         Objects.requireNonNull(lifecycle, "product_lifecycle_snapshot_required");
         Objects.requireNonNull(evaluation, "volatility_evaluation_required");
 
-        if (lifecycle.state() == ProductLifecycleAuthority.State.REVIEW_READY
+        if (lifecycle.state() == ProductLifecycleAuthority.State.OBSERVING
+            || lifecycle.state() == ProductLifecycleAuthority.State.REVIEW_READY
             || lifecycle.state() == ProductLifecycleAuthority.State.REVIEWING
             || lifecycle.state() == ProductLifecycleAuthority.State.ADJUSTMENT_REQUIRED) {
             return new Result(

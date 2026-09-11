@@ -150,6 +150,11 @@ def _compile_current_task_mapping_decision(
     draft = _dict(compiled.get("agent2ActionDraft")) or _dict(
         package.get("agent2ActionDraft")
     )
+    if sop.get("sopDecisionEvidence"):
+        from src.services.v26_sop_evidence_service import verified
+        if not verified(sop["sopDecisionEvidence"]):
+            raise ValueError("task_sop_evidence_hash_mismatch")
+        plan["sopDecisionEvidence"] = sop["sopDecisionEvidence"]
     title = str(
         plan.get("title")
         or plan.get("taskTitle")

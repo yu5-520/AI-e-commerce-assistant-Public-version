@@ -197,6 +197,9 @@ public final class V264SystemReviewMain {
         Map<String, Object> planHeaders,
         Map<String, Double> baseline
     ) {
+        planHeaders = new LinkedHashMap<>(planHeaders);
+        planHeaders.put("plan.review_window", (lifecycle.reviewDueAtMillis() - lifecycle.observationStartedAtMillis()) + "ms");
+        final Map<String, Object> frozenHeaders = planHeaders;
         return information.execute(
             token,
             "V26_4_FREEZE_REVIEW_CONTRACT",
@@ -206,9 +209,9 @@ public final class V264SystemReviewMain {
                 Hashing.canonicalHash(Map.of(
                     "productId", lifecycle.productId(),
                     "taskId", lifecycle.activeTaskId(),
-                    "plan", planHeaders
+                    "plan", frozenHeaders
                 )),
-                planHeaders,
+                frozenHeaders,
                 baseline,
                 lifecycle.observationStartedAtMillis(),
                 lifecycle.reviewDueAtMillis()
@@ -290,8 +293,8 @@ public final class V264SystemReviewMain {
         plan.put("plan.lower_guard", Map.of("roas", 3.0));
         plan.put("plan.upper_guard", Map.of("roas", 5.0));
         plan.put("plan.minimum_evidence", Map.of("orders", 20));
-        plan.put("plan.acceptance_criteria", List.of("ROAS保持在冻结边界内"));
-        plan.put("plan.risk_boundaries", List.of("越过冻结guard则重新判断"));
+        plan.put("plan.acceptance_criteria", List.of(Map.of("metric", "roas", "constraint", "lower_guard")));
+        plan.put("plan.risk_boundaries", List.of(Map.of("metric", "roas", "constraint", "upper_guard")));
         return Map.copyOf(plan);
     }
 

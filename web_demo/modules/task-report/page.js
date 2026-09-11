@@ -297,6 +297,32 @@
   }
 
   function missingTaskView() { return `<section class="page-section"><div class="section-header"><h2>任务详情</h2><span class="status-badge">路由缺少任务ID</span></div><p>当前地址没有携带 taskId，系统不会猜测或打开其他任务。</p><div class="report-actions"><button type="button" data-back-task-list>返回任务列表</button></div></section>`; }
+  function renderSopEvidence(report) {
+    const evidence = report?.sopEvidence || {};
+    const valueText = (value) => value == null ? "未记录" : typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+    const cards = arr(evidence.cards);
+    const kinds = { FACT: "原始观测", DERIVED: "系统计算", PLAN: "计划参数", DECISION: "决策记录" };
+    return `<div class="sop-evidence" aria-label="SOP数据与决策依据"><h4>数据与决策依据</h4>
+      <p>点击数据或计划查看来源；未记录的依据不会事后补写。</p>
+      ${cards.length ? cards.map((card) => `<details class="sop-evidence-card"><summary>${s(card.label)} · ${s(kinds[card.kind] || "记录")}：${s(valueText(card.value).slice(0, 100))}</summary>
+        <pre>${s(valueText(card.value))}</pre>
+        ${card.formula ? `<p>计算公式：<code>${s(card.formula)}</code></p>` : ""}
+        ${card.reason ? `<p>${s(card.reason)}</p>` : ""}
+        ${card.inputs ? `<p>冻结数据来源</p><pre>${s(valueText(card.inputs))}</pre>` : ""}
+        ${card.actor ? `<p>制定者：${s(card.actor)} · 节点：${s(card.nodeKey || "未记录")}</p>` : ""}
+        ${card.sourceHash ? `<details><summary>查看校验依据</summary><p class="sop-evidence-hash">${s(card.sourceHash)}</p></details>` : ""}
+      </details>`).join("") : `<p role="status">当前任务没有已验证的决策记录。历史任务不会补造依据。</p>`}
+      <details><summary>知识引用与审核回流</summary><pre>${s(valueText(evidence.knowledge || {}))}</pre><p>${s(evidence.knowledgeEffect || "尚无对照评测证据")}</p><p>${s(evidence.knowledgeAudit?.status === "RECORDED" ? "已记录任务关联知识版本与审核事件" : evidence.knowledgeAudit?.status === "INVALID_EVIDENCE" ? "部分审核证据校验失败" : "未记录审核回流结果")}</p><pre>${s(valueText(evidence.knowledgeAudit || {}))}</pre></details>
+      <details><summary>证据完整性</summary><p>${arr(evidence.missing).length ? "部分依据缺失或校验未通过" : arr(evidence.receipts).length ? "已记录证据校验通过" : "尚未记录证据回执"}</p><pre>${s(valueText(evidence.receipts || []))}</pre></details>
+    </div>`;
+  }
+
+  function renderStepsWithEvidence(report) {
+    const html = renderSteps(report);
+    const end = html.lastIndexOf("</section>");
+    return end < 0 ? html : html.slice(0, end) + renderSopEvidence(report) + html.slice(end);
+  }
+
   async function loadReport(taskId) {
     if (!taskId) {
       const error = new Error("missing_task_id");
@@ -331,7 +357,7 @@
       lastReport = null;
       if (!taskId) return missingTaskView();
       const report = await loadReport(taskId);
-      return `${renderHero(report)}${renderProductObject(report)}${renderAgentJudgment(report)}${renderTaskMetricEvidence(report)}${renderSteps(report)}${renderAutoReview(report)}${renderLifecycleActions(report, taskId)}`;
+      return `${renderHero(report)}${renderProductObject(report)}${renderAgentJudgment(report)}${renderTaskMetricEvidence(report)}${renderStepsWithEvidence(report)}${renderAutoReview(report)}${renderLifecycleActions(report, taskId)}`;
     },
     mount(ctx) {
       ctx.delegate("[data-back-task-list]", "click", () => AppRouter.navigate("business-actions"));
