@@ -2,7 +2,7 @@
 
 面向真实电商经营数据的受治理多 Agent 工程实现。
 
-`V24 Authority Runtime` · `V25 Knowledge Plane` · `Java Control Plane` · `Python Intelligence Plane`
+`V26.7 Closeout & SOP Evidence` · `V24 Authority Runtime` · `V25 Knowledge Plane` · `Java Control Plane` · `Python Intelligence Plane`
 
 > 核心原则：**系统拥有调用图，AI 只拥有节点内判断权。**
 >
@@ -369,6 +369,8 @@ V22  Python Agent Runtime
 V23  Hard Interface / Registry / Artifact
 V24  Java Deterministic Authority Runtime
 V25  Unified Knowledge Plane
+V26  Authority Business Graph / Review / Local Revision
+V26.7  Closeout hardening / SOP evidence disclosure
 ```
 
 ---
@@ -389,3 +391,11 @@ V25  Unified Knowledge Plane
 
 **技术探索 / 交流**  
 2254473740
+
+## V26.7 收口更新
+
+任务详情的 SOP 增加可展开的数据来源、冻结快照变化公式、结构化决策记录和任务关联知识审核记录。运行时生成证据，读取时验证并展示；缺失记录不补造，计划参数不冒充计算值，知识召回不冒充效果提升。
+
+本次同时修复数值、图依赖、缓存身份、生命周期持久化与状态锁、验收条件覆盖及局部修订范围。沿用现有 V26 字段权限 / 注册表血缘 PR 门控及 Release Hash Seal，生产 Java 写权仍以原 Authority Generation 切换门控为准。
+
+完整范围、验证与运行边界见 [V26.7 收口说明](docs/V26_7_CLOSEOUT.md)。

@@ -75,6 +75,36 @@ final class ReviewContractAuthority {
             }
         }
 
+        for (String metric : lower.keySet()) {
+            if (upper.containsKey(metric) && lower.get(metric) > upper.get(metric)) unsupported.add("contradictory_guards:" + metric);
+        }
+        minimum.forEach((metric, value) -> { if (value < 0) unsupported.add("negative_evidence:" + metric); });
+        for (String field : List.of("plan.acceptance_criteria", "plan.risk_boundaries")) {
+            Object raw = planHeaders.get(field);
+            if (raw == null) continue;
+            if (!(raw instanceof List<?> conditions)) { unsupported.add(field + ":conditions_required"); continue; }
+            for (Object condition : conditions) {
+                if (!(condition instanceof Map<?, ?> rule)
+                    || !(rule.get("metric") instanceof String metric)
+                    || !(rule.get("constraint") instanceof String constraint)
+                    || !(switch (constraint) {
+                        case "lower_guard" -> lower.containsKey(metric);
+                        case "upper_guard" -> upper.containsKey(metric);
+                        case "expected_trend" -> trends.containsKey(metric);
+                        default -> false;
+                    })) unsupported.add(field + ":uncompiled_condition");
+            }
+        }
+        String window = text(planHeaders.get("plan.review_window"));
+        try {
+            if (!window.matches("[1-9][0-9]*(ms|s|h|d)")) throw new IllegalArgumentException();
+            String unit = window.replaceAll("[0-9]", "");
+            long count = Long.parseLong(window.replaceAll("[^0-9]", ""));
+            long scale = switch(unit) { case "ms" -> 1; case "s" -> 1000; case "h" -> 3600000; default -> 86400000; };
+            if (Math.multiplyExact(count, scale) != reviewDueAtMillis - frozenAtMillis)
+                unsupported.add("review_window_due_mismatch");
+        } catch (RuntimeException exc) { unsupported.add("review_window_unsupported"); }
+
         boolean hasExpectation = !trends.isEmpty() || !lower.isEmpty() || !upper.isEmpty();
         if (!hasExpectation) unsupported.add("review_expectation_missing");
         unsupported.sort(String::compareTo);

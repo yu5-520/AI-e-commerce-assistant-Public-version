@@ -43,6 +43,7 @@ printf 'V26_4_SYSTEM_REVIEW_GATE=PASS\n'
 # preserving unrelated successful nodes; old/unmapped review contracts fail closed to
 # full-graph compatibility. revisionHash is the only Queue input identity.
 "$JRE" -cp "$JAR" com.zcentury.v24.V266LocalSubgraphRevisionMain
+"$JRE" -cp "$JAR" com.zcentury.v24.V267CloseoutMain
 printf 'V26_6_LOCAL_SUBGRAPH_REVISION_GATE=PASS\n'
 
 V24_AUTHORITY_MODE=READY_NO_AUTHORITY V24_AUTHORITY_HOST=127.0.0.1 V24_AUTHORITY_PORT="$PORT" "$JRE"   -Xms64m   -Xmx256m   -XX:MaxMetaspaceSize=128m   -XX:ActiveProcessorCount=2   -jar "$JAR" >"$LOG_FILE" 2>&1 &

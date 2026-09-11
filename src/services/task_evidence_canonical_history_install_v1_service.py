@@ -92,6 +92,8 @@ def build_canonical_task_metric_evidence_projection(source_task: Dict[str, Any])
         historyMatchedSnapshotCount=history.get("matchedSnapshotCount"),
         historyResolutionReason=history.get("reason"),
     )
+    from src.services.v26_sop_evidence_service import freeze_metric_evidence
+    projection["calculationEvidence"] = freeze_metric_evidence(projection)
     return projection
 
 

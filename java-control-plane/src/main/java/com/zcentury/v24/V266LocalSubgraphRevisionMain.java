@@ -101,6 +101,24 @@ public final class V266LocalSubgraphRevisionMain {
         require(localScope.preservedOperationNodeHashes().contains(nodeHash("OPERATION", "S_RETENTION")),
             "unrelated_retention_operation_not_preserved");
 
+        var partialReview = new SystemReviewAuthority.Result(localReview.decision(), localReview.reason(),
+            localReview.breaches(), List.of("roas", "unmapped_metric"), true, localReview.contractHash(), localReview.reviewHash());
+        require(LocalSubgraphRevisionAuthority.plan(localContract, partialReview, graph).mode()
+            == LocalSubgraphRevisionAuthority.ScopeMode.FULL_GRAPH_COMPATIBILITY, "partial_metric_coverage_must_not_localize");
+        var unknownStatuses = new LocalSubgraphRevisionAuthority.GraphSnapshot(graph.judgementGraphHash(),
+            graph.actionGraphHash(), graph.operationGraphHash(), graph.judgementNodes(), graph.actionNodes(), graph.operationNodes());
+        require(LocalSubgraphRevisionAuthority.plan(localContract, localReview, unknownStatuses).mode()
+            == LocalSubgraphRevisionAuthority.ScopeMode.FULL_GRAPH_COMPATIBILITY, "unknown_success_must_not_preserve");
+        var partialOperations = new LocalSubgraphRevisionAuthority.GraphSnapshot(graph.judgementGraphHash(),
+            graph.actionGraphHash(), graph.operationGraphHash(), graph.judgementNodes(), graph.actionNodes(),
+            graph.operationNodes().stream().filter(n -> !n.actionRefs().contains("A_TRAFFIC") && !n.actionRefs().contains("A_ACTIVITY") && !n.actionRefs().contains("A_INVENTORY")).toList(),
+            graph.successfulNodeHashes());
+        // A separate isolated incomplete graph must fail closed (or reject orphan dependencies).
+        boolean incompleteRejected = false;
+        try { incompleteRejected = LocalSubgraphRevisionAuthority.plan(localContract, localReview, partialOperations).mode()
+                == LocalSubgraphRevisionAuthority.ScopeMode.FULL_GRAPH_COMPATIBILITY; }
+        catch (IllegalArgumentException expected) { incompleteRejected = true; }
+        require(incompleteRejected, "operation_coverage_incomplete");
         Map<String, Object> revisionHeaders = LocalSubgraphRevisionAuthority.authorityHeaders(localScope);
         require(localScope.revisionHash().equals(revisionHeaders.get("revision.revision_hash")),
             "revision_hash_header_mismatch");
@@ -276,6 +294,9 @@ public final class V266LocalSubgraphRevisionMain {
         Map<String, Object> planHeaders,
         Map<String, Double> baseline
     ) {
+        planHeaders = new LinkedHashMap<>(planHeaders);
+        planHeaders.put("plan.review_window", (lifecycle.reviewDueAtMillis() - lifecycle.observationStartedAtMillis()) + "ms");
+        final Map<String, Object> frozenHeaders = planHeaders;
         return information.execute(
             token,
             "V26_6_FREEZE_REVIEW_CONTRACT",
@@ -283,7 +304,7 @@ public final class V266LocalSubgraphRevisionMain {
                 lifecycle.productId(),
                 lifecycle.activeTaskId(),
                 actionGraphHash,
-                planHeaders,
+                frozenHeaders,
                 baseline,
                 lifecycle.observationStartedAtMillis(),
                 lifecycle.reviewDueAtMillis()
@@ -395,7 +416,12 @@ public final class V266LocalSubgraphRevisionMain {
             operationGraphHash,
             judgements,
             actions,
-            operations
+            operations,
+            java.util.stream.Stream.concat(
+                java.util.stream.Stream.concat(judgements.stream().map(LocalSubgraphRevisionAuthority.JudgementNode::nodeHash),
+                    actions.stream().map(LocalSubgraphRevisionAuthority.ActionNode::nodeHash)),
+                operations.stream().map(LocalSubgraphRevisionAuthority.OperationNode::nodeHash))
+                .collect(java.util.stream.Collectors.toSet())
         );
     }
 
@@ -422,8 +448,8 @@ public final class V266LocalSubgraphRevisionMain {
         plan.put("plan.lower_guard", Map.of("roas", 3.0));
         plan.put("plan.upper_guard", Map.of("roas", 5.0));
         plan.put("plan.minimum_evidence", Map.of("orders", 20));
-        plan.put("plan.acceptance_criteria", List.of("ROAS保持在冻结边界内"));
-        plan.put("plan.risk_boundaries", List.of("越过冻结guard则重新判断"));
+        plan.put("plan.acceptance_criteria", List.of(Map.of("metric", "roas", "constraint", "lower_guard")));
+        plan.put("plan.risk_boundaries", List.of(Map.of("metric", "roas", "constraint", "upper_guard")));
         return Map.copyOf(plan);
     }
 

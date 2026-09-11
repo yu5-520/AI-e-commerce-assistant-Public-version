@@ -65,7 +65,9 @@
         "src/services/hard_interface_bridge_v2301_service.py"
       ],
       "runner": "src.services.agent_input_transport_v2258_service:ensure_agent1_input_ref",
-      "schemaIds": ["agent_input.agent1.v3"]
+      "schemaIds": [
+        "agent_input.agent1.v3"
+      ]
     },
     "agent1_runtime": {
       "fieldAuthorityContractVersion": "26.1.0",
@@ -120,7 +122,9 @@
         "src/services/station_agent_worker_v2259_service.py"
       ],
       "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
-      "schemaIds": ["agent_input.agent1.v3"]
+      "schemaIds": [
+        "agent_input.agent1.v3"
+      ]
     },
     "agent2_runtime": {
       "executionInputLineageVersion": "2026.09.09.1",
@@ -163,7 +167,9 @@
         "src/services/runtime_contract_guard_v1_service.py"
       ],
       "runner": "src.services.agent_runtime_hard_interface_v22515_service:run_agent2_microbatch_hard",
-      "schemaIds": ["agent_input.agent2.v1"]
+      "schemaIds": [
+        "agent_input.agent2.v1"
+      ]
     },
     "agent3_input_projection": {
       "fieldAuthorityContractVersion": "26.1.0",
@@ -191,7 +197,9 @@
         "src/services/agent_input_transport_v225_service.py"
       ],
       "runner": "src.services.agent3_system_constraint_v23215_service:ensure_agent3_sop_input_ref_v23216",
-      "schemaIds": ["agent_input.agent3_sop.v1"]
+      "schemaIds": [
+        "agent_input.agent3_sop.v1"
+      ]
     },
     "agent3_runtime": {
       "fieldAuthorityContractVersion": "26.1.0",
@@ -231,10 +239,14 @@
         "src/services/agent_token_runtime_v2259_service.py",
         "src/services/runtime_contract_guard_v1_service.py",
         "src/services/hash_directed_artifact_runtime_v2259_service.py",
-        "src/services/pipeline_agent3_sop_v225_service.py"
+        "src/services/pipeline_agent3_sop_v225_service.py",
+        "src/services/v26_sop_evidence_service.py",
+        "src/services/v26_revision_acceptance_service.py"
       ],
       "runner": "src.services.pipeline_agent3_sop_v225_service:run_agent3_sop_microbatch_v225",
-      "schemaIds": ["agent_input.agent3_sop.v1"]
+      "schemaIds": [
+        "agent_input.agent3_sop.v1"
+      ]
     },
     "frontend_view": {
       "fieldIds": [
@@ -269,7 +281,11 @@
         "web_demo/core/hash-view-client-v2259.js",
         "web_demo/core/task-read-model-v2082.js",
         "web_demo/modules/task-report/page.js",
-        "web_demo/loading-ui.css"
+        "web_demo/loading-ui.css",
+        "src/services/v26_sop_evidence_service.py",
+        "src/services/v26_revision_acceptance_service.py",
+        "src/services/task_evidence_canonical_history_install_v1_service.py",
+        "web_demo/sop-ui.css"
       ],
       "runner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
       "schemaIds": [
@@ -317,7 +333,9 @@
       "implementationPaths": [
         "src/services/agent_runtime_contract_v225_service.py",
         "src/services/pipeline_task_mapping_v225_service.py",
-        "src/services/pipeline_artifact_contract_service.py"
+        "src/services/pipeline_artifact_contract_service.py",
+        "src/services/v26_sop_evidence_service.py",
+        "src/services/v26_revision_acceptance_service.py"
       ],
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_mapping_microbatch_v225",
       "schemaIds": []
@@ -372,5 +390,6 @@
   },
   "schema": "registry.runtime_projection.v1",
   "taskPoolRegistryAlignmentVersion": "23.2.9",
-  "version": "23.0.0-rc.1"
+  "version": "23.0.0-rc.1",
+  "closeoutVersion": "26.7.0"
 }

@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.11.6",
+  "version": "2026.09.11.7",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
-      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review; V26.5 upgrades the business graph to addressable Judgement/Action/Operation nodes and system-generated lineage edges; V26.6 uses those immutable node identities after review to compile a deterministic local revision scope. Structured breached metrics map to exact Action nodes, downstream Action/Operation dependencies are reopened, unrelated successful nodes remain preserved, and revisionHash becomes the Agent1 queue identity. Legacy or unmapped review criteria fail closed to full-graph compatibility rather than pretending to localize. Models may read revision.* but may never author nodeHash, edgeHash, revisionHash, SystemStage or call-graph authority. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*; java-control-plane owns revision.*. Existing INFORMATION, INVOCATION, TEMPORAL and MUTATION roots are reused; no new authority domain is created.",
+      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review; V26.5 upgrades the business graph to addressable Judgement/Action/Operation nodes and system-generated lineage edges; V26.6 uses those immutable node identities after review to compile a deterministic local revision scope. Structured breached metrics map to exact Action nodes, downstream Action/Operation dependencies are reopened, unrelated successful nodes remain preserved, and revisionHash becomes the Agent1 queue identity. Legacy or unmapped review criteria fail closed to full-graph compatibility rather than pretending to localize. Models may read revision.* but may never author nodeHash, edgeHash, revisionHash, SystemStage or call-graph authority. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*; java-control-plane owns revision.*. Existing INFORMATION, INVOCATION, TEMPORAL and MUTATION roots are reused; no new authority domain is created. V26.7 closeout fixes finite numeric values, exact evidence references, graph budgets/cycles, cache identity, durable lifecycle locking, compiled review conditions and complete revision coverage; adds read-only SOP evidence projection and task-scoped V25 audit reads. System Agent topology and authority roots stay fixed.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -42,14 +42,30 @@
         ".github/workflows/v26-business-graphs-phase2.yml",
         ".github/workflows/v26-registry-lineage-pr.yml",
         ".github/workflows/v24-production-authority-bundle.yml",
-        ".github/workflows/competition-registry-lineage.yml"
+        ".github/workflows/competition-registry-lineage.yml",
+        "src/api/routes/frontend_views.py",
+        "src/services/pipeline_task_mapping_v225_service.py",
+        "src/services/public_task_dto_service.py",
+        "src/services/task_evidence_canonical_history_install_v1_service.py",
+        "web_demo/modules/task-report/page.js",
+        "web_demo/sop-ui.css",
+        "src/services/v26_sop_evidence_service.py",
+        "src/services/v26_revision_acceptance_service.py",
+        "tests/test_v22_4_v267_closeout.py",
+        "java-control-plane/src/main/java/com/zcentury/v24/V267CloseoutMain.java",
+        "docs/V26_7_CLOSEOUT.md",
+        "README.md",
+        "tests/test_v22_4_v267_task_evidence_chain.py"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",
         "agent2_runtime",
         "agent3_input_projection",
         "agent3_runtime",
-        "release_governance"
+        "release_governance",
+        "frontend_view",
+        "task_mapping",
+        "task_pool"
       ],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []

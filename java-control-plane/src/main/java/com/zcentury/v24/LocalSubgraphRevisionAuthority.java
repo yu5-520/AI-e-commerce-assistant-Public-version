@@ -55,8 +55,14 @@ final class LocalSubgraphRevisionAuthority {
         String operationGraphHash,
         List<JudgementNode> judgementNodes,
         List<ActionNode> actionNodes,
-        List<OperationNode> operationNodes
-    ) {}
+        List<OperationNode> operationNodes,
+        Set<String> successfulNodeHashes
+    ) {
+        GraphSnapshot(String j, String a, String o, List<JudgementNode> js, List<ActionNode> as, List<OperationNode> os) {
+            this(j, a, o, js, as, os, Set.of());
+        }
+        GraphSnapshot { successfulNodeHashes = Set.copyOf(successfulNodeHashes); }
+    }
 
     record Scope(
         ScopeMode mode,
@@ -126,6 +132,11 @@ final class LocalSubgraphRevisionAuthority {
             }
         }
 
+        TreeSet<String> mappedMetrics = new TreeSet<>();
+        for (ActionNode action : actions.values()) mappedMetrics.addAll(action.affectedMetrics());
+        if (!mappedMetrics.containsAll(breachedMetrics)) {
+            reopenActionKeys.clear(); // partial metric coverage is not localizable
+        }
         if (breachedMetrics.isEmpty()) {
             mode = ScopeMode.FULL_GRAPH_COMPATIBILITY;
             reason = "STRUCTURED_BREACH_METRIC_UNAVAILABLE";
@@ -153,7 +164,9 @@ final class LocalSubgraphRevisionAuthority {
                     reopenOperationKeys.add(operation.nodeKey());
                 }
             }
-            if (reopenOperationKeys.isEmpty()) {
+            TreeSet<String> coveredActions = new TreeSet<>();
+            for (String key : reopenOperationKeys) coveredActions.addAll(operations.get(key).actionRefs());
+            if (!coveredActions.containsAll(reopenActionKeys)) {
                 mode = ScopeMode.FULL_GRAPH_COMPATIBILITY;
                 reason = "ACTION_TO_OPERATION_LINEAGE_UNMAPPED";
                 reopenActionKeys.clear();
@@ -166,6 +179,18 @@ final class LocalSubgraphRevisionAuthority {
             }
         }
 
+        // Unknown or failed unrelated nodes cannot be labeled successful/preserved.
+        Set<String> preserveCandidates = new TreeSet<>();
+        preserveCandidates.addAll(preservedHashes(judgements, reopenJudgementKeys));
+        preserveCandidates.addAll(preservedHashes(actions, reopenActionKeys));
+        preserveCandidates.addAll(preservedHashes(operations, reopenOperationKeys));
+        if (mode == ScopeMode.LOCAL && !graph.successfulNodeHashes().containsAll(preserveCandidates)) {
+            mode = ScopeMode.FULL_GRAPH_COMPATIBILITY;
+            reason = "PRESERVED_NODE_SUCCESS_UNPROVEN";
+            reopenJudgementKeys.addAll(judgements.keySet());
+            reopenActionKeys.addAll(actions.keySet());
+            reopenOperationKeys.addAll(operations.keySet());
+        }
         List<String> reopenJudgementHashes = hashesForKeys(reopenJudgementKeys, judgements);
         List<String> reopenActionHashes = hashesForKeys(reopenActionKeys, actions);
         List<String> reopenOperationHashes = hashesForKeys(reopenOperationKeys, operations);
@@ -290,6 +315,7 @@ final class LocalSubgraphRevisionAuthority {
                 }
             }
         }
+        assertAcyclic(result.entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, e -> e.getValue().dependencies())));
         return Map.copyOf(result);
     }
 
@@ -337,7 +363,17 @@ final class LocalSubgraphRevisionAuthority {
                 }
             }
         }
+        assertAcyclic(result.entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, e -> e.getValue().dependencies())));
         return Map.copyOf(result);
+    }
+
+    private static void assertAcyclic(Map<String, List<String>> dependencies) {
+        Set<String> done = new LinkedHashSet<>();
+        while (done.size() < dependencies.size()) {
+            int before = done.size();
+            dependencies.forEach((key, parents) -> { if (done.containsAll(parents)) done.add(key); });
+            if (before == done.size()) throw new IllegalArgumentException("revision_dependency_cycle");
+        }
     }
 
     private static void expandDownstreamActions(
@@ -436,7 +472,7 @@ final class LocalSubgraphRevisionAuthority {
 
     private static String requireHash(String value, String error) {
         String text = requireText(value, error);
-        if (!text.startsWith("sha256:") || text.length() <= "sha256:".length()) {
+        if (!text.matches("sha256:[0-9a-f]{64}")) {
             throw new IllegalArgumentException(error);
         }
         return text;

@@ -303,3 +303,11 @@
     justify-content: flex-start;
   }
 }
+
+/* V26.7 accessible, read-only evidence disclosure within the SOP. */
+.sop-evidence { margin-top: 20px; border-top: 1px solid #dbe3ec; padding-top: 16px; }
+.sop-evidence details { margin: 8px 0; border: 1px solid #dbe3ec; border-radius: 8px; padding: 10px 12px; }
+.sop-evidence summary { cursor: pointer; overflow-wrap: anywhere; }
+.sop-evidence summary:focus-visible { outline: 2px solid #2563eb; outline-offset: 4px; }
+.sop-evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; font: inherit; }
+.sop-evidence-hash { overflow-wrap: anywhere; font-family: monospace; }

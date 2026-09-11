@@ -9,6 +9,7 @@ semantic surface remains active.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping
 
@@ -95,6 +96,8 @@ class V26FieldAuthorityContract:
         if not valid:
             raise FieldAuthorityViolation(f"v26_field_type_mismatch:{header}:{declared}")
         if declared == "number":
+            if not math.isfinite(value):
+                raise FieldAuthorityViolation(f"v26_field_number_not_finite:{header}")
             if policy.get("minimum") is not None and value < policy["minimum"]:
                 raise FieldAuthorityViolation(f"v26_field_below_minimum:{header}")
             if policy.get("maximum") is not None and value > policy["maximum"]:
@@ -112,6 +115,12 @@ class V26FieldAuthorityContract:
         if actor not in set(policy.get("writableBy") or []):
             raise FieldAuthorityViolation(f"v26_field_write_forbidden:{actor}:{header}")
         self._assert_value_type(header, value, policy)
+        try:
+            encoded = json.dumps(value, ensure_ascii=False, allow_nan=False)
+        except (ValueError, TypeError) as exc:
+            raise FieldAuthorityViolation(f"v26_field_value_invalid:{header}") from exc
+        if len(encoded) > int(self.contract.get("closeoutLimits", {}).get("maxFieldChars", 24000)):
+            raise FieldAuthorityViolation(f"v26_field_payload_budget:{header}")
         field_class = str(policy.get("class") or "")
         if field_class == "SEMANTIC" and isinstance(value, str):
             max_len = int(dict(self.contract.get("fieldClasses") or {}).get("SEMANTIC", {}).get("maxTextLength", 12000))

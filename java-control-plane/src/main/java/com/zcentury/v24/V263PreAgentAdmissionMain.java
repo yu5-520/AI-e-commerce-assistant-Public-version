@@ -43,7 +43,7 @@ public final class V263PreAgentAdmissionMain {
         );
         require(!observingNormalRun.gate().admitted(), "observing_normal_must_skip");
         require(
-            "OBSERVATION_LOCK_NORMAL".equals(observingNormalRun.gate().reason()),
+            "OBSERVING_LIFECYCLE_LOCK".equals(observingNormalRun.gate().reason()),
             "observing_normal_reason_mismatch"
         );
         require(queue.itemSnapshot("SKU-OBSERVE-NORMAL").isEmpty(), "observing_normal_created_pipeline_item");
@@ -60,9 +60,7 @@ public final class V263PreAgentAdmissionMain {
             "lower_break_not_registered_at_agent1"
         );
 
-        ProductLifecycleAuthority.Snapshot upperBreak = lifecycle.beginObservation(
-            "SKU-UPPER-BREAK", "TASK-UPPER-001", 1_000L, 10_000L
-        );
+        ProductLifecycleAuthority.Snapshot upperBreak = lifecycle.monitor("SKU-UPPER-BREAK");
         AdmissionRun upperBreakRun = evaluateAndMaybeEnqueue(
             invocation, token, queue, upperBreak,
             metric(100.0, 140.0, 0.10, 2.0, 2.0, 1000L, 100L, 3, 2),
