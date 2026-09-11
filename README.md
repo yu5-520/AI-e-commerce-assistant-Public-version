@@ -399,3 +399,7 @@ V26.7  Closeout hardening / SOP evidence disclosure
 本次同时修复数值、图依赖、缓存身份、生命周期持久化与状态锁、验收条件覆盖及局部修订范围。沿用现有 V26 字段权限 / 注册表血缘 PR 门控及 Release Hash Seal，生产 Java 写权仍以原 Authority Generation 切换门控为准。
 
 完整范围、验证与运行边界见 [V26.7 收口说明](docs/V26_7_CLOSEOUT.md)。
+
+### V26.8 证据连续性（首批）
+
+SOP 增加任务产出知识的后续复用记录与可复算成功占比，明确样本范围、无效记录和缺失证据。该占比是结果记录的描述统计，不冒充 RAG 因果效果。交付范围与后续接线见 [V26.8 证据连续性](docs/V26_8_EVIDENCE_CONTINUITY.md)。
