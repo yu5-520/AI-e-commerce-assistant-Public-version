@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 
-MODULE_PATH = Path("src/services/v26_field_authority_contract_service.py")
+MODULE_PATH = Path("src/services/v26_field_authority_contract_service.py").resolve()
 SPEC = importlib.util.spec_from_file_location("v26_field_authority_contract_service_test", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -18,6 +18,15 @@ V26FieldAuthorityContract = MODULE.V26FieldAuthorityContract
 
 def authority():
     return V26FieldAuthorityContract()
+
+
+def test_default_contract_path_is_packaged_root_relative_not_cwd(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    guard = authority()
+    assert guard.path.is_absolute()
+    assert guard.path.name == "v26_field_authority_contract.json"
+    assert guard.path.parent.name == "config"
+    assert guard.receipt()["version"] == "26.1.0"
 
 
 def test_semantic_field_checks_header_not_business_wording() -> None:
@@ -41,7 +50,6 @@ def test_agent2_can_write_plan_number_but_not_snapshot_or_derived() -> None:
     guard.assert_write("agent2", "plan.daily_budget", 550)
     guard.assert_write("agent2", "plan.target_roas", 3.2)
     guard.assert_write("agent2", "plan.review_window", "72h")
-
     with pytest.raises(FieldAuthorityViolation, match="v26_field_write_forbidden"):
         guard.assert_write("agent2", "snapshot.roas", 9.9)
     with pytest.raises(FieldAuthorityViolation, match="v26_field_write_forbidden"):
@@ -60,11 +68,7 @@ def test_agent1_owns_judgement_numeric_not_plan_numeric() -> None:
 
 def test_agent3_plan_values_are_referenced_not_reauthored() -> None:
     guard = authority()
-    guard.assert_write(
-        "agent3",
-        "operation.plan_refs",
-        ["plan.daily_budget", "plan.target_roas", "plan.review_window"],
-    )
+    guard.assert_write("agent3", "operation.plan_refs", ["plan.daily_budget", "plan.target_roas", "plan.review_window"])
     with pytest.raises(FieldAuthorityViolation, match="v26_reference_namespace_mismatch"):
         guard.assert_write("agent3", "operation.plan_refs", ["snapshot.roas"])
     with pytest.raises(FieldAuthorityViolation, match="v26_reference_header_unregistered"):

@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping
 
 V26_FIELD_AUTHORITY_VERSION = "26.1.0"
-DEFAULT_CONTRACT_PATH = Path("config/v26_field_authority_contract.json")
+_APP_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CONTRACT_PATH = _APP_ROOT / "config/v26_field_authority_contract.json"
 
 
 class FieldAuthorityViolation(ValueError):
@@ -111,19 +112,11 @@ class V26FieldAuthorityContract:
         if actor not in set(policy.get("writableBy") or []):
             raise FieldAuthorityViolation(f"v26_field_write_forbidden:{actor}:{header}")
         self._assert_value_type(header, value, policy)
-
         field_class = str(policy.get("class") or "")
         if field_class == "SEMANTIC" and isinstance(value, str):
-            max_len = int(
-                dict(self.contract.get("fieldClasses") or {})
-                .get("SEMANTIC", {})
-                .get("maxTextLength", 12000)
-            )
+            max_len = int(dict(self.contract.get("fieldClasses") or {}).get("SEMANTIC", {}).get("maxTextLength", 12000))
             if len(value) > max_len:
                 raise FieldAuthorityViolation(f"v26_semantic_field_too_long:{header}")
-            # Deliberately no keyword, phrase, business-domain or numeric-content
-            # inspection. Header ownership is the authority boundary.
-
         if field_class == "REFERENCE":
             expected_prefix = str(policy.get("referenceNamespace") or "")
             refs: Iterable[Any] = value if isinstance(value, list) else [value]
@@ -131,17 +124,12 @@ class V26FieldAuthorityContract:
                 if not isinstance(ref, str) or not ref.strip():
                     raise FieldAuthorityViolation(f"v26_reference_invalid:{header}")
                 if expected_prefix and not ref.startswith(expected_prefix):
-                    raise FieldAuthorityViolation(
-                        f"v26_reference_namespace_mismatch:{header}:{ref}"
-                    )
+                    raise FieldAuthorityViolation(f"v26_reference_namespace_mismatch:{header}:{ref}")
                 if self._registration_required and ref not in self._registered_headers:
-                    raise FieldAuthorityViolation(
-                        f"v26_reference_header_unregistered:{header}:{ref}"
-                    )
+                    raise FieldAuthorityViolation(f"v26_reference_header_unregistered:{header}:{ref}")
         return policy
 
     def assert_payload_write(self, actor: str, payload: Mapping[str, Any]) -> None:
-        """Validate an already-flattened header/value payload fail-closed."""
         for header, value in payload.items():
             self.assert_write(actor, str(header), value)
 
@@ -173,8 +161,4 @@ class V26FieldAuthorityContract:
         }
 
 
-__all__ = [
-    "V26_FIELD_AUTHORITY_VERSION",
-    "FieldAuthorityViolation",
-    "V26FieldAuthorityContract",
-]
+__all__ = ["V26_FIELD_AUTHORITY_VERSION", "FieldAuthorityViolation", "V26FieldAuthorityContract"]
