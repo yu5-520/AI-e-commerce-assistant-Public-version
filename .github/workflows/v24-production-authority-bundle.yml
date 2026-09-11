@@ -17,15 +17,6 @@ on:
       - 'scripts/check_release_contract.py'
       - '.github/workflows/release-hash-seal.yml'
       - '.github/workflows/v24-production-authority-bundle.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'java-control-plane/**'
-      - 'scripts/build_v24_production_bundle.sh'
-      - 'scripts/verify_v24_production_bundle.sh'
-      - 'scripts/verify_v24_authority_generation.sh'
-      - '.github/workflows/v24-production-authority-bundle.yml'
   workflow_dispatch:
 
 permissions:
@@ -40,7 +31,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      V24_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      V24_SOURCE_COMMIT: ${{ github.sha }}
     steps:
       - name: Materialize exact source archive
         env:
@@ -75,7 +66,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x scripts/build_v24_production_bundle.sh scripts/verify_v24_production_bundle.sh
-          V24_JAVA_HOME="$JAVA_HOME" V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT" bash scripts/verify_v24_production_bundle.sh
+          V24_JAVA_HOME="$JAVA_HOME"           V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT"             bash scripts/verify_v24_production_bundle.sh
 
       - name: Verify durable Authority Generation prepare and rollback
         shell: bash
@@ -92,6 +83,5 @@ jobs:
         run: |
           set -euo pipefail
           for phase in 1 2 3 4 5; do
-            PATH="$GITHUB_WORKSPACE/.venv/bin:$PATH" V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT" \
-              bash "scripts/verify_v24_java_phase${phase}.sh"
+            PATH="$GITHUB_WORKSPACE/.venv/bin:$PATH" V24_SOURCE_COMMIT="$V24_SOURCE_COMMIT"               bash "scripts/verify_v24_java_phase${phase}.sh"
           done
