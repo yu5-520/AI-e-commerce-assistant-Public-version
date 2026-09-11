@@ -391,5 +391,6 @@
   "schema": "registry.runtime_projection.v1",
   "taskPoolRegistryAlignmentVersion": "23.2.9",
   "version": "23.0.0-rc.1",
-  "closeoutVersion": "26.7.0"
+  "closeoutVersion": "26.7.0",
+  "evidenceDisclosureVersion": "26.8.0"
 }

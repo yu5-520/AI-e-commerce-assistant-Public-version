@@ -139,9 +139,9 @@ def public_evidence(decisions, metrics):
 def read_task_knowledge_audit(task_id):
     """Read only task-linked V25 revision/review records; never scan arbitrary knowledge."""
     from src.repositories.sqlite_repository import connect
-    result = {"status": "NOT_RECORDED", "revisions": [], "events": []}
+    result = {"status": "NOT_RECORDED", "revisions": [], "events": [], "reuseEvents": []}
     with connect() as conn:
-        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('rag_knowledge_revisions','rag_knowledge_review_events')")}
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('rag_knowledge_revisions','rag_knowledge_review_events','rag_knowledge_reuse_events')")}
         if 'rag_knowledge_revisions' not in tables: return result
         rows = conn.execute("SELECT revision_id,content_hash,content_json,source_recap_hash,previous_revision_id,created_at FROM rag_knowledge_revisions WHERE source_task_id=? ORDER BY created_at DESC,revision_id DESC LIMIT 50", (str(task_id),)).fetchall()
         valid_ids = set()
@@ -167,5 +167,41 @@ def read_task_knowledge_audit(task_id):
                     result['status']='INVALID_EVIDENCE'; continue
                 result['events'].append({k:material[k] for k in ('revisionId','decision','reason','beforeHash','afterHash')}
                     | {'eventHash':row['event_hash'],'createdAt':row['created_at']})
+        if valid_ids and 'rag_knowledge_reuse_events' in tables:
+            rows = conn.execute("SELECT e.* FROM rag_knowledge_reuse_events e JOIN rag_knowledge_revisions r ON r.revision_id=e.revision_id WHERE r.source_task_id=? ORDER BY e.created_at DESC,e.event_hash DESC LIMIT 101", (str(task_id),)).fetchall()
+            truncated = len(rows) > 100
+            invalid = 0
+            for row in rows[:100]:
+                if row['revision_id'] not in valid_ids:
+                    invalid += 1
+                    continue
+                material = {'revisionId': row['revision_id'], 'retrievalReceiptHash': row['retrieval_receipt_hash'],
+                            'outcome': row['outcome'], 'actorId': row['actor_id'], 'notes': row['notes']}
+                if (row['outcome'] not in {'success', 'failure', 'neutral'} or
+                    digest(material).removeprefix('sha256:') != str(row['event_hash']).removeprefix('sha256:')):
+                    invalid += 1
+                    result['status'] = 'INVALID_EVIDENCE'
+                    continue
+                result['reuseEvents'].append({k: material[k] for k in ('revisionId', 'retrievalReceiptHash', 'outcome')}
+                    | {'eventHash': row['event_hash'], 'createdAt': row['created_at'], 'integrity': 'VERIFIED',
+                       'retrievalReceiptVerification': 'NOT_CHECKED'})
+            result['reuseSummary'] = summarize_reuse_evidence(result['reuseEvents'], truncated=truncated, invalid=invalid)
     if result['status'] != 'INVALID_EVIDENCE' and result['revisions']: result['status']='RECORDED'
     return result
+
+
+def summarize_reuse_evidence(events, *, truncated=False, invalid=0):
+    """Descriptive statistics of the displayed verified records, not a causal eval."""
+    total = len(events)
+    successes = sum(event['outcome'] == 'success' for event in events)
+    failures = sum(event['outcome'] == 'failure' for event in events)
+    return {'status': 'RECORDED' if total else 'NOT_RECORDED', 'total': total,
+            'success': successes, 'failure': failures, 'neutral': total - successes - failures,
+            'successRate': successes / total if total else None,
+            'formula': 'success / (success + failure + neutral)',
+            'formulaVersion': 'recorded_reuse_success_rate.v1',
+            'inputs': {'success': successes, 'failure': failures, 'neutral': total - successes - failures},
+            'eventHashes': [event['eventHash'] for event in events],
+            'scope': 'displayed_verified_events_for_task_origin_revisions',
+            'maxRecords': 100, 'truncated': truncated, 'invalidRecordCount': invalid,
+            'causalEffectEvaluated': False, 'automaticLifecycleChange': False}

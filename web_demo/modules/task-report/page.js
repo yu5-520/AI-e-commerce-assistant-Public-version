@@ -297,6 +297,25 @@
   }
 
   function missingTaskView() { return `<section class="page-section"><div class="section-header"><h2>任务详情</h2><span class="status-badge">路由缺少任务ID</span></div><p>当前地址没有携带 taskId，系统不会猜测或打开其他任务。</p><div class="report-actions"><button type="button" data-back-task-list>返回任务列表</button></div></section>`; }
+  function renderKnowledgeReuse(audit) {
+    const summary = audit?.reuseSummary || {};
+    const events = arr(audit?.reuseEvents);
+    const labels = { success: "记录为成功", failure: "记录为失败", neutral: "记录为中性" };
+    if (!events.length) return `<p>尚无通过校验的后续复用结果。</p>`;
+    const rate = summary.successRate == null ? "未计算" : `${(summary.successRate * 100).toFixed(2)}%`;
+    return `<details><summary>后续复用记录：${s(summary.total)} 条 · 成功占比 ${s(rate)}</summary>
+      <p>统计范围：当前展示且通过校验的记录，最多 100 条。中性结果计入分母。</p>
+      ${summary.truncated ? "<p>记录超过展示上限，以下占比只代表当前样本。</p>" : ""}
+      ${summary.invalidRecordCount ? `<p>${s(summary.invalidRecordCount)} 条无效或来源未验证的记录已排除。</p>` : ""}
+      <details><summary>查看计算公式与依据</summary><p>成功数 ÷（成功数 + 失败数 + 中性数）</p>
+        <pre>${s(JSON.stringify({ formula: summary.formula, version: summary.formulaVersion, inputs: summary.inputs, eventHashes: summary.eventHashes }, null, 2))}</pre></details>
+      <p>这些是后续结果记录，尚未验证引用的检索回执，也不代表 RAG 的因果提升。</p>
+      ${events.map(event => `<details><summary>${s(labels[event.outcome] || "未知结果")} · ${s(event.createdAt)}</summary>
+        <p>知识版本：${s(event.revisionId)}</p><p>引用的检索回执：${s(event.retrievalReceiptHash)}</p>
+        <p class="sop-evidence-hash">事件校验依据：${s(event.eventHash)}</p></details>`).join("")}
+    </details>`;
+  }
+
   function renderSopEvidence(report) {
     const evidence = report?.sopEvidence || {};
     const valueText = (value) => value == null ? "未记录" : typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
@@ -312,7 +331,7 @@
         ${card.actor ? `<p>制定者：${s(card.actor)} · 节点：${s(card.nodeKey || "未记录")}</p>` : ""}
         ${card.sourceHash ? `<details><summary>查看校验依据</summary><p class="sop-evidence-hash">${s(card.sourceHash)}</p></details>` : ""}
       </details>`).join("") : `<p role="status">当前任务没有已验证的决策记录。历史任务不会补造依据。</p>`}
-      <details><summary>知识引用与审核回流</summary><pre>${s(valueText(evidence.knowledge || {}))}</pre><p>${s(evidence.knowledgeEffect || "尚无对照评测证据")}</p><p>${s(evidence.knowledgeAudit?.status === "RECORDED" ? "已记录任务关联知识版本与审核事件" : evidence.knowledgeAudit?.status === "INVALID_EVIDENCE" ? "部分审核证据校验失败" : "未记录审核回流结果")}</p><pre>${s(valueText(evidence.knowledgeAudit || {}))}</pre></details>
+      <details><summary>知识引用与审核回流</summary><pre>${s(valueText(evidence.knowledge || {}))}</pre><p>${s(evidence.knowledgeEffect || "尚无对照评测证据")}</p><p>${s(evidence.knowledgeAudit?.status === "RECORDED" ? "已记录任务关联知识版本与审核事件" : evidence.knowledgeAudit?.status === "INVALID_EVIDENCE" ? "部分审核证据校验失败" : "未记录审核回流结果")}</p><pre>${s(valueText({ revisions: evidence.knowledgeAudit?.revisions || [], reviewEvents: evidence.knowledgeAudit?.events || [] }))}</pre>${renderKnowledgeReuse(evidence.knowledgeAudit)}</details>
       <details><summary>证据完整性</summary><p>${arr(evidence.missing).length ? "部分依据缺失或校验未通过" : arr(evidence.receipts).length ? "已记录证据校验通过" : "尚未记录证据回执"}</p><pre>${s(valueText(evidence.receipts || []))}</pre></details>
     </div>`;
   }
