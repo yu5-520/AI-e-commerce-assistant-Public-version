@@ -4,7 +4,9 @@ on:
   pull_request:
     paths:
       - 'config/v26_field_authority_contract.json'
+      - 'config/v23_registry_runtime.json'
       - 'src/services/v26_business_graph_bridge_service.py'
+      - 'src/services/v26_node_edge_lineage_service.py'
       - 'src/services/agent_token_runtime_v225_service.py'
       - 'governance/v26-field-authority-update-policy.json'
       - 'tests/test_v26_business_graph_bridge.py'
@@ -15,7 +17,9 @@ on:
       - main
     paths:
       - 'config/v26_field_authority_contract.json'
+      - 'config/v23_registry_runtime.json'
       - 'src/services/v26_business_graph_bridge_service.py'
+      - 'src/services/v26_node_edge_lineage_service.py'
       - 'src/services/agent_token_runtime_v225_service.py'
       - 'governance/v26-field-authority-update-policy.json'
       - 'tests/test_v26_business_graph_bridge.py'
@@ -45,36 +49,47 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Verify V26.2 authority headers and unchanged system topology
+      - name: Verify V26.5 authority headers and unchanged system topology
         shell: bash
         run: |
           set -euo pipefail
           python -m json.tool config/v26_field_authority_contract.json >/dev/null
+          python -m json.tool config/v23_registry_runtime.json >/dev/null
           python -m json.tool governance/v26-field-authority-update-policy.json >/dev/null
           python - <<'PY'
           import json
           from pathlib import Path
 
           contract = json.loads(Path('config/v26_field_authority_contract.json').read_text(encoding='utf-8'))
+          registry = json.loads(Path('config/v23_registry_runtime.json').read_text(encoding='utf-8'))
           policy = json.loads(Path('governance/v26-field-authority-update-policy.json').read_text(encoding='utf-8'))
           headers = set(contract['registeredHeaders'])
 
           assert contract['version'] == '26.1.0'
-          assert contract['businessGraphVersion'] == '26.2.0'
+          assert contract['businessGraphVersion'] == '26.5.0'
+          assert registry['businessGraphVersion'] == '26.5.0'
           required = {
+              'judgement.node_key',
               'judgement.primary_issue',
-              'judgement.signal_conflicts',
-              'judgement.recommended_direction',
-              'plan.strategy_summary',
-              'plan.selected_strategy',
-              'plan.expected_trend',
+              'judgement.relations',
+              'plan.action_key',
+              'plan.action_family',
+              'plan.judgement_refs',
+              'plan.dependencies',
+              'plan.conflicts',
+              'plan.affected_fields',
+              'plan.affected_metrics',
               'operation.objective',
               'operation.plan_refs',
               'operation_stage.stage_id',
-              'operation_stage.steps',
+              'operation_stage.action_refs',
               'operation_stage.review_entry',
           }
           assert required <= headers
+          assert contract['headerOverrides']['judgement.node_key']['class'] == 'STRUCTURAL'
+          assert contract['headerOverrides']['plan.action_key']['class'] == 'STRUCTURAL'
+          assert contract['headerOverrides']['plan.judgement_refs']['class'] == 'STRUCTURAL'
+          assert contract['headerOverrides']['operation_stage.action_refs']['class'] == 'STRUCTURAL'
           assert contract['stageAuthority']['systemStage']['modelWritable'] is False
           assert contract['stageAuthority']['systemStage']['dynamicModelNodesAllowed'] is False
           assert contract['stageAuthority']['systemStage']['dynamicModelEdgesAllowed'] is False
@@ -84,34 +99,40 @@ jobs:
           profile = policy['profiles']['v26_field_authority']
           allowed = set(profile['allowedRuntimePathPrefixes'])
           assert 'src/services/v26_business_graph_bridge_service.py' in allowed
+          assert 'src/services/v26_node_edge_lineage_service.py' in allowed
           assert 'src/services/agent_token_runtime_v225_service.py' in allowed
-          print('V26_2_AUTHORITY_SURFACE=PASS')
+          for module in ('agent1_runtime', 'agent2_runtime', 'agent3_input_projection', 'agent3_runtime'):
+              paths = set(registry['modules'][module]['implementationPaths'])
+              assert 'src/services/v26_node_edge_lineage_service.py' in paths
+          print('V26_5_AUTHORITY_SURFACE=PASS')
           PY
 
-      - name: Verify bridge installation order
+      - name: Verify V26.5 installation order
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
           text = Path('src/services/agent_token_runtime_v225_service.py').read_text(encoding='utf-8')
-          install = text.index('V26_BUSINESS_GRAPH_BRIDGE = install_v26_business_graph_bridge()')
+          bridge = text.index('V26_BUSINESS_GRAPH_BRIDGE = install_v26_business_graph_bridge()')
+          lineage = text.index('V26_NODE_EDGE_LINEAGE = install_v26_node_edge_lineage()')
           agent3_import = text.index('from src.services import agent3_runtime_v23215_service')
-          assert install < agent3_import
+          assert bridge < lineage < agent3_import
           assert 'RUNTIME_CONTRACT_GUARDS = install_runtime_contract_guards()' in text
-          print('V26_2_INSTALL_ORDER=PASS')
+          print('V26_5_INSTALL_ORDER=PASS')
           PY
 
-      - name: Compile V26.2 graph runtime
+      - name: Compile V26.5 graph runtime
         shell: bash
         run: |
           set -euo pipefail
           python -m py_compile \
             src/services/v26_field_authority_contract_service.py \
             src/services/v26_business_graph_bridge_service.py \
+            src/services/v26_node_edge_lineage_service.py \
             src/services/agent_token_runtime_v225_service.py
 
-      - name: Run V26.1 and V26.2 authority regressions
+      - name: Run V26.1 through V26.5 authority regressions
         shell: bash
         run: |
           set -euo pipefail
