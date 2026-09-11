@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.11.4",
+  "version": "2026.09.11.5",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
@@ -37,6 +37,7 @@
         "docs/V26_4_SYSTEM_REVIEW.md",
         ".github/workflows/v26-field-authority-phase1.yml",
         ".github/workflows/v26-business-graphs-phase2.yml",
+        ".github/workflows/v26-registry-lineage-pr.yml",
         ".github/workflows/v24-production-authority-bundle.yml",
         ".github/workflows/competition-registry-lineage.yml"
       ],
