@@ -11,11 +11,15 @@ on:
       - 'java-control-plane/src/main/java/com/zcentury/v24/ProductLifecycleAuthority.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/VolatilityEnvelope.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/PreAgentAdmissionGate.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/SystemReviewAuthority.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/V263PreAgentAdmissionMain.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/V264SystemReviewMain.java'
       - 'scripts/verify_v24_production_bundle.sh'
       - 'tests/test_v26_field_authority_contract.py'
       - 'docs/V26_1_FIELD_AUTHORITY_CONTRACT.md'
       - 'docs/V26_3_PRE_AGENT_ADMISSION.md'
+      - 'docs/V26_4_SYSTEM_REVIEW.md'
       - '.github/workflows/v26-field-authority-phase1.yml'
       - '.github/workflows/competition-registry-lineage.yml'
   push:
@@ -30,9 +34,13 @@ on:
       - 'java-control-plane/src/main/java/com/zcentury/v24/ProductLifecycleAuthority.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/VolatilityEnvelope.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/PreAgentAdmissionGate.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/SystemReviewAuthority.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/V263PreAgentAdmissionMain.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/V264SystemReviewMain.java'
       - 'scripts/verify_v24_production_bundle.sh'
       - 'tests/test_v26_field_authority_contract.py'
+      - 'docs/V26_4_SYSTEM_REVIEW.md'
       - '.github/workflows/v26-field-authority-phase1.yml'
       - '.github/workflows/competition-registry-lineage.yml'
   workflow_dispatch:
@@ -115,11 +123,11 @@ jobs:
             src/services/v26_field_authority_contract_service.py \
             src/services/runtime_contract_guard_v1_service.py
 
-      - name: Verify V26.3 pre-Agent admission Java contract
+      - name: Verify V26.3 and V26.4 Java authority contracts
         shell: bash
         run: |
           set -euo pipefail
-          BUILD_DIR="${RUNNER_TEMP}/v26-3-java-classes"
+          BUILD_DIR="${RUNNER_TEMP}/v26-java-classes"
           rm -rf "$BUILD_DIR"
           mkdir -p "$BUILD_DIR"
           mapfile -t JAVA_SOURCES < <(find java-control-plane/src/main/java -type f -name '*.java' | sort)
@@ -127,6 +135,8 @@ jobs:
           javac --release 17 -d "$BUILD_DIR" "${JAVA_SOURCES[@]}"
           java -cp "$BUILD_DIR" com.zcentury.v24.V263PreAgentAdmissionMain
           printf 'V26_3_PRE_AGENT_ADMISSION_HOSTED_GATE=PASS\n'
+          java -cp "$BUILD_DIR" com.zcentury.v24.V264SystemReviewMain
+          printf 'V26_4_SYSTEM_REVIEW_HOSTED_GATE=PASS\n'
 
       - name: Run V26.1 field authority regressions
         shell: bash
