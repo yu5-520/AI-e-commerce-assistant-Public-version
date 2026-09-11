@@ -13,13 +13,16 @@ on:
       - 'java-control-plane/src/main/java/com/zcentury/v24/PreAgentAdmissionGate.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/SystemReviewAuthority.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/V263PreAgentAdmissionMain.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/V264SystemReviewMain.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/V266LocalSubgraphRevisionMain.java'
       - 'scripts/verify_v24_production_bundle.sh'
       - 'tests/test_v26_field_authority_contract.py'
       - 'docs/V26_1_FIELD_AUTHORITY_CONTRACT.md'
       - 'docs/V26_3_PRE_AGENT_ADMISSION.md'
       - 'docs/V26_4_SYSTEM_REVIEW.md'
+      - 'docs/V26_6_LOCAL_SUBGRAPH_REVISION.md'
       - '.github/workflows/v26-field-authority-phase1.yml'
       - '.github/workflows/competition-registry-lineage.yml'
   push:
@@ -36,11 +39,14 @@ on:
       - 'java-control-plane/src/main/java/com/zcentury/v24/PreAgentAdmissionGate.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/SystemReviewAuthority.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/V263PreAgentAdmissionMain.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/V264SystemReviewMain.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/V266LocalSubgraphRevisionMain.java'
       - 'scripts/verify_v24_production_bundle.sh'
       - 'tests/test_v26_field_authority_contract.py'
       - 'docs/V26_4_SYSTEM_REVIEW.md'
+      - 'docs/V26_6_LOCAL_SUBGRAPH_REVISION.md'
       - '.github/workflows/v26-field-authority-phase1.yml'
       - '.github/workflows/competition-registry-lineage.yml'
   workflow_dispatch:
@@ -89,6 +95,8 @@ jobs:
           policy = json.loads(Path('governance/v26-field-authority-update-policy.json').read_text(encoding='utf-8'))
 
           assert contract['version'] == '26.1.0'
+          assert contract['businessGraphVersion'] == '26.5.0'
+          assert contract['localSubgraphRevisionVersion'] == '26.6.0'
           assert contract['headerRegistrationRequired'] is True
           assert contract['semanticPolicy']['authorityValidatorMayInspectBusinessWording'] is False
           assert contract['numericAuthority']['FACT'] == 'system_only'
@@ -98,6 +106,22 @@ jobs:
           assert contract['numericAuthority']['agent3PlanNumberMode'] == 'reference_only'
           assert contract['stageAuthority']['systemStage']['dynamicModelNodesAllowed'] is False
           assert contract['stageAuthority']['operationStage']['dynamicBusinessStagesAllowed'] is True
+          required_revision_headers = {
+              'revision.review_hash',
+              'revision.scope_mode',
+              'revision.breached_metrics',
+              'revision.parent_action_graph_hash',
+              'revision.reopen_judgement_node_hashes',
+              'revision.reopen_action_node_hashes',
+              'revision.reopen_operation_node_hashes',
+              'revision.revision_hash',
+          }
+          assert required_revision_headers <= set(contract['registeredHeaders'])
+          revision_policy = next(
+              item for item in contract['namespacePolicies'] if item['prefix'] == 'revision.'
+          )
+          assert revision_policy['owner'] == 'java-control-plane'
+          assert revision_policy['writableBy'] == ['system', 'java-control-plane']
 
           assert registry['fieldAuthorityContractVersion'] == '26.1.0'
           assert registry['fieldAuthorityContractPath'] == 'config/v26_field_authority_contract.json'
@@ -112,7 +136,7 @@ jobs:
           assert profile['allowRegistryModuleChanges'] is True
           assert profile['allowRuntimeMembershipChange'] is True
           assert profile['allowEdgeChanges'] is True
-          print('V26_1_REGISTRY_CONTRACT=PASS')
+          print('V26_1_TO_V26_6_REGISTRY_CONTRACT=PASS')
           PY
 
       - name: Compile V26.1 authority services
@@ -123,7 +147,7 @@ jobs:
             src/services/v26_field_authority_contract_service.py \
             src/services/runtime_contract_guard_v1_service.py
 
-      - name: Verify V26.3 and V26.4 Java authority contracts
+      - name: Verify V26.3 through V26.6 Java authority contracts
         shell: bash
         run: |
           set -euo pipefail
@@ -137,8 +161,10 @@ jobs:
           printf 'V26_3_PRE_AGENT_ADMISSION_HOSTED_GATE=PASS\n'
           java -cp "$BUILD_DIR" com.zcentury.v24.V264SystemReviewMain
           printf 'V26_4_SYSTEM_REVIEW_HOSTED_GATE=PASS\n'
+          java -cp "$BUILD_DIR" com.zcentury.v24.V266LocalSubgraphRevisionMain
+          printf 'V26_6_LOCAL_SUBGRAPH_REVISION_HOSTED_GATE=PASS\n'
 
-      - name: Run V26.1 field authority regressions
+      - name: Run V26.1 through V26.6 field authority regressions
         shell: bash
         run: |
           set -euo pipefail
