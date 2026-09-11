@@ -1,7 +1,7 @@
 {
   "schema": "field.authority.contract.v1",
   "version": "26.1.0",
-  "businessGraphVersion": "26.2.0",
+  "businessGraphVersion": "26.5.0",
   "status": "active",
   "registryProjection": "config/v23_registry_runtime.json",
   "lineageRegistry": "config/runtime_contract_lineage_registry_v1.json",
@@ -18,6 +18,7 @@
     "snapshot.inventory",
     "derived.rolling_roas",
     "derived.volatility",
+    "judgement.node_key",
     "judgement.reasoning",
     "judgement.primary_issue",
     "judgement.secondary_signals",
@@ -30,6 +31,10 @@
     "judgement.action_family",
     "judgement.priority_weight",
     "judgement.evidence_confidence",
+    "judgement.relations",
+    "plan.action_key",
+    "plan.action_family",
+    "plan.judgement_refs",
     "plan.strategy_summary",
     "plan.candidate_strategies",
     "plan.selected_strategy",
@@ -43,6 +48,10 @@
     "plan.minimum_evidence",
     "plan.acceptance_criteria",
     "plan.risk_boundaries",
+    "plan.dependencies",
+    "plan.conflicts",
+    "plan.affected_fields",
+    "plan.affected_metrics",
     "operation.objective",
     "operation.summary",
     "operation.step_instruction",
@@ -61,6 +70,7 @@
     "operation_stage.rollback",
     "operation_stage.affected_fields",
     "operation_stage.affected_metrics",
+    "operation_stage.action_refs",
     "operation_stage.review_entry"
   ],
   "fieldClasses": {
@@ -153,6 +163,7 @@
     }
   ],
   "headerOverrides": {
+    "judgement.node_key": {"class": "STRUCTURAL", "valueType": "string"},
     "judgement.reasoning": {"class": "SEMANTIC", "valueType": "string"},
     "judgement.primary_issue": {"class": "SEMANTIC", "valueType": "string"},
     "judgement.secondary_signals": {"class": "SEMANTIC", "valueType": "array"},
@@ -179,6 +190,10 @@
       "minimum": 0,
       "maximum": 1
     },
+    "judgement.relations": {"class": "STRUCTURAL", "valueType": "array"},
+    "plan.action_key": {"class": "STRUCTURAL", "valueType": "string", "owner": "agent2", "writableBy": ["agent2"]},
+    "plan.action_family": {"class": "PLAN", "valueType": "string", "owner": "agent2", "writableBy": ["agent2"]},
+    "plan.judgement_refs": {"class": "STRUCTURAL", "valueType": "array", "owner": "agent2", "writableBy": ["agent2"]},
     "plan.strategy_summary": {"class": "PLAN", "valueType": "string"},
     "plan.candidate_strategies": {"class": "PLAN", "valueType": "array"},
     "plan.selected_strategy": {"class": "PLAN"},
@@ -204,6 +219,10 @@
     "plan.minimum_evidence": {"class": "PLAN"},
     "plan.acceptance_criteria": {"class": "PLAN", "valueType": "array"},
     "plan.risk_boundaries": {"class": "PLAN", "valueType": "array"},
+    "plan.dependencies": {"class": "STRUCTURAL", "valueType": "array", "owner": "agent2", "writableBy": ["agent2"]},
+    "plan.conflicts": {"class": "STRUCTURAL", "valueType": "array", "owner": "agent2", "writableBy": ["agent2"]},
+    "plan.affected_fields": {"class": "STRUCTURAL", "valueType": "array", "owner": "agent2", "writableBy": ["agent2"]},
+    "plan.affected_metrics": {"class": "STRUCTURAL", "valueType": "array", "owner": "agent2", "writableBy": ["agent2"]},
     "operation.objective": {"class": "SEMANTIC", "valueType": "string"},
     "operation.summary": {"class": "SEMANTIC", "valueType": "string"},
     "operation.step_instruction": {"class": "SEMANTIC", "valueType": "string", "owner": "agent3", "writableBy": ["agent3"]},
@@ -228,6 +247,7 @@
     "operation_stage.rollback": {"class": "SEMANTIC"},
     "operation_stage.affected_fields": {"class": "STRUCTURAL", "valueType": "array"},
     "operation_stage.affected_metrics": {"class": "STRUCTURAL", "valueType": "array"},
+    "operation_stage.action_refs": {"class": "STRUCTURAL", "valueType": "array"},
     "operation_stage.review_entry": {"class": "SEMANTIC", "valueType": "string"}
   },
   "stageAuthority": {

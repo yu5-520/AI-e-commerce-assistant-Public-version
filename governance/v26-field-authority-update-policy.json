@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.11.3",
+  "version": "2026.09.11.5",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
-      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review. Agent2 remains the sole writer of plan.*. Java freezes approved review criteria, compares observed facts after the due window, settles clear success without model compute, and re-enters Agent1 only for guard/trend breach or non-deterministic legacy criteria. Existing INFORMATION, INVOCATION, TEMPORAL and MUTATION roots are reused; no new authority domain is created. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*. Agent3 may reference registered plan fields but may not originate plan numbers. SystemStage remains Java/control-plane owned.",
+      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review; V26.5 upgrades the business graph from aggregate graph envelopes to addressable Judgement/Action/Operation nodes and system-generated lineage edges. Historical single-primary fields remain compatibility projections, while the complete JudgementGraph is transported into Agent2 and included in Agent2 semantic identity. Models may emit local node/ref structure but never nodeHash/edgeHash, SystemStage or call-graph authority. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*. Existing INFORMATION, INVOCATION, TEMPORAL and MUTATION roots are reused; no new authority domain is created.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -18,6 +18,7 @@
         "src/services/runtime_contract_guard_v1_service.py",
         "src/services/v26_field_authority_contract_service.py",
         "src/services/v26_business_graph_bridge_service.py",
+        "src/services/v26_node_edge_lineage_service.py",
         "src/services/agent_token_runtime_v225_service.py",
         "java-control-plane/src/main/java/com/zcentury/v24/ProductLifecycleAuthority.java",
         "java-control-plane/src/main/java/com/zcentury/v24/VolatilityEnvelope.java",
@@ -36,6 +37,7 @@
         "docs/V26_4_SYSTEM_REVIEW.md",
         ".github/workflows/v26-field-authority-phase1.yml",
         ".github/workflows/v26-business-graphs-phase2.yml",
+        ".github/workflows/v26-registry-lineage-pr.yml",
         ".github/workflows/v24-production-authority-bundle.yml",
         ".github/workflows/competition-registry-lineage.yml"
       ],
