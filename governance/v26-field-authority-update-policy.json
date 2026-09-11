@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.11.1",
+  "version": "2026.09.11.2",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
-      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology. The existing exact execution/hash runtime remains authoritative for transport identity. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*. Agent3 may reference registered plan fields but may not originate plan numbers. SystemStage remains Java/control-plane owned. Semantic business wording is opaque to authority validation.",
+      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all. The existing exact execution/hash runtime remains authoritative for transport identity. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*. Agent3 may reference registered plan fields but may not originate plan numbers. SystemStage remains Java/control-plane owned. Pre-Agent admission detects statistical change only and never assigns business meaning to UPPER_BREAK or LOWER_BREAK.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -19,13 +19,20 @@
         "src/services/v26_field_authority_contract_service.py",
         "src/services/v26_business_graph_bridge_service.py",
         "src/services/agent_token_runtime_v225_service.py",
+        "java-control-plane/src/main/java/com/zcentury/v24/ProductLifecycleAuthority.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/VolatilityEnvelope.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/PreAgentAdmissionGate.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/V263PreAgentAdmissionMain.java",
+        "scripts/verify_v24_production_bundle.sh",
         "governance/v26-field-authority-update-policy.json",
         "tests/test_v26_field_authority_contract.py",
         "tests/test_v26_business_graph_bridge.py",
         "docs/V26_1_FIELD_AUTHORITY_CONTRACT.md",
         "docs/V26_2_BUSINESS_GRAPH_CUTOVER.md",
+        "docs/V26_3_PRE_AGENT_ADMISSION.md",
         ".github/workflows/v26-field-authority-phase1.yml",
         ".github/workflows/v26-business-graphs-phase2.yml",
+        ".github/workflows/v24-production-authority-bundle.yml",
         ".github/workflows/competition-registry-lineage.yml"
       ],
       "allowedRegistryModules": [
