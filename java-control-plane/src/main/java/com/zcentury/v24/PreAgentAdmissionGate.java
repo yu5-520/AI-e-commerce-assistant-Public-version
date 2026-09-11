@@ -3,7 +3,7 @@ package com.zcentury.v24;
 import java.util.Objects;
 
 /**
- * V26.3 deterministic admission gate in front of QueueAuthority/Agent1.
+ * V26 deterministic admission gate in front of QueueAuthority/Agent1.
  *
  * Java decides whether the current product observation deserves Agent compute.
  * Business meaning remains outside this gate and is interpreted by Agent1 only after ADMIT.
@@ -30,6 +30,17 @@ final class PreAgentAdmissionGate {
     ) {
         Objects.requireNonNull(lifecycle, "product_lifecycle_snapshot_required");
         Objects.requireNonNull(evaluation, "volatility_evaluation_required");
+
+        if (lifecycle.state() == ProductLifecycleAuthority.State.REVIEW_READY
+            || lifecycle.state() == ProductLifecycleAuthority.State.REVIEWING
+            || lifecycle.state() == ProductLifecycleAuthority.State.ADJUSTMENT_REQUIRED) {
+            return new Result(
+                Decision.SKIP,
+                lifecycle.state().name() + "_LIFECYCLE_LOCK",
+                lifecycle.state(),
+                evaluation.signal()
+            );
+        }
 
         if (evaluation.signal() == VolatilityEnvelope.Signal.LOWER_BREAK
             || evaluation.signal() == VolatilityEnvelope.Signal.UPPER_BREAK) {
