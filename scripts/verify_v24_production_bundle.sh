@@ -32,6 +32,12 @@ CONTRACT="$ROOT_DIR/runtime/java/runtime-contract.json"
 "$JRE" -cp "$JAR" com.zcentury.v24.V263PreAgentAdmissionMain
 printf 'V26_3_PRE_AGENT_ADMISSION_GATE=PASS\n'
 
+# V26.4 extends the same sealed Java authority surface through post-observation System
+# Review. Clear success must settle without Agent compute; only deterministic breach or
+# non-deterministic legacy review criteria may re-enter Agent1.
+"$JRE" -cp "$JAR" com.zcentury.v24.V264SystemReviewMain
+printf 'V26_4_SYSTEM_REVIEW_GATE=PASS\n'
+
 V24_AUTHORITY_MODE=READY_NO_AUTHORITY V24_AUTHORITY_HOST=127.0.0.1 V24_AUTHORITY_PORT="$PORT" "$JRE"   -Xms64m   -Xmx256m   -XX:MaxMetaspaceSize=128m   -XX:ActiveProcessorCount=2   -jar "$JAR" >"$LOG_FILE" 2>&1 &
 PID=$!
 
