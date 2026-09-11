@@ -1,0 +1,94 @@
+name: V26 Registry Lineage PR Gate
+
+on:
+  pull_request:
+    paths:
+      - 'config/v23_registry_runtime.json'
+      - 'config/v26_field_authority_contract.json'
+      - 'governance/v26-field-authority-update-policy.json'
+      - 'src/services/v26_field_authority_contract_service.py'
+      - 'src/services/v26_business_graph_bridge_service.py'
+      - 'src/services/v26_node_edge_lineage_service.py'
+      - 'src/services/agent_token_runtime_v225_service.py'
+      - '.github/workflows/v26-registry-lineage-pr.yml'
+      - '.github/workflows/competition-registry-lineage.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v26-registry-lineage-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  verify-base-target-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      TARGET_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout exact TARGET
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: target-src
+          persist-credentials: false
+
+      - name: Checkout exact BASE
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base-src
+          persist-credentials: false
+
+      - name: Prepare Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile exact BASE and TARGET lineage evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$BASE_SHA" != "$TARGET_SHA"
+          python -m py_compile \
+            target-src/scripts/compile_competition_lineage.py \
+            target-src/scripts/verify_competition_lineage_update.py
+
+          (
+            cd base-src
+            python scripts/compile_competition_lineage.py \
+              --source-commit "$BASE_SHA" \
+              --output-dir dist/v26-pr-lineage
+          )
+          (
+            cd target-src
+            python scripts/compile_competition_lineage.py \
+              --source-commit "$TARGET_SHA" \
+              --output-dir dist/v26-pr-lineage
+          )
+
+      - name: Verify BASE to TARGET with existing V26 policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python target-src/scripts/verify_competition_lineage_update.py \
+            --baseline-dir base-src/dist/v26-pr-lineage \
+            --target-dir target-src/dist/v26-pr-lineage \
+            --policy target-src/governance/v26-field-authority-update-policy.json \
+            --profile v26_field_authority \
+            --output target-src/dist/v26-pr-lineage-update-report.json
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('target-src/dist/v26-pr-lineage-update-report.json').read_text(encoding='utf-8'))
+          assert report['verified'] is True
+          assert report['profile'] == 'v26_field_authority'
+          assert report['baselineCommit'] != report['targetCommit']
+          print('V26_PR_REGISTRY_LINEAGE=PASS')
+          print('BASE=' + report['baselineCommit'])
+          print('TARGET=' + report['targetCommit'])
+          print('UPDATE_HASH=' + report['updateHash'])
+          PY
