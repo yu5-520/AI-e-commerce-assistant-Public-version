@@ -2,6 +2,7 @@
   "schema": "field.authority.contract.v1",
   "version": "26.1.0",
   "businessGraphVersion": "26.5.0",
+  "localSubgraphRevisionVersion": "26.6.0",
   "status": "active",
   "registryProjection": "config/v23_registry_runtime.json",
   "lineageRegistry": "config/runtime_contract_lineage_registry_v1.json",
@@ -71,7 +72,21 @@
     "operation_stage.affected_fields",
     "operation_stage.affected_metrics",
     "operation_stage.action_refs",
-    "operation_stage.review_entry"
+    "operation_stage.review_entry",
+    "revision.review_hash",
+    "revision.scope_mode",
+    "revision.scope_reason",
+    "revision.breached_metrics",
+    "revision.parent_judgement_graph_hash",
+    "revision.parent_action_graph_hash",
+    "revision.parent_operation_graph_hash",
+    "revision.reopen_judgement_node_hashes",
+    "revision.reopen_action_node_hashes",
+    "revision.reopen_operation_node_hashes",
+    "revision.preserved_judgement_node_hashes",
+    "revision.preserved_action_node_hashes",
+    "revision.preserved_operation_node_hashes",
+    "revision.revision_hash"
   ],
   "fieldClasses": {
     "STRUCTURAL": {
@@ -159,6 +174,14 @@
       "owner": "agent3",
       "readableBy": ["agent3", "system", "java-control-plane", "ui"],
       "writableBy": ["agent3"],
+      "lineageRequired": true
+    },
+    {
+      "prefix": "revision.",
+      "class": "STRUCTURAL",
+      "owner": "java-control-plane",
+      "readableBy": ["agent1", "agent2", "agent3", "system", "java-control-plane", "ui"],
+      "writableBy": ["system", "java-control-plane"],
       "lineageRequired": true
     }
   ],
@@ -248,7 +271,21 @@
     "operation_stage.affected_fields": {"class": "STRUCTURAL", "valueType": "array"},
     "operation_stage.affected_metrics": {"class": "STRUCTURAL", "valueType": "array"},
     "operation_stage.action_refs": {"class": "STRUCTURAL", "valueType": "array"},
-    "operation_stage.review_entry": {"class": "SEMANTIC", "valueType": "string"}
+    "operation_stage.review_entry": {"class": "SEMANTIC", "valueType": "string"},
+    "revision.review_hash": {"class": "STRUCTURAL", "valueType": "string"},
+    "revision.scope_mode": {"class": "STRUCTURAL", "valueType": "string"},
+    "revision.scope_reason": {"class": "STRUCTURAL", "valueType": "string"},
+    "revision.breached_metrics": {"class": "STRUCTURAL", "valueType": "array"},
+    "revision.parent_judgement_graph_hash": {"class": "STRUCTURAL", "valueType": "string"},
+    "revision.parent_action_graph_hash": {"class": "STRUCTURAL", "valueType": "string"},
+    "revision.parent_operation_graph_hash": {"class": "STRUCTURAL", "valueType": "string"},
+    "revision.reopen_judgement_node_hashes": {"class": "STRUCTURAL", "valueType": "array"},
+    "revision.reopen_action_node_hashes": {"class": "STRUCTURAL", "valueType": "array"},
+    "revision.reopen_operation_node_hashes": {"class": "STRUCTURAL", "valueType": "array"},
+    "revision.preserved_judgement_node_hashes": {"class": "STRUCTURAL", "valueType": "array"},
+    "revision.preserved_action_node_hashes": {"class": "STRUCTURAL", "valueType": "array"},
+    "revision.preserved_operation_node_hashes": {"class": "STRUCTURAL", "valueType": "array"},
+    "revision.revision_hash": {"class": "STRUCTURAL", "valueType": "string"}
   },
   "stageAuthority": {
     "systemStage": {

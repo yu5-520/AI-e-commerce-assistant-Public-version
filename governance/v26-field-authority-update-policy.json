@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.11.5",
+  "version": "2026.09.11.6",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
-      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review; V26.5 upgrades the business graph from aggregate graph envelopes to addressable Judgement/Action/Operation nodes and system-generated lineage edges. Historical single-primary fields remain compatibility projections, while the complete JudgementGraph is transported into Agent2 and included in Agent2 semantic identity. Models may emit local node/ref structure but never nodeHash/edgeHash, SystemStage or call-graph authority. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*. Existing INFORMATION, INVOCATION, TEMPORAL and MUTATION roots are reused; no new authority domain is created.",
+      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review; V26.5 upgrades the business graph to addressable Judgement/Action/Operation nodes and system-generated lineage edges; V26.6 uses those immutable node identities after review to compile a deterministic local revision scope. Structured breached metrics map to exact Action nodes, downstream Action/Operation dependencies are reopened, unrelated successful nodes remain preserved, and revisionHash becomes the Agent1 queue identity. Legacy or unmapped review criteria fail closed to full-graph compatibility rather than pretending to localize. Models may read revision.* but may never author nodeHash, edgeHash, revisionHash, SystemStage or call-graph authority. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*; java-control-plane owns revision.*. Existing INFORMATION, INVOCATION, TEMPORAL and MUTATION roots are reused; no new authority domain is created.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -25,8 +25,10 @@
         "java-control-plane/src/main/java/com/zcentury/v24/PreAgentAdmissionGate.java",
         "java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java",
         "java-control-plane/src/main/java/com/zcentury/v24/SystemReviewAuthority.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java",
         "java-control-plane/src/main/java/com/zcentury/v24/V263PreAgentAdmissionMain.java",
         "java-control-plane/src/main/java/com/zcentury/v24/V264SystemReviewMain.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/V266LocalSubgraphRevisionMain.java",
         "scripts/verify_v24_production_bundle.sh",
         "governance/v26-field-authority-update-policy.json",
         "tests/test_v26_field_authority_contract.py",
@@ -35,6 +37,7 @@
         "docs/V26_2_BUSINESS_GRAPH_CUTOVER.md",
         "docs/V26_3_PRE_AGENT_ADMISSION.md",
         "docs/V26_4_SYSTEM_REVIEW.md",
+        "docs/V26_6_LOCAL_SUBGRAPH_REVISION.md",
         ".github/workflows/v26-field-authority-phase1.yml",
         ".github/workflows/v26-business-graphs-phase2.yml",
         ".github/workflows/v26-registry-lineage-pr.yml",
