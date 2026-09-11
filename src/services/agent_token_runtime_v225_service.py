@@ -3,9 +3,9 @@
 Agent1 keeps the strict V22.5.9 exact runtime, Agent2 keeps V22.5.20 exact output
 acceptance plus the V23.1.7 familyPayload semantic cache, and Agent3 keeps the
 V23.2.18 system contract while adding V23.2.17 semantic SOP reuse/microbatching and
-V23.2.19 exact-path semantic repair. Unified runtime guards fail closed on provider
-identity and keep the hash-table interface owned by the hash-directed Artifact
-runtime.
+V23.2.19 exact-path semantic repair. V26.2 projects those proven semantic runtimes
+into authority-bearing JudgementGraph / ActionGraph / OperationGraph surfaces while
+the Java/system call topology remains unchanged.
 """
 from src.services.agent_token_runtime_v22520_service import *
 from src.services.agent_token_runtime_v22520_service import (
@@ -17,10 +17,15 @@ from src.services.agent_hash_routed_rag_bridge_v1_service import (
 from src.services.runtime_contract_guard_v1_service import (
     install_runtime_contract_guards,
 )
+from src.services.v26_business_graph_bridge_service import (
+    install_v26_business_graph_bridge,
+)
 
-# Install the fail-closed identity/interface contract before the active Agent3
-# runtime imports the historical token-runtime module object.
+# Install fail-closed identity/field authority first, then migrate the business
+# semantic seams into V26.2 graphs. Agent3 runtime is intentionally imported only
+# after this point so its module-level `core` reference observes the patched core.
 RUNTIME_CONTRACT_GUARDS = install_runtime_contract_guards()
+V26_BUSINESS_GRAPH_BRIDGE = install_v26_business_graph_bridge()
 AGENT_HASH_ROUTED_RAG_BRIDGE = install_agent_hash_routed_rag_bridge()
 
 

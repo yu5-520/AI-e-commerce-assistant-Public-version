@@ -1,6 +1,7 @@
 {
   "schema": "field.authority.contract.v1",
   "version": "26.1.0",
+  "businessGraphVersion": "26.2.0",
   "status": "active",
   "registryProjection": "config/v23_registry_runtime.json",
   "lineageRegistry": "config/runtime_contract_lineage_registry_v1.json",
@@ -18,16 +19,49 @@
     "derived.rolling_roas",
     "derived.volatility",
     "judgement.reasoning",
+    "judgement.primary_issue",
+    "judgement.secondary_signals",
+    "judgement.signal_conflicts",
+    "judgement.possible_causes",
+    "judgement.rejected_hypotheses",
+    "judgement.evidence_refs",
+    "judgement.ignored_signals",
+    "judgement.recommended_direction",
+    "judgement.action_family",
     "judgement.priority_weight",
     "judgement.evidence_confidence",
+    "plan.strategy_summary",
+    "plan.candidate_strategies",
+    "plan.selected_strategy",
+    "plan.parameter_pack",
     "plan.daily_budget",
     "plan.target_roas",
     "plan.review_window",
+    "plan.expected_trend",
+    "plan.lower_guard",
+    "plan.upper_guard",
+    "plan.minimum_evidence",
+    "plan.acceptance_criteria",
+    "plan.risk_boundaries",
+    "operation.objective",
+    "operation.summary",
     "operation.step_instruction",
     "operation.plan_refs",
+    "operation.review_reason",
     "system_stage.call_graph",
     "operation_stage.stage_id",
-    "operation_stage.stage_name"
+    "operation_stage.stage_name",
+    "operation_stage.objective",
+    "operation_stage.dependencies",
+    "operation_stage.required_inputs",
+    "operation_stage.steps",
+    "operation_stage.tool_capabilities",
+    "operation_stage.artifacts",
+    "operation_stage.acceptance_criteria",
+    "operation_stage.rollback",
+    "operation_stage.affected_fields",
+    "operation_stage.affected_metrics",
+    "operation_stage.review_entry"
   ],
   "fieldClasses": {
     "STRUCTURAL": {
@@ -119,10 +153,16 @@
     }
   ],
   "headerOverrides": {
-    "judgement.reasoning": {
-      "class": "SEMANTIC",
-      "valueType": "string"
-    },
+    "judgement.reasoning": {"class": "SEMANTIC", "valueType": "string"},
+    "judgement.primary_issue": {"class": "SEMANTIC", "valueType": "string"},
+    "judgement.secondary_signals": {"class": "SEMANTIC", "valueType": "array"},
+    "judgement.signal_conflicts": {"class": "SEMANTIC", "valueType": "array"},
+    "judgement.possible_causes": {"class": "SEMANTIC", "valueType": "array"},
+    "judgement.rejected_hypotheses": {"class": "SEMANTIC", "valueType": "array"},
+    "judgement.evidence_refs": {"class": "SEMANTIC", "valueType": "array"},
+    "judgement.ignored_signals": {"class": "SEMANTIC", "valueType": "array"},
+    "judgement.recommended_direction": {"class": "SEMANTIC", "valueType": "string"},
+    "judgement.action_family": {"class": "SEMANTIC", "valueType": "string"},
     "judgement.priority_weight": {
       "class": "JUDGEMENT_NUMERIC",
       "valueType": "number",
@@ -139,6 +179,10 @@
       "minimum": 0,
       "maximum": 1
     },
+    "plan.strategy_summary": {"class": "PLAN", "valueType": "string"},
+    "plan.candidate_strategies": {"class": "PLAN", "valueType": "array"},
+    "plan.selected_strategy": {"class": "PLAN"},
+    "plan.parameter_pack": {"class": "PLAN", "valueType": "object"},
     "plan.daily_budget": {
       "class": "PLAN",
       "valueType": "number",
@@ -153,18 +197,16 @@
       "writableBy": ["agent2"],
       "minimum": 0
     },
-    "plan.review_window": {
-      "class": "PLAN",
-      "valueType": "string",
-      "owner": "agent2",
-      "writableBy": ["agent2"]
-    },
-    "operation.step_instruction": {
-      "class": "SEMANTIC",
-      "valueType": "string",
-      "owner": "agent3",
-      "writableBy": ["agent3"]
-    },
+    "plan.review_window": {"class": "PLAN", "valueType": "string", "owner": "agent2", "writableBy": ["agent2"]},
+    "plan.expected_trend": {"class": "PLAN"},
+    "plan.lower_guard": {"class": "PLAN"},
+    "plan.upper_guard": {"class": "PLAN"},
+    "plan.minimum_evidence": {"class": "PLAN"},
+    "plan.acceptance_criteria": {"class": "PLAN", "valueType": "array"},
+    "plan.risk_boundaries": {"class": "PLAN", "valueType": "array"},
+    "operation.objective": {"class": "SEMANTIC", "valueType": "string"},
+    "operation.summary": {"class": "SEMANTIC", "valueType": "string"},
+    "operation.step_instruction": {"class": "SEMANTIC", "valueType": "string", "owner": "agent3", "writableBy": ["agent3"]},
     "operation.plan_refs": {
       "class": "REFERENCE",
       "valueType": "array",
@@ -172,18 +214,21 @@
       "writableBy": ["agent3"],
       "referenceNamespace": "plan."
     },
-    "system_stage.call_graph": {
-      "class": "STRUCTURAL",
-      "valueType": "array"
-    },
-    "operation_stage.stage_id": {
-      "class": "STRUCTURAL",
-      "valueType": "string"
-    },
-    "operation_stage.stage_name": {
-      "class": "SEMANTIC",
-      "valueType": "string"
-    }
+    "operation.review_reason": {"class": "SEMANTIC", "valueType": "string"},
+    "system_stage.call_graph": {"class": "STRUCTURAL", "valueType": "array"},
+    "operation_stage.stage_id": {"class": "STRUCTURAL", "valueType": "string"},
+    "operation_stage.stage_name": {"class": "SEMANTIC", "valueType": "string"},
+    "operation_stage.objective": {"class": "SEMANTIC", "valueType": "string"},
+    "operation_stage.dependencies": {"class": "STRUCTURAL", "valueType": "array"},
+    "operation_stage.required_inputs": {"class": "STRUCTURAL", "valueType": "array"},
+    "operation_stage.steps": {"class": "SEMANTIC", "valueType": "array"},
+    "operation_stage.tool_capabilities": {"class": "STRUCTURAL", "valueType": "array"},
+    "operation_stage.artifacts": {"class": "STRUCTURAL", "valueType": "array"},
+    "operation_stage.acceptance_criteria": {"class": "SEMANTIC"},
+    "operation_stage.rollback": {"class": "SEMANTIC"},
+    "operation_stage.affected_fields": {"class": "STRUCTURAL", "valueType": "array"},
+    "operation_stage.affected_metrics": {"class": "STRUCTURAL", "valueType": "array"},
+    "operation_stage.review_entry": {"class": "SEMANTIC", "valueType": "string"}
   },
   "stageAuthority": {
     "systemStage": {

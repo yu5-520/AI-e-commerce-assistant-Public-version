@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.10.2",
+  "version": "2026.09.11.1",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
-      "description": "Register V26.1 field-header authority inside the existing runtime registry and contract guard. The sealed registry root and system Agent call topology remain stable, while registered runtime file hashes/membership and registry-to-file lineage are allowed to change only inside the declared V26.1 surface. FACT and DERIVED remain system-owned; PLAN is Agent2-owned; Agent3 may reference plan values but may not originate them. Authority validation must not inspect or rewrite business wording in SEMANTIC fields. SystemStage remains control-plane owned while OperationStage is an Agent3 business surface for the next graph migration.",
+      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology. The existing exact execution/hash runtime remains authoritative for transport identity. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*. Agent3 may reference registered plan fields but may not originate plan numbers. SystemStage remains Java/control-plane owned. Semantic business wording is opaque to authority validation.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -17,9 +17,15 @@
         "config/v26_field_authority_contract.json",
         "src/services/runtime_contract_guard_v1_service.py",
         "src/services/v26_field_authority_contract_service.py",
+        "src/services/v26_business_graph_bridge_service.py",
+        "src/services/agent_token_runtime_v225_service.py",
         "governance/v26-field-authority-update-policy.json",
         "tests/test_v26_field_authority_contract.py",
+        "tests/test_v26_business_graph_bridge.py",
         "docs/V26_1_FIELD_AUTHORITY_CONTRACT.md",
+        "docs/V26_2_BUSINESS_GRAPH_CUTOVER.md",
+        ".github/workflows/v26-field-authority-phase1.yml",
+        ".github/workflows/v26-business-graphs-phase2.yml",
         ".github/workflows/competition-registry-lineage.yml"
       ],
       "allowedRegistryModules": [
