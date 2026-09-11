@@ -1,21 +1,56 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import importlib.util
+from pathlib import Path
+import sys
+import types
 
 import pytest
 
-from src.services.v26_business_graph_bridge_service import (
-    ACTION_GRAPH_SCHEMA,
-    JUDGEMENT_GRAPH_SCHEMA,
-    OPERATION_GRAPH_SCHEMA,
-    compile_action_graph,
-    compile_judgement_graph,
-    compile_operation_graph,
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = ROOT / "src"
+SERVICES_ROOT = SRC_ROOT / "services"
+
+# These are pure authority/compiler tests. Importing the package normally executes
+# src/__init__.py and installs the full production runtime (FastAPI included), which
+# is intentionally outside this lightweight gate. Provide package shells and load
+# only the exact V26 modules under test, matching the isolated V26.1 test pattern.
+src_pkg = types.ModuleType("src")
+src_pkg.__path__ = [str(SRC_ROOT)]
+services_pkg = types.ModuleType("src.services")
+services_pkg.__path__ = [str(SERVICES_ROOT)]
+sys.modules.setdefault("src", src_pkg)
+sys.modules.setdefault("src.services", services_pkg)
+
+
+def _load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+FIELD = _load_module(
+    "src.services.v26_field_authority_contract_service",
+    SERVICES_ROOT / "v26_field_authority_contract_service.py",
 )
-from src.services.v26_field_authority_contract_service import (
-    FieldAuthorityViolation,
-    V26FieldAuthorityContract,
+GRAPH = _load_module(
+    "src.services.v26_business_graph_bridge_service",
+    SERVICES_ROOT / "v26_business_graph_bridge_service.py",
 )
+
+ACTION_GRAPH_SCHEMA = GRAPH.ACTION_GRAPH_SCHEMA
+JUDGEMENT_GRAPH_SCHEMA = GRAPH.JUDGEMENT_GRAPH_SCHEMA
+OPERATION_GRAPH_SCHEMA = GRAPH.OPERATION_GRAPH_SCHEMA
+compile_action_graph = GRAPH.compile_action_graph
+compile_judgement_graph = GRAPH.compile_judgement_graph
+compile_operation_graph = GRAPH.compile_operation_graph
+FieldAuthorityViolation = FIELD.FieldAuthorityViolation
+V26FieldAuthorityContract = FIELD.V26FieldAuthorityContract
 
 
 def test_judgement_graph_preserves_semantic_freedom_and_is_deterministic() -> None:
