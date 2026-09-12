@@ -5,6 +5,8 @@ contains provider secrets and it does not select the business action family.
 """
 from __future__ import annotations
 
+from copy import deepcopy
+
 import json
 import os
 from typing import Any, Dict, List
@@ -148,6 +150,7 @@ def build_company_sop_rag_snapshot(source: Dict[str, Any] | None = None) -> Dict
         "status": explicit.get("status") or existing.get("status") or "context_ready",
         "mode": "company_sop_rag",
         "approvedCaseIds": [str(item) for item in _arr(approved)[:12]],
+        "knowledgeRetrievalReceipt": deepcopy((explicit or existing).get("knowledgeRetrievalReceipt")),
         "positiveExperienceCards": [
             item for item in _arr(positive)[:8] if isinstance(item, dict)
         ],

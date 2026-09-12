@@ -76,6 +76,7 @@ def freeze_decision_evidence(package, sop):
     # Receipts are summaries; no RAG documents/full database content is published.
     knowledge_summary = {k: deepcopy(knowledge[k]) for k in
         ("version", "envelopeHash", "compositionHash", "planHash", "indexManifestHash", "retrievalReceiptHash", "selectedRevisionIds") if k in knowledge}
+    knowledge_summary["retrievalReceipts"] = validated_input_retrieval_receipts(package)
     knowledge_summary["compositionHash"] = obj(knowledge.get("composition")).get("compositionHash")
     knowledge_summary["formalItemCount"] = len(knowledge.get("formalKnowledgeItems", []))
     knowledge_summary["gapCount"] = len(knowledge.get("insufficientEvidence", []))
@@ -141,7 +142,7 @@ def read_task_knowledge_audit(task_id):
     from src.repositories.sqlite_repository import connect
     result = {"status": "NOT_RECORDED", "revisions": [], "events": [], "reuseEvents": []}
     with connect() as conn:
-        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('rag_knowledge_revisions','rag_knowledge_review_events','rag_knowledge_reuse_events','rag_retrieval_observations','rag_knowledge_index_manifests','rag_knowledge_index_head')")}
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('rag_knowledge_revisions','rag_knowledge_review_events','rag_knowledge_reuse_events','rag_retrieval_observations','rag_knowledge_index_manifests','rag_knowledge_index_head','task_sop_receipts_v26','task_knowledge_bindings_v26')")}
         if 'rag_knowledge_revisions' not in tables: return result
         rows = conn.execute("SELECT revision_id,content_hash,content_json,source_recap_hash,previous_revision_id,created_at FROM rag_knowledge_revisions WHERE source_task_id=? ORDER BY created_at DESC,revision_id DESC LIMIT 50", (str(task_id),)).fetchall()
         valid_ids = set()
@@ -189,6 +190,8 @@ def read_task_knowledge_audit(task_id):
                 bind_retrieval_proofs(conn, result['reuseEvents'])
             if 'rag_knowledge_index_manifests' in tables:
                 bind_index_proofs(conn, result['reuseEvents'], result['revisions'], tables)
+            if {'task_sop_receipts_v26', 'task_knowledge_bindings_v26'} <= tables:
+                bind_subsequent_tasks(conn, result['reuseEvents'])
             result['reuseSummary'] = summarize_reuse_evidence(result['reuseEvents'], truncated=truncated, invalid=invalid)
     if result['status'] != 'INVALID_EVIDENCE' and result['revisions']: result['status']='RECORDED'
     return result
@@ -324,3 +327,95 @@ def bind_index_proofs(conn, events, revisions, tables):
         if proof['indexManifestVerification'] == 'VERIFIED':
             proof['indexProof']['headRelation'] = ('CURRENT_DATABASE_HEAD' if head == proof['indexManifestHash']
                                                     else 'HISTORICAL_MANIFEST' if head else 'HEAD_NOT_RECORDED')
+
+
+def validated_input_retrieval_receipts(package):
+    receipts = []
+    for source in (obj(package.get('unifiedKnowledge')), obj(package.get('companySopRagSnapshot')),
+                   obj(package.get('ragContextSnapshot'))):
+        receipt = source.get('knowledgeRetrievalReceipt')
+        if not receipt:
+            continue
+        material = {k: v for k, v in receipt.items() if k != 'retrievalReceiptHash'} if isinstance(receipt, dict) else {}
+        if (material.get('schema') != 'rag.knowledge_retrieval_receipt.v1' or
+            not isinstance(material.get('matchedRevisionIds'), list) or
+            not all(isinstance(x, str) for x in material['matchedRevisionIds']) or
+            digest(material).removeprefix('sha256:') != str(obj(receipt).get('retrievalReceiptHash')).removeprefix('sha256:')):
+            raise ValueError('task_input_retrieval_receipt_invalid')
+        if len(material['matchedRevisionIds']) > 100:
+            raise ValueError('task_input_retrieval_receipt_budget')
+        if receipt not in receipts:
+            receipts.append(deepcopy(receipt))
+    return receipts
+
+
+def ensure_task_binding_tables(conn):
+    conn.execute("CREATE TABLE IF NOT EXISTS task_sop_receipts_v26(task_id TEXT NOT NULL, receipt_hash TEXT NOT NULL, receipt_json TEXT NOT NULL, PRIMARY KEY(task_id,receipt_hash))")
+    conn.execute("CREATE TABLE IF NOT EXISTS task_knowledge_bindings_v26(binding_hash TEXT PRIMARY KEY, task_id TEXT NOT NULL, decision_receipt_hash TEXT NOT NULL, retrieval_receipt_hash TEXT NOT NULL, revision_id TEXT NOT NULL)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_task_knowledge_retrieval_v26 ON task_knowledge_bindings_v26(retrieval_receipt_hash,revision_id)")
+
+
+def persist_task_knowledge_bindings(conn, snapshot):
+    plan = obj(snapshot.get('taskPlan')) or obj(obj(snapshot.get('taskDetailReport')).get('taskPlan'))
+    receipt = plan.get('sopDecisionEvidence')
+    task_id = snapshot.get('taskId')
+    if not task_id or not verified(receipt):
+        return
+    retrievals = obj(receipt.get('knowledge')).get('retrievalReceipts', [])
+    if not retrievals:
+        return
+    validated = []
+    for retrieval in retrievals:
+        validated.extend(validated_input_retrieval_receipts({'unifiedKnowledge': {'knowledgeRetrievalReceipt': retrieval}}))
+    conn.execute('INSERT OR IGNORE INTO task_sop_receipts_v26 VALUES(?,?,?)',
+                 (task_id, receipt['receiptHash'], json.dumps(receipt, ensure_ascii=False, allow_nan=False)))
+    for retrieval in validated:
+        for revision in set(retrieval['matchedRevisionIds']):
+            material = {'taskId': task_id, 'decisionReceiptHash': receipt['receiptHash'],
+                        'retrievalReceiptHash': retrieval['retrievalReceiptHash'], 'revisionId': revision}
+            conn.execute('INSERT OR IGNORE INTO task_knowledge_bindings_v26 VALUES(?,?,?,?,?)',
+                         (digest(material), task_id, receipt['receiptHash'], retrieval['retrievalReceiptHash'], revision))
+
+
+def bind_subsequent_tasks(conn, events):
+    pairs = sorted({(e['retrievalReceiptHash'], e['revisionId']) for e in events
+                    if e.get('retrievalReceiptVerification') == 'VERIFIED'})
+    if not pairs:
+        return
+    # One bounded indexed read; retain dangling bindings so corruption is visible.
+    placeholders = ','.join('(?,?)' for _ in pairs)
+    rows = conn.execute(f"""WITH requested(receipt,revision) AS (VALUES {placeholders})
+        SELECT b.*,r.receipt_json FROM requested q JOIN task_knowledge_bindings_v26 b
+        ON b.rowid IN (SELECT rowid FROM task_knowledge_bindings_v26
+          WHERE retrieval_receipt_hash=q.receipt AND revision_id=q.revision
+          ORDER BY task_id,binding_hash LIMIT 21)
+        LEFT JOIN task_sop_receipts_v26 r
+        ON r.task_id=b.task_id AND r.receipt_hash=b.decision_receipt_hash
+        ORDER BY b.task_id,b.binding_hash""", [x for pair in pairs for x in pair]).fetchall()
+    grouped = {}
+    for row in rows:
+        grouped.setdefault((row['retrieval_receipt_hash'], row['revision_id']), []).append(row)
+    for event in events:
+        if event.get('retrievalReceiptVerification') != 'VERIFIED':
+            continue
+        rows = grouped.get((event['retrievalReceiptHash'], event['revisionId']), [])
+        links, invalid = [], False
+        for row in rows[:20]:
+            material = {'taskId': row['task_id'], 'decisionReceiptHash': row['decision_receipt_hash'],
+                        'retrievalReceiptHash': row['retrieval_receipt_hash'], 'revisionId': row['revision_id']}
+            try:
+                receipt = json.loads(row['receipt_json'])
+                if not verified(receipt) or receipt['receiptHash'] != material['decisionReceiptHash'] or digest(material) != row['binding_hash']:
+                    raise ValueError('binding hash mismatch')
+                matches = [x for x in obj(receipt.get('knowledge')).get('retrievalReceipts', [])
+                           if x.get('retrievalReceiptHash') == material['retrievalReceiptHash'] and material['revisionId'] in x.get('matchedRevisionIds', [])]
+                if not matches:
+                    raise ValueError('binding not in frozen task receipt')
+                validated_input_retrieval_receipts({'unifiedKnowledge': {'knowledgeRetrievalReceipt': matches[0]}})
+            except (ValueError, TypeError, KeyError, AttributeError):
+                invalid = True
+                continue
+            links.append({**material, 'bindingHash': row['binding_hash'], 'relation': 'TASK_INPUT_REFERENCED_RETRIEVAL'})
+        event['taskBindings'] = links
+        event['taskBindingsTruncated'] = len(rows) > 20
+        event['retrievalProof']['subsequentTaskBinding'] = 'INVALID_EVIDENCE' if invalid else 'VERIFIED' if links else 'NOT_RECORDED'
