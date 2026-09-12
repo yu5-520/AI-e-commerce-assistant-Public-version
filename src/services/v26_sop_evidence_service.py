@@ -141,7 +141,7 @@ def read_task_knowledge_audit(task_id):
     from src.repositories.sqlite_repository import connect
     result = {"status": "NOT_RECORDED", "revisions": [], "events": [], "reuseEvents": []}
     with connect() as conn:
-        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('rag_knowledge_revisions','rag_knowledge_review_events','rag_knowledge_reuse_events','rag_retrieval_observations')")}
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('rag_knowledge_revisions','rag_knowledge_review_events','rag_knowledge_reuse_events','rag_retrieval_observations','rag_knowledge_index_manifests','rag_knowledge_index_head')")}
         if 'rag_knowledge_revisions' not in tables: return result
         rows = conn.execute("SELECT revision_id,content_hash,content_json,source_recap_hash,previous_revision_id,created_at FROM rag_knowledge_revisions WHERE source_task_id=? ORDER BY created_at DESC,revision_id DESC LIMIT 50", (str(task_id),)).fetchall()
         valid_ids = set()
@@ -187,6 +187,8 @@ def read_task_knowledge_audit(task_id):
                        'retrievalReceiptVerification': 'NOT_CHECKED'})
             if 'rag_retrieval_observations' in tables:
                 bind_retrieval_proofs(conn, result['reuseEvents'])
+            if 'rag_knowledge_index_manifests' in tables:
+                bind_index_proofs(conn, result['reuseEvents'], result['revisions'], tables)
             result['reuseSummary'] = summarize_reuse_evidence(result['reuseEvents'], truncated=truncated, invalid=invalid)
     if result['status'] != 'INVALID_EVIDENCE' and result['revisions']: result['status']='RECORDED'
     return result
@@ -242,6 +244,7 @@ def verify_retrieval_observation(row, revision_id):
         return {'retrievalReceiptVerification': 'REVISION_NOT_MATCHED'}
     return {'retrievalReceiptVerification': 'VERIFIED', 'retrievalProof': {
         'observationHash': row['observation_hash'], 'indexManifestHash': row['index_manifest_hash'],
+        'indexVersion': row['index_version'],
         'knowledgeSnapshotHash': row['knowledge_snapshot_hash'], 'retrievalPolicyVersion': row['retrieval_policy_version'],
         'candidateCount': candidate, 'eligibleCount': eligible, 'matchedCount': count,
         'filteredLifecycleCount': filtered, 'latencyMs': row['latency_ms'],
@@ -262,3 +265,62 @@ def bind_retrieval_proofs(conn, events):
         row = observations.get(event['retrievalReceiptHash'])
         event.update(verify_retrieval_observation(row, event['revisionId']) if row is not None
                      else {'retrievalReceiptVerification': 'NOT_RECORDED'})
+
+
+def verify_index_manifest(row, proof, revision):
+    """Recompute the exact V25.12 identity, not unsealed manifest display metadata."""
+    try:
+        manifest = json.loads(row['manifest_json'])
+        keys = ('knowledgeIndexId', 'indexVersion', 'knowledgeSnapshotHash', 'sourceRevisionSetHash',
+                'retrievalContractVersion', 'indexEngine', 'activeRevisions')
+        identity = {k: manifest[k] for k in keys}
+        active = identity['activeRevisions']
+        if not isinstance(active, list) or not all(isinstance(x, dict) for x in active):
+            raise ValueError('invalid active revisions')
+        ids = [x['revisionId'] for x in active]
+        if len(set(ids)) != len(ids):
+            raise ValueError('duplicate revision')
+        def same_hash(body, declared):
+            return digest(body).removeprefix('sha256:') == str(declared).removeprefix('sha256:')
+        if not (same_hash(identity, row['manifest_hash']) and
+                str(manifest['manifestHash']) == str(row['manifest_hash']) == str(proof['indexManifestHash']) and
+                same_hash(active, identity['knowledgeSnapshotHash']) and same_hash(ids, identity['sourceRevisionSetHash'])):
+            raise ValueError('manifest hash mismatch')
+        if (identity['indexVersion'] != proof['indexVersion'] or
+            identity['knowledgeSnapshotHash'] != proof['knowledgeSnapshotHash'] or
+            identity['retrievalContractVersion'] != proof['retrievalPolicyVersion']):
+            raise ValueError('receipt manifest mismatch')
+        matched = [x for x in active if x['revisionId'] == revision['revisionId']]
+        if len(matched) != 1 or matched[0]['contentHash'] != revision['contentHash']:
+            return {'indexManifestVerification': 'REVISION_CONTENT_MISMATCH'}
+    except (ValueError, TypeError, KeyError, IndexError):
+        return {'indexManifestVerification': 'INVALID_EVIDENCE'}
+    return {'indexManifestVerification': 'VERIFIED', 'indexProof': {
+        'manifestHash': row['manifest_hash'], 'indexVersion': identity['indexVersion'],
+        'knowledgeSnapshotHash': identity['knowledgeSnapshotHash'],
+        'sourceRevisionSetHash': identity['sourceRevisionSetHash'],
+        'revisionId': revision['revisionId'], 'revisionContentHash': revision['contentHash'],
+        'activeRevisionCount': len(active), 'productionActivationVerified': False}}
+
+
+def bind_index_proofs(conn, events, revisions, tables):
+    eligible = [e for e in events if e.get('retrievalReceiptVerification') == 'VERIFIED']
+    hashes = sorted({e['retrievalProof']['indexManifestHash'] for e in eligible})
+    if not hashes:
+        return
+    marks = ','.join('?' for _ in hashes)
+    rows = conn.execute(f'SELECT manifest_hash,manifest_json FROM rag_knowledge_index_manifests WHERE manifest_hash IN ({marks})', hashes).fetchall()
+    manifests = {row['manifest_hash']: row for row in rows}
+    by_id = {r['revisionId']: r for r in revisions}
+    head = None
+    if 'rag_knowledge_index_head' in tables:
+        row = conn.execute("SELECT current_manifest_hash FROM rag_knowledge_index_head WHERE head_key='knowledge'").fetchone()
+        head = row['current_manifest_hash'] if row else None
+    for event in eligible:
+        proof = event['retrievalProof']
+        row = manifests.get(proof['indexManifestHash'])
+        proof.update(verify_index_manifest(row, proof, by_id[event['revisionId']]) if row is not None
+                     else {'indexManifestVerification': 'NOT_RECORDED'})
+        if proof['indexManifestVerification'] == 'VERIFIED':
+            proof['indexProof']['headRelation'] = ('CURRENT_DATABASE_HEAD' if head == proof['indexManifestHash']
+                                                    else 'HISTORICAL_MANIFEST' if head else 'HEAD_NOT_RECORDED')

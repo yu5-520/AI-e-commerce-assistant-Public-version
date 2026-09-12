@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.12.8.1",
+  "version": "2026.09.12.8.2",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {

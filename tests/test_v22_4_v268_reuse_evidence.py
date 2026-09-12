@@ -116,3 +116,56 @@ def test_malformed_observation_is_not_displayed():
     row = observation()
     row['matched_revision_ids_json'] = 'invalid JSON'
     assert evidence.verify_retrieval_observation(row, 'r1')['retrievalReceiptVerification'] == 'INVALID_EVIDENCE'
+
+
+def index_fixture():
+    revision = {'revisionId': 'r1', 'contentHash': 'content-hash'}
+    active = [{**revision, 'caseId': 'case1', 'sourceTaskId': 't1'}]
+    h = lambda x: evidence.digest(x).removeprefix('sha256:')
+    identity = {'knowledgeIndexId': 'competition-knowledge-index', 'indexVersion': 'index1',
+                'knowledgeSnapshotHash': h(active), 'sourceRevisionSetHash': h(['r1']),
+                'retrievalContractVersion': '25.12.0', 'indexEngine': 'sqlite_structured_v1',
+                'activeRevisions': active}
+    manifest = {**identity, 'manifestHash': h(identity), 'builtAt': 'unsigned-metadata'}
+    row = {'manifest_hash': manifest['manifestHash'], 'manifest_json': json.dumps(manifest)}
+    proof = {'indexManifestHash': manifest['manifestHash'], 'indexVersion': 'index1',
+             'knowledgeSnapshotHash': identity['knowledgeSnapshotHash'], 'retrievalPolicyVersion': '25.12.0'}
+    return revision, manifest, row, proof
+
+
+def test_index_manifest_recomputes_identity_and_binds_revision_content():
+    revision, manifest, row, proof = index_fixture()
+    result = evidence.verify_index_manifest(row, proof, revision)
+    assert result['indexManifestVerification'] == 'VERIFIED'
+    assert result['indexProof']['productionActivationVerified'] is False
+    assert result['indexProof']['activeRevisionCount'] == 1
+    assert 'activeRevisions' not in result['indexProof']
+    bad_revision = {**revision, 'contentHash': 'changed'}
+    assert evidence.verify_index_manifest(row, proof, bad_revision)['indexManifestVerification'] == 'REVISION_CONTENT_MISMATCH'
+    manifest['activeRevisions'][0]['contentHash'] = 'tampered'
+    row['manifest_json'] = json.dumps(manifest)
+    assert evidence.verify_index_manifest(row, proof, revision)['indexManifestVerification'] == 'INVALID_EVIDENCE'
+
+
+def test_index_receipt_binding_cannot_use_another_snapshot():
+    revision, _, row, proof = index_fixture()
+    proof['knowledgeSnapshotHash'] = 'wrong-snapshot'
+    assert evidence.verify_index_manifest(row, proof, revision)['indexManifestVerification'] == 'INVALID_EVIDENCE'
+
+
+def test_index_head_is_observed_separately_from_historical_manifest(db):
+    from copy import deepcopy
+    revision, _, row, proof = index_fixture()
+    db.execute('CREATE TABLE rag_knowledge_index_manifests(manifest_hash,manifest_json)')
+    db.execute('INSERT INTO rag_knowledge_index_manifests VALUES(?,?)', tuple(row.values()))
+    db.execute('CREATE TABLE rag_knowledge_index_head(head_key,current_manifest_hash)')
+    db.execute('INSERT INTO rag_knowledge_index_head VALUES(?,?)', ('knowledge', row['manifest_hash']))
+    tables = {'rag_knowledge_index_manifests', 'rag_knowledge_index_head'}
+    def check():
+        events = [{'revisionId': 'r1', 'retrievalReceiptVerification': 'VERIFIED', 'retrievalProof': deepcopy(proof)}]
+        evidence.bind_index_proofs(db, events, [revision], tables)
+        return events[0]['retrievalProof']['indexProof']
+    assert check()['headRelation'] == 'CURRENT_DATABASE_HEAD'
+    db.execute('UPDATE rag_knowledge_index_head SET current_manifest_hash=?', ('newer-index',))
+    assert check()['headRelation'] == 'HISTORICAL_MANIFEST'
+    assert check()['productionActivationVerified'] is False
