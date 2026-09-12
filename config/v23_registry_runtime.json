@@ -355,7 +355,8 @@
         "src/services/task_snapshot_station_service.py",
         "src/services/pipeline_artifact_contract_service.py",
         "src/services/task_detail_snapshot_v2024_service.py",
-        "src/services/v26_sop_evidence_service.py"
+        "src/services/v26_sop_evidence_service.py",
+        "src/services/task_evidence_service.py"
       ],
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_pool_admission_microbatch_v225",
       "schemaIds": []

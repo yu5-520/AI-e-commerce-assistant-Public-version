@@ -143,6 +143,8 @@ def review_task_evidence(task_id: str, body: Dict[str, Any] | None = None, revie
         "note": note,
         "version": EVIDENCE_VERSION,
     }
+    from src.services.v26_sop_evidence_service import freeze_operator_review
+    record["auditReceipt"] = freeze_operator_review(task, record)
     reviews = [record, *(task.get("evidenceReviews") or [])]
     updated = update_task(task_id, {"evidenceReviews": reviews[:10], "latestEvidenceReview": record, "reviewNote": note}, log_type="证据复核", action="复核材料", result=note)
     return deepcopy(updated or task)
