@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.12.8.2",
+  "version": "2026.09.12.8.3",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
@@ -58,7 +58,11 @@
         "tests/test_v22_4_v267_task_evidence_chain.py",
         "src/services/agent_input_transport_v225_service.py",
         "tests/test_v22_4_v268_reuse_evidence.py",
-        "docs/V26_8_EVIDENCE_CONTINUITY.md"
+        "docs/V26_8_EVIDENCE_CONTINUITY.md",
+        "src/services/company_sop_rag_context_v225_service.py",
+        "src/services/task_detail_snapshot_v2024_service.py",
+        "src/services/v25_agent_input_ingress_service.py",
+        "tests/test_v22_4_v268_task_binding.py"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",

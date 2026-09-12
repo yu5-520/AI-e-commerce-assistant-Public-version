@@ -164,7 +164,8 @@
         "src/services/agent2_action_draft_core_v225_service.py",
         "src/services/agent2_hash_proof_bridge_v22515_service.py",
         "src/services/hash_directed_artifact_runtime_v2259_service.py",
-        "src/services/runtime_contract_guard_v1_service.py"
+        "src/services/runtime_contract_guard_v1_service.py",
+        "src/services/v25_agent_input_ingress_service.py"
       ],
       "runner": "src.services.agent_runtime_hard_interface_v22515_service:run_agent2_microbatch_hard",
       "schemaIds": [
@@ -194,7 +195,8 @@
         "src/services/agent3_system_constraint_v23214_service.py",
         "src/services/agent3_system_constraint_v23215_service.py",
         "src/services/agent_input_contract_v225_service.py",
-        "src/services/agent_input_transport_v225_service.py"
+        "src/services/agent_input_transport_v225_service.py",
+        "src/services/company_sop_rag_context_v225_service.py"
       ],
       "runner": "src.services.agent3_system_constraint_v23215_service:ensure_agent3_sop_input_ref_v23216",
       "schemaIds": [
@@ -351,7 +353,9 @@
         "src/services/task_pool_admission_core_v20_service.py",
         "src/services/lifecycle_task_v183_service.py",
         "src/services/task_snapshot_station_service.py",
-        "src/services/pipeline_artifact_contract_service.py"
+        "src/services/pipeline_artifact_contract_service.py",
+        "src/services/task_detail_snapshot_v2024_service.py",
+        "src/services/v26_sop_evidence_service.py"
       ],
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_pool_admission_microbatch_v225",
       "schemaIds": []

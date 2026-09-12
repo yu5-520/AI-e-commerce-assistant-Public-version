@@ -33,6 +33,8 @@ _PLAN_FIELDS = {
 
 
 def _ensure_table(conn: Any) -> None:
+    from src.services.v26_sop_evidence_service import ensure_task_binding_tables
+    ensure_task_binding_tables(conn)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS task_detail_snapshots (
             task_id TEXT PRIMARY KEY,
@@ -363,6 +365,8 @@ def upsert_task_detail_snapshot_in_conn(conn: Any, task: Dict[str, Any]) -> Dict
     task_id = snapshot.get("taskId")
     if not task_id:
         return {"version": TASK_DETAIL_SNAPSHOT_VERSION, "stored": False, "reason": "missing_task_id"}
+    from src.services.v26_sop_evidence_service import persist_task_knowledge_bindings
+    persist_task_knowledge_bindings(conn, snapshot)
     updated_at = task.get("updatedAt") or task.get("updated_at") or datetime.now().isoformat()
     conn.execute("""
         INSERT INTO task_detail_snapshots(task_id,data_version,snapshot_json,source_version,updated_at)

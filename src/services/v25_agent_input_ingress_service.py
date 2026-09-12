@@ -177,6 +177,7 @@ def _agent2_knowledge(payload: Dict[str, Any], legacy_snapshot: Dict[str, Any]) 
 
 def _sanitize_agent2_rag_audit(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     keep = (
+        "knowledgeRetrievalReceipt",
         "version",
         "status",
         "queryFingerprint",
