@@ -310,7 +310,7 @@
       ${summary.invalidRecordCount ? `<p>${s(summary.invalidRecordCount)} 条无效或来源未验证的记录已排除。</p>` : ""}
       <details><summary>查看计算公式与依据</summary><p>成功数 ÷（成功数 + 失败数 + 中性数）</p>
         <pre>${s(JSON.stringify({ formula: summary.formula, version: summary.formulaVersion, inputs: summary.inputs, eventHashes: summary.eventHashes }, null, 2))}</pre></details>
-      <p>其中 ${s(summary.verifiedRetrievalCount ?? 0)} 条已核对检索回执与知识命中。结果记录不代表 RAG 的因果提升；索引生效与后续任务绑定仍需另行验证。</p>
+      <p>其中 ${s(summary.verifiedRetrievalCount ?? 0)} 条已核对检索回执与知识命中。结果记录不代表 RAG 的因果提升；索引内容与当前索引头见逐条证明；生产生效和后续任务绑定仍需另行验证。</p>
       ${events.map(event => `<details><summary>${s(labels[event.outcome] || "未知结果")} · ${s(event.createdAt)}</summary>
         <p>知识版本：${s(event.revisionId)}</p><p>引用的检索回执：${s(event.retrievalReceiptHash)}</p>
         <p class="sop-evidence-hash">事件校验依据：${s(event.eventHash)}</p>
@@ -318,6 +318,8 @@
         ${event.retrievalProof ? `<details><summary>检索数据与计算依据</summary>
           <p>候选 ${s(event.retrievalProof.candidateCount)} · 可用 ${s(event.retrievalProof.eligibleCount)} · 选中 ${s(event.retrievalProof.matchedCount)} · 耗时 ${s(event.retrievalProof.latencyMs)} 毫秒</p>
           <p>选中占比 = 选中数 ÷ 可用数（不等同召回率）。可用数为零时不计算。</p>
+          <p>索引核对：${s(({ VERIFIED: "索引清单与知识内容已核对", INVALID_EVIDENCE: "索引证据校验失败", REVISION_CONTENT_MISMATCH: "知识版本内容不匹配", NOT_RECORDED: "未找到索引清单" })[event.retrievalProof.indexManifestVerification] || "未校验")}</p>
+          ${event.retrievalProof.indexProof ? `<p>${s(({ CURRENT_DATABASE_HEAD: "与当前数据库索引头一致", HISTORICAL_MANIFEST: "检索引用的是历史索引", HEAD_NOT_RECORDED: "未记录当前索引头" })[event.retrievalProof.indexProof.headRelation])}；此结果不证明生产启用状态。</p>` : ""}
           <pre>${s(JSON.stringify(event.retrievalProof, null, 2))}</pre></details>` : ""}</details>`).join("")}
     </details>`;
   }
