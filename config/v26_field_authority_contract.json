@@ -326,5 +326,196 @@
     "authorityValidatorMayRequireBusinessKeywords": false,
     "authorityValidatorMayRewriteBusinessWording": false,
     "basicTypePresenceLengthChecksAllowed": true
+  },
+  "businessSemanticContract": {
+    "version": "26.9.0",
+    "rolloutStatus": "candidate_not_activated",
+    "authorityRoot": "existing_field_authority",
+    "legacyReadForbidden": [
+      "primaryProblemNode",
+      "primaryAction",
+      "primaryExecutionTarget",
+      "primaryOwner",
+      "lockedActionFamily",
+      "executionLock"
+    ],
+    "nodeFields": {
+      "JudgementNode": {
+        "owner": "agent1",
+        "required": [
+          "nodeKey",
+          "kind",
+          "reasoning",
+          "evidenceRefs",
+          "confidence"
+        ],
+        "optional": [
+          "condition",
+          "metric",
+          "direction",
+          "category"
+        ]
+      },
+      "DecisionActionNode": {
+        "owner": "agent1",
+        "required": [
+          "nodeKey",
+          "kind",
+          "judgementRefs",
+          "actionType",
+          "actionFamily",
+          "priority",
+          "confidence",
+          "evidenceRefs"
+        ],
+        "optional": []
+      },
+      "PlanActionNode": {
+        "owner": "agent2",
+        "required": [
+          "nodeKey",
+          "kind",
+          "decisionActionRef",
+          "judgementRefs",
+          "parameters",
+          "baseline",
+          "expectedOutcome",
+          "reviewWindow",
+          "guard",
+          "riskBoundary",
+          "acceptanceCriteria",
+          "affectedMetrics"
+        ],
+        "optional": []
+      },
+      "OperationStage": {
+        "owner": "agent3",
+        "required": [
+          "nodeKey",
+          "kind",
+          "planActionRefs",
+          "instruction",
+          "owner",
+          "executionObject",
+          "sequence",
+          "rollback",
+          "stopConditionRefs",
+          "acceptanceActions"
+        ],
+        "optional": []
+      }
+    },
+    "decisionRelations": [
+      "causes",
+      "supports",
+      "conflicts_with",
+      "constrains",
+      "enables",
+      "depends_on"
+    ],
+    "actionFamilyDomains": {
+      "title_image_test": "creative",
+      "roas_scale": "traffic",
+      "roas_guard": "traffic",
+      "platform_activity": "activity",
+      "activity_apply": "activity",
+      "conversion_repair": "conversion",
+      "service_repair": "service",
+      "similar_product_test": "experiment"
+    },
+    "limits": {
+      "maxNodes": 64,
+      "maxEdges": 256,
+      "maxGraphBytes": 120000,
+      "maxPartitions": 8
+    },
+    "admission": {
+      "conflicts": "defer_both",
+      "dependencies": "require_all",
+      "priority": "descending_then_node_key",
+      "permission": "system_explicit_action_keys"
+    },
+    "partitionMerge": {
+      "completeCoverageRequired": true,
+      "crossDomainValidationRequired": true,
+      "partialTaskAdmission": false
+    },
+    "semanticIdentity": {
+      "agent1": [
+        "businessFacts",
+        "ragHead",
+        "contractVersion"
+      ],
+      "agent2": [
+        "DecisionGraphHash",
+        "ragHead",
+        "contractVersion"
+      ],
+      "agent3": [
+        "PlanGraphHash",
+        "companyRagHead",
+        "contractVersion"
+      ],
+      "namespace": [
+        "businessScope",
+        "modelConfigHash",
+        "retrievalPolicyHash"
+      ]
+    },
+    "decisionEdgeTypes": {
+      "causes": [
+        [
+          "JudgementNode",
+          "JudgementNode"
+        ]
+      ],
+      "supports": [
+        [
+          "JudgementNode",
+          "DecisionActionNode"
+        ]
+      ],
+      "conflicts_with": [
+        [
+          "DecisionActionNode",
+          "DecisionActionNode"
+        ],
+        [
+          "JudgementNode",
+          "JudgementNode"
+        ]
+      ],
+      "constrains": [
+        [
+          "JudgementNode",
+          "DecisionActionNode"
+        ],
+        [
+          "DecisionActionNode",
+          "DecisionActionNode"
+        ]
+      ],
+      "enables": [
+        [
+          "JudgementNode",
+          "DecisionActionNode"
+        ],
+        [
+          "DecisionActionNode",
+          "DecisionActionNode"
+        ]
+      ],
+      "depends_on": [
+        [
+          "DecisionActionNode",
+          "DecisionActionNode"
+        ],
+        [
+          "JudgementNode",
+          "JudgementNode"
+        ]
+      ]
+    },
+    "dependencyDirection": "source_is_prerequisite"
   }
 }

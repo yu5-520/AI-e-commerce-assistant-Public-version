@@ -119,7 +119,8 @@
         "src/services/agent_runtime_hard_interface_v22514_service.py",
         "src/services/agent_runtime_hard_interface_v22515_service.py",
         "src/services/station_agent_worker_v22515_service.py",
-        "src/services/station_agent_worker_v2259_service.py"
+        "src/services/station_agent_worker_v2259_service.py",
+        "src/services/v269_semantic_graph_service.py"
       ],
       "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
       "schemaIds": [
@@ -165,7 +166,8 @@
         "src/services/agent2_hash_proof_bridge_v22515_service.py",
         "src/services/hash_directed_artifact_runtime_v2259_service.py",
         "src/services/runtime_contract_guard_v1_service.py",
-        "src/services/v25_agent_input_ingress_service.py"
+        "src/services/v25_agent_input_ingress_service.py",
+        "src/services/v269_semantic_graph_service.py"
       ],
       "runner": "src.services.agent_runtime_hard_interface_v22515_service:run_agent2_microbatch_hard",
       "schemaIds": [
@@ -243,7 +245,8 @@
         "src/services/hash_directed_artifact_runtime_v2259_service.py",
         "src/services/pipeline_agent3_sop_v225_service.py",
         "src/services/v26_sop_evidence_service.py",
-        "src/services/v26_revision_acceptance_service.py"
+        "src/services/v26_revision_acceptance_service.py",
+        "src/services/v269_semantic_graph_service.py"
       ],
       "runner": "src.services.pipeline_agent3_sop_v225_service:run_agent3_sop_microbatch_v225",
       "schemaIds": [
@@ -337,7 +340,8 @@
         "src/services/pipeline_task_mapping_v225_service.py",
         "src/services/pipeline_artifact_contract_service.py",
         "src/services/v26_sop_evidence_service.py",
-        "src/services/v26_revision_acceptance_service.py"
+        "src/services/v26_revision_acceptance_service.py",
+        "src/services/v269_semantic_graph_service.py"
       ],
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_mapping_microbatch_v225",
       "schemaIds": []

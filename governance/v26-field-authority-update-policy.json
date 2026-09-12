@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.12.8.6",
+  "version": "2026.09.12.9.A-draft",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
@@ -65,7 +65,10 @@
         "tests/test_v22_4_v268_task_binding.py",
         "tests/test_v22_4_v268_lineage_profile.py",
         "src/services/task_evidence_service.py",
-        "tests/test_v22_4_v268_audit_revision.py"
+        "tests/test_v22_4_v268_audit_revision.py",
+        "src/services/v269_semantic_graph_service.py",
+        "tests/test_v22_4_v269_semantic_graph.py",
+        "docs/V26_9_A_SEMANTIC_CUTOVER.md"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",
