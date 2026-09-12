@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.12.8.3",
+  "version": "2026.09.12.8.4",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
@@ -62,7 +62,8 @@
         "src/services/company_sop_rag_context_v225_service.py",
         "src/services/task_detail_snapshot_v2024_service.py",
         "src/services/v25_agent_input_ingress_service.py",
-        "tests/test_v22_4_v268_task_binding.py"
+        "tests/test_v22_4_v268_task_binding.py",
+        "tests/test_v22_4_v268_lineage_profile.py"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",
