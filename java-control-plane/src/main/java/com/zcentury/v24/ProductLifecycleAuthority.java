@@ -32,8 +32,14 @@ final class ProductLifecycleAuthority {
         long reviewDueAtMillis,
         String lastReviewDecision,
         String lastReviewHash,
-        long stateVersion
-    ) {}
+        long stateVersion,
+        String reviewCommitJson
+    ) {
+        Snapshot(String productId, State state, String activeTaskId, long start, long due,
+                 String decision, String reviewHash, long version) {
+            this(productId, state, activeTaskId, start, due, decision, reviewHash, version, null);
+        }
+    }
 
     private final Map<String, Snapshot> products = new ConcurrentHashMap<>();
 
@@ -66,7 +72,8 @@ final class ProductLifecycleAuthority {
                         row.put("observationStartedAtMillis", v.observationStartedAtMillis());
                         row.put("reviewDueAtMillis", v.reviewDueAtMillis());
                         row.put("lastReviewDecision", v.lastReviewDecision()); row.put("lastReviewHash", v.lastReviewHash());
-                        row.put("stateVersion", v.stateVersion()); rows.put(key, row);
+                        row.put("stateVersion", v.stateVersion());
+                        row.put("reviewCommitJson", v.reviewCommitJson()); rows.put(key, row);
                     });
                     byte[] bytes = Json.canonical(Map.of("rows", rows, "hash", Hashing.canonicalHash(rows)))
                         .getBytes(StandardCharsets.UTF_8);
@@ -98,7 +105,7 @@ final class ProductLifecycleAuthority {
             products.put(key, new Snapshot(key, State.valueOf((String) row.get("state")),
                 (String) row.get("activeTaskId"), ((Number) row.get("observationStartedAtMillis")).longValue(),
                 ((Number) row.get("reviewDueAtMillis")).longValue(), (String) row.get("lastReviewDecision"),
-                (String) row.get("lastReviewHash"), ((Number) row.get("stateVersion")).longValue()));
+                (String) row.get("lastReviewHash"), ((Number) row.get("stateVersion")).longValue(), (String) row.get("reviewCommitJson")));
         });
     }
 
@@ -223,6 +230,85 @@ final class ProductLifecycleAuthority {
         );
     }
 
+    /** Commit review, lifecycle outcome and replayable dispatch intent in one durable write.
+     * Caller must use the existing MUTATION authority adapter; this grants no authority.
+     * No queue acknowledgement is persisted: QueueAuthority is still an in-memory adapter.
+     */
+    Snapshot commitReview(ReviewContractAuthority.Contract contract,
+                          SystemReviewAuthority.Observation observation,
+                          LocalSubgraphRevisionAuthority.GraphSnapshot graph, long expectedVersion) {
+        if (storage == null) throw new IllegalStateException("review_commit_requires_durable_storage");
+        var review = SystemReviewAuthority.evaluate(contract, observation);
+        var scope = review.invokeAgent1() ? LocalSubgraphRevisionAuthority.plan(contract, review, graph) : null;
+        String requestHash = Hashing.canonicalHash(Map.of("contractHash", contract.contractHash(),
+            "reviewHash", review.reviewHash(), "scopeHash", scope == null ? "" : scope.revisionHash(),
+            "expectedVersion", expectedVersion));
+        return compute(contract.productId(), (ignored, current) -> {
+            if (current == null) throw new IllegalStateException("review_lifecycle_missing");
+            if (current.reviewCommitJson() != null) {
+                var stored = Json.object(Json.parse(current.reviewCommitJson()));
+                if (requestHash.equals(stored.get("requestHash"))) return current;
+            }
+            if (current.stateVersion() != expectedVersion) throw new IllegalStateException("review_commit_stale_version");
+            if (current.state() != State.OBSERVING && current.state() != State.REVIEW_READY
+                && current.state() != State.REVIEWING) throw new IllegalStateException("review_commit_wrong_state");
+            if (!contract.taskId().equals(current.activeTaskId())
+                || contract.frozenAtMillis() != current.observationStartedAtMillis()
+                || contract.reviewDueAtMillis() != current.reviewDueAtMillis()) {
+                throw new IllegalStateException("review_contract_lifecycle_mismatch");
+            }
+            if (review.decision() == SystemReviewAuthority.Decision.WAITING_TIME
+                || review.decision() == SystemReviewAuthority.Decision.WAITING_EVIDENCE) return current;
+            var receipt = new LinkedHashMap<String, Object>();
+            receipt.put("schema", "v26.review_commit.v1"); receipt.put("requestHash", requestHash);
+            receipt.put("productId", contract.productId()); receipt.put("taskId", contract.taskId());
+            receipt.put("contractHash", contract.contractHash()); receipt.put("reviewHash", review.reviewHash());
+            receipt.put("decision", review.decision().name()); receipt.put("reason", review.reason());
+            receipt.put("observedAtMillis", observation.observedAtMillis());
+            receipt.put("metrics", observation.metrics()); receipt.put("evidence", observation.evidence());
+            receipt.put("breachedMetrics", review.breachedMetrics());
+            receipt.put("beforeVersion", current.stateVersion()); receipt.put("afterVersion", current.stateVersion() + 1);
+            receipt.put("dispatchStatus", scope == null ? "NOT_REQUIRED" : "PENDING");
+            receipt.put("revisionHash", scope == null ? null : scope.revisionHash());
+            receipt.put("revisionHeaders", scope == null ? Map.of() : LocalSubgraphRevisionAuthority.authorityHeaders(scope));
+            receipt.put("productionActivationVerified", false);
+            receipt.put("receiptHash", Hashing.canonicalHash(receipt));
+            boolean settled = scope == null;
+            return new Snapshot(current.productId(), settled ? State.MONITORING : State.ADJUSTMENT_REQUIRED,
+                settled ? null : current.activeTaskId(), settled ? 0 : current.observationStartedAtMillis(),
+                settled ? 0 : current.reviewDueAtMillis(), review.decision().name(), review.reviewHash(),
+                current.stateVersion() + 1, Json.canonical(receipt));
+        });
+    }
+
+    /** Replay the durable intent into the existing shadow queue; never mark it delivered.
+     * A production consumer must durably accept the task before acknowledging the intent.
+     */
+    QueueAuthority.EnqueueResult replayReviewDispatch(String productId, long expectedVersion,
+        RootBoundAuthorityAdapter invocation, RootBoundAuthorityAdapter.Token token, QueueAuthority queue) {
+        if (!"INVOCATION".equals(invocation.domain())) throw new IllegalStateException("review_dispatch_wrong_domain");
+        QueueAuthority.EnqueueResult[] result = new QueueAuthority.EnqueueResult[1];
+        invocation.execute(token, "V26_REPLAY_REVIEW_DISPATCH", () -> {
+            compute(productId, (ignored, current) -> {
+                if (current == null || current.stateVersion() != expectedVersion
+                    || current.state() != State.ADJUSTMENT_REQUIRED || current.reviewCommitJson() == null) {
+                    throw new IllegalStateException("review_dispatch_state_mismatch");
+                }
+                var receipt = Json.object(Json.parse(current.reviewCommitJson()));
+                String revision = (String) receipt.get("revisionHash");
+                if (!"PENDING".equals(receipt.get("dispatchStatus")) || revision == null) {
+                    throw new IllegalStateException("review_dispatch_not_pending");
+                }
+                String item = "revision:" + revision;
+                queue.registerItem(item, "review:" + current.lastReviewHash(), 1);
+                result[0] = queue.enqueue(item, QueueAuthority.Stage.AGENT1, revision, 1);
+                return current;
+            });
+            return result[0];
+        });
+        return result[0];
+    }
+
     Snapshot snapshot(String productId) {
         String id = requireText(productId, "product_id_required");
         if (storage != null) {
@@ -238,6 +324,10 @@ final class ProductLifecycleAuthority {
         String task = requireText(taskId, "active_task_id_required");
         return transition(productId, expectedVersion, State.ADJUSTMENT_REQUIRED, State.OBSERVING,
             current -> {
+                if (current.reviewCommitJson() != null
+                    && "PENDING".equals(Json.object(Json.parse(current.reviewCommitJson())).get("dispatchStatus"))) {
+                    throw new IllegalStateException("revision_dispatch_durable_acceptance_required");
+                }
                 if (task.equals(current.activeTaskId())) throw new IllegalStateException("revision_requires_new_task_identity");
                 return new Snapshot(current.productId(), State.OBSERVING, task, start, due,
                     current.lastReviewDecision(), current.lastReviewHash(), current.stateVersion() + 1);
