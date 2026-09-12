@@ -300,6 +300,7 @@
   function renderKnowledgeReuse(audit) {
     const summary = audit?.reuseSummary || {};
     const events = arr(audit?.reuseEvents);
+    const proofLabels = { VERIFIED: "检索证据与知识命中已核对", INVALID_EVIDENCE: "检索证据校验失败", REVISION_NOT_MATCHED: "该知识版本不在命中集合", NOT_RECORDED: "未找到检索记录", NOT_CHECKED: "未校验检索记录" };
     const labels = { success: "记录为成功", failure: "记录为失败", neutral: "记录为中性" };
     if (!events.length) return `<p>尚无通过校验的后续复用结果。</p>`;
     const rate = summary.successRate == null ? "未计算" : `${(summary.successRate * 100).toFixed(2)}%`;
@@ -309,10 +310,15 @@
       ${summary.invalidRecordCount ? `<p>${s(summary.invalidRecordCount)} 条无效或来源未验证的记录已排除。</p>` : ""}
       <details><summary>查看计算公式与依据</summary><p>成功数 ÷（成功数 + 失败数 + 中性数）</p>
         <pre>${s(JSON.stringify({ formula: summary.formula, version: summary.formulaVersion, inputs: summary.inputs, eventHashes: summary.eventHashes }, null, 2))}</pre></details>
-      <p>这些是后续结果记录，尚未验证引用的检索回执，也不代表 RAG 的因果提升。</p>
+      <p>其中 ${s(summary.verifiedRetrievalCount ?? 0)} 条已核对检索回执与知识命中。结果记录不代表 RAG 的因果提升；索引生效与后续任务绑定仍需另行验证。</p>
       ${events.map(event => `<details><summary>${s(labels[event.outcome] || "未知结果")} · ${s(event.createdAt)}</summary>
         <p>知识版本：${s(event.revisionId)}</p><p>引用的检索回执：${s(event.retrievalReceiptHash)}</p>
-        <p class="sop-evidence-hash">事件校验依据：${s(event.eventHash)}</p></details>`).join("")}
+        <p class="sop-evidence-hash">事件校验依据：${s(event.eventHash)}</p>
+        <p>${s(proofLabels[event.retrievalReceiptVerification] || "未校验检索记录")}</p>
+        ${event.retrievalProof ? `<details><summary>检索数据与计算依据</summary>
+          <p>候选 ${s(event.retrievalProof.candidateCount)} · 可用 ${s(event.retrievalProof.eligibleCount)} · 选中 ${s(event.retrievalProof.matchedCount)} · 耗时 ${s(event.retrievalProof.latencyMs)} 毫秒</p>
+          <p>选中占比 = 选中数 ÷ 可用数（不等同召回率）。可用数为零时不计算。</p>
+          <pre>${s(JSON.stringify(event.retrievalProof, null, 2))}</pre></details>` : ""}</details>`).join("")}
     </details>`;
   }
 

@@ -69,3 +69,50 @@ def test_bounded_sample_explicitly_reports_truncation(db):
     assert result['reuseSummary']['truncated'] is True
     assert result['reuseSummary']['total'] == 100
     assert result['reuseSummary']['neutral'] == 100
+
+
+def observation(revisions=('r1',)):
+    receipt = {'schema': 'rag.knowledge_retrieval_receipt.v1', 'queryFingerprint': 'q',
+               'knowledgeSnapshotHash': 'knowledge', 'indexVersion': 'index-v1',
+               'indexManifestHash': 'index-hash', 'retrievalPolicyVersion': 'policy',
+               'matchedRevisionIds': list(revisions)}
+    receipt_hash = evidence.digest(receipt).removeprefix('sha256:')
+    material = {k: v for k, v in receipt.items() if k != 'schema'}
+    material.update(schema='rag.retrieval_observation.v1', version='25.13.0', candidateCount=3,
+                    eligibleCount=2, matchedCount=len(revisions), filteredLifecycleCount=1,
+                    latencyMs=0.0, retrievalReceiptHash=receipt_hash)
+    return dict(observation_hash=evidence.digest(material).removeprefix('sha256:'), query_fingerprint='q',
+                knowledge_snapshot_hash='knowledge', index_version='index-v1', index_manifest_hash='index-hash',
+                retrieval_policy_version='policy', matched_revision_ids_json=json.dumps(list(revisions)),
+                retrieval_receipt_hash=receipt_hash, candidate_count=3, eligible_count=2,
+                matched_count=len(revisions), filtered_lifecycle_count=1, latency_ms=0.0, recorded_at='2026-09-12')
+
+
+def test_receipt_and_observation_both_verified_and_membership_required():
+    row = observation()
+    verified = evidence.verify_retrieval_observation(row, 'r1')
+    assert verified['retrievalReceiptVerification'] == 'VERIFIED'
+    assert verified['retrievalProof']['selectedShare'] == 0.5
+    assert verified['retrievalProof']['latencyMs'] == 0
+    assert evidence.verify_retrieval_observation(row, 'other')['retrievalReceiptVerification'] == 'REVISION_NOT_MATCHED'
+    row['candidate_count'] = 4
+    assert evidence.verify_retrieval_observation(row, 'r1')['retrievalReceiptVerification'] == 'INVALID_EVIDENCE'
+
+
+def test_retrieval_binding_uses_exact_receipt_and_keeps_missing_distinct(db):
+    row = observation()
+    db.execute('CREATE TABLE rag_retrieval_observations (' + ','.join(row) + ')')
+    db.execute('INSERT INTO rag_retrieval_observations VALUES (' + ','.join('?' for _ in row) + ')', list(row.values()))
+    add_event(db, 'r1', 'success', row['retrieval_receipt_hash'])
+    add_event(db, 'r1', 'failure', 'missing-receipt')
+    result = evidence.read_task_knowledge_audit('t1')
+    assert {e['retrievalReceiptVerification'] for e in result['reuseEvents']} == {'VERIFIED', 'NOT_RECORDED'}
+    assert result['reuseSummary']['verifiedRetrievalCount'] == 1
+    assert result['reuseSummary']['total'] == 2
+    assert result['reuseSummary']['successRate'] == 0.5
+
+
+def test_malformed_observation_is_not_displayed():
+    row = observation()
+    row['matched_revision_ids_json'] = 'invalid JSON'
+    assert evidence.verify_retrieval_observation(row, 'r1')['retrievalReceiptVerification'] == 'INVALID_EVIDENCE'

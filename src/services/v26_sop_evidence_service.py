@@ -141,7 +141,7 @@ def read_task_knowledge_audit(task_id):
     from src.repositories.sqlite_repository import connect
     result = {"status": "NOT_RECORDED", "revisions": [], "events": [], "reuseEvents": []}
     with connect() as conn:
-        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('rag_knowledge_revisions','rag_knowledge_review_events','rag_knowledge_reuse_events')")}
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('rag_knowledge_revisions','rag_knowledge_review_events','rag_knowledge_reuse_events','rag_retrieval_observations')")}
         if 'rag_knowledge_revisions' not in tables: return result
         rows = conn.execute("SELECT revision_id,content_hash,content_json,source_recap_hash,previous_revision_id,created_at FROM rag_knowledge_revisions WHERE source_task_id=? ORDER BY created_at DESC,revision_id DESC LIMIT 50", (str(task_id),)).fetchall()
         valid_ids = set()
@@ -185,6 +185,8 @@ def read_task_knowledge_audit(task_id):
                 result['reuseEvents'].append({k: material[k] for k in ('revisionId', 'retrievalReceiptHash', 'outcome')}
                     | {'eventHash': row['event_hash'], 'createdAt': row['created_at'], 'integrity': 'VERIFIED',
                        'retrievalReceiptVerification': 'NOT_CHECKED'})
+            if 'rag_retrieval_observations' in tables:
+                bind_retrieval_proofs(conn, result['reuseEvents'])
             result['reuseSummary'] = summarize_reuse_evidence(result['reuseEvents'], truncated=truncated, invalid=invalid)
     if result['status'] != 'INVALID_EVIDENCE' and result['revisions']: result['status']='RECORDED'
     return result
@@ -197,6 +199,7 @@ def summarize_reuse_evidence(events, *, truncated=False, invalid=0):
     failures = sum(event['outcome'] == 'failure' for event in events)
     return {'status': 'RECORDED' if total else 'NOT_RECORDED', 'total': total,
             'success': successes, 'failure': failures, 'neutral': total - successes - failures,
+            'verifiedRetrievalCount': sum(e.get('retrievalReceiptVerification') == 'VERIFIED' for e in events),
             'successRate': successes / total if total else None,
             'formula': 'success / (success + failure + neutral)',
             'formulaVersion': 'recorded_reuse_success_rate.v1',
@@ -205,3 +208,57 @@ def summarize_reuse_evidence(events, *, truncated=False, invalid=0):
             'scope': 'displayed_verified_events_for_task_origin_revisions',
             'maxRecords': 100, 'truncated': truncated, 'invalidRecordCount': invalid,
             'causalEffectEvaluated': False, 'automaticLifecycleChange': False}
+
+
+def verify_retrieval_observation(row, revision_id):
+    """Verify V25.13 observation and original V25.12 receipt independently."""
+    try:
+        matched = json.loads(row['matched_revision_ids_json'])
+        if not isinstance(matched, list) or not all(isinstance(x, str) for x in matched):
+            raise ValueError('invalid matched revisions')
+        receipt = {'schema': 'rag.knowledge_retrieval_receipt.v1',
+                   'queryFingerprint': row['query_fingerprint'], 'knowledgeSnapshotHash': row['knowledge_snapshot_hash'],
+                   'indexVersion': row['index_version'], 'indexManifestHash': row['index_manifest_hash'],
+                   'retrievalPolicyVersion': row['retrieval_policy_version'], 'matchedRevisionIds': matched}
+        material = {k: v for k, v in receipt.items() if k != 'schema'}
+        material.update(schema='rag.retrieval_observation.v1', version='25.13.0',
+                        candidateCount=row['candidate_count'], eligibleCount=row['eligible_count'],
+                        matchedCount=row['matched_count'], filteredLifecycleCount=row['filtered_lifecycle_count'],
+                        latencyMs=row['latency_ms'], retrievalReceiptHash=row['retrieval_receipt_hash'])
+        for body, declared in ((receipt, row['retrieval_receipt_hash']), (material, row['observation_hash'])):
+            if digest(body).removeprefix('sha256:') != str(declared).removeprefix('sha256:'):
+                raise ValueError('hash mismatch')
+        counts = [row[k] for k in ('candidate_count','eligible_count','matched_count','filtered_lifecycle_count')]
+        if any(type(x) is not int or x < 0 for x in counts):
+            raise ValueError('invalid counts')
+        candidate, eligible, count, filtered = counts
+        if not (count <= eligible <= candidate and filtered == candidate - eligible and count == len(set(matched)) == len(matched)):
+            raise ValueError('inconsistent counts')
+        if not isinstance(row['latency_ms'], (int, float)) or not math.isfinite(row['latency_ms']) or row['latency_ms'] < 0:
+            raise ValueError('invalid latency')
+    except (ValueError, TypeError, KeyError):
+        return {'retrievalReceiptVerification': 'INVALID_EVIDENCE'}
+    if revision_id not in matched:
+        return {'retrievalReceiptVerification': 'REVISION_NOT_MATCHED'}
+    return {'retrievalReceiptVerification': 'VERIFIED', 'retrievalProof': {
+        'observationHash': row['observation_hash'], 'indexManifestHash': row['index_manifest_hash'],
+        'knowledgeSnapshotHash': row['knowledge_snapshot_hash'], 'retrievalPolicyVersion': row['retrieval_policy_version'],
+        'candidateCount': candidate, 'eligibleCount': eligible, 'matchedCount': count,
+        'filteredLifecycleCount': filtered, 'latencyMs': row['latency_ms'],
+        'selectedShare': count / eligible if eligible else None,
+        'formula': 'matchedCount / eligibleCount', 'formulaVersion': 'retrieval_selected_share.v1',
+        'indexManifestVerification': 'NOT_CHECKED', 'subsequentTaskBinding': 'NOT_CHECKED'}}
+
+
+def bind_retrieval_proofs(conn, events):
+    receipts = sorted({event['retrievalReceiptHash'] for event in events})
+    if not receipts:
+        return
+    # One bounded request set; each lookup uses the existing receipt index.
+    requested = ','.join('(?)' for _ in receipts)
+    rows = conn.execute(f"WITH requested(receipt) AS (VALUES {requested}) SELECT o.* FROM requested r JOIN rag_retrieval_observations o ON o.observation_hash=(SELECT observation_hash FROM rag_retrieval_observations WHERE retrieval_receipt_hash=r.receipt ORDER BY recorded_at DESC,observation_hash DESC LIMIT 1)", receipts).fetchall()
+    observations = {row['retrieval_receipt_hash']: row for row in rows}
+    for event in events:
+        row = observations.get(event['retrievalReceiptHash'])
+        event.update(verify_retrieval_observation(row, event['revisionId']) if row is not None
+                     else {'retrievalReceiptVerification': 'NOT_RECORDED'})
