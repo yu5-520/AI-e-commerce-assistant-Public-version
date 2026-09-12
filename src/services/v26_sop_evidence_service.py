@@ -85,6 +85,7 @@ def freeze_decision_evidence(package, sop):
     return seal({"schema": SCHEMA, "version": VERSION, "source": "accepted_agent_execution",
         "executionIdentity": {k: sop[k] for k in ("itemExecutionId", "inputContentHash", "productId", "storeId") if k in sop},
         "cards": cards, "knowledge": knowledge_summary,
+        "revision": deepcopy(sop.get("revisionAcceptanceEvidence")),
         "knowledgeEffect": "NOT_EVALUATED", "feedbackStatus": "NOT_RECORDED",
         "modelReasoning": "structured_decision_record_only", "onClickProviderCall": False})
 
@@ -132,6 +133,17 @@ def public_evidence(decisions, metrics):
         result["receipts"].append({"kind": name, "hash": receipt["receiptHash"], "status": "VERIFIED"})
     if verified(decisions):
         result["knowledge"] = deepcopy(decisions.get("knowledge", {}))
+        revision = decisions.get("revision")
+        if verified(revision) and revision.get("schema") == "v26.revision_acceptance.v1":
+            result["revision"] = {k: deepcopy(revision[k]) for k in
+                ("schema", "graphKind", "scopeHash", "reviewHash", "parentGraphHash", "targetGraphHash",
+                 "changedCount", "unchangedCount", "formula", "authorityOriginVerified",
+                 "productionActivationVerified", "verification", "receiptHash") if k in revision}
+            result["revision"]["nodes"] = [{k: deepcopy(node[k]) for k in
+                ("nodeKey", "beforeHash", "afterHash", "changed", "fields") if k in node}
+                for node in revision.get("nodes", [])]
+        elif revision:
+            result["missing"].append("revision:invalid")
     result.update(knowledgeEffect="尚无对照评测证据", feedbackStatus="未记录审核回流结果",
         privateReasoningExposed=False, recomputedOnRead=False)
     return result
@@ -419,3 +431,45 @@ def bind_subsequent_tasks(conn, events):
         event['taskBindings'] = links
         event['taskBindingsTruncated'] = len(rows) > 20
         event['retrievalProof']['subsequentTaskBinding'] = 'INVALID_EVIDENCE' if invalid else 'VERIFIED' if links else 'NOT_RECORDED'
+
+
+def freeze_operator_review(task, record):
+    """Freeze review inputs at the existing write entry; never on a detail GET."""
+    plan = obj(task.get('taskPlan'))
+    decision = plan.get('sopDecisionEvidence')
+    submission = obj(task.get('latestEvidenceRecord'))
+    return seal({'schema': 'v26.operator_review.v1', 'taskId': str(record['taskId']),
+        'reviewId': record['id'], 'reviewedAt': record['reviewedAt'],
+        'decision': record['decision'], 'reviewRecordHash': digest(record),
+        'source': 'operator_review_write', 'reviewType': 'OPERATOR_REVIEW',
+        'decisionReceiptHash': decision['receiptHash'] if verified(decision) else None,
+        'submissionHash': digest(submission) if submission else None,
+        'submissionId': submission.get('id'),
+        'systemReviewEvaluated': False, 'lifecycleTransitionVerified': False})
+
+
+def public_operator_reviews(task_id, records):
+    records = records if isinstance(records, list) else []
+    result = {'status': 'NOT_RECORDED', 'records': [], 'invalidCount': 0,
+              'unsealedCount': 0, 'truncated': len(records) > 10, 'retainedHistoryLimit': 10,
+              'systemReviewStatus': 'NOT_CONNECTED'}
+    for record in records[:10]:
+        receipt = obj(record).get('auditReceipt')
+        if not receipt:
+            result['unsealedCount'] += 1
+            continue
+        try:
+            valid = (verified(receipt) and receipt.get('schema') == 'v26.operator_review.v1'
+                and receipt.get('taskId') == str(task_id)
+                and receipt.get('reviewRecordHash') == digest({k:v for k,v in record.items() if k != 'auditReceipt'}))
+        except (ValueError, TypeError):
+            valid = False
+        if not valid:
+            result['invalidCount'] += 1
+            continue
+        result['records'].append({k: deepcopy(receipt[k]) for k in
+            ('taskId', 'reviewId', 'reviewedAt', 'decision', 'reviewRecordHash', 'receiptHash',
+             'source', 'reviewType', 'decisionReceiptHash', 'submissionHash', 'submissionId',
+             'systemReviewEvaluated', 'lifecycleTransitionVerified') if k in receipt})
+    result['status'] = 'INVALID_EVIDENCE' if result['invalidCount'] else 'RECORDED' if result['records'] else 'NOT_RECORDED'
+    return result

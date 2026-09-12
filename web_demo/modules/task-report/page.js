@@ -344,6 +344,17 @@
         ${card.sourceHash ? `<details><summary>查看校验依据</summary><p class="sop-evidence-hash">${s(card.sourceHash)}</p></details>` : ""}
       </details>`).join("") : `<p role="status">当前任务没有已验证的决策记录。历史任务不会补造依据。</p>`}
       <details><summary>知识引用与审核回流</summary><pre>${s(valueText(evidence.knowledge || {}))}</pre><p>${s(evidence.knowledgeEffect || "尚无对照评测证据")}</p><p>${s(evidence.knowledgeAudit?.status === "RECORDED" ? "已记录任务关联知识版本与审核事件" : evidence.knowledgeAudit?.status === "INVALID_EVIDENCE" ? "部分审核证据校验失败" : "未记录审核回流结果")}</p><pre>${s(valueText({ revisions: evidence.knowledgeAudit?.revisions || [], reviewEvents: evidence.knowledgeAudit?.events || [] }))}</pre>${renderKnowledgeReuse(evidence.knowledgeAudit)}</details>
+      <details><summary>运营复核与系统审核</summary>
+        <p>运营复核是人工记录；系统自动审核尚未接入此任务链路。复核记录保存不等于生命周期转换成功。</p>
+        <p>仅显示最近保留的 10 条记录；旧记录缺少冻结回执时不补造证明。</p>
+        <pre>${s(valueText(evidence.operatorReviews || { status: "NOT_RECORDED" }))}</pre>
+      </details>
+      <details><summary>修订节点前后差异</summary>
+        ${evidence.revision ? `<p>变化 ${s(evidence.revision.changedCount)} 个 · 未变化 ${s(evidence.revision.unchangedCount)} 个节点。</p>
+          <p>变化数 = 前后节点哈希不相等的节点数量。以下验证内容及范围一致性，授权来源和生产接管需单独验证。</p>
+          ${arr(evidence.revision.nodes).map(node => `<details><summary>${s(node.nodeKey)} · ${node.changed ? "已变化" : "未变化"}</summary><pre>${s(valueText(node))}</pre></details>`).join("")}
+          <details><summary>修订与审核引用</summary><pre>${s(valueText({ scopeHash: evidence.revision.scopeHash, reviewHash: evidence.revision.reviewHash, parentGraphHash: evidence.revision.parentGraphHash, targetGraphHash: evidence.revision.targetGraphHash, receiptHash: evidence.revision.receiptHash }))}</pre></details>` : "<p>未记录经过验收的修订结果。</p>"}
+      </details>
       <details><summary>证据完整性</summary><p>${arr(evidence.missing).length ? "部分依据缺失或校验未通过" : arr(evidence.receipts).length ? "已记录证据校验通过" : "尚未记录证据回执"}</p><pre>${s(valueText(evidence.receipts || []))}</pre></details>
     </div>`;
   }

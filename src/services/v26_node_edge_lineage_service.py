@@ -793,8 +793,8 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
         normalized = agent3_normalize(raw, package, proof)
         normalized["v26OperationGraph"] = compile_operation_graph(normalized, raw, package)
         if package.get("revisionScope"):
-            from src.services.v26_revision_acceptance_service import verify_revision_result
-            verify_revision_result(package.get("parentOperationGraph"), normalized["v26OperationGraph"],
+            from src.services.v26_revision_acceptance_service import freeze_revision_acceptance
+            normalized["revisionAcceptanceEvidence"] = freeze_revision_acceptance(package.get("parentOperationGraph"), normalized["v26OperationGraph"],
                 package["revisionScope"], graph_kind="Operation")
         from src.services.v26_sop_evidence_service import freeze_decision_evidence
         normalized["sopDecisionEvidence"] = freeze_decision_evidence(package, normalized)

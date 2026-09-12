@@ -443,9 +443,11 @@ def project_task_detail(snapshot: Dict[str, Any]) -> Dict[str, Any]:
         evidence_blocked = not bool(evidence_executable)
     evidence_display_contract = _task_evidence_display_contract(snapshot)
 
-    from src.services.v26_sop_evidence_service import public_evidence
+    from src.services.v26_sop_evidence_service import public_evidence, public_operator_reviews
     raw_evidence = _dict(snapshot.get("taskMetricEvidenceProjection") or report.get("taskMetricEvidenceProjection") or plan.get("taskMetricEvidenceProjection"))
     sop_evidence = public_evidence(plan.get("sopDecisionEvidence"), raw_evidence.get("calculationEvidence"))
+    sop_evidence["operatorReviews"] = public_operator_reviews(task_id,
+        snapshot.get("evidenceReviews") or related.get("evidenceReviews") or report.get("evidenceReviews"))
     result = {
         "sopEvidence": sop_evidence,
         "version": PUBLIC_TASK_DTO_VERSION,

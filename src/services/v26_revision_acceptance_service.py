@@ -47,4 +47,44 @@ def verify_revision_result(parent, target, scope, *, graph_kind):
     for key, node in before.items():
         if node["nodeHash"] in preserved and node != after[key]:
             raise ValueError("revision_preserved_node_changed")
+    # A preserved node must retain its incoming/outgoing relationships as well.
+    preserved_keys = {k for k, n in before.items() if n['nodeHash'] in preserved}
+    def protected_edges(graph):
+        edges = []
+        for edge in graph.get('edges', []):
+            if edge.get('sourceKey') not in preserved_keys and edge.get('targetKey') not in preserved_keys:
+                continue
+            material = {k:v for k,v in edge.items() if k != 'edgeHash'}
+            for side in ('source', 'target'):
+                if edge.get(side + 'Key') in before and edge[side + 'Key'] not in preserved_keys:
+                    material.pop(side + 'NodeHash', None)
+            edges.append(digest(material))
+        return sorted(edges)
+    if protected_edges(parent) != protected_edges(target):
+        raise ValueError('revision_preserved_edge_changed')
     return {"verified": True, "revisionHash": scope["revisionHash"], "targetGraphHash": target["graphHash"]}
+
+
+def freeze_revision_acceptance(parent, target, scope, *, graph_kind):
+    from src.services.v26_sop_evidence_service import seal
+    verify_revision_result(parent, target, scope, graph_kind=graph_kind)
+    before, after = verify_graph(parent), verify_graph(target)
+    rows = []
+    for key in sorted(before):
+        old, new = before[key], after[key]
+        fields = []
+        a, b = old.get('authorityHeaders', {}), new.get('authorityHeaders', {})
+        for field in sorted(set(a) | set(b)):
+            if field not in a or field not in b or a[field] != b[field]:
+                fields.append({'field': field, 'beforePresent': field in a, 'afterPresent': field in b,
+                               'before': a.get(field), 'after': b.get(field)})
+        rows.append({'nodeKey': key, 'beforeHash': old['nodeHash'], 'afterHash': new['nodeHash'],
+                     'changed': old != new, 'fields': fields})
+    return seal({'schema': 'v26.revision_acceptance.v1', 'graphKind': graph_kind,
+        'scopeHash': scope['revisionHash'], 'reviewHash': scope.get('reviewHash'),
+        'parentGraphHash': parent['graphHash'], 'targetGraphHash': target['graphHash'],
+        'nodes': rows, 'changedCount': sum(r['changed'] for r in rows),
+        'unchangedCount': sum(not r['changed'] for r in rows),
+        'formula': 'changedCount = count(beforeHash != afterHash)',
+        'authorityOriginVerified': False, 'productionActivationVerified': False,
+        'verification': 'CONTENT_AND_SCOPE_CONSISTENCY'})
