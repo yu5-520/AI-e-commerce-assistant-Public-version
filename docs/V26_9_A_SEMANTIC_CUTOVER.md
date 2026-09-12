@@ -38,3 +38,15 @@
 使用原注册表→血缘→精确包→门禁流程。候选编译器专项通过不等于实际 Agent 链路通过。必须补齐实际 provider 输入输出、旧字段扰动不变性、缺图拒绝、跨域执行完整性、终态重放不新增调用和固定三报表端到端验证。
 
 本地 Python 3.12 的回归结果：134 passed / 6 skipped / 1 failed；失败为发布身份要求 Python 3.11.9，未修改该门禁。新编译器的 7 项专项测试通过。应在精确 3.11.9 环境重验，再评估合并。当前保持 draft，不部署、不宣称全消费者迁移完成。
+
+## 输入与身份消费者迁移进展（同一 PR）
+
+实际 compile_agent2_draft_envelope / compile_agent3_sop_envelope 入口已识别 V26.9 图合同请求，通过原输入 Envelope 校验、来源 Artifact 引用和原字符预算生成投影。V26.5 的 Agent2 包装层对新协议不再附加旧 JudgementGraph 或尝试读取旧锁。新协议与历史协议显式区分，最终全量激活仍未完成。
+
+新投影白名单仅包含图谱、系统动作准入/分区、冻结事实、知识上下文和业务身份。旧业务字段从来源剔除；在已生成的新协议 payload 中重新注入旧字段，即使重算 payload 哈希，也会被拒绝。缺图、合同版本错误、分区篡改、知识快照内容与 Head 不符或输入超预算均拒绝。
+
+Agent2/Agent3 的原 semantic identity 入口已识别新协议。Agent2 除整图身份外绑定具体分区和 factValues，防止同图不同分区缓存串用；provider/model/生成参数/提示合同与业务主体也参与身份。知识 Head 在此是调用输入的冻结知识快照身份，不表示已经建好 Experience Store 或全库版本管理。
+
+输出缓存、真实 provider 合同和输出接受路径仍未迁移完成：cacheEligible=false，实际执行入口在旧 Artifact claim/cache/provider 前拒绝 v269_provider_cutover_not_ready。不能将新图请求降级为 familyPayload 或旧 SOP 请求。这是临时迁移隔离，后续完成新输出通道和重绑定后移除，不能计为 A 已完成。
+
+新增 5 项测试运行实际已安装的输入与身份函数，结合既有 7 项候选编译测试共 12 项通过。本地 Python 3.12 全量 139 passed / 6 skipped / 1 failed，仍为原发布版本校验。原 V26 Registry Lineage PR Gate 增加锁定 3.11.9、按 requirements-dev.lock 安装依赖并执行既有默认回归范围；未关闭或放宽任何校验。

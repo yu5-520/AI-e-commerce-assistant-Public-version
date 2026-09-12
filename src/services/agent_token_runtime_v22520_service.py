@@ -116,6 +116,9 @@ def build_agent2_semantic_identity(
     descriptor: Dict[str, Any],
     package: Dict[str, Any],
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract, semantic_identity
+    if uses_graph_contract(package):
+        return semantic_identity('agent2', package, descriptor)
     semantic_input = {
         "actionFamily": selected_family(package),
         "compactPackage": _semantic_compact_package(package),
@@ -161,6 +164,8 @@ def _entry(
     *,
     provider: Dict[str, Any],
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import reject_unmigrated_provider
+    reject_unmigrated_provider(envelope.get('payload'))
     binding = resolve_input_binding(
         envelope,
         expected_type=AGENT2_DRAFT_INPUT_SCHEMA,

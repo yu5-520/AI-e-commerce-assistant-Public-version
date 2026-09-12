@@ -3,6 +3,12 @@ name: V26 Registry Lineage PR Gate
 on:
   pull_request:
     paths:
+      - 'src/services/v269*.py'
+      - 'tests/test_v22_4_v269*.py'
+      - 'src/services/agent_input_contract_v225_service.py'
+      - 'src/services/agent_input_transport_v225_service.py'
+      - 'src/services/agent_token_runtime_v22520_service.py'
+      - 'src/services/agent3_runtime_v23215_service.py'
       - 'config/v23_registry_runtime.json'
       - 'config/v26_field_authority_contract.json'
       - 'governance/v26-field-authority-update-policy.json'
@@ -42,10 +48,10 @@ jobs:
           path: base-src
           persist-credentials: false
 
-      - name: Prepare Python 3.11
+      - name: Prepare exact release Python 3.11.9
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.11.9'
 
       - name: Compile exact BASE and TARGET lineage evidence
         shell: bash
@@ -92,3 +98,11 @@ jobs:
           print('TARGET=' + report['targetCommit'])
           print('UPDATE_HASH=' + report['updateHash'])
           PY
+
+      - name: Verify runtime regressions on exact release Python
+        working-directory: target-src
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r requirements-dev.lock
+          python -m pytest -q

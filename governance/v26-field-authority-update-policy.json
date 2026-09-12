@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.12.9.A-draft",
+  "version": "2026.09.12.9.A-input-draft",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
@@ -68,7 +68,12 @@
         "tests/test_v22_4_v268_audit_revision.py",
         "src/services/v269_semantic_graph_service.py",
         "tests/test_v22_4_v269_semantic_graph.py",
-        "docs/V26_9_A_SEMANTIC_CUTOVER.md"
+        "docs/V26_9_A_SEMANTIC_CUTOVER.md",
+        "src/services/v269_input_migration_service.py",
+        "src/services/agent_input_contract_v225_service.py",
+        "src/services/agent_token_runtime_v22520_service.py",
+        "src/services/agent3_runtime_v23215_service.py",
+        "tests/test_v22_4_v269_input_migration.py"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",

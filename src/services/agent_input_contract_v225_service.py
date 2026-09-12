@@ -217,7 +217,10 @@ def validate_agent_input_envelope(
     payload = value.get("payload") if isinstance(value.get("payload"), dict) else {}
     if not payload:
         errors.append("payload_missing")
-    allowed = _AGENT2_DRAFT_KEYS if schema == AGENT2_DRAFT_INPUT_SCHEMA else _AGENT3_SOP_KEYS
+    from src.services.v269_input_migration_service import uses_graph_contract, FIELDS, validate_payload
+    graph_contract = uses_graph_contract(payload)
+    agent = 'agent2' if schema == AGENT2_DRAFT_INPUT_SCHEMA else 'agent3'
+    allowed = FIELDS[agent] if graph_contract else (_AGENT2_DRAFT_KEYS if schema == AGENT2_DRAFT_INPUT_SCHEMA else _AGENT3_SOP_KEYS)
     payload_unknown = sorted(set(payload) - allowed) if payload else []
     if payload_unknown:
         errors.append("unknown_payload_fields:" + ",".join(payload_unknown))
@@ -249,6 +252,12 @@ def validate_agent_input_envelope(
             "inputContract",
         )
     )
+    if graph_contract:
+        required = ('packageId', 'productId', 'storeId', 'knowledgeContext', 'inputContract')
+        try:
+            validate_payload(agent, payload)
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            errors.append('graph_contract_invalid:' + str(exc))
     prefix = "agent2_draft" if schema == AGENT2_DRAFT_INPUT_SCHEMA else "agent3_sop"
     for key in required:
         if payload.get(key) in (None, "", {}, []):

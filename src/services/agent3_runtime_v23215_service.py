@@ -249,6 +249,9 @@ def build_agent3_semantic_identity(
     descriptor: Dict[str, Any],
     package: Dict[str, Any],
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract, semantic_identity
+    if uses_graph_contract(package):
+        return semantic_identity('agent3', package, descriptor)
     compiled = core.compile_agent3_provider_package(package)
     semantic_business = _solid_value(compiled)
     semantic_input_hash = hash_runtime.hash_value(semantic_business)
@@ -297,6 +300,8 @@ def build_agent3_semantic_identity(
 
 
 def _entry(envelope: Dict[str, Any]) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import reject_unmigrated_provider
+    reject_unmigrated_provider(envelope.get('payload'))
     package = dict(_dict(envelope.get("payload")))
     descriptor = hash_runtime._binding_descriptor(
         envelope,

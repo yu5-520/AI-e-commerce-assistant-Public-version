@@ -402,6 +402,9 @@ def compile_agent2_draft_envelope(
     source_ref: str,
     source_content_hash: str,
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract, project_input
+    if uses_graph_contract(source):
+        return project_input('agent2', source, source_ref=source_ref, source_content_hash=source_content_hash)
     identity = _identity(source)
     decision_ir, judgment, diagnostic, handoff_audit = _compact_agent1_handoff(source)
     matrix = _dict(source.get("matrixDispatch"))
@@ -474,6 +477,9 @@ def compile_agent3_sop_envelope(
     source_ref: str,
     source_content_hash: str,
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract, project_input
+    if uses_graph_contract(source):
+        return project_input('agent3', source, source_ref=source_ref, source_content_hash=source_content_hash)
     identity = _identity(source)
     decision_ir, judgment, _diagnostic, handoff_audit = _compact_agent1_handoff(source)
     matrix = _dict(source.get("matrixDispatch"))

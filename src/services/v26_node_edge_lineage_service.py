@@ -672,6 +672,9 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
         source_ref,
         source_content_hash,
     ):
+        from src.services.v269_input_migration_service import uses_graph_contract, project_input
+        if uses_graph_contract(source):
+            return project_input('agent2', source, source_ref=source_ref, source_content_hash=source_content_hash)
         base = compile_agent2_v225(
             source,
             source_ref=source_ref,
@@ -745,6 +748,9 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
     semantic_identity_v225 = agent2_runtime.build_agent2_semantic_identity
 
     def build_agent2_semantic_identity_v265(envelope, descriptor, package):
+        from src.services.v269_input_migration_service import uses_graph_contract, semantic_identity
+        if uses_graph_contract(package):
+            return semantic_identity('agent2', package, descriptor)
         result = dict(semantic_identity_v225(envelope, descriptor, package))
         graph = _dict(_dict(package).get("v26JudgementGraph"))
         graph_hash = _text(graph.get("graphHash"), 160)
