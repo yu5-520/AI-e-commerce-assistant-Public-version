@@ -130,7 +130,17 @@
         "rag/migrations/002_v269c_promotion_feedback.sql",
         "rag/seeds/v269b_seed.json",
         "rag/manifest/v269b_manifest.json",
-        "rag/manifest/v269c_manifest.json"
+        "rag/manifest/v269c_manifest.json",
+        "src/services/v2610_initialization_service.py",
+        "scripts/compile_v2610_initialization.py",
+        "config/v2610_initialization_profile.json",
+        "config/v2610_initialization_bundle.json",
+        "tests/test_v22_4_v2610_initialization.py",
+        "docs/V26_10_INITIALIZATION.md",
+        ".github/workflows/v2610-initialization.yml",
+        "fixtures/competition/three_report_scenario.json",
+        ".github/workflows/competition-three-report-e2e.yml",
+        "config/v2610_era_source.json"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",
@@ -145,7 +155,8 @@
         "experience_store",
         "evaluation_plane",
         "experience_retrieval",
-        "experience_promotion"
+        "experience_promotion",
+        "business_initialization"
       ],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []

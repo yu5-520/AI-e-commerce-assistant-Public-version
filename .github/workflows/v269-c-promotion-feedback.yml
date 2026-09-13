@@ -65,7 +65,8 @@ jobs:
           assert c['headAuthority']=='content_addressed_enabled_set'
           assert p['autoPromotion'] is False and p['reviewRequired'] is True
           assert p['explicitEnableRequired'] is True and p['explicitWithdrawalRequired'] is True
-          assert request['requestId'].startswith('V26.9.C-')
+          assert request['schema'] == 'z.update_request.v1'
+          assert request['policyProfile'] == 'v26_field_authority'
           print('V269C_CONTRACT_BOUNDARY=PASS')
           print('V269C_ROLLOUT_STATUS='+c['rolloutStatus'])
           PY

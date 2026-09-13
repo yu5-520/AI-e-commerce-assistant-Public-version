@@ -332,7 +332,7 @@
     const evidence = report?.sopEvidence || {};
     const valueText = (value) => value == null ? "未记录" : typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
     const cards = arr(evidence.cards);
-    const kinds = { FACT: "原始观测", DERIVED: "系统计算", PLAN: "计划参数", DECISION: "决策记录" };
+    const kinds = { FACT: "原始观测", DERIVED: "系统计算", PLAN: "计划参数", DECISION: "决策记录", PRESET: "初始化方法／预设" };
     return `<div class="sop-evidence" aria-label="SOP数据与决策依据"><h4>数据与决策依据</h4>
       <p>点击数据或计划查看来源；未记录的依据不会事后补写。</p>
       ${cards.length ? cards.map((card) => `<details class="sop-evidence-card"><summary>${s(card.label)} · ${s(kinds[card.kind] || "记录")}：${s(valueText(card.value).slice(0, 100))}</summary>
@@ -343,6 +343,14 @@
         ${card.actor ? `<p>制定者：${s(card.actor)} · 节点：${s(card.nodeKey || "未记录")}</p>` : ""}
         ${card.sourceHash ? `<details><summary>查看校验依据</summary><p class="sop-evidence-hash">${s(card.sourceHash)}</p></details>` : ""}
       </details>`).join("") : `<p role="status">当前任务没有已验证的决策记录。历史任务不会补造依据。</p>`}
+      <details><summary>评测数据与计算公式</summary>
+        <p>以下读取已保存的评测；未观测的数据保留缺失状态。</p>
+        ${arr(evidence.evaluation?.items).length ? arr(evidence.evaluation.items).map(item => `<details class="sop-evidence-card"><summary>${s(item.metricId)}：${s(valueText(item.value))} ${s(item.unit || "")}</summary>
+          <p>公式：<code>${s(item.formula || "未记录")}</code> · 版本 ${s(item.metricVersion)}</p>
+          <p>样本量：${s(item.sampleCount)} · 缺失原因：${s(item.missingReason || "无")}</p>
+          <pre>${s(valueText({ inputs: item.formulaInputs, window: item.observationWindow, limits: item.interpretationLimits, sourceHash: item.sourceHash }))}</pre>
+        </details>`).join("") : "<p>尚无已持久化评测结果。</p>"}
+      </details>
       <details><summary>知识引用与审核回流</summary><pre>${s(valueText(evidence.knowledge || {}))}</pre><p>${s(evidence.knowledgeEffect || "尚无对照评测证据")}</p><p>${s(evidence.knowledgeAudit?.status === "RECORDED" ? "已记录任务关联知识版本与审核事件" : evidence.knowledgeAudit?.status === "INVALID_EVIDENCE" ? "部分审核证据校验失败" : "未记录审核回流结果")}</p><pre>${s(valueText({ revisions: evidence.knowledgeAudit?.revisions || [], reviewEvents: evidence.knowledgeAudit?.events || [] }))}</pre>${renderKnowledgeReuse(evidence.knowledgeAudit)}</details>
       <details><summary>运营复核与系统审核</summary>
         <p>运营复核是人工记录；系统自动审核尚未接入此任务链路。复核记录保存不等于生命周期转换成功。</p>

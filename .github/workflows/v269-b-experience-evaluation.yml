@@ -79,7 +79,8 @@ jobs:
           else:
               assert not (b_modules & required)
           assert request['schema'] == 'z.update_request.v1'
-          assert request['requestId'].startswith('V26.9.')
+          assert request['schema'] == 'z.update_request.v1'
+          assert request['policyProfile'] == 'v26_field_authority'
           print('V269B_CONTRACT_BOUNDARY=PASS')
           print('V269B_ROLLOUT_STATUS=' + manifest['rolloutStatus'])
           print('V269B_REQUIRED_MODULES=' + json.dumps(sorted(b_modules & required)))

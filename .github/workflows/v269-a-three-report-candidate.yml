@@ -4,8 +4,11 @@ on:
   push:
     branches:
       - feat/v269-a-semantic-cutover
+      - feat/v2610-initialization
     paths:
       - 'src/services/v269_*.py'
+      - 'src/services/v2610_*.py'
+      - 'config/v2610_*.json'
       - 'src/services/agent_runtime_hard_interface_v2257_service.py'
       - 'src/services/agent_runtime_hard_interface_v22515_service.py'
       - 'src/services/station_agent_worker_v22515_service.py'
@@ -16,6 +19,8 @@ on:
       - 'src/services/agent3_runtime_v23215_service.py'
       - 'java-control-plane/src/main/java/com/zcentury/v24/**'
       - 'config/v23_registry_runtime.json'
+      - 'config/competition_runtime_scope.json'
+      - 'rag/**'
       - 'config/v26_field_authority_contract.json'
       - 'governance/v26-field-authority-update-policy.json'
       - 'scripts/competition_contract_fixture_provider_v269.py'
@@ -172,10 +177,12 @@ jobs:
           assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT']
           assert report.get('v269GraphContractVerified') is True, report.get('v269GraphContract')
           contract=report['v269GraphContract']
-          assert contract.get('ragFeedbackActivated') is False
-          assert contract.get('evaluationPlaneActivated') is False
+          assert contract.get('experienceRolloutStatus') == 'active'
+          assert contract.get('promotionRolloutStatus') == 'active'
+          assert contract.get('evaluationContractVersion') == '26.9.B.1'
+          assert contract.get('experienceFeedbackLoopExercised') is False
           assert contract.get('schedulerProofAuthority') == 'pipeline_item_artifact_refs'
-          assert contract['graphProbe']['rolloutStatus'] == 'candidate_not_activated'
+          assert contract['graphProbe']['rolloutStatus'] == 'active'
           assert contract['graphProbe']['partitionDomains'] == ['creative','traffic']
           assert all(contract['assertions'].values()), contract['assertions']
           assert report.get('realBailianRunStillRequired') is True

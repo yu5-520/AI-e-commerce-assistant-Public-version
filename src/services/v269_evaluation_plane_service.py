@@ -40,6 +40,20 @@ def contract() -> dict[str, Any]:
     return value
 
 
+def freeze_evaluation_standard():
+    cfg=contract()
+    return {'schema':'evaluation.standard.v2610.v1','contract':cfg,'contractHash':store.digest(cfg)}
+
+
+def validate_frozen_standard(standard):
+    _require(isinstance(standard,dict) and standard.get('schema')=='evaluation.standard.v2610.v1','frozen_standard_schema')
+    cfg=deepcopy(standard.get('contract'))
+    _require(isinstance(cfg,dict) and store.digest(cfg)==standard.get('contractHash'),'frozen_standard_hash')
+    _require(cfg.get('noCompositeScore') is True and cfg.get('causalAttributionForbidden') is True,'frozen_standard_boundaries')
+    _require(cfg.get('version')==VERSION,'unsupported_frozen_calculator_version')
+    return cfg
+
+
 def _number(value: Any, name: str) -> float:
     _require(type(value) in (int, float) and math.isfinite(value), name + "_numeric")
     return float(value)
@@ -193,16 +207,19 @@ def evaluate_execution_result(
     *,
     subject_experience_id: str | None = None,
     persist: bool = False,
+    frozen_standard: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the complete evaluation vector; missing metrics stay explicit, never invented."""
     _require(isinstance(inputs, dict), "inputs_object")
-    cfg = contract()
+    cfg = validate_frozen_standard(frozen_standard) if frozen_standard is not None else contract()
+    contract_hash = store.digest(cfg)
     epsilon = float(cfg.get("epsilon") or 1e-9)
     metrics: list[dict[str, Any]] = []
     for metric_id, spec in sorted(cfg["metrics"].items()):
         _require(isinstance(spec, dict), "metric_spec")
         result = _evaluate_metric(metric_id, spec, inputs, epsilon)
         evaluation_material = {
+            "contractHash": contract_hash,
             "sourceHash": store.digest(store._normalize_source(source)),
             "subjectExperienceId": subject_experience_id,
             "metricId": metric_id,
@@ -216,7 +233,7 @@ def evaluate_execution_result(
     vector_material = {
         "schema": "evaluation.vector.v269b.v1",
         "version": VERSION,
-        "contractHash": store.file_digest(CONTRACT_PATH),
+        "contractHash": contract_hash,
         "sourceHash": store.digest(store._normalize_source(source)),
         "subjectExperienceId": subject_experience_id,
         "metrics": metrics,
@@ -228,6 +245,9 @@ def evaluate_execution_result(
         receipts = []
         for metric in metrics:
             payload = {
+                "contractHash": contract_hash,
+                "formula": metric["formula"],
+                "metricSpec": deepcopy(cfg["metrics"][metric["metricId"]]),
                 "subjectExperienceId": subject_experience_id,
                 "evaluationId": metric["evaluationId"],
                 "metricId": metric["metricId"],
@@ -415,6 +435,7 @@ def record_system_review_candidate(
                 inputs,
                 subject_experience_id=strategy["experienceId"],
                 persist=True,
+                frozen_standard=package.get("evaluationStandard"),
             )
             vector_hashes.append(vector["vectorHash"])
             evaluation_receipts.extend(vector.get("persistenceReceipts") or [])
@@ -473,7 +494,7 @@ def read_task_evaluation_evidence(task_id: str, *, limit: int = 200) -> dict[str
         "version": VERSION,
         "taskId": task,
         "status": "NOT_RECORDED",
-        "contractHash": store.file_digest(CONTRACT_PATH),
+        "contractHash": None,
         "items": [],
         "sourceReceipts": [],
         "missingMetricCount": 0,
@@ -487,7 +508,6 @@ def read_task_evaluation_evidence(task_id: str, *, limit: int = 200) -> dict[str
     }
     if not task:
         return {**body, "receiptHash": store.digest(body)}
-    cfg = contract()
     try:
         with connect() as conn:
             tables = {
@@ -501,7 +521,7 @@ def read_task_evaluation_evidence(task_id: str, *, limit: int = 200) -> dict[str
             rows = conn.execute(
                 """SELECT r.evaluation_id,r.metric_id,r.metric_version,r.numerator,r.denominator,
                           r.value,r.unit,r.observation_window,r.sample_count,r.missing_reason,
-                          r.formula_inputs,r.interpretation_limits,i.experience_id,i.lifecycle_status,
+                          r.formula_inputs,r.interpretation_limits,i.experience_id,i.lifecycle_status,i.payload,
                           s.source_hash,s.source_version,s.evaluation_version,s.evidence_refs,s.source_type
                    FROM v269b_evaluation_results r
                    JOIN v269b_experience_items i ON i.experience_id=r.experience_id
@@ -519,7 +539,13 @@ def read_task_evaluation_evidence(task_id: str, *, limit: int = 200) -> dict[str
     invalid = 0
     for row in rows:
         metric_id = str(row["metric_id"] or "")
-        spec = (cfg.get("metrics") or {}).get(metric_id)
+        try:
+            persisted = json.loads(row["payload"] or "{}")
+            if not isinstance(persisted,dict):raise ValueError("evaluation_payload_object")
+        except (ValueError,TypeError):
+            invalid += 1
+            continue
+        spec = persisted.get("metricSpec") or (contract().get("metrics") or {}).get(metric_id)
         if not isinstance(spec, dict) or str(row["metric_version"] or "") != str(spec.get("version") or ""):
             invalid += 1
             continue
@@ -542,6 +568,8 @@ def read_task_evaluation_evidence(task_id: str, *, limit: int = 200) -> dict[str
             "evidenceRefs": evidence_refs,
         }
         items.append({
+            "contractHash": persisted.get("contractHash"),
+            "standardSource": "frozen" if persisted.get("metricSpec") else "legacy_current_contract",
             "experienceId": row["experience_id"],
             "evaluationId": row["evaluation_id"],
             "metricId": metric_id,
@@ -561,6 +589,9 @@ def read_task_evaluation_evidence(task_id: str, *, limit: int = 200) -> dict[str
             "lifecycleStatus": row["lifecycle_status"],
             "sourceHash": source_hash,
         })
+    hashes=sorted({item["contractHash"] for item in items if item.get("contractHash")})
+    body["contractHashes"]=hashes
+    body["contractHash"]=hashes[0] if len(hashes)==1 else None
     body["items"] = items
     body["sourceReceipts"] = [source_map[key] for key in sorted(source_map)]
     body["missingMetricCount"] = sum(item.get("missingReason") is not None for item in items)

@@ -25,8 +25,8 @@ from src.services import v269_experience_store_service as store
 VERSION = "26.9.B.1"
 AGENT_DOMAINS = {
     "agent1": ("decision_patterns", "experience_knowledge"),
-    "agent2": ("strategy_outcomes",),
-    "agent3": ("operation_patterns",),
+    "agent2": ("strategy_outcomes", "experience_knowledge"),
+    "agent3": ("operation_patterns", "experience_knowledge"),
 }
 QUERY_FIELDS = {
     "agent1": {"condition", "metric", "direction", "category", "decisionPattern"},
@@ -114,12 +114,13 @@ def _decode(value: str | None, fallback: Any) -> Any:
     return json.loads(value)
 
 
-def _fetch_rows(agent: str, *, mode: str, include_seed: bool) -> list[dict[str, Any]]:
+def _fetch_rows(agent: str, *, mode: str, include_seed: bool, business_scope: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     domains = AGENT_DOMAINS[agent]
     placeholders = ",".join("?" for _ in domains)
     if mode == "official":
-        status_clause = "i.lifecycle_status='enabled' AND s.source_type='runtime'"
-        params: list[Any] = list(domains)
+        status_clause = "i.lifecycle_status='enabled' AND (s.source_type='runtime' OR (json_extract(s.business_scope,'$.storeId')=? AND json_extract(s.business_scope,'$.productId')=?))"
+        scope=business_scope or {}
+        params: list[Any] = list(domains)+[scope.get('storeId',''),scope.get('productId','')]
     else:
         statuses = ["candidate", "approved", "enabled", "disabled", "superseded"]
         if include_seed:
@@ -149,7 +150,15 @@ def _fetch_rows(agent: str, *, mode: str, include_seed: bool) -> list[dict[str, 
               WHERE i.domain IN ({placeholders}) AND {status_clause}"""
     with repo.connect() as conn:
         rows = conn.execute(sql, tuple(params)).fetchall()
-    return [dict(row) for row in rows]
+    result=[]
+    with repo.connect() as conn:
+        from src.services.v2610_initialization_service import is_registered_method
+        for raw in rows:
+            row=dict(raw)
+            row['initializationMethod']=is_registered_method(conn,row)
+            if mode!='official' or row['source_type']=='runtime' or row['initializationMethod']:
+                result.append(row)
+    return result
 
 
 def _field_value(agent: str, row: dict[str, Any], field: str) -> Any:
@@ -205,7 +214,7 @@ def _sample_count(row: dict[str, Any]) -> int:
 def _result(row: dict[str, Any], *, matched_fields: list[str], mode: str) -> dict[str, Any]:
     payload = _decode(row["payload"], {})
     applicability = _decode(row["applicability"], {})
-    official = row["lifecycle_status"] == "enabled" and row["source_type"] == "runtime"
+    official = row["lifecycle_status"] == "enabled" and (row["source_type"] == "runtime" or row.get("initializationMethod") is True)
     return {
         "experienceId": row["experience_id"],
         "domain": row["domain"],
@@ -243,6 +252,7 @@ def retrieve_experience(
     limit: int = 10,
     mode: str = "official",
     include_seed: bool = False,
+    business_scope: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return an auditable retrieval receipt. No match is a valid explicit empty result."""
     _require(agent in AGENT_DOMAINS, "agent_unknown")
@@ -253,10 +263,16 @@ def retrieve_experience(
     if mode == "official":
         _require(include_seed is False, "official_seed_forbidden")
     store.ensure_experience_store()
-    rows = _fetch_rows(agent, mode=mode, include_seed=include_seed)
+    rows = _fetch_rows(agent, mode=mode, include_seed=include_seed, business_scope=business_scope)
     matched: list[tuple[int, int, str, dict[str, Any]]] = []
     for row in rows:
-        ok, score, fields = _matches(agent, row, query)
+        if row.get('initializationMethod'):
+            from src.services.v2610_initialization_service import method_matches
+            ok=method_matches(row,agent,query,business_scope)
+            fields=sorted(k for k in query if k in {'category','platform'})
+            score=len(fields)
+        else:
+            ok, score, fields = _matches(agent, row, query)
         if not ok:
             continue
         item = _result(row, matched_fields=fields, mode=mode)
@@ -381,7 +397,7 @@ def attach_official_experience_context(
     experience_records: dict[str, dict[str, Any]] = {}
     if queries:
         for query in queries:
-            receipt = retrieve_experience(agent, query, limit=5, mode="official")
+            receipt = retrieve_experience(agent, query, limit=5, mode="official", business_scope={k:source.get(k) for k in ("storeId","productId")})
             receipts.append(receipt)
             for item in receipt["results"]:
                 experience_records[item["experienceId"]] = {
