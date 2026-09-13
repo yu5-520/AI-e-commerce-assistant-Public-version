@@ -177,10 +177,12 @@ jobs:
           assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT']
           assert report.get('v269GraphContractVerified') is True, report.get('v269GraphContract')
           contract=report['v269GraphContract']
-          assert contract.get('ragFeedbackActivated') is False
-          assert contract.get('evaluationPlaneActivated') is False
+          assert contract.get('experienceRolloutStatus') == 'active'
+          assert contract.get('promotionRolloutStatus') == 'active'
+          assert contract.get('evaluationContractVersion') == '26.9.B.1'
+          assert contract.get('experienceFeedbackLoopExercised') is False
           assert contract.get('schedulerProofAuthority') == 'pipeline_item_artifact_refs'
-          assert contract['graphProbe']['rolloutStatus'] == 'candidate_not_activated'
+          assert contract['graphProbe']['rolloutStatus'] == 'active'
           assert contract['graphProbe']['partitionDomains'] == ['creative','traffic']
           assert all(contract['assertions'].values()), contract['assertions']
           assert report.get('realBailianRunStillRequired') is True

@@ -148,3 +148,14 @@ def test_exact_runtime_contains_registered_rag_resources_and_can_install(db, mon
     store.ensure_experience_store()
     promotion.ensure_promotion_tables()
     assert init.initialize_bundle()['automaticEnable'] is False
+
+
+def test_graph_e2e_probe_requires_active_contract_and_preserves_invariants(monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT/'scripts'))
+    from scripts import run_competition_three_report_e2e_v269 as e2e
+    probe=e2e._graph_probe()
+    assert probe['verified'] and probe['rolloutStatus']=='active'
+    assert all(probe['assertions'].values())
+    original=e2e.graphs.contract
+    monkeypatch.setattr(e2e.graphs,'contract',lambda:{**original(),'rolloutStatus':'candidate_not_activated'})
+    assert not e2e._graph_probe()['verified']

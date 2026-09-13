@@ -115,7 +115,7 @@ def _graph_probe() -> dict[str, Any]:
         "conflictRejected": conflict_admission["admitted"] == []
         and set(conflict_admission["deferred"].values()) == {"CONFLICT_REQUIRES_RESOLUTION"},
         "legacyPoisonIgnored": poison_invariant,
-        "candidateStillNotActivated": contract.get("rolloutStatus") == "candidate_not_activated",
+        "registeredGraphRuntimeActive": contract.get("rolloutStatus") == "active",
     }
     return {
         "schema": "v269.three_report_graph_probe.v1",
@@ -209,8 +209,10 @@ def _augment(output: Path) -> dict[str, Any]:
         "schedulerProofAuthority": "pipeline_item_artifact_refs",
         "graphProbe": probe,
         "legacySingleActionFamilyAssertionDisabled": True,
-        "ragFeedbackActivated": False,
-        "evaluationPlaneActivated": False,
+        "experienceRolloutStatus": json.loads((REPO_ROOT / "rag/manifest/v269b_manifest.json").read_text())["rolloutStatus"],
+        "promotionRolloutStatus": json.loads((REPO_ROOT / "rag/manifest/v269c_manifest.json").read_text())["rolloutStatus"],
+        "evaluationContractVersion": json.loads((REPO_ROOT / "config/v269b_evaluation_contract.json").read_text())["version"],
+        "experienceFeedbackLoopExercised": False,
         "verified": verified,
     }
     report["v269GraphContractVerified"] = verified
