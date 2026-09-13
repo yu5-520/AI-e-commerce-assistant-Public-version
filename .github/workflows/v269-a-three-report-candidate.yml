@@ -1,0 +1,200 @@
+name: V26.9.A Three Report Candidate Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/services/v269_*.py'
+      - 'src/services/agent_runtime_hard_interface_v2257_service.py'
+      - 'src/services/agent_runtime_hard_interface_v22515_service.py'
+      - 'src/services/station_agent_worker_v22515_service.py'
+      - 'src/services/task_pool_admission_core_v20_service.py'
+      - 'src/services/real_product_judgment_agent_v2259_service.py'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/**'
+      - 'config/v23_registry_runtime.json'
+      - 'config/v26_field_authority_contract.json'
+      - 'governance/v26-field-authority-update-policy.json'
+      - 'scripts/competition_contract_fixture_provider_v269.py'
+      - 'scripts/competition_e2e_compat_runtime/competition_contract_fixture_provider.py'
+      - 'scripts/run_competition_three_report_e2e_v269.py'
+      - 'fixtures/competition/three_report_scenario.json'
+      - '.github/workflows/v269-a-three-report-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v269-a-three-report-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-v269-three-report:
+    runs-on: self-hosted
+    timeout-minutes: 45
+    env:
+      COMPETITION_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      COMPETITION_TOOL_PYTHON: /opt/python/3.11.9/bin/python3.11
+      COMPETITION_VENV_ROOT: /opt/actions-runner-public/competition-runtime-venvs
+      COMPETITION_E2E_BASE: /opt/actions-runner-public/competition-e2e/v269-a-public
+      V269_CANDIDATE_GRAPH_RUNTIME: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+
+    steps:
+      - name: Materialize exact candidate source
+        env:
+          GH_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -n "$COMPETITION_SOURCE_COMMIT"
+          ARCHIVE="${RUNNER_TEMP}/v269-source-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          EXTRACTED="${RUNNER_TEMP}/v269-source-${COMPETITION_SOURCE_COMMIT}"
+          rm -rf "$ARCHIVE" "$EXTRACTED"
+          mkdir -p "$EXTRACTED"
+          DOWNLOADED=0
+          for attempt in $(seq 1 8); do
+            if curl --fail --location --silent --show-error \
+              --connect-timeout 20 --max-time 300 \
+              -H "Authorization: Bearer ${GH_READ_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${COMPETITION_SOURCE_COMMIT}" \
+              -o "$ARCHIVE"; then
+              DOWNLOADED=1
+              break
+            fi
+            rm -f "$ARCHIVE"
+            sleep $((attempt * 5))
+          done
+          test "$DOWNLOADED" = "1"
+          test -s "$ARCHIVE"
+          tar -xzf "$ARCHIVE" -C "$EXTRACTED" --strip-components=1
+          test -f "$EXTRACTED/scripts/run_competition_three_report_e2e_v269.py"
+          test -f "$EXTRACTED/scripts/competition_contract_fixture_provider_v269.py"
+          find "$GITHUB_WORKSPACE" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a "$EXTRACTED"/. "$GITHUB_WORKSPACE"/
+          test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD 2>/dev/null || true)" != "$COMPETITION_SOURCE_COMMIT" || true
+          printf '%s\n' "$COMPETITION_SOURCE_COMMIT" > .v269-source-commit
+
+      - name: Verify exact toolchain and candidate scripts
+        run: |
+          set -euo pipefail
+          [ -x "$COMPETITION_TOOL_PYTHON" ]
+          test "$($COMPETITION_TOOL_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          "$COMPETITION_TOOL_PYTHON" -m py_compile \
+            scripts/compile_competition_lineage.py \
+            scripts/build_competition_runtime_package.py \
+            scripts/verify_competition_runtime_package.py \
+            scripts/competition_contract_fixture_provider.py \
+            scripts/competition_contract_fixture_provider_v269.py \
+            scripts/competition_e2e_compat_runtime/competition_contract_fixture_provider.py \
+            scripts/run_competition_three_report_e2e.py \
+            scripts/run_competition_three_report_e2e_history_warmup.py \
+            scripts/run_competition_three_report_e2e_v269.py
+          "$COMPETITION_TOOL_PYTHON" -m json.tool fixtures/competition/three_report_scenario.json >/dev/null
+
+      - name: Compile registry lineage and precise runtime package
+        run: |
+          set -euo pipefail
+          rm -rf dist/v269-a-lineage dist/v269-a-runtime dist/v269-a-three-report
+          mkdir -p dist/v269-a-three-report
+          "$COMPETITION_TOOL_PYTHON" scripts/compile_competition_lineage.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output-dir dist/v269-a-lineage \
+            2>&1 | tee dist/v269-a-three-report/lineage.log
+          "$COMPETITION_TOOL_PYTHON" scripts/build_competition_runtime_package.py \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --lineage-dir dist/v269-a-lineage \
+            --output-dir dist/v269-a-runtime \
+            --archive-name "v269-a-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz" \
+            2>&1 | tee dist/v269-a-three-report/package-build.log
+          ARCHIVE="dist/v269-a-runtime/v269-a-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          "$COMPETITION_TOOL_PYTHON" scripts/verify_competition_runtime_package.py \
+            "$ARCHIVE" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --output dist/v269-a-runtime/runtime-verification.json \
+            2>&1 | tee dist/v269-a-three-report/package-verification.log
+
+      - name: Prepare exact application Python
+        run: |
+          set -euo pipefail
+          chmod +x scripts/prepare_competition_runtime_venv.sh
+          RUNTIME_PYTHON="$(
+            COMPETITION_VENV_ROOT="$COMPETITION_VENV_ROOT" \
+            COMPETITION_BASE_PYTHON="$COMPETITION_TOOL_PYTHON" \
+            bash scripts/prepare_competition_runtime_venv.sh \
+              "$GITHUB_WORKSPACE" \
+              "$GITHUB_WORKSPACE/dist/v269-a-three-report" \
+              | tee dist/v269-a-three-report/runtime-environment.log \
+              | tail -n 1
+          )"
+          [ -x "$RUNTIME_PYTHON" ]
+          test "$($RUNTIME_PYTHON -c 'import platform; print(platform.python_version())')" = "3.11.9"
+          "$RUNTIME_PYTHON" -c 'import uvicorn, fastapi, openpyxl'
+          LAUNCHER="$GITHUB_WORKSPACE/dist/v269-a-three-report/runtime-python-launcher.sh"
+          cat > "$LAUNCHER" <<EOF
+          #!/usr/bin/env bash
+          exec "$RUNTIME_PYTHON" "\$@"
+          EOF
+          chmod +x "$LAUNCHER"
+          printf 'V269_RUNTIME_PYTHON=%s\n' "$RUNTIME_PYTHON" >> "$GITHUB_ENV"
+          printf 'V269_RUNTIME_LAUNCHER=%s\n' "$LAUNCHER" >> "$GITHUB_ENV"
+
+      - name: Run fixed three-report V26.9 candidate chain
+        run: |
+          set -euo pipefail
+          ARCHIVE="dist/v269-a-runtime/v269-a-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
+          "$COMPETITION_TOOL_PYTHON" scripts/run_competition_three_report_e2e_v269.py \
+            "$ARCHIVE" \
+            --source-commit "$COMPETITION_SOURCE_COMMIT" \
+            --scenario fixtures/competition/three_report_scenario.json \
+            --candidate-base "$COMPETITION_E2E_BASE" \
+            --runtime-python "$V269_RUNTIME_LAUNCHER" \
+            --tool-python "$COMPETITION_TOOL_PYTHON" \
+            --app-port 39380 \
+            --provider-port 39480 \
+            --startup-timeout 150 \
+            --max-ticks 140 \
+            --output dist/v269-a-three-report/attestation.json \
+            2>&1 | tee dist/v269-a-three-report/e2e.log
+
+      - name: Verify V26.9 attestation boundary
+        run: |
+          set -euo pipefail
+          "$COMPETITION_TOOL_PYTHON" - <<'PY'
+          import json, os
+          from pathlib import Path
+          report=json.loads(Path('dist/v269-a-three-report/attestation.json').read_text(encoding='utf-8'))
+          assert report.get('verified') is True, report.get('errors')
+          assert report.get('sourceCommit') == os.environ['COMPETITION_SOURCE_COMMIT']
+          assert report.get('v269GraphContractVerified') is True, report.get('v269GraphContract')
+          contract=report['v269GraphContract']
+          assert contract.get('ragFeedbackActivated') is False
+          assert contract.get('evaluationPlaneActivated') is False
+          assert contract['graphProbe']['rolloutStatus'] == 'candidate_not_activated'
+          assert contract['graphProbe']['partitionDomains'] == ['creative','traffic']
+          assert all(contract['assertions'].values()), contract['assertions']
+          assert report.get('realBailianRunStillRequired') is True
+          print(json.dumps({
+              'verified': True,
+              'sourceCommit': report['sourceCommit'],
+              'verificationHash': report['verificationHash'],
+              'schedulerStages': contract['observedSchedulerStages'],
+              'partitionDomains': contract['graphProbe']['partitionDomains'],
+              'realBailianRunStillRequired': report['realBailianRunStillRequired'],
+          }, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Publish V26.9.A exact evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v269-a-three-report-${{ env.COMPETITION_SOURCE_COMMIT }}
+          path: |
+            dist/v269-a-three-report
+            dist/v269-a-runtime/runtime-verification.json
+            dist/v269-a-lineage/evidence-manifest.json
+            dist/v269-a-lineage/verification-report.json
+          if-no-files-found: warn
+          retention-days: 14
