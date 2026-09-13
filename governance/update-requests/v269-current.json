@@ -1,6 +1,6 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.B-2026-09-13-runtime-integration-06",
+  "requestId": "V26.9.B-2026-09-13-runtime-integration-07",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
@@ -57,6 +57,17 @@
       "evidencePaths": [
         "docs/V26_9_B_EXPERIENCE_EVALUATION.md",
         ".github/workflows/v269-b-experience-evaluation.yml"
+      ]
+    },
+    {
+      "targetId": "v269b-lineage-package-initializer-membership",
+      "failureClass": "REGISTERED_EXPERIENCE_STORE_IMPORT_ADDS_UNREGISTERED_PACKAGE_INITIALIZER_TO_RUNTIME_LINEAGE",
+      "registryModules": [
+        "release_governance",
+        "experience_store"
+      ],
+      "evidencePaths": [
+        "governance/v26-field-authority-update-policy.json"
       ]
     }
   ]
