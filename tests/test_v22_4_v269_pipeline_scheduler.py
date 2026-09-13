@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from src.services import station_agent_worker_v22515_service as worker
 from src.services import v269_pipeline_downstream_service as downstream
+from src.services import v269_pipeline_orchestration_service as orchestration
 from src.services import v269_semantic_graph_service as graphs
 from tests.test_v22_4_v269_semantic_graph import decision_raw, plan_node
 
@@ -190,3 +191,56 @@ def test_v269_agent3_handoff_requires_exact_execution_identity():
     }
     assert payload["OperationGraph"] == operation
     assert payload["legacyBusinessSemanticsUsed"] is False
+
+
+def test_v269_agent2_no_output_surfaces_existing_fail_closed_diagnostics():
+    package = graph_package()
+    package.pop("PlanGraph")
+    package.pop("OperationGraph")
+    package["BusinessFacts"] = {"factValues": package["factValues"]}
+    item = {
+        "item_id": "i",
+        "data_version": "d",
+        "product_id": "p",
+        "store_id": "s",
+        "priority": 1,
+    }
+    persisted = {"payload": {"packageId": "partition"}}
+    finished = []
+    provider = {
+        "providerBatchCount": 0,
+        "alreadyRunningCount": 0,
+        "exactContractInvalidCount": 1,
+        "trueMissingCount": 1,
+        "errors": ["prepare:graph-contract-invalid"],
+        "itemFailures": {
+            "partition": {
+                "phase": "prepare",
+                "reason": "graph-contract-invalid",
+                "providerCallExecuted": False,
+            }
+        },
+        "provider": "must-not-leak",
+        "apiKey": "must-not-leak",
+    }
+    with patch.object(orchestration, "_rows", return_value=[item]), \
+         patch.object(orchestration, "payload_from_row", return_value=deepcopy(package)), \
+         patch.object(orchestration, "_source_ref", return_value="ART-agent1"), \
+         patch.object(orchestration, "_source_hash", return_value="sha256:source"), \
+         patch.object(orchestration.migration, "project_input", return_value=persisted), \
+         patch.object(orchestration, "_store_agent2_input", return_value="ART-agent2-input"), \
+         patch("src.services.artifact_transport_service.resolve_artifact", return_value=persisted), \
+         patch("src.services.agent_token_runtime_v225_service.run_agent2_draft_projected_inputs", return_value=({}, provider)), \
+         patch.object(orchestration, "_finish", side_effect=lambda *a, **kw: finished.append(kw) or {}):
+        result = orchestration.run_agent2_graph_partition_microbatch("d")
+    assert result["failedItemCount"] == 1
+    detail = result["details"][0]
+    assert detail["status"] == "partition_incomplete"
+    diagnostics = detail["providerDiagnostics"]
+    assert diagnostics["providerBatchCount"] == 0
+    assert diagnostics["exactContractInvalidCount"] == 1
+    assert diagnostics["errors"] == ["prepare:graph-contract-invalid"]
+    assert diagnostics["itemFailures"]["partition"]["providerCallExecuted"] is False
+    assert "provider" not in diagnostics
+    assert "apiKey" not in diagnostics
+    assert finished[0]["status"] == "retry"
