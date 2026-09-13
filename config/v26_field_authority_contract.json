@@ -329,7 +329,7 @@
   },
   "businessSemanticContract": {
     "version": "26.9.0",
-    "rolloutStatus": "candidate_not_activated",
+    "rolloutStatus": "active",
     "authorityRoot": "existing_field_authority",
     "legacyReadForbidden": [
       "primaryProblemNode",
