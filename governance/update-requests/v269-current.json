@@ -1,6 +1,6 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.B-2026-09-13-production-activation-02",
+  "requestId": "V26.9.B-2026-09-13-production-activation-03",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
@@ -43,6 +43,17 @@
       ],
       "evidencePaths": [
         ".github/workflows/v26-field-authority-phase1.yml"
+      ]
+    },
+    {
+      "targetId": "v269b-active-retrieval-test-contract",
+      "failureClass": "RETRIEVAL_TEST_ASSUMES_CANDIDATE_ENV_CAN_DISABLE_ACTIVE_MANIFEST",
+      "registryModules": [
+        "experience_retrieval",
+        "agent1_input_projection"
+      ],
+      "evidencePaths": [
+        "tests/test_v269b_experience_retrieval.py"
       ]
     }
   ]
