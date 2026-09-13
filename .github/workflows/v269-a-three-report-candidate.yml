@@ -19,6 +19,8 @@ on:
       - 'src/services/agent3_runtime_v23215_service.py'
       - 'java-control-plane/src/main/java/com/zcentury/v24/**'
       - 'config/v23_registry_runtime.json'
+      - 'config/competition_runtime_scope.json'
+      - 'rag/**'
       - 'config/v26_field_authority_contract.json'
       - 'governance/v26-field-authority-update-policy.json'
       - 'scripts/competition_contract_fixture_provider_v269.py'
