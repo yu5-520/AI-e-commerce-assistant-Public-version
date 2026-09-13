@@ -4,9 +4,11 @@ from __future__ import annotations
 import pytest
 
 from src.repositories import sqlite_repository as repo
+from src.services import v269_evaluation_plane_service as evaluation
 from src.services import v269_experience_retrieval_service as retrieval
 from src.services import v269_experience_store_service as store
 from src.services import v269_promotion_gate_service as promotion
+from tests.test_v22_4_v269_production_admission import graph_case
 
 
 @pytest.fixture
@@ -191,3 +193,48 @@ def test_seed_and_adjustment_required_are_not_promotable(isolated_db):
     gate = promotion.evaluate_promotion_gate(candidate["experienceId"])
     assert gate["approvedForPromotion"] is False
     assert "SOURCE_REVIEW_NOT_SETTLED" in gate["failures"]
+
+
+def test_system_review_creates_agent1_decision_candidates_and_requires_explicit_enable(isolated_db):
+    package, _ = graph_case()
+    package["taskId"] = "TASK-C-A1"
+    review_hash = "sha256:" + "9" * 64
+    target_hash = "sha256:" + "8" * 64
+    receipt = evaluation.record_system_review_candidate(
+        package,
+        target_facts={"roas": {"value": 1.5, "unit": "ratio", "sourceRef": "fact:metric:roas"}},
+        target_source_content_hash=target_hash,
+        review_receipt={"receiptHash": review_hash},
+        review_status="SETTLED",
+    )
+    assert receipt["decisionExperienceIds"]
+    assert receipt["promotionPerformed"] is False
+    assert receipt["knowledgeHeadMutated"] is False
+
+    inspection = retrieval.retrieve_experience(
+        "agent1", {"metric": "roas", "direction": "up"}, mode="inspection"
+    )
+    decision_ids = set(receipt["decisionExperienceIds"])
+    assert decision_ids <= {item["experienceId"] for item in inspection["results"]}
+    assert retrieval.retrieve_experience("agent1", {"metric": "roas", "direction": "up"})["emptyResult"] is True
+
+    candidate_id = receipt["decisionExperienceIds"][0]
+    gate = promotion.evaluate_promotion_gate(candidate_id)
+    assert gate["approvedForPromotion"] is True
+    reviewed = promotion.review_candidate(
+        candidate_id,
+        reviewer_id="reviewer-a1",
+        decision="approve",
+        rationale="reviewed graph pattern and later target evidence",
+    )
+    assert reviewed["lifecycleStatus"] == "approved"
+    assert retrieval.retrieve_experience("agent1", {"metric": "roas", "direction": "up"})["emptyResult"] is True
+
+    promotion.enable_experience(
+        candidate_id,
+        operator_id="operator-a1",
+        explicit_operator_intent=True,
+    )
+    official = retrieval.retrieve_experience("agent1", {"metric": "roas", "direction": "up"})
+    assert official["emptyResult"] is False
+    assert candidate_id in {item["experienceId"] for item in official["results"]}
