@@ -442,25 +442,33 @@
     },
     "semanticIdentity": {
       "agent1": [
-        "businessFacts",
-        "ragHead",
-        "contractVersion"
+        "BusinessFacts",
+        "evidenceRefs",
+        "knowledgeHead",
+        "contractHash"
       ],
       "agent2": [
         "DecisionGraphHash",
-        "ragHead",
-        "contractVersion"
+        "partitionReceiptHash",
+        "factValues",
+        "knowledgeHead",
+        "contractHash"
       ],
       "agent3": [
         "PlanGraphHash",
-        "companyRagHead",
-        "contractVersion"
+        "knowledgeHead",
+        "contractHash"
       ],
       "namespace": [
         "businessScope",
         "modelConfigHash",
-        "retrievalPolicyHash"
-      ]
+        "retrievalPolicyHash",
+        "revisionScope",
+        "parentGraphHash"
+      ],
+      "partitionReceiptBindsActionAdmission": true,
+      "executionAuthorizationReuseAllowed": false,
+      "cacheHitRequiresCurrentExecutionAuthorization": true
     },
     "decisionEdgeTypes": {
       "causes": [
