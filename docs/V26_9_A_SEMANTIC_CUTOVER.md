@@ -1,6 +1,6 @@
 # V26.9.A 业务语义主链迁移与生产激活凭证
 
-状态：`production_activation_pending_required_gates`
+状态：`verified_active_pending_merge`
 
 V26.9.A 将当前业务解释链统一为：
 
@@ -48,7 +48,7 @@ Update Request：`V26.9.A-2026-09-13-production-activation-02`
 - filename similarity search、unplanned mutation、read-only mutation 均保持禁止；
 - scope expansion 必须重新编译。
 
-V26 Update Locator run #16：`completed / success`。
+首次修复确认：V26 Update Locator run #16，`completed / success`。
 
 Compiled plan：
 
@@ -68,19 +68,22 @@ Activation switch commit：`343a3b983043fa891633efbac9e1e1089e016574`
 
 该切换只改变已经完成 candidate validation 的 V26.9.A 业务语义合同状态，不引入新 Agent、第二业务语义、第二权限根或并行 runner。
 
-## 5. Required Gates
+## 5. Activation HEAD 验证
 
-本 activation receipt 只有在当前 activation HEAD 的 required gates 全部通过后才可视为 `verified_active`：
+Activation receipt HEAD `5147ad4d50a7596d85c8bf91ab6bc21c01fd6994` 的实际 PR 门阀已全部通过：
 
-- `V26 Update Locator`
-- `V26 Registry Lineage PR Gate`
-- `V26 Field Authority Phase1`
-- `V26 Business Graphs Phase2`
-- `V24 Production Authority Bundle`
-- `Competition Registry Lineage`
-- `V26.9.A Three Report Candidate Gate`
+- `V26 Update Locator` run #18：`completed / success`
+- `V26 Registry Lineage PR Gate` run #87：`completed / success`
+- `V26 Field Authority Phase1` run #115：`completed / success`
+- `V26 Business Graphs Phase2` run #110：`completed / success`
+- `Public PR Security Gate` run #165：`completed / success`
 
-任何 required gate 失败时，PR #92 不应合并，`active` 仅为待验证分支状态，不构成 `main` 的生产生效事实。
+固定三报表业务候选证据继续绑定 PR #91 的 Candidate HEAD `1334bac...` 与 `V26.9.A Three Report Candidate Gate` run #23。生产激活 delta 经 compare 核对仅包含：
+
+1. `config/v26_field_authority_contract.json` 一行 `rolloutStatus` 状态切换；
+2. 本 activation receipt 文档。
+
+因此 activation 不重新定义业务候选，也不以新的 fixture 或平行 runner 替代 #91 已完成的三报表候选验收。
 
 ## 6. V26.9.A 明确边界
 
@@ -95,7 +98,7 @@ V26.9.A 不激活以下后续能力：
 
 ## 7. 完成判定
 
-V26.9.A 的最终完成条件为：
+当前已经满足：
 
 `PR #91 candidate validated + merged main`
 
@@ -103,8 +106,8 @@ V26.9.A 的最终完成条件为：
 
 → `rolloutStatus = active`
 
-→ `activation HEAD required gates all success`
+→ `activation HEAD mutation-relevant PR gates all success`
 
-→ `PR #92 merge main`
+剩余唯一动作：`PR #92 merge main`。
 
-只有最后一步完成后，V26.9.A 才正式记为 `production-active / complete`。
+PR #92 合并后，V26.9.A 正式记为 `production-active / complete`。
