@@ -73,3 +73,13 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r requirements-dev.lock
       - name: Run C promotion feedback tests
         run: python -m pytest -q tests/test_v269c_promotion_feedback.py
+      - name: Export exact governed sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: v269c-governed-sources
+          path: |
+            config/v23_registry_runtime.json
+            src/services/v269_evaluation_plane_service.py
+            src/api/routes/frontend_views.py
+          if-no-files-found: error
+          retention-days: 14
