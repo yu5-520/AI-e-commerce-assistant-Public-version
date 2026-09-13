@@ -1,0 +1,45 @@
+{
+  "schema": "experience.seed.v269b.v1",
+  "seedVersion": "2026.09.13.1",
+  "sourceLabel": "synthetic_documentation_seed_not_business_result",
+  "records": [
+    {
+      "source": {
+        "sourceTaskId": "seed:v269b:decision-pattern:roas-guard",
+        "decisionGraphHash": null,
+        "planGraphHash": null,
+        "operationGraphHash": null,
+        "graphContractVersion": "26.9.0",
+        "evaluationVersion": "26.9.B.1",
+        "evidenceRefs": [
+          "seed:v269b:documentation-only"
+        ],
+        "businessScope": {
+          "category": "synthetic_demo"
+        },
+        "sourceType": "seed",
+        "sourceVersion": "2026.09.13.1"
+      },
+      "experience": {
+        "domain": "decision_patterns",
+        "applicability": {
+          "condition": "roas_below_guard",
+          "metric": "roas",
+          "direction": "down",
+          "category": "synthetic_demo"
+        },
+        "payload": {
+          "decisionActionKey": "SEED-DA-ROAS-GUARD",
+          "conditionKey": "roas_below_guard",
+          "metric": "roas",
+          "direction": "down",
+          "category": "synthetic_demo",
+          "decisionPattern": "Documentation-only example. It is never treated as an observed operating result.",
+          "graphValueScore": null,
+          "graphValueMetricVersion": null,
+          "sampleCount": 0
+        }
+      }
+    }
+  ]
+}
