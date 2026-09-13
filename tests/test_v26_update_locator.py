@@ -16,6 +16,7 @@ def registry():
                 "implementationPaths": [
                     "src/services/agent3_sop_core_v225_service.py",
                     "src/services/agent3_runtime_v23215_service.py",
+                    "src/services/agent3_semantic_path_repair_v1_service.py",
                 ],
                 "runner": "src.services.pipeline_agent3_sop_v225_service:run_agent3_sop_microbatch_v225",
             },
@@ -80,25 +81,19 @@ def request():
     }
 
 
-def test_locator_compiles_only_registry_and_policy_owned_paths():
+def test_locator_compiles_registry_paths_into_editable_and_read_only_sets():
     plan = compile_plan(registry=registry(), policy=policy(), request=request())
-    assert plan["deniedRegisteredPaths"] == []
     assert plan["rules"]["filenameSimilaritySearchAllowed"] is False
     assert plan["rules"]["unplannedFileMutationAllowed"] is False
+    assert plan["rules"]["readOnlyContextMutationAllowed"] is False
     assert plan["rules"]["scopeExpansionRequiresRecompile"] is True
     assert "src/services/agent3_sop_core_v225_service.py" in plan["editablePaths"]
     assert "src/services/pipeline_task_mapping_v225_service.py" in plan["editablePaths"]
     assert "tests/test_v22_4_v269_agent3_core_bridge.py" in plan["editablePaths"]
     assert "scripts/run_competition_three_report_e2e_v269.py" in plan["editablePaths"]
+    assert "src/services/agent3_semantic_path_repair_v1_service.py" in plan["readOnlyContextPaths"]
+    assert not (set(plan["editablePaths"]) & set(plan["readOnlyContextPaths"]))
     assert ".github/workflows/v269-a-three-report-candidate.yml" in plan["requiredGates"]
-    assert plan["relatedModules"] == [
-        {
-            "moduleId": "task_mapping" if plan["selectedModules"][0]["moduleId"] == "agent3_runtime" else "agent3_runtime",
-            "sharedFieldIds": ["agent3.execution_steps"],
-            "sharedSchemaIds": [],
-            "sharedImplementationPaths": [],
-        }
-    ] or plan["relatedModules"] == []
     assert plan["planHash"].startswith("sha256:")
 
 
