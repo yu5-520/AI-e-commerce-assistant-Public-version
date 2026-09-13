@@ -247,7 +247,7 @@ def reserve_plan_authority(decision: Dict[str, Any], authorization: Dict[str, An
                    reservation_id,idempotency_key,plan_graph_hash,authority_receipt_hash,
                    policy_hash,resource_usage_receipt_hash,operator_id,store_id,product_id,
                    adjustment_amount,status,task_id,payload,created_at,updated_at,expires_at
-                   ) VALUES(?,?,?,?,?,?,?,?,?,?,'reserved',NULL,?,?,?,?,?)""",
+                   ) VALUES(?,?,?,?,?,?,?,?,?,?,'reserved',NULL,?,?,?,?)""",
                 (
                     reservation_id, key, evaluation["planGraphHash"], evaluation["receiptHash"],
                     evaluation["policyHash"], usage["receiptHash"], operator_id, store_id,
@@ -365,7 +365,7 @@ def _graph_snapshot_body(decision: Dict[str, Any], authorization: Dict[str, Any]
     admitted = set((decision.get("actionAdmission") or {}).get("admitted") or [])
     actions = [decision_nodes[key] for key in admitted if key in decision_nodes]
     action_names = [str(node.get("actionType") or node["nodeKey"]) for node in actions]
-    title = str(decision.get("taskTitle") or (" + ".join(action_names[:3]) + "｜经营任务") or "V26.9经营任务")
+    title = str(decision.get("taskTitle") or ((" + ".join(action_names[:3]) + "｜经营任务") if action_names else "V26.9经营任务"))
     reason = "；".join(
         str(node.get("reasoning") or "").strip()
         for node in decision_nodes.values()
@@ -604,6 +604,13 @@ def admit_graph_decision_to_task_pool(
                     "taskId": duplicate["task_id"], "taskGraphMapping": mapping,
                     "authorizationDecision": authorization, "contractVersion": VERSION,
                 }
+            if reservation_id:
+                committed = _commit_reservation_in_conn(conn, reservation_id, task["taskId"])
+                task["authorizationDecision"]["reservation"] = committed
+                task["authorizationDecision"]["reservationCreated"] = True
+                authorization = task["authorizationDecision"]
+                payload["task"] = task
+                payload["authorizationDecision"] = authorization
             conn.execute(
                 """INSERT INTO task_pool_entries(
                    pool_entry_id,task_snapshot_id,task_id,data_version,status,decision,task_layer,
@@ -617,10 +624,6 @@ def admit_graph_decision_to_task_pool(
                     dumps(payload), created_by, now, now,
                 ),
             )
-            if reservation_id:
-                committed = _commit_reservation_in_conn(conn, reservation_id, task["taskId"])
-                task["authorizationDecision"]["reservation"] = committed
-                task["authorizationDecision"]["reservationCreated"] = True
             conn.commit()
         return {
             "ok": True,
