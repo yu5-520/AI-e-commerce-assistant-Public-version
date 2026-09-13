@@ -33,6 +33,9 @@ QUERY_FIELDS = {
     "agent2": {"decisionAction", "baseline", "category", "strategyType"},
     "agent3": {"planAction", "platform", "executionType"},
 }
+_CONTEXT_RECEIPT_SCHEMA = "experience.retrieval.context_receipt.v269b.v1"
+_CONTEXT_RECORD_SCHEMA = "experience.context.record.v269b.v1"
+_CONTEXT_SCHEMAS = {_CONTEXT_RECEIPT_SCHEMA, _CONTEXT_RECORD_SCHEMA}
 
 
 class ExperienceRetrievalError(ValueError):
@@ -50,6 +53,59 @@ def runtime_enabled() -> bool:
         return True
     env = str(cfg.get("candidateRuntimeEnv") or "V269B_CANDIDATE_RUNTIME")
     return str(os.getenv(env, "")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _context_body(value: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "retrievalPolicyHash": value["retrievalPolicyHash"],
+        "records": value["records"],
+    }
+
+
+def _canonical_base_context(value: dict[str, Any]) -> dict[str, Any]:
+    """Validate the incoming head and peel off one prior B projection if present.
+
+    Reprojection is common for replay/rebinding. B records therefore replace the prior
+    B layer instead of accumulating. The receipt stores the original A/base head and
+    policy hash so a second projection can reconstruct that authority exactly.
+    """
+    _require(
+        isinstance(value, dict)
+        and set(value) == {"headHash", "retrievalPolicyHash", "records"}
+        and isinstance(value.get("retrievalPolicyHash"), str)
+        and bool(value.get("retrievalPolicyHash"))
+        and isinstance(value.get("records"), list),
+        "base_knowledge_context",
+    )
+    _require(value["headHash"] == store.digest(_context_body(value)), "knowledge_head_mismatch")
+
+    b_records = [
+        item for item in value["records"]
+        if isinstance(item, dict) and item.get("schema") in _CONTEXT_SCHEMAS
+    ]
+    if not b_records:
+        return deepcopy(value)
+
+    receipt_records = [
+        item for item in b_records if item.get("schema") == _CONTEXT_RECEIPT_SCHEMA
+    ]
+    _require(bool(receipt_records), "prior_context_receipt_required")
+    base_policy_hashes = {
+        str(item.get("baseRetrievalPolicyHash") or "") for item in receipt_records
+    }
+    base_head_hashes = {str(item.get("baseHeadHash") or "") for item in receipt_records}
+    _require(len(base_policy_hashes) == 1 and "" not in base_policy_hashes, "base_policy_recovery")
+    _require(len(base_head_hashes) == 1 and "" not in base_head_hashes, "base_head_recovery")
+
+    base_records = [
+        deepcopy(item) for item in value["records"]
+        if not (isinstance(item, dict) and item.get("schema") in _CONTEXT_SCHEMAS)
+    ]
+    base_policy_hash = next(iter(base_policy_hashes))
+    base_body = {"retrievalPolicyHash": base_policy_hash, "records": base_records}
+    base_head_hash = store.digest(base_body)
+    _require(base_head_hash == next(iter(base_head_hashes)), "base_head_recovery_mismatch")
+    return {"headHash": base_head_hash, **base_body}
 
 
 def _decode(value: str | None, fallback: Any) -> Any:
@@ -309,14 +365,14 @@ def attach_official_experience_context(
     source: dict[str, Any],
     base_context: dict[str, Any],
 ) -> dict[str, Any]:
-    """Fold official retrieval receipts into the existing knowledgeContext authority."""
+    """Fold official retrieval receipts into the existing knowledgeContext authority.
+
+    The incoming head is validated before any transformation. If it already contains
+    one B projection layer, that layer is peeled and deterministically replaced. This
+    keeps replay/rebinding idempotent and prevents B from healing a tampered A head.
+    """
     _require(agent in AGENT_DOMAINS, "agent_unknown")
-    _require(
-        isinstance(base_context, dict)
-        and set(base_context) == {"headHash", "retrievalPolicyHash", "records"}
-        and isinstance(base_context.get("records"), list),
-        "base_knowledge_context",
-    )
+    base = _canonical_base_context(base_context)
     if not runtime_enabled():
         return deepcopy(base_context)
 
@@ -329,7 +385,7 @@ def attach_official_experience_context(
             receipts.append(receipt)
             for item in receipt["results"]:
                 experience_records[item["experienceId"]] = {
-                    "schema": "experience.context.record.v269b.v1",
+                    "schema": _CONTEXT_RECORD_SCHEMA,
                     "experienceId": item["experienceId"],
                     "domain": item["domain"],
                     "payload": deepcopy(item["payload"]),
@@ -360,24 +416,27 @@ def attach_official_experience_context(
 
     receipt_records = [
         {
-            "schema": "experience.retrieval.context_receipt.v269b.v1",
+            "schema": _CONTEXT_RECEIPT_SCHEMA,
             "receiptHash": receipt["receiptHash"],
             "query": deepcopy(receipt["query"]),
             "matchCount": receipt["matchCount"],
             "emptyResult": receipt["emptyResult"],
             "knowledgeHead": receipt["knowledgeHead"],
+            "baseRetrievalPolicyHash": base["retrievalPolicyHash"],
+            "baseHeadHash": base["headHash"],
             **({"reason": receipt["reason"]} if receipt.get("reason") else {}),
         }
         for receipt in receipts
     ]
-    records = deepcopy(base_context["records"]) + receipt_records + [
+    records = deepcopy(base["records"]) + receipt_records + [
         experience_records[key] for key in sorted(experience_records)
     ]
     policy_material = {
         "schema": "v269b.experience_retrieval_policy.v1",
         "version": VERSION,
         "agent": agent,
-        "baseRetrievalPolicyHash": base_context["retrievalPolicyHash"],
+        "baseRetrievalPolicyHash": base["retrievalPolicyHash"],
+        "baseHeadHash": base["headHash"],
         "mode": "official_exact_field_only",
         "vectorRetrieval": False,
         "dynamicQueryExpansion": False,
