@@ -41,6 +41,37 @@ def finite(value):
         for child in value: finite(child)
 
 
+def _safety_rule(rule, affected_metrics):
+    """Validate the one deterministic safety-rule language shared with Java Review.
+
+    Agent2 may author only explicit metric thresholds. Prose or richer objects are not
+    silently interpreted here or later by Java; callers must use a non-ready output
+    channel when a business constraint cannot be represented deterministically.
+    """
+    require(isinstance(rule,dict) and set(rule)=={'metric','comparator','value'}, 'plan_safety_rule_shape')
+    require(isinstance(rule['metric'],str) and rule['metric'] in affected_metrics, 'plan_safety_metric')
+    require(rule['comparator'] in {'GTE','LTE'}, 'plan_safety_comparator')
+    require(type(rule['value']) in (int,float) and math.isfinite(rule['value']), 'plan_safety_value')
+
+
+def _validate_plan_safety(node):
+    affected=set(node['affectedMetrics'])
+    guard=node['guard']
+    require(isinstance(guard,dict), 'plan_guard_shape')
+    for rule_id,rule in guard.items():
+        require(isinstance(rule_id,str) and rule_id.strip(), 'plan_guard_id')
+        _safety_rule(rule,affected)
+    risk=node['riskBoundary']
+    require(isinstance(risk,list), 'plan_risk_boundary_shape')
+    for rule in risk:
+        _safety_rule(rule,affected)
+    criteria=node['acceptanceCriteria']
+    require(isinstance(criteria,list) and criteria, 'review_criteria_required')
+    for rule in criteria:
+        require(isinstance(rule,dict) and set(rule)=={'metric','constraint'}, 'acceptance_criterion_shape')
+        require(rule['metric'] in affected and rule['constraint']=='expectedRange', 'acceptance_criterion_not_compiled')
+
+
 def index(graph):
     require(isinstance(graph, dict), 'graph_required')
     c=contract()
@@ -141,7 +172,7 @@ def compile_graph(kind, raw, *, upstream=None, evidence_refs=(), fact_values=Non
                 require(math.isclose(value['expectedValue']-base['value'], value['expectedDelta'], rel_tol=1e-9, abs_tol=1e-9), 'expected_delta_mismatch')
             window=node['reviewWindow']
             require(isinstance(window,dict) and set(window)=={'durationSeconds'} and type(window['durationSeconds']) is int and window['durationSeconds']>0, 'review_window_invalid')
-            require(isinstance(node['riskBoundary'],list) and isinstance(node['acceptanceCriteria'],list) and node['acceptanceCriteria'], 'review_criteria_required')
+            _validate_plan_safety(node)
             node['actionFamily'] = decision['actionFamily']
         else:
             require(strings(node['planActionRefs']) and node['planActionRefs'] and set(node['planActionRefs']) <= set(parent), 'plan_refs_invalid')
