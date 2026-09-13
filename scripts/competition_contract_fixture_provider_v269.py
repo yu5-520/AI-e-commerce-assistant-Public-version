@@ -250,6 +250,37 @@ def _agent3(payload: dict[str, Any]) -> dict[str, Any]:
     return {"sops": sops}
 
 
+def _graph_stage(packages: Any, collection: Any) -> str:
+    """Resolve the deterministic fixture stage from explicit contract or V26.9 shape.
+
+    The real Agent2 exact-hash layer may replace ``outputContract`` with a stricter
+    identity contract. Stage selection therefore cannot depend on ``collection`` alone.
+    DecisionGraph+partition and PlanGraph are mutually exclusive V26.9 input contracts,
+    so they remain a deterministic, fail-closed discriminator without inferring business
+    intent or authoring system-owned state.
+    """
+    values = [item for item in _list(packages) if isinstance(item, dict)]
+    if not values or len(values) != len(_list(packages)):
+        raise ValueError("v269_fixture_packages_invalid")
+    explicit = _text(collection)
+    if explicit == "plans":
+        return "agent2"
+    if explicit == "sops":
+        return "agent3"
+    agent2_shape = all(
+        isinstance(item.get("DecisionGraph"), dict)
+        and isinstance(item.get("partition"), dict)
+        and isinstance(item.get("factValues"), dict)
+        for item in values
+    )
+    agent3_shape = all(isinstance(item.get("PlanGraph"), dict) for item in values)
+    if agent2_shape and not agent3_shape:
+        return "agent2"
+    if agent3_shape and not agent2_shape:
+        return "agent3"
+    raise ValueError("v269_fixture_provider_unrecognized_request")
+
+
 def response_payload(request_body: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     payload = legacy._last_user_payload(request_body)
     if payload.get("version") != VERSION:
@@ -258,10 +289,10 @@ def response_payload(request_body: Mapping[str, Any]) -> tuple[str, dict[str, An
         return "product_judgment_agent", _agent1(payload)
     packages = payload.get("packages")
     contract = _dict(payload.get("outputContract"))
-    collection = contract.get("collection")
-    if isinstance(packages, list) and collection == "sops":
+    stage = _graph_stage(packages, contract.get("collection"))
+    if stage == "agent3":
         return "agent3_sop_agent", _agent3(payload)
-    if isinstance(packages, list) and collection == "plans":
+    if stage == "agent2":
         return "action_plan_judgment_agent", _agent2(payload)
     raise ValueError("v269_fixture_provider_unrecognized_request")
 
