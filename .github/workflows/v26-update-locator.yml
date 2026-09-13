@@ -38,22 +38,44 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          plan=json.loads(Path('dist/v26-update-locator/v269-a-current.plan.json').read_text(encoding='utf-8'))
-          assert plan['schema']=='z.update_locator.plan.v1'
+
+          plan = json.loads(Path('dist/v26-update-locator/v269-a-current.plan.json').read_text(encoding='utf-8'))
+          request = json.loads(Path('governance/update-requests/v269-a-current.json').read_text(encoding='utf-8'))
+
+          assert plan['schema'] == 'z.update_locator.plan.v1'
+          assert plan['requestId'] == request['requestId']
+          assert plan['policyProfile'] == request['policyProfile']
           assert plan['rules']['filenameSimilaritySearchAllowed'] is False
           assert plan['rules']['unplannedFileMutationAllowed'] is False
           assert plan['rules']['readOnlyContextMutationAllowed'] is False
           assert plan['rules']['scopeExpansionRequiresRecompile'] is True
-          assert 'agent3_runtime' in [item['moduleId'] for item in plan['selectedModules']]
-          assert 'task_mapping' in [item['moduleId'] for item in plan['selectedModules']]
-          assert 'scripts/run_competition_three_report_e2e_v269.py' in plan['editablePaths']
-          assert 'tests/test_v22_4_v269_agent3_core_bridge.py' in plan['editablePaths']
+          assert plan['rules']['registryIsFileAuthority'] is True
+          assert plan['rules']['policyIsMutationBoundary'] is True
+
+          expected_modules = sorted({
+              module_id
+              for target in request['targets']
+              for module_id in target['registryModules']
+          })
+          actual_modules = sorted(item['moduleId'] for item in plan['selectedModules'])
+          assert actual_modules == expected_modules
+
+          expected_evidence = sorted({
+              path
+              for target in request['targets']
+              for path in target.get('evidencePaths', [])
+          })
+          assert plan['evidencePaths'] == expected_evidence
+          assert set(expected_evidence).issubset(set(plan['editablePaths']))
           assert not (set(plan['editablePaths']) & set(plan['readOnlyContextPaths']))
+          assert plan['planHash'].startswith('sha256:')
+
           print('V26_UPDATE_LOCATOR=PASS')
-          print('PLAN_HASH='+plan['planHash'])
-          print('EDITABLE_PATHS='+json.dumps(plan['editablePaths'],ensure_ascii=False,sort_keys=True))
-          print('READ_ONLY_CONTEXT_PATHS='+json.dumps(plan['readOnlyContextPaths'],ensure_ascii=False,sort_keys=True))
-          print('REQUIRED_GATES='+json.dumps(plan['requiredGates'],ensure_ascii=False,sort_keys=True))
+          print('PLAN_HASH=' + plan['planHash'])
+          print('SELECTED_MODULES=' + json.dumps(actual_modules, ensure_ascii=False, sort_keys=True))
+          print('EDITABLE_PATHS=' + json.dumps(plan['editablePaths'], ensure_ascii=False, sort_keys=True))
+          print('READ_ONLY_CONTEXT_PATHS=' + json.dumps(plan['readOnlyContextPaths'], ensure_ascii=False, sort_keys=True))
+          print('REQUIRED_GATES=' + json.dumps(plan['requiredGates'], ensure_ascii=False, sort_keys=True))
           PY
       - name: Install locator test dependency
         run: python -m pip install --disable-pip-version-check pytest==9.0.1

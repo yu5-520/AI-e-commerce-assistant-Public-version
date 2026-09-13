@@ -1,40 +1,44 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.A-2026-09-13-finalize-02",
+  "requestId": "V26.9.A-2026-09-13-production-activation-02",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
-      "targetId": "agent3-mixed-contract-regression",
-      "failureClass": "MIXED_PROVIDER_CONTRACT_TEST_MISMATCH",
+      "targetId": "v269-business-semantic-production-activation",
+      "failureClass": "CANDIDATE_VALIDATED_BUT_PRODUCTION_ROLLOUT_NOT_ACTIVATED",
       "registryModules": [
-        "agent3_runtime"
-      ],
-      "evidencePaths": [
-        "tests/test_v22_4_v269_agent3_core_bridge.py"
-      ]
-    },
-    {
-      "targetId": "three-report-scheduler-attestation",
-      "failureClass": "V269_GRAPH_ASSERTIONS_FAILED:allV269SchedulerStagesObserved",
-      "registryModules": [
+        "release_governance",
+        "agent1_runtime",
         "agent2_runtime",
+        "agent3_input_projection",
         "agent3_runtime",
         "task_mapping",
         "task_pool"
       ],
       "evidencePaths": [
-        "scripts/run_competition_three_report_e2e_v269.py"
+        "config/v26_field_authority_contract.json"
       ]
     },
     {
-      "targetId": "three-report-gate-schema-consumer",
-      "failureClass": "ATTESTATION_SCHEMA_CONSUMER_STALE",
+      "targetId": "v269-production-activation-evidence",
+      "failureClass": "PRODUCTION_SWITCH_REQUIRES_SEPARATE_VERIFIED_RECEIPT",
       "registryModules": [
-        "task_mapping",
+        "release_governance",
         "task_pool"
       ],
       "evidencePaths": [
-        ".github/workflows/v269-a-three-report-candidate.yml"
+        "docs/V26_9_A_SEMANTIC_CUTOVER.md"
+      ]
+    },
+    {
+      "targetId": "update-locator-generic-plan-invariants",
+      "failureClass": "LOCATOR_WORKFLOW_ASSERTS_PREVIOUS_REQUEST_SPECIFIC_PATHS",
+      "registryModules": [
+        "release_governance"
+      ],
+      "evidencePaths": [
+        ".github/workflows/v26-update-locator.yml",
+        "tests/test_v26_update_locator.py"
       ]
     }
   ]
