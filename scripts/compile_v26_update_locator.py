@@ -11,8 +11,9 @@ This is the missing front half of the self-update framework:
 
 The compiler never searches by filename similarity and never expands a change beyond
 registered module ownership plus explicit evidence paths that are admitted by the
-selected update policy. If another file is needed, the update request or registry must
-be changed first and the plan recompiled.
+selected update policy. Registered module files outside the current mutation policy are
+returned as read-only context, not silently admitted. If another file is needed, the
+update request or policy/registry must change first and the plan must be recompiled.
 """
 from __future__ import annotations
 
@@ -200,7 +201,7 @@ def compile_plan(
         )
 
     editable_registered = sorted(path for path in registered_paths if policy_allows(path, prefixes))
-    denied_registered = sorted(path for path in registered_paths if not policy_allows(path, prefixes))
+    read_only_registered = sorted(path for path in registered_paths if not policy_allows(path, prefixes))
     editable_paths = sorted(set(editable_registered) | evidence_paths)
 
     workflow_gates = sorted(
@@ -220,8 +221,9 @@ def compile_plan(
         "registryRootHash": registry.get("registryRootHash"),
         "targets": target_records,
         "selectedModules": module_records,
+        "evidencePaths": sorted(evidence_paths),
         "editablePaths": editable_paths,
-        "deniedRegisteredPaths": denied_registered,
+        "readOnlyContextPaths": read_only_registered,
         "relatedModules": related_modules(modules, selected_modules),
         "requiredGates": workflow_gates,
         "runners": sorted(runners),
@@ -230,6 +232,7 @@ def compile_plan(
         "rules": {
             "filenameSimilaritySearchAllowed": False,
             "unplannedFileMutationAllowed": False,
+            "readOnlyContextMutationAllowed": False,
             "scopeExpansionRequiresRecompile": True,
             "registryIsFileAuthority": True,
             "policyIsMutationBoundary": True,
