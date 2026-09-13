@@ -66,7 +66,8 @@
         "src/services/hard_interface_bridge_v2301_service.py",
         "src/services/v269_input_migration_service.py",
         "src/services/v269_semantic_graph_service.py",
-        "src/services/v269_fact_projection_service.py"
+        "src/services/v269_fact_projection_service.py",
+        "src/services/v269_system_review_service.py"
       ],
       "runner": "src.services.v269_fact_projection_service:ensure_agent1_input_ref",
       "schemaIds": [
@@ -337,7 +338,12 @@
         "release/release-policy.json",
         "config/v23_registry_runtime.json",
         "config/runtime_contract_lineage_registry_v1.json",
-        "config/v26_field_authority_contract.json"
+        "config/v26_field_authority_contract.json",
+        "java-control-plane/src/main/java/com/zcentury/v24/ProductionAuthorityMain.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/SystemReviewAuthority.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/V269SystemReviewEndpoint.java"
       ],
       "runner": "src.services.release_identity_service:assert_release_identity",
       "schemaIds": []
@@ -376,6 +382,7 @@
         "src/services/pipeline_task_mapping_v225_service.py",
         "src/services/task_pool_admission_core_v20_service.py",
         "src/services/lifecycle_task_v183_service.py",
+        "src/services/task_lifecycle_state_machine_service.py",
         "src/services/task_snapshot_station_service.py",
         "src/services/pipeline_artifact_contract_service.py",
         "src/services/task_detail_snapshot_v2024_service.py",
@@ -384,6 +391,7 @@
         "src/services/action_authority_v214_service.py",
         "src/services/v269_input_migration_service.py",
         "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_system_review_service.py",
         "src/services/v269_production_admission_service.py",
         "src/services/v269_pipeline_downstream_service.py",
         "src/services/station_agent_worker_v22515_service.py"
