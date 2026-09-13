@@ -1,0 +1,75 @@
+name: V26.9.C Promotion Feedback Candidate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'config/v269c_promotion_policy.json'
+      - 'rag/migrations/002_v269c_promotion_feedback.sql'
+      - 'rag/manifest/v269c_manifest.json'
+      - 'src/services/v269_promotion_gate_service.py'
+      - 'src/services/v269_evaluation_plane_service.py'
+      - 'src/services/v269_system_review_service.py'
+      - 'src/services/v269_experience_retrieval_service.py'
+      - 'src/api/routes/ops.py'
+      - 'src/api/routes/frontend_views.py'
+      - 'config/v23_registry_runtime.json'
+      - 'tests/test_v269c_promotion_feedback.py'
+      - 'docs/V26_9_C_PROMOTION_FEEDBACK.md'
+      - 'governance/update-requests/v269-current.json'
+      - 'governance/v26-field-authority-update-policy.json'
+      - '.github/workflows/v269-c-promotion-feedback.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  promotion-feedback-candidate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+      - name: Compile C production seams
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            src/services/v269_promotion_gate_service.py \
+            src/services/v269_evaluation_plane_service.py \
+            src/services/v269_system_review_service.py \
+            src/services/v269_experience_retrieval_service.py \
+            src/api/routes/ops.py \
+            src/api/routes/frontend_views.py
+      - name: Verify C contract boundary
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path('rag/manifest/v269c_manifest.json').read_text(encoding='utf-8'))
+          p=json.loads(Path('config/v269c_promotion_policy.json').read_text(encoding='utf-8'))
+          b=json.loads(Path('rag/manifest/v269b_manifest.json').read_text(encoding='utf-8'))
+          a=json.loads(Path('config/v26_field_authority_contract.json').read_text(encoding='utf-8'))
+          request=json.loads(Path('governance/update-requests/v269-current.json').read_text(encoding='utf-8'))
+          assert a['businessSemanticContract']['rolloutStatus']=='active'
+          assert b['rolloutStatus']=='active'
+          assert b['runtimeWritePolicy']['promotionEnabled'] is False
+          assert b['runtimeWritePolicy']['automaticKnowledgeHeadMutation'] is False
+          assert c['version']=='26.9.C.1'
+          assert c['rolloutStatus'] in {'candidate_not_activated','active'}
+          assert c['automaticPromotion'] is False
+          assert c['automaticEnable'] is False
+          assert c['headAuthority']=='content_addressed_enabled_set'
+          assert p['autoPromotion'] is False and p['reviewRequired'] is True
+          assert p['explicitEnableRequired'] is True and p['explicitWithdrawalRequired'] is True
+          assert request['requestId'].startswith('V26.9.C-')
+          print('V269C_CONTRACT_BOUNDARY=PASS')
+          print('V269C_ROLLOUT_STATUS='+c['rolloutStatus'])
+          PY
+      - name: Install locked test environment
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.lock
+      - name: Run C promotion feedback tests
+        run: python -m pytest -q tests/test_v269c_promotion_feedback.py
