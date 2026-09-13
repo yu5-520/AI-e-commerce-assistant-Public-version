@@ -155,6 +155,9 @@ def initialization_preview() -> Dict[str, Any]:
     value = bundle()
     return {"bundleHash": value["bundleHash"], "profile": value["profile"],
             "operatingUnits": value["operatingUnits"], "methodCount": len(value["methods"]),
+            "supplementaryBaselines": value["supplementaryBaselines"],
+            "evaluationStandards": value["evaluationStandards"],
+            "evaluationStandardsHash": value["evaluationStandardsHash"],
             "automaticEnable": False, "recomputedOnRead": False}
 
 

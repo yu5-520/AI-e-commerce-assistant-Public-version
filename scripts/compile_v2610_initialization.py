@@ -15,6 +15,73 @@ def digest(value):
     return 'sha256:'+hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
 
 
+def resolve_parameters(profile, category, store_id):
+    parameters={'minimumRelativeThreshold':profile['minimumRelativeThreshold'],**profile['parameterDefaults']}
+    allowed=set(parameters)
+    provenance={key:'profile' for key in allowed}
+    for level,key in [('enterprise',profile['enterpriseId']),('category',category),('store',store_id)]:
+        override=profile.get('parameterOverrides',{}).get(level,{}).get(key,{})
+        if set(override)-allowed:raise ValueError('parameter_override_not_registered')
+        parameters.update(override);provenance.update({k:level+':'+key for k in override})
+    for key,value in parameters.items():
+        if type(value) not in (int,float) or not math.isfinite(value) or value<0:raise ValueError('parameter_invalid:'+key)
+        if key=='reviewWindowDays' and (type(value) is not int or not 1<=value<=365):raise ValueError('review_window_invalid')
+        if key in ('maximumRelativeDeterioration','minimumDeltaRealizationRate') and value>1:raise ValueError('parameter_ratio_invalid:'+key)
+    return {**parameters,'provenance':provenance,'status':profile['parameterStatus']}
+
+
+def planning_preset(unit,profile):
+    parameters=unit['parameters'];base=unit['baseline']['roi']['second']
+    return {'schema':'planning.preset.v2610.v1','status':'proposal_requires_agent2_plan_freeze',
+        'metric':'roi','unit':'ratio','baseline':base,
+        'targetValue':base+abs(base)*parameters['targetRelativeImprovement'],
+        'targetFormula':'baseline + abs(baseline) * targetRelativeImprovement',
+        'reviewWindowDays':parameters['reviewWindowDays'],
+        'riskBoundary':{'maximumRelativeDeterioration':parameters['maximumRelativeDeterioration']},
+        'acceptanceCriteria':{'minimumDeltaRealizationRate':parameters['minimumDeltaRealizationRate']},
+        'parameters':parameters,'parameterHash':digest(parameters),
+        'evaluationContract':profile['evaluationContract'],
+        'evaluationContractHash':digest(profile['evaluationContract']),
+        'executionPermissionGranted':False}
+
+
+def supplementary_baselines(reports,profile):
+    result={}
+    for sheet,spec in profile['supplementarySheets'].items():
+        snapshots=[]
+        for report in reports:
+            headers=report['sheetEvidence'][sheet]['headers'];data=report['sheetData'][sheet]
+            evidence=report['sheetEvidence'][sheet]
+            if len(data)!=evidence['rowCount'] or digest([headers,*data])!=evidence['contentHash']:raise ValueError('sheet_evidence_mismatch')
+            rows={}
+            for raw in data:
+                if len(raw)!=len(headers):raise ValueError('sheet_row_shape')
+                row=dict(zip(headers,raw));key=tuple(row[k] for k in spec['identityColumns'])
+                if key in rows:raise ValueError('duplicate_sheet_scope')
+                rows[key]=row
+            snapshots.append(rows)
+        if any(set(x)!=set(snapshots[0]) for x in snapshots):raise ValueError('sheet_scope_mismatch')
+        entries=[]
+        for key in sorted(snapshots[0]):
+            a,b,c=[x[key] for x in snapshots]
+            category=next((row['category'] for row in reports[1]['rows'] if row['store_id']==b['店铺ID'] and row['product_id']==b.get('商品ID')), '')
+            params=resolve_parameters(profile,category,b['店铺ID']);metrics={}
+            for field,unit in spec['metrics'].items():
+                x,y=a.get(field),b.get(field)
+                valid=all(type(v) in (int,float) and math.isfinite(v) for v in (x,y))
+                rel=(y-x)/abs(x) if valid and abs(x)>profile['epsilon'] else None
+                metrics[field]={'first':x,'second':y,'absoluteDelta':y-x if valid else None,'relativeDelta':rel,
+                    'relativeThreshold':max(params['minimumRelativeThreshold'],abs(rel)) if rel is not None else None,
+                    'unit':unit,'missingReason':None if rel is not None else 'INPUT_MISSING_OR_BASELINE_NEAR_ZERO'}
+            entries.append({'identity':dict(zip(spec['identityColumns'],key)),'metrics':metrics,
+                'parameterHash':digest(params),'holdout':{'reportId':reports[2]['reportId'],'facts':{k:c[k] for k in spec['metrics']}}})
+        result[sheet]={'identityColumns':spec['identityColumns'],'metrics':spec['metrics'],
+            'sourceRefs':[{'reportId':r['reportId'],'sheet':sheet,'contentHash':r['sheetEvidence'][sheet]['contentHash']} for r in reports[:2]],
+            'relativeDeltaFormula':'(second - first) / abs(first)','thresholdFormula':profile['thresholdFormula'],
+            'thresholdStatus':profile['thresholdStatus'],'observationCount':2,'realSampleCount':0,'entries':entries}
+    return result
+
+
 def compile_bundle(scenario, profile):
     reports=scenario['reports']
     if len(reports)!=3 or profile['trainingReportCount']!=2 or profile['holdoutReportCount']!=1:
@@ -39,13 +106,8 @@ def compile_bundle(scenario, profile):
     for scope in sorted(snapshots[0]):
         first,second,third=[rows[scope] for rows in snapshots]
         numeric=sorted(k for k in fields if type(first.get(k)) in (int,float) and type(second.get(k)) in (int,float))
-        parameters={'minimumRelativeThreshold':profile['minimumRelativeThreshold']}
-        for level,key in [('category',second['category']),('store',scope[0])]:
-            override=profile.get('parameterOverrides',{}).get(level,{}).get(key,{})
-            if set(override)-{'minimumRelativeThreshold'}:raise ValueError('parameter_override_not_registered')
-            parameters.update(override)
+        parameters=resolve_parameters(profile, second['category'], scope[0])
         threshold=parameters['minimumRelativeThreshold']
-        if type(threshold) not in (int,float) or not math.isfinite(threshold) or threshold<0:raise ValueError('threshold_invalid')
         baselines={}
         for field in numeric:
             a,b=first[field],second[field]
@@ -66,7 +128,7 @@ def compile_bundle(scenario, profile):
                 'missingReason':None if valid else 'INPUT_MISSING_OR_DENOMINATOR_NEAR_ZERO',
                 'interpretation':'derived proxy; does not replace reported roi/ctr or establish ad attribution'}
         unit={'storeId':scope[0],'productId':scope[1],'category':second['category'],'platform':second['platform'],
-            'baseline':baselines,'derived':derived,'reportedRoi':second.get('roi'),
+            'parameters':parameters,'parameterHash':digest(parameters),'baseline':baselines,'derived':derived,'reportedRoi':second.get('roi'),
             'roiDefinitionMismatch':derived['revenue_ad_spend_ratio']['value'] is not None and not math.isclose(second['roi'],derived['revenue_ad_spend_ratio']['value'],rel_tol=1e-6),
             'holdout':{'reportId':reports[2]['reportId'],'period':reports[2]['period'],'facts':third,'role':'held_out_not_used_for_initialization'}}
         units.append(unit)
@@ -76,10 +138,15 @@ def compile_bundle(scenario, profile):
                 'baseline':{k:baselines[k] for k in ('roi','conversion_rate','ctr') if k in baselines},'derived':derived,'profileHash':digest(profile),'sourceRefs':training,
                 'sourceType':'inferred_method_from_synthetic_fixture','sampleCount':0,'realSampleCount':0,
                 'businessSuccessClaim':False,'executionPermissionGranted':False}
+            if agent=='agent2':
+                material['planningPreset']=planning_preset(unit,profile)
             methods.append({'methodHash':digest(material),'payload':material})
     material={'schema':'business.initialization.bundle.v2610.v1','version':profile['version'],
         'profile':profile,'profileHash':digest(profile),'trainingReports':training,
         'initializationHash':digest({'profile':profile,'trainingReports':training,'methods':methods}),
+        'supplementaryBaselines':supplementary_baselines(reports,profile),
+        'evaluationStandards':profile['evaluationContract'],
+        'evaluationStandardsHash':digest(profile['evaluationContract']),
         'scenarioHash':digest(scenario),'fields':fields,'operatingUnits':units,'methods':methods,
         'holdoutUsedForTraining':False,'realSampleCount':0,'automaticEnable':False}
     return {**material,'bundleHash':digest(material)}
@@ -104,6 +171,7 @@ def era_source():
         rows=[{**{key:row[column] for key,column in mapping.items()},'sourceFields':row} for row in records]
         reports.append({'reportId':f'ERA-RPT-{period:03d}','period':records[0]['统计日期'],'rows':rows,
             'xlsxHash':'sha256:'+hashlib.sha256(raw).hexdigest(),
+            'sheetData':{name:[list(row) for row in values[1:]] for name,values in sheets.items() if name!='商品经营明细'},
             'sheetEvidence':{name:{'headers':list(values[0]),'rowCount':len(values)-1,'contentHash':digest(values)} for name,values in sheets.items()}})
         book.close()
     return {'schema':'competition.three_report_scenario.v1','scenarioId':'ERA-THREE-REPORT-INITIALIZATION',
@@ -113,6 +181,7 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--profile',default='config/v2610_initialization_profile.json');p.add_argument('--output',default='config/v2610_initialization_bundle.json');p.add_argument('--check',action='store_true');p.add_argument('--refresh-era',action='store_true');args=p.parse_args()
     profile=json.loads(Path(args.profile).read_text())
     if args.refresh_era:Path(profile['sourcePath']).write_text(json.dumps(era_source(),ensure_ascii=False,separators=(',',':'))+'\n')
+    if profile['evaluationContract']!=json.loads((ROOT/'config/v269b_evaluation_contract.json').read_text()):raise ValueError('evaluation_contract_snapshot_stale')
     scenario=json.loads(Path(profile['sourcePath']).read_text())
     if scenario.get('scenarioId')=='ERA-THREE-REPORT-INITIALIZATION' and scenario!=era_source():raise ValueError('era_source_snapshot_stale')
     bundle=compile_bundle(scenario,profile)

@@ -159,3 +159,69 @@ def test_graph_e2e_probe_requires_active_contract_and_preserves_invariants(monke
     original=e2e.graphs.contract
     monkeypatch.setattr(e2e.graphs,'contract',lambda:{**original(),'rolloutStatus':'candidate_not_activated'})
     assert not e2e._graph_probe()['verified']
+
+
+def test_three_sheet_baselines_parameters_and_holdout():
+    from scripts.compile_v2610_initialization import digest
+    b=init.bundle();p=deepcopy(b['profile'])
+    s=json.loads((ROOT/p['sourcePath']).read_text())
+    assert len(b['supplementaryBaselines']['店铺经营汇总']['entries'])==3
+    assert len(b['supplementaryBaselines']['流量来源明细']['entries'])==150
+    p['parameterOverrides']['enterprise']={p['enterpriseId']:{'reviewWindowDays':14}}
+    p['parameterOverrides']['store']={'TB-SH-001':{'reviewWindowDays':3,'targetRelativeImprovement':0.1}}
+    updated=compile_bundle(s,p)
+    for u in updated['operatingUnits']:
+        assert u['parameters']['reviewWindowDays']==(3 if u['storeId']=='TB-SH-001' else 14)
+    first_hash=updated['initializationHash']
+    sh='店铺经营汇总';r=s['reports'][2];headers=r['sheetEvidence'][sh]['headers']
+    r['sheetData'][sh][0][headers.index('支付金额')]+=100
+    r['sheetEvidence'][sh]['contentHash']=digest([headers,*r['sheetData'][sh]])
+    after=compile_bundle(s,p)
+    assert after['initializationHash']==first_hash
+    assert after['supplementaryBaselines']!=updated['supplementaryBaselines']
+
+
+def test_frozen_evaluation_survives_current_configuration_change(db,monkeypatch):
+    from src.services import v269_evaluation_plane_service as evaluation
+    from tests.test_v269b_evaluation_plane import runtime_source
+    standard=evaluation.freeze_evaluation_standard()
+    inputs={'baselineValue':2.0,'expectedValue':2.4,'actualValue':2.3,'metricUnit':'ratio'}
+    v=evaluation.evaluate_execution_result(runtime_source(),inputs,persist=True,frozen_standard=standard)
+    monkeypatch.setattr(evaluation,'contract',lambda: (_ for _ in ()).throw(AssertionError('current config read')))
+    assert evaluation.evaluate_execution_result(runtime_source(),inputs,frozen_standard=standard)['vectorHash']==v['vectorHash']
+    evidence=evaluation.read_task_evaluation_evidence('TASK-EVAL-1')
+    assert evidence['status']=='RECORDED' and evidence['contractHash']==standard['contractHash']
+    assert all(i['standardSource']=='frozen' for i in evidence['items'])
+    corrupt=deepcopy(standard);corrupt['contract']['epsilon']=1
+    with pytest.raises(ValueError,match='frozen_standard_hash'):
+        evaluation.evaluate_execution_result(runtime_source(),inputs,frozen_standard=corrupt)
+
+
+def test_initialized_methods_graphs_evaluation_promotion_next_retrieval(db):
+    """Synthetic execution stays inside this isolated DB; use production B/C APIs."""
+    from tests.test_v269b_evaluation_plane import compiled_review_package
+    from src.services import v269_evaluation_plane_service as evaluation
+    receipt=init.initialize_bundle()
+    for eid in receipt['experienceIds'][:3]:
+        promotion.review_candidate(eid,reviewer_id='fixture-reviewer',decision='approve',rationale='synthetic method review')
+        promotion.enable_experience(eid,operator_id='fixture-operator',explicit_operator_intent=True)
+        payload=store.experience_view(experience_id=eid)['payload']
+        assert eid in retrieval.retrieve_experience(payload['agent'],({'platform':payload['platform']} if payload['agent']=='agent3' else {'category':payload['category']}),business_scope=payload['scope'])['resultIds']
+    package=compiled_review_package()
+    package['evaluationStandard']=evaluation.freeze_evaluation_standard()
+    recorded=evaluation.record_system_review_candidate(package,
+        target_facts={'roas':{'value':2.3,'unit':'ratio','sourceRef':'fixture:simulated-target'}},
+        target_source_content_hash='sha256:'+'9'*64,
+        review_receipt={'receiptHash':'sha256:'+'8'*64},review_status='SETTLED')
+    assert recorded['strategyExperienceIds']
+    eid=recorded['strategyExperienceIds'][0]
+    item=store.experience_view(experience_id=eid)
+    query={'decisionAction':item['payload']['decisionAction'],'strategyType':item['payload']['strategyType']}
+    assert eid not in retrieval.retrieve_experience('agent2',query)['resultIds']
+    promotion.review_candidate(eid,reviewer_id='fixture-reviewer',decision='approve',rationale='simulated outcome reviewed')
+    promotion.enable_experience(eid,operator_id='fixture-operator',explicit_operator_intent=True)
+    result=retrieval.retrieve_experience('agent2',query)
+    assert eid in result['resultIds']
+    head=result['knowledgeHead']
+    promotion.disable_experience(eid,operator_id='fixture-operator',reason='test withdrawal',explicit_operator_intent=True)
+    assert retrieval.retrieve_experience('agent2',query)['knowledgeHead']!=head

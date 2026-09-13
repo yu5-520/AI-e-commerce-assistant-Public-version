@@ -135,7 +135,11 @@ def register_review_in_conn(
     graphs.require(contract_hash == graphs.digest(graphs.contract()), "review_semantic_contract_hash")
     baseline_source_hash = _baseline_source_hash(chain)
     graphs.require(bool(baseline_source_hash), "review_baseline_source_content_hash_required")
+    from src.services.v269_evaluation_plane_service import freeze_evaluation_standard, validate_frozen_standard
+    standard = deepcopy((decision.get("agent3SopEvidence") or {}).get("evaluationStandard")) or freeze_evaluation_standard()
+    validate_frozen_standard(standard)
     payload = {
+        "evaluationStandard": standard,
         "schema": REVIEW_SCHEMA,
         "version": VERSION,
         "taskId": task_id,
@@ -432,6 +436,7 @@ def _record_v269b_evaluation(
     try:
         from src.services import v269_evaluation_plane_service as evaluation
         package = {
+            "evaluationStandard": deepcopy(payload.get("evaluationStandard")),
             "taskId": payload["taskId"],
             "storeId": payload["storeId"],
             "productId": payload["productId"],

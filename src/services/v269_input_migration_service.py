@@ -326,7 +326,8 @@ def freeze_graph_evidence(package, output):
                         'inputs':[{'field':'baseline.value','value':base['value'],'sourceRef':base['sourceRef']},
                             {'field':'expectedValue','value':expectation['expectedValue'],'sourceHash':graph['graphHash']}],
                         'nodeKey':node['nodeKey'],'nodeHash':node['nodeHash'],'sourceHash':graph['graphHash']})
-    return graphs.seal({'schema':'v26.sop_evidence.v1','version':VERSION,'source':'structured_graph_output',
+    from src.services.v269_evaluation_plane_service import freeze_evaluation_standard
+    return graphs.seal({'evaluationStandard':freeze_evaluation_standard(),'schema':'v26.sop_evidence.v1','version':VERSION,'source':'structured_graph_output',
         'executionIdentity':{k:output[k] for k in ('itemExecutionId','inputContentHash','productId','storeId') if k in output},
         'cards':cards,'knowledge':{k:deepcopy(package.get('knowledgeContext',{}).get(k)) for k in ('headHash','retrievalPolicyHash')},
         'revision':deepcopy(output.get('revisionAcceptanceEvidence')),'knowledgeEffect':'NOT_EVALUATED',
