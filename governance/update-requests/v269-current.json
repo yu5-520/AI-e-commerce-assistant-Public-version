@@ -1,6 +1,6 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.B-2026-09-13-production-activation-01",
+  "requestId": "V26.9.B-2026-09-13-production-activation-02",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
@@ -33,6 +33,16 @@
       ],
       "evidencePaths": [
         "docs/V26_9_B_EXPERIENCE_EVALUATION.md"
+      ]
+    },
+    {
+      "targetId": "v269b-field-authority-required-module-invariant",
+      "failureClass": "FIELD_AUTHORITY_WORKFLOW_HARDCODES_PRE_B_REQUIRED_MODULE_COUNT",
+      "registryModules": [
+        "release_governance"
+      ],
+      "evidencePaths": [
+        ".github/workflows/v26-field-authority-phase1.yml"
       ]
     }
   ]
