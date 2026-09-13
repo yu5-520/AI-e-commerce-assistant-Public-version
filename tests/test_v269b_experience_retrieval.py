@@ -1,9 +1,11 @@
-"""V26.9.B deterministic field retrieval tests."""
+"""V26.9.B deterministic field retrieval and Agent knowledge-context bridge tests."""
 import pytest
 
 from src.repositories import sqlite_repository as repo
 from src.services import v269_experience_retrieval_service as retrieval
 from src.services import v269_experience_store_service as store
+from src.services import v269_input_migration_service as migration
+from src.services import v269_semantic_graph_service as graphs
 
 
 @pytest.fixture
@@ -39,6 +41,11 @@ def enable(experience_id):
             (experience_id,),
         )
         conn.commit()
+
+
+def base_context():
+    body = {"retrievalPolicyHash": graphs.digest({"policy": "a-empty"}), "records": []}
+    return {"headHash": graphs.digest(body), **body}
 
 
 def test_candidate_and_seed_never_enter_official_retrieval(isolated_db):
@@ -106,13 +113,14 @@ def test_future_enabled_decision_pattern_changes_head_and_is_receipt_bound(isola
     assert result["receiptHash"].startswith("sha256:")
 
 
-def test_agent2_and_agent3_use_their_registered_field_contracts(isolated_db):
+def test_agent2_and_agent3_use_their_registered_field_contracts(isolated_db, monkeypatch):
     strategy = store.record_experience(
         source=source("TASK-R-2"),
         domain="strategy_outcomes",
         applicability={"category": "traffic"},
         payload={
             "decisionActionKey": "DA2",
+            "decisionAction": {"actionType": "guard", "actionFamily": "roas_guard"},
             "planActionKey": "PA2",
             "category": "traffic",
             "strategyType": "roas_guard",
@@ -129,6 +137,7 @@ def test_agent2_and_agent3_use_their_registered_field_contracts(isolated_db):
         applicability={"platform": "tmall"},
         payload={
             "planActionKey": "PA3",
+            "planAction": {"actionFamily": "roas_guard"},
             "platform": "tmall",
             "executionType": "budget_update",
             "completionStatus": "completed",
@@ -140,13 +149,90 @@ def test_agent2_and_agent3_use_their_registered_field_contracts(isolated_db):
     enable(operation["experienceId"])
 
     agent2 = retrieval.retrieve_experience(
-        "agent2", {"decisionAction": "DA2", "category": "traffic", "strategyType": "roas_guard"}
+        "agent2", {"decisionAction": {"actionType": "guard", "actionFamily": "roas_guard"}, "strategyType": "roas_guard"}
     )
     agent3 = retrieval.retrieve_experience(
-        "agent3", {"planAction": "PA3", "platform": "tmall", "executionType": "budget_update"}
+        "agent3", {"planAction": {"actionFamily": "roas_guard"}, "executionType": "budget_update"}
     )
     assert agent2["results"][0]["experienceId"] == strategy["experienceId"]
     assert agent3["results"][0]["experienceId"] == operation["experienceId"]
+
+    monkeypatch.setenv("V269B_CANDIDATE_RUNTIME", "1")
+    context2 = retrieval.attach_official_experience_context(
+        "agent2",
+        {"DecisionGraph": {"nodes": [{"kind": "DecisionActionNode", "actionType": "guard", "actionFamily": "roas_guard"}]}},
+        base_context(),
+    )
+    context3 = retrieval.attach_official_experience_context(
+        "agent3",
+        {"PlanGraph": {"nodes": [{"kind": "PlanActionNode", "actionFamily": "roas_guard", "parameters": {"operationPlan": {"operations": [{"operationType": "budget_update"}]}}}]}},
+        base_context(),
+    )
+    assert any(record.get("experienceId") == strategy["experienceId"] for record in context2["records"])
+    assert any(record.get("experienceId") == operation["experienceId"] for record in context3["records"])
+    assert any(record.get("schema") == "experience.retrieval.context_receipt.v269b.v1" for record in context2["records"])
+    assert any(record.get("schema") == "experience.retrieval.context_receipt.v269b.v1" for record in context3["records"])
+
+
+def test_agent1_project_input_binds_experience_head_into_semantic_identity(isolated_db, monkeypatch):
+    candidate = store.record_experience(
+        source=source("TASK-R-4"),
+        domain="decision_patterns",
+        applicability={"metric": "roas", "direction": "down"},
+        payload={
+            "decisionActionKey": "DA4",
+            "conditionKey": None,
+            "metric": "roas",
+            "direction": "down",
+            "category": "traffic",
+            "decisionPattern": "Historical reviewed ROAS decline pattern.",
+            "graphValueScore": None,
+            "graphValueMetricVersion": None,
+            "sampleCount": 2,
+        },
+    )
+    enable(candidate["experienceId"])
+    base = base_context()
+    current = {
+        "semanticContractVersion": "26.9.0",
+        "packageId": "PKG-IDENTITY",
+        "productId": "product-1",
+        "storeId": "store-1",
+        "dataVersion": "dv-1",
+        "knowledgeContext": base,
+        "BusinessFacts": {
+            "fieldSignals": [{"metricCode": "roas", "current": 1.5, "previous": 2.0}],
+            "metricSnapshot": {"roas": 1.5},
+        },
+        "evidenceRefs": ["artifact:fact"],
+    }
+    descriptor = {
+        "provider": "test-provider",
+        "model": "test-model",
+        "generationParametersHash": graphs.digest({"temperature": 0}),
+        "promptVersion": "test-prompt-v1",
+    }
+    monkeypatch.delenv("V269B_CANDIDATE_RUNTIME", raising=False)
+    without_b = migration.project_input(
+        "agent1",
+        current,
+        source_ref="ART-TEST-SOURCE",
+        source_content_hash="sha256:" + "a" * 64,
+    )["payload"]
+    identity_without_b = migration.semantic_identity("agent1", without_b, descriptor)["semanticHash"]
+    assert without_b["knowledgeContext"] == base
+
+    monkeypatch.setenv("V269B_CANDIDATE_RUNTIME", "1")
+    with_b = migration.project_input(
+        "agent1",
+        current,
+        source_ref="ART-TEST-SOURCE",
+        source_content_hash="sha256:" + "a" * 64,
+    )["payload"]
+    identity_with_b = migration.semantic_identity("agent1", with_b, descriptor)["semanticHash"]
+    assert with_b["knowledgeContext"]["headHash"] != base["headHash"]
+    assert any(record.get("experienceId") == candidate["experienceId"] for record in with_b["knowledgeContext"]["records"])
+    assert identity_with_b != identity_without_b
 
 
 def test_no_match_is_explicit_empty_not_seed_fill(isolated_db):
