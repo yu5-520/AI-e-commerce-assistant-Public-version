@@ -278,3 +278,83 @@ def map_task(decision, admission, plan, operation):
     return seal({'schema':'v269.task_graph_mapping.v1','DecisionGraphHash':decision['graphHash'],
         'PlanGraphHash':plan['graphHash'],'OperationGraphHash':operation['graphHash'],
         'admissionHash':admission['receiptHash'],'planActionKeys':sorted(p),'operationStageKeys':sorted(o)})
+
+
+def plan_resource_usage(plan, fact_values):
+    """Compute execution deltas from explicit operations; model totals grant nothing."""
+    nodes=index(plan)
+    require(plan['kind']=='PlanGraph','plan_graph_required')
+    require(isinstance(fact_values,dict),'operation_facts_required')
+    rows=[];resources=set()
+    kinds={'budget_update':('budget','CNY'),'bid_update':('bid','CNY'),'target_roas_update':('roas','ratio')}
+    for key,node in nodes.items():
+        require(node.get('kind')=='PlanActionNode','plan_node_required')
+        parameters=node.get('parameters')
+        require(isinstance(parameters,dict),'plan_parameters_required')
+        operation_plan=parameters.get('operationPlan',{})
+        require(isinstance(operation_plan,dict),'operation_plan_invalid')
+        operations=operation_plan.get('operations',[])
+        require(isinstance(operations,list) and len(operations)<=64,'operations_required')
+        if node['actionFamily'] in {'roas_scale','roas_guard'}:
+            require(operations,'financial_operations_required')
+        # An unscoped budget cannot be treated as an authorized monetary operation.
+        require(parameters.get('budget',0)==0,'unscoped_budget_not_authorized')
+        amount=0;rate=0;target_roas=None;operation_rows=[]
+        for operation in operations:
+            require(isinstance(operation,dict) and operation.get('operationType') in kinds,'operation_type_not_compiled')
+            kind=operation['operationType'];field,unit=kinds[kind]
+            target=operation.get('target',{})
+            require(isinstance(target,dict) and isinstance(target.get('id'),str) and target['id'],'operation_target_required')
+            require(isinstance(target.get('type','ad_plan'),str) and target.get('type','ad_plan').strip(),'operation_target_type_invalid')
+            resource=(target.get('type','ad_plan'),target['id'],kind)
+            require(resource not in resources,'cross_action_resource_conflict');resources.add(resource)
+            require(isinstance(operation.get('currentValue'),dict) and isinstance(operation.get('targetValue'),dict),'operation_value_invalid')
+            current=operation['currentValue'].get(field)
+            desired=operation['targetValue'].get(field)
+            require(all(type(x) in (int,float) and math.isfinite(x) and x>=0 for x in (current,desired)),'operation_value_invalid')
+            ref=operation.get('currentValueRef')
+            require(isinstance(ref,str) and bool(ref),'operation_baseline_ref_required')
+            require(fact_values.get(ref)=={'value':current,'unit':unit},'operation_baseline_fact_mismatch')
+            delta=abs(desired-current)
+            require(math.isfinite(delta),'operation_delta_overflow')
+            if 'adjustmentAmount' in operation:
+                require(type(operation['adjustmentAmount']) in (int,float) and math.isclose(operation['adjustmentAmount'],delta,rel_tol=1e-9,abs_tol=1e-9),'operation_amount_mismatch')
+            if kind=='budget_update':amount+=delta
+            else:
+                require(current>0 or desired==0,'operation_rate_baseline_zero')
+                rate=max(rate,delta/current if current else 0)
+            if kind=='target_roas_update':target_roas=desired if target_roas is None else min(target_roas,desired)
+            operation_rows.append({'operationType':kind,'target':deepcopy(target),'sourceRef':ref,
+                'unit':unit,'currentValue':current,'targetValue':desired,'absoluteDelta':delta})
+        rows.append({'planActionRef':key,'actionFamily':node['actionFamily'],'adjustmentAmount':amount,
+            'maxControlChangeRate':rate,'minimumTargetRoas':target_roas,'operations':operation_rows})
+    total=sum(r['adjustmentAmount'] for r in rows)
+    require(math.isfinite(total),'operation_total_overflow')
+    return seal({'schema':'v269.plan_resource_usage.v1','planGraphHash':plan['graphHash'],
+        'factValuesHash':digest(fact_values),'actions':rows,'currency':'CNY',
+        'totalAdjustmentAmount':total,
+        'formula':'sum(abs(targetBudget - currentBudget))'})
+
+
+def evaluate_plan_authority(plan, fact_values, policy):
+    """Pure evaluation under a server-supplied policy snapshot, never a permission issuer."""
+    usage=plan_resource_usage(plan,fact_values)
+    require(isinstance(policy,dict) and policy.get('source')=='existing_operator_action_authority','permission_policy_source')
+    required=('singleAdjustmentLimit','dailyAdjustmentLimit','rolling24hLimit','ownerApprovalLimit',
+        'roasChangeRateLimit','minimumTargetRoas','usedToday','usedRolling24h')
+    require(all(type(policy.get(k)) in (int,float) and math.isfinite(policy[k]) and policy[k]>=0 for k in required),'permission_limit_invalid')
+    require(isinstance(policy.get('enabled'),bool),'permission_enabled_required')
+    total=usage['totalAdjustmentAmount'];reasons=[];owner=[]
+    if not policy['enabled']:reasons.append('AUTHORITY_DISABLED')
+    if total>policy['singleAdjustmentLimit']:reasons.append('COMBINED_SINGLE_LIMIT')
+    if total+policy['usedToday']>policy['dailyAdjustmentLimit']:reasons.append('COMBINED_DAILY_LIMIT')
+    if total+policy['usedRolling24h']>policy['rolling24hLimit']:reasons.append('COMBINED_ROLLING_LIMIT')
+    if policy['ownerApprovalLimit'] and total>policy['ownerApprovalLimit']:owner.append('COMBINED_OWNER_LIMIT')
+    for row in usage['actions']:
+        if row['maxControlChangeRate']>policy['roasChangeRateLimit']:reasons.append(row['planActionRef']+':CONTROL_RATE_LIMIT')
+        if row['minimumTargetRoas'] is not None and row['minimumTargetRoas']<policy['minimumTargetRoas']:owner.append(row['planActionRef']+':ROAS_SAFETY_FLOOR')
+    decision='owner_approval_required' if owner else ('manager_approval_required' if reasons else 'auto_execute')
+    return seal({'schema':'v269.plan_authority_evaluation.v1','planGraphHash':plan['graphHash'],
+        'policyHash':digest(policy),'policy':deepcopy(policy),'resourceUsage':usage,
+        'decision':decision,'approvalRequired':decision!='auto_execute','reasons':owner+reasons,
+        'authorityOrigin':'SERVER_POLICY_SNAPSHOT','reservationCreated':False})

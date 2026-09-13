@@ -66,4 +66,20 @@ SOP 证据使用原 v26.sop_evidence.v1 展示接口，记录判断依据、动�
 
 保持同一 PR 持续推进，不以内部步骤完成替代整个 A 的验收。持久化经验库、Evaluation Plane 和 Promotion Gate 属于语义稳定后的后续阶段。
 
-远端提交 9869a3c4590747cfdce9585bbae8d1861426e315 的四项 PR 门禁全部通过。后续 Java 接口更新需在新提交上重跑门禁，不能沿用旧提交的通过状态。
+远端提交 c2bec790cddacc58f442ffb2815421ceab6eaeae 的六项 PR 检查全部通过，包括 Java authority kernel/root 和 Registry Lineage。下述权限与任务来源更新需在新提交上重新验证。
+
+
+## 完整任务来源与多动作权限核算
+
+`verify_task_execution_chain` 从现有 accepted execution 账本读取 Agent1、全部 Agent2 分区和 Agent3 的真实输入输出 Artifact，检查执行身份、Artifact 内容哈希、输入合同和商品/店铺作用域。随后重编译 DecisionGraph，按原分区完整合并 PlanGraph，重编译 OperationGraph，最后验证三图任务映射。漏分区、伪造执行号、跨店铺引用及不匹配的图谱均拒绝。`provenanceVerified` 只证明接受过的执行来源，不是业务授权。
+
+现有 `action_authority_v214_service.authorize_decision` 对新图合同进入完整方案核算，先验证上述执行链，再从现有运营绑定、运营动作权限表及店铺策略读取规则。旧任务负责人、动作族锁及旧主动作字段不参与该分支。
+
+- 预算变更按每个操作的 `abs(targetBudget-currentBudget)` 求和，避免不同动作分别检查导致整体超限；日额度和滚动额度读取全部已登记动作族的历史用量。
+- 操作必须给出资源对象、当前值、目标值和 `currentValueRef`，当前值/单位必须匹配冻结输入事实；模型填写的调整金额须与复算一致。
+- 同一资源和操作类型重复出现、无资源归属的预算、未编译的操作类型均拒绝。出价/目标 ROAS 另检查变动比例和最低目标值。
+- 输出固定公式、输入引用、操作差值、总额、策略快照和哈希，供后续 SOP 数据卡接入。
+
+**本轮没有建立原子额度占用。** `reservationCreated=false`。新图授权结果经 `apply_authorization_to_decision` 后保持 `graph_authorization_pending`，不落入旧单动作任务快照与用量写入器。后续需在现有事务权威中完成多动作额度占用、重试幂等和生命周期交接，再解除此阻断。
+
+本地针对图合同、输入/缓存、真实账本链路、权限、Java Review/Revision 和既有 V26 回归，共 66 项测试通过。运行器测试使用固定模型网关；未宣称完成固定三报表生产全链验收。

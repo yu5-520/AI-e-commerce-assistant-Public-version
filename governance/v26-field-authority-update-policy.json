@@ -79,7 +79,9 @@
         "src/services/agent_input_transport_v2258_service.py",
         "src/services/agent_token_runtime_hash_exact_v2259_service.py",
         "src/services/real_product_judgment_agent_v2259_service.py",
-        "tests/test_v22_4_v269_java_graph_review.py"
+        "tests/test_v22_4_v269_java_graph_review.py",
+        "src/services/action_authority_v214_service.py",
+        "tests/test_v22_4_v269_graph_authority.py"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",

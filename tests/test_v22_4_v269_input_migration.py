@@ -287,6 +287,27 @@ class InputMigrationTests(unittest.TestCase):
                 self.assertEqual(len(sops),1,summary)
                 mapping=graphs.map_task(self.decision,self.admission,plan,sops['pkg']['OperationGraph'])
                 self.assertEqual(len(mapping['planActionKeys']),2)
+                task_package={'semanticContractVersion':'26.9.0','productId':'p','storeId':'s',
+                    'DecisionGraph':self.decision,'PlanGraph':plan,'OperationGraph':sops['pkg']['OperationGraph'],
+                    'actionAdmission':self.admission,'factValues':self.source['factValues'],
+                    'graphExecutionRefs':{'agent1':judgments[0]['executionHash'],
+                        'agent2':[o['executionHash'] for o in outputs.values()],
+                        'agent3':sops['pkg']['executionHash']}}
+                proof=migration.verify_task_execution_chain(task_package)
+                self.assertTrue(proof['provenanceVerified'])
+                self.assertFalse(proof['permissionGranted'])
+                self.assertEqual(len(proof['executions']),4)
+                poisoned={**task_package,**{k:'forged' for k in graphs.contract()['legacyReadForbidden']}}
+                self.assertEqual(proof,migration.verify_task_execution_chain(poisoned))
+                with self.assertRaisesRegex(ValueError,'task_execution_business_scope'):
+                    migration.verify_task_execution_chain({**task_package,'storeId':'another-store'})
+                bad=deepcopy(task_package);bad['graphExecutionRefs']['agent2'].pop()
+                with self.assertRaisesRegex(ValueError,'partition_result_missing'):
+                    migration.verify_task_execution_chain(bad)
+                bad=deepcopy(task_package);bad['graphExecutionRefs']['agent3']='forged-execution'
+                with self.assertRaisesRegex(ValueError,'task_execution_not_accepted'):
+                    migration.verify_task_execution_chain(bad)
+
                 before=len(calls)
                 replay_envelopes=[persist('agent2',{**e['payload'],'packageId':e['payload']['packageId']+'-new'}) for e in envelopes]
                 rebound,summary=agent2.run_agent2_draft_projected_inputs(replay_envelopes,data_version='d2')

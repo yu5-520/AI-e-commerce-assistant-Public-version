@@ -316,3 +316,67 @@ def freeze_graph_evidence(package, output):
         'cards':cards,'knowledge':{k:deepcopy(package.get('knowledgeContext',{}).get(k)) for k in ('headHash','retrievalPolicyHash')},
         'revision':deepcopy(output.get('revisionAcceptanceEvidence')),'knowledgeEffect':'NOT_EVALUATED',
         'feedbackStatus':'NOT_RECORDED','modelReasoning':'structured_decision_record_only','onClickProviderCall':False})
+
+
+def verify_task_execution_chain(package):
+    """Rebuild task lineage from accepted immutable artifacts, not model proof flags.
+
+    This proves accepted execution provenance. It does not issue permissions or
+    reserve resources; task admission still needs the system authority transaction.
+    """
+    from src.services.hash_directed_artifact_runtime_v2259_service import accepted_execution
+    from src.services.artifact_transport_service import resolve_artifact, validate_artifact
+    refs=package.get('graphExecutionRefs')
+    graphs.require(isinstance(refs,dict) and set(refs)=={'agent1','agent2','agent3'},'task_execution_refs_required')
+    graphs.require(isinstance(refs['agent2'],list) and 0<len(refs['agent2'])<=graphs.contract()['limits']['maxPartitions'],'task_partition_execution_refs')
+    all_refs=[refs['agent1'],*refs['agent2'],refs['agent3']]
+    graphs.require(all(isinstance(ref,str) and ref for ref in all_refs) and len(set(all_refs))==len(all_refs),'task_execution_refs_invalid')
+    stages={'agent1':'product_judgment_agent','agent2':'action_plan_judgment_agent','agent3':'task_mapping_agent'}
+    receipts=[]
+    def read(agent,execution_hash):
+        accepted=accepted_execution(execution_hash)
+        graphs.require(isinstance(accepted,dict),'task_execution_not_accepted')
+        record=accepted['execution'];wrapper=accepted['output']
+        graphs.require(record['stage']==stages[agent],'task_execution_stage_mismatch')
+        validation=validate_artifact(accepted['outputArtifactRef'])
+        graphs.require(validation.get('ok') is True and validation.get('contentHash')==accepted['outputContentHash'],'task_output_artifact_hash')
+        graphs.require(isinstance(wrapper,dict) and wrapper.get('executionHash')==execution_hash
+            and wrapper.get('inputArtifactRef')==record['input_artifact_ref']
+            and wrapper.get('inputContentHash')==record['input_content_hash']
+            and wrapper.get('itemExecutionId')==record['item_execution_id'],'task_execution_binding_mismatch')
+        validation=validate_artifact(record['input_artifact_ref'],expected_type=record['input_schema'])
+        graphs.require(validation.get('ok') is True and validation.get('contentHash')==record['input_content_hash'],'task_input_artifact_hash')
+        envelope=resolve_artifact(record['input_artifact_ref'])
+        from src.services.agent_input_contract_v225_service import validate_agent_input_envelope
+        graphs.require(validate_agent_input_envelope(envelope).get('ok') is True,'task_input_envelope_invalid')
+        payload=envelope['payload'];validate_payload(agent,payload)
+        graphs.require(all(payload.get(k)==package.get(k) and isinstance(package.get(k),str) and package[k]
+            for k in ('productId','storeId')),'task_execution_business_scope')
+        output=wrapper.get('output')
+        graphs.require(isinstance(output,dict) and output.get('semanticContractVersion')==VERSION,'task_output_contract')
+        receipts.append({'agent':agent,'executionHash':execution_hash,'inputArtifactRef':record['input_artifact_ref'],
+            'inputContentHash':record['input_content_hash'],'outputArtifactRef':accepted['outputArtifactRef'],
+            'outputContentHash':accepted['outputContentHash']})
+        return payload,output
+    source1,result1=read('agent1',refs['agent1'])
+    decision=normalize_decision({'DecisionGraph':model_graph_body(result1.get('DecisionGraph'))},source1)['DecisionGraph']
+    graphs.require(decision==package.get('DecisionGraph'),'task_decision_graph_mismatch')
+    admission=package.get('actionAdmission')
+    parts=graphs.partition_actions(decision,admission)
+    results=[]
+    for ref in refs['agent2']:
+        source,output=read('agent2',ref)
+        graphs.require(source['DecisionGraph']==decision and source['actionAdmission']==admission,'task_partition_parent_mismatch')
+        graphs.require(source['factValues']==package.get('factValues'),'task_partition_facts_mismatch')
+        graphs.require(output.get('draftStatus')=='draft_ready' and output.get('partitionHash')==source['partition']['receiptHash'],'task_partition_output_invalid')
+        results.append({'partitionHash':source['partition']['receiptHash'],'plan':model_graph_body(output.get('PlanGraph'))})
+    plan=graphs.merge_plans(decision,admission,parts,results,evidence_refs=source1['evidenceRefs'],fact_values=package.get('factValues'))
+    graphs.require(plan==package.get('PlanGraph'),'task_plan_graph_mismatch')
+    source3,result3=read('agent3',refs['agent3'])
+    graphs.require(source3['PlanGraph']==plan and result3.get('sopStatus')=='sop_ready','task_operation_parent_mismatch')
+    operation=graphs.compile_graph('OperationGraph',model_graph_body(result3.get('OperationGraph')),upstream=plan)
+    graphs.require(operation==package.get('OperationGraph'),'task_operation_graph_mismatch')
+    mapping=graphs.map_task(decision,admission,plan,operation)
+    return graphs.seal({'schema':'v269.task_execution_chain.v1','productId':package['productId'],
+        'storeId':package['storeId'],'mapping':mapping,'executions':sorted(receipts,key=lambda r:(r['agent'],r['executionHash'])),
+        'provenanceVerified':True,'permissionGranted':False})

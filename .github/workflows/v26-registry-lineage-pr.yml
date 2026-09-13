@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'src/services/v269*.py'
+      - 'src/services/action_authority_v214_service.py'
       - 'tests/test_v22_4_v269*.py'
       - 'java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java'
       - 'java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java'

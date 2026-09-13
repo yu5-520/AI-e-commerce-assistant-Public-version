@@ -51,6 +51,9 @@ def _operator_for_store(store_id: str | None, plan: Dict[str, Any]) -> str | Non
 
 
 def authorize_decision(decision: Dict[str, Any]) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract
+    if uses_graph_contract(decision):
+        return authorize_plan_graph(decision)
     plan = _dict(decision.get("taskPlan")); family = str(plan.get("selectedActionFamily") or decision.get("actionFamily") or "").strip(); identity = _identity(decision); store_id = str(identity.get("storeId") or "") or None; product_id = str(identity.get("productId") or "") or None; operator_id = _operator_for_store(store_id, plan)
     if family not in ROAS_FAMILIES:
         result = dict(legacy.authorize_decision(decision)); result.update(version=ACTION_AUTHORITY_VERSION, mode="v21_4_non_roas_existing_policy", operationPlanVersion=ACTION_PLAN_IR_VERSION); return result
@@ -87,8 +90,63 @@ def authorize_decision(decision: Dict[str, Any]) -> Dict[str, Any]:
 
 def apply_authorization_to_decision(decision: Dict[str, Any]) -> Dict[str, Any]:
     next_decision = deepcopy(decision); authorization = authorize_decision(next_decision); next_decision["authorizationDecision"] = authorization; next_decision["actionAuthorization"] = authorization; next_decision["authorizationVersion"] = ACTION_AUTHORITY_VERSION
+    from src.services.v269_input_migration_service import uses_graph_contract
+    if uses_graph_contract(next_decision):
+        next_decision["authorizationVersion"] = "26.9.0"
+        next_decision["decision"] = "graph_authorization_pending"
+        next_decision["authorizationPendingReason"] = "atomic_graph_reservation_not_activated"
+        return next_decision
     if authorization.get("decision") == AUTHORIZATION_DATA_MISSING: return next_decision
     plan = dict(_dict(next_decision.get("taskPlan"))); approval_required = bool(authorization.get("approvalRequired"))
     plan.update({"approvalRequired": approval_required, "needManagerReview": approval_required, "assignedOperatorId": authorization.get("operatorId") if not approval_required else None, "authorizationDecision": authorization, "actionAuthorization": authorization, "authorizationVersion": ACTION_AUTHORITY_VERSION, "operationPlan": authorization.get("operationPlan") or plan.get("operationPlan")})
     next_decision.update({"decision": authorization.get("lifecycleDecision"), "taskPlan": plan, "operationPlan": plan.get("operationPlan")})
     return next_decision
+
+
+def authorize_plan_graph(decision: Dict[str, Any]) -> Dict[str, Any]:
+    """Evaluate the whole graph using existing server-owned operator tables."""
+    from src.services import v269_semantic_graph_service as graphs
+    plan=decision.get('PlanGraph')
+    store_id=decision.get('storeId');product_id=decision.get('productId')
+    operator_id=_operator_for_store(store_id,{})
+    if not operator_id or not store_id or not product_id:
+        return {'decision':AUTHORIZATION_DATA_MISSING,'reason':'graph_identity_or_operator_missing'}
+    try:
+        from src.services.v269_input_migration_service import verify_task_execution_chain
+        chain=verify_task_execution_chain(decision)
+        nodes=graphs.index(plan)
+        families=sorted({n['actionFamily'] for n in nodes.values()})
+        graphs.require(set(families)<=set(graphs.contract()['actionFamilyDomains']),'permission_family_invalid')
+        authorities=[get_operator_authority(operator_id,family) for family in families]
+        store=get_store_policy(store_id)
+        # Include all registered domains in usage, so changing family cannot reset a limit.
+        usage=[legacy._usage(operator_id,store_id,family) for family in graphs.contract()['actionFamilyDomains']]
+        def limit(key,multiplier):
+            values=[a[key] for a in authorities]
+            graphs.require(all(type(v) in (int,float) and v>=0 for v in values),'permission_limit_invalid')
+            value=store[multiplier]
+            graphs.require(type(value) in (int,float) and value>=0,'permission_multiplier_invalid')
+            if key=='ownerApprovalLimit':
+                values=[v for v in values if v>0] or [0]
+            return min(values)*value
+        policy={'source':'existing_operator_action_authority','operatorId':operator_id,'storeId':store_id,
+            'enabled':all(a.get('enabled') is True for a in authorities) and store.get('enabled') is True,
+            'singleAdjustmentLimit':limit('singleAdjustmentLimit','budgetLimitMultiplier'),
+            'dailyAdjustmentLimit':limit('dailyAdjustmentLimit','budgetLimitMultiplier'),
+            'rolling24hLimit':limit('rolling24hLimit','budgetLimitMultiplier'),
+            'ownerApprovalLimit':limit('ownerApprovalLimit','ownerApprovalMultiplier'),
+            'roasChangeRateLimit':limit('roasChangeRateLimit','roasChangeMultiplier'),
+            'minimumTargetRoas':max(a['minimumTargetRoas'] for a in authorities),
+            'usedToday':sum(u['usedToday'] for u in usage),'usedRolling24h':sum(u['usedRolling24h'] for u in usage),
+            'sourcePolicyHash':graphs.digest({'authorities':authorities,'store':store})}
+        evaluation=graphs.evaluate_plan_authority(plan,decision.get('factValues',{}),policy)
+    except (ValueError,KeyError,TypeError) as exc:
+        return {'decision':AUTHORIZATION_DATA_MISSING,'reason':str(exc),'approvalRequired':False,
+            'operatorId':operator_id,'storeId':store_id,'productId':product_id}
+    return {'version':'26.9.0','mode':'plan_graph_combined_existing_authority','decision':evaluation['decision'],
+        'lifecycleDecision':'manager_review_required' if evaluation['approvalRequired'] else 'create_task_snapshot',
+        'approvalRequired':evaluation['approvalRequired'],'operatorId':operator_id,'storeId':store_id,'productId':product_id,
+        'reason':'完整方案按运营权限核算；审批原因见评估凭证。','evaluation':evaluation,
+        'executionChain':chain,
+        'parameters':{'adjustmentAmount':evaluation['resourceUsage']['totalAdjustmentAmount']},
+        'actionFamilies':families,'reservationCreated':False}
