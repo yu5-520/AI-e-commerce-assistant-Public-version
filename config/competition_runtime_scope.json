@@ -7,7 +7,12 @@
     "scripts/",
     "release/",
     "requirements.lock",
-    "VERSION.md"
+    "VERSION.md",
+    "java-control-plane/src/main/java/com/zcentury/v24/ProductionAuthorityMain.java",
+    "java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java",
+    "java-control-plane/src/main/java/com/zcentury/v24/SystemReviewAuthority.java",
+    "java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java",
+    "java-control-plane/src/main/java/com/zcentury/v24/V269SystemReviewEndpoint.java"
   ],
   "businessStageOrder": [
     "release_governance",
@@ -20,7 +25,7 @@
     "task_pool",
     "frontend_view"
   ],
-  "description": "比赛公开版固定运营工作台。运行文件由业务注册表、外部接口注册表、生产入口导入闭包和前端引用闭包共同确定；未注册接口、账号系统和企业组织治理文件默认拒绝。",
+  "description": "比赛公开版固定运营工作台。运行文件由业务注册表、外部接口注册表、生产入口导入闭包和前端引用闭包共同确定；V26.9.A 仅额外允许注册表实际选中的五个 Java System Review 文件进入公开运行血缘，不开放整个 Java control-plane；未注册接口、账号系统和企业组织治理文件默认拒绝。",
   "entrypointSearchPrefixes": [
     "src/"
   ],
@@ -139,5 +144,5 @@
   "staticRoots": [
     "web_demo/index.html"
   ],
-  "version": "2026.08.06.3"
+  "version": "2026.09.13.1-v269-review-exact-java-scope"
 }
