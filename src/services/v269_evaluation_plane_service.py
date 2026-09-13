@@ -12,6 +12,7 @@ import math
 from pathlib import Path
 from typing import Any
 
+from src.repositories.sqlite_repository import connect
 from src.services import v269_experience_store_service as store
 from src.services import v269_semantic_graph_service as graphs
 
@@ -413,3 +414,108 @@ def record_system_review_candidate(
         "knowledgeHeadMutated": False,
     }
     return {**material, "receiptHash": store.digest(material)}
+
+
+def read_task_evaluation_evidence(task_id: str, *, limit: int = 200) -> dict[str, Any]:
+    """Read persisted evaluation records for SOP display; never recompute on GET."""
+    task = str(task_id or "").strip()
+    body: dict[str, Any] = {
+        "schema": "evaluation.task_evidence.v269b.v1",
+        "version": VERSION,
+        "taskId": task,
+        "status": "NOT_RECORDED",
+        "contractHash": store.file_digest(CONTRACT_PATH),
+        "items": [],
+        "sourceReceipts": [],
+        "missingMetricCount": 0,
+        "sampleCount": 0,
+        "invalidRecordCount": 0,
+        "compositeScore": None,
+        "causalAttribution": None,
+        "recomputedOnRead": False,
+        "promotionPerformed": False,
+        "knowledgeHeadMutated": False,
+    }
+    if not task:
+        return {**body, "receiptHash": store.digest(body)}
+    cfg = contract()
+    try:
+        with connect() as conn:
+            tables = {
+                row[0] for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name IN "
+                    "('v269b_experience_sources','v269b_experience_items','v269b_evaluation_results')"
+                )
+            }
+            if tables != {'v269b_experience_sources','v269b_experience_items','v269b_evaluation_results'}:
+                return {**body, "receiptHash": store.digest(body)}
+            rows = conn.execute(
+                """SELECT r.evaluation_id,r.metric_id,r.metric_version,r.numerator,r.denominator,
+                          r.value,r.unit,r.observation_window,r.sample_count,r.missing_reason,
+                          r.formula_inputs,r.interpretation_limits,i.experience_id,i.lifecycle_status,
+                          s.source_hash,s.source_version,s.evaluation_version,s.evidence_refs,s.source_type
+                   FROM v269b_evaluation_results r
+                   JOIN v269b_experience_items i ON i.experience_id=r.experience_id
+                   JOIN v269b_experience_sources s ON s.source_id=i.source_id
+                   WHERE s.source_task_id=?
+                   ORDER BY r.metric_id ASC,r.evaluation_id ASC LIMIT ?""",
+                (task, max(1, min(500, int(limit)))),
+            ).fetchall()
+    except Exception:
+        body["status"] = "READ_UNAVAILABLE"
+        return {**body, "receiptHash": store.digest(body)}
+
+    source_map: dict[str, dict[str, Any]] = {}
+    items: list[dict[str, Any]] = []
+    invalid = 0
+    for row in rows:
+        metric_id = str(row["metric_id"] or "")
+        spec = (cfg.get("metrics") or {}).get(metric_id)
+        if not isinstance(spec, dict) or str(row["metric_version"] or "") != str(spec.get("version") or ""):
+            invalid += 1
+            continue
+        try:
+            formula_inputs = json.loads(row["formula_inputs"] or "{}")
+            limits = json.loads(row["interpretation_limits"] or "[]")
+            evidence_refs = json.loads(row["evidence_refs"] or "[]")
+        except Exception:
+            invalid += 1
+            continue
+        if not isinstance(formula_inputs, dict) or not isinstance(limits, list) or not isinstance(evidence_refs, list):
+            invalid += 1
+            continue
+        source_hash = str(row["source_hash"] or "")
+        source_map[source_hash] = {
+            "sourceHash": source_hash,
+            "sourceVersion": row["source_version"],
+            "evaluationVersion": row["evaluation_version"],
+            "sourceType": row["source_type"],
+            "evidenceRefs": evidence_refs,
+        }
+        items.append({
+            "experienceId": row["experience_id"],
+            "evaluationId": row["evaluation_id"],
+            "metricId": metric_id,
+            "metricVersion": row["metric_version"],
+            "definition": spec.get("definition"),
+            "formula": spec.get("formula"),
+            "numerator": row["numerator"],
+            "denominator": row["denominator"],
+            "value": row["value"],
+            "unit": row["unit"],
+            "observationWindow": row["observation_window"],
+            "sampleCount": int(row["sample_count"] or 0),
+            "missingReason": row["missing_reason"],
+            "formulaInputs": formula_inputs,
+            "supports": deepcopy(spec.get("supports") or []),
+            "interpretationLimits": limits,
+            "lifecycleStatus": row["lifecycle_status"],
+            "sourceHash": source_hash,
+        })
+    body["items"] = items
+    body["sourceReceipts"] = [source_map[key] for key in sorted(source_map)]
+    body["missingMetricCount"] = sum(item.get("missingReason") is not None for item in items)
+    body["sampleCount"] = sum(int(item.get("sampleCount") or 0) for item in items)
+    body["invalidRecordCount"] = invalid
+    body["status"] = "INVALID_EVIDENCE" if invalid else ("RECORDED" if items else "NOT_RECORDED")
+    return {**body, "receiptHash": store.digest(body)}
