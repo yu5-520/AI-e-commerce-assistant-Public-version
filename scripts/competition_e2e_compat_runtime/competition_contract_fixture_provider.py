@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
-"""Compatibility entry for the deterministic competition fixture provider.
+"""Compatibility entry for deterministic competition fixture providers.
 
-The base fixture generates deterministic business content for Agent1/2/3. The active
-runtime adds strict contracts that a structural fixture must satisfy exactly:
-
-- Agent1: ``itemExecutionId + inputContentHash`` and the evidence-backed execution lock;
-- Agent2: ``itemExecutionId + inputContentHash`` for every returned plan;
-- Agent3: at least two distinct execution-evidence requirements for lifecycle admission.
-
-These additions prove transport and pipeline contracts only. They are not presented as
-real Bailian/Qwen model-quality evidence.
+Historical requests retain the V22 contract fixture. Requests carrying the explicit
+V26.9 semantic contract are routed to the graph-only fixture, which authors no hashes,
+permissions, partitions, merge results or task admission decisions.
 """
 from __future__ import annotations
 
@@ -22,8 +16,11 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import competition_contract_fixture_provider as base  # noqa: E402
+import competition_contract_fixture_provider_v269 as graph_fixture  # noqa: E402
 
 _ORIGINAL_RESPONSE_PAYLOAD = base.response_payload
+if not hasattr(base, "_original_response_payload"):
+    base._original_response_payload = _ORIGINAL_RESPONSE_PAYLOAD  # type: ignore[attr-defined]
 
 
 def _text(value: Any) -> str:
@@ -171,6 +168,8 @@ def _agent3_admission_evidence(result: dict[str, Any]) -> dict[str, Any]:
 
 def response_payload(request_body: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
     payload = base._last_user_payload(request_body)
+    if payload.get("version") == graph_fixture.VERSION:
+        return graph_fixture.response_payload(request_body)
     if isinstance(payload.get("products"), list):
         return "product_judgment_agent", _agent1_exact(payload)
     if (
