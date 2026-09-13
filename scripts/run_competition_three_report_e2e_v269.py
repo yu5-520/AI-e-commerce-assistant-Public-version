@@ -87,13 +87,22 @@ def _graph_probe() -> dict[str, Any]:
     conflict_admission = graphs.admit_actions(
         conflict, ["DA_TRAFFIC", "DA_CREATIVE"]
     )
-    poisoned = {
+
+    clean_source = {"DecisionGraph": decision}
+    poisoned_source = {
         "DecisionGraph": decision,
         "lockedActionFamily": "forged",
         "executionLock": {"forged": True},
         "primaryAction": "forged",
+        "familyPayload": {"forged": True},
     }
-    poison_invariant = graphs.graph_input("agent2", poisoned) == decision
+    clean_projection = graphs.graph_input("agent2", clean_source)
+    poisoned_projection = graphs.graph_input("agent2", poisoned_source)
+    poison_invariant = (
+        poisoned_projection == clean_projection
+        and set(poisoned_projection) == {"DecisionGraph"}
+        and poisoned_projection["DecisionGraph"] == decision
+    )
     contract = graphs.contract()
     assertions = {
         "multiDomainPartitioned": [item["domain"] for item in partitions] == ["creative", "traffic"],
@@ -109,6 +118,8 @@ def _graph_probe() -> dict[str, Any]:
         "partitionDomains": [item["domain"] for item in partitions],
         "partitionHashes": [item["receiptHash"] for item in partitions],
         "conflictAdmission": conflict_admission,
+        "legacyPoisonProjectionHash": _canonical_hash(poisoned_projection),
+        "cleanProjectionHash": _canonical_hash(clean_projection),
         "rolloutStatus": contract.get("rolloutStatus"),
         "verified": all(assertions.values()),
     }
