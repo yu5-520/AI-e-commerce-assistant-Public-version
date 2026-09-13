@@ -1,11 +1,11 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.A-2026-09-13-finalize-03",
+  "requestId": "V26.9.A-2026-09-13-finalize-04",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
       "targetId": "agent3-mixed-contract-regression",
-      "failureClass": "MIXED_PROVIDER_CONTRACT_TEST_MISMATCH",
+      "failureClass": "RESOLVED_MIXED_PROVIDER_CONTRACT_REGRESSION_REQUIRES_CLOSEOUT_PROOF",
       "registryModules": [
         "agent3_runtime"
       ],
@@ -15,7 +15,7 @@
     },
     {
       "targetId": "three-report-scheduler-attestation",
-      "failureClass": "V269_GRAPH_ASSERTIONS_FAILED:allV269SchedulerStagesObserved",
+      "failureClass": "RESOLVED_DURABLE_SCHEDULER_ATTESTATION_REQUIRES_CLOSEOUT_PROOF",
       "registryModules": [
         "agent2_runtime",
         "agent3_runtime",
@@ -28,7 +28,7 @@
     },
     {
       "targetId": "three-report-gate-schema-consumer",
-      "failureClass": "ATTESTATION_SCHEMA_CONSUMER_STALE",
+      "failureClass": "RESOLVED_ATTESTATION_SCHEMA_CONSUMER_REQUIRES_CLOSEOUT_PROOF",
       "registryModules": [
         "task_mapping",
         "task_pool"
@@ -39,7 +39,7 @@
     },
     {
       "targetId": "v269-a-final-evidence-closeout",
-      "failureClass": "STATUS_DOCUMENT_STALE_AFTER_ALL_GATES_PASS",
+      "failureClass": "CANDIDATE_ALL_GATES_PASS_STATUS_DOCUMENT_STALE",
       "registryModules": [
         "release_governance"
       ],
