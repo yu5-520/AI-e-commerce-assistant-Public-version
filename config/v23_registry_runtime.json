@@ -479,7 +479,10 @@
     "agent3_runtime",
     "task_mapping",
     "task_pool",
-    "frontend_view"
+    "frontend_view",
+    "experience_store",
+    "evaluation_plane",
+    "experience_retrieval"
   ],
   "rules": {
     "activeBindingProbeRequired": true,
