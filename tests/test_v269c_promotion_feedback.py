@@ -70,25 +70,25 @@ def strategy(task: str = "TASK-C-1", expected: float = 2.4):
     )
 
 
-def add_evidence_evaluation(subject_id: str, task: str = "TASK-C-1"):
+def add_required_strategy_evaluation(subject_id: str, task: str = "TASK-C-1"):
     return store.record_experience(
         source=source(task),
         domain="evaluation_results",
-        applicability={"metricId": "system.evidence_completeness", "metricVersion": "1.0.0"},
+        applicability={"metricId": "agent2.actual_delta", "metricVersion": "1.0.0"},
         payload={
             "subjectExperienceId": subject_id,
             "evaluationId": "EVAL-" + subject_id,
-            "metricId": "system.evidence_completeness",
+            "metricId": "agent2.actual_delta",
             "metricVersion": "1.0.0",
-            "numerator": 3.0,
-            "denominator": 3.0,
-            "value": 1.0,
+            "numerator": 0.3,
+            "denominator": None,
+            "value": 0.3,
             "unit": "ratio",
-            "observationWindow": "task_lifecycle",
-            "sampleCount": 3,
+            "observationWindow": "PlanAction.reviewWindow",
+            "sampleCount": 1,
             "missingReason": None,
-            "formulaInputs": {"presentRequiredEvidence": 3, "requiredEvidence": 3},
-            "interpretationLimits": ["evidence truth is not implied by count alone"],
+            "formulaInputs": {"baselineValue": 2.0, "actualValue": 2.3, "metricUnit": "ratio"},
+            "interpretationLimits": ["observed change is not causal attribution"],
         },
     )
 
@@ -117,7 +117,7 @@ def test_candidate_never_auto_promotes_and_gate_requires_evaluation(isolated_db)
 
 def test_review_enable_retrieval_withdraw_history(isolated_db):
     candidate = strategy()
-    add_evidence_evaluation(candidate["experienceId"])
+    add_required_strategy_evaluation(candidate["experienceId"])
     gate = promotion.evaluate_promotion_gate(candidate["experienceId"])
     assert gate["approvedForPromotion"] is True
 
@@ -152,12 +152,12 @@ def test_review_enable_retrieval_withdraw_history(isolated_db):
 
 def test_supersede_is_explicit_and_atomic(isolated_db):
     first = strategy("TASK-C-OLD", expected=2.4)
-    add_evidence_evaluation(first["experienceId"], "TASK-C-OLD")
+    add_required_strategy_evaluation(first["experienceId"], "TASK-C-OLD")
     promotion.review_candidate(first["experienceId"], reviewer_id="reviewer-1", decision="approve", rationale="first reviewed")
     promotion.enable_experience(first["experienceId"], operator_id="operator-1", explicit_operator_intent=True)
 
     second = strategy("TASK-C-NEW", expected=2.5)
-    add_evidence_evaluation(second["experienceId"], "TASK-C-NEW")
+    add_required_strategy_evaluation(second["experienceId"], "TASK-C-NEW")
     gate = promotion.evaluate_promotion_gate(second["experienceId"])
     assert "ENABLED_CONFLICT_REQUIRES_SUPERSEDE" in gate["failures"]
 
@@ -189,7 +189,7 @@ def test_seed_and_adjustment_required_are_not_promotable(isolated_db):
         applicability={"reviewStatus": "ADJUSTMENT_REQUIRED"},
         payload={"planActionKey": "PA-1", "planAction": {"actionFamily": "roas_guard"}, "platform": "tmall", "executionType": "budget_update", "completionStatus": "ADJUSTMENT_REQUIRED", "rollbackOccurred": None, "sampleCount": 1},
     )
-    add_evidence_evaluation(candidate["experienceId"], "TASK-C-ADJ")
+    add_required_strategy_evaluation(candidate["experienceId"], "TASK-C-ADJ")
     gate = promotion.evaluate_promotion_gate(candidate["experienceId"])
     assert gate["approvedForPromotion"] is False
     assert "SOURCE_REVIEW_NOT_SETTLED" in gate["failures"]
