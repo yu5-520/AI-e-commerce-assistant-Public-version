@@ -1,0 +1,16 @@
+{
+  "schema": "experience.promotion.manifest.v269c.v1",
+  "version": "26.9.C.1",
+  "rolloutStatus": "candidate_not_activated",
+  "candidateRuntimeEnv": "V269C_CANDIDATE_RUNTIME",
+  "policyPath": "config/v269c_promotion_policy.json",
+  "migrationPath": "rag/migrations/002_v269c_promotion_feedback.sql",
+  "promotionService": "src/services/v269_promotion_gate_service.py",
+  "headAuthority": "content_addressed_enabled_set",
+  "automaticPromotion": false,
+  "automaticEnable": false,
+  "automaticKnowledgeHeadMutation": false,
+  "reviewAndEnableAreSeparateActions": true,
+  "withdrawalPreservesHistory": true,
+  "officialRetrievalStatus": "enabled"
+}
