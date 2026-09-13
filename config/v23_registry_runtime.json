@@ -62,11 +62,13 @@
       "implementationPaths": [
         "src/services/agent_input_contract_v2258_service.py",
         "src/services/agent_input_transport_v2258_service.py",
+        "src/services/agent_input_transport_v2257_service.py",
         "src/services/hard_interface_bridge_v2301_service.py",
         "src/services/v269_input_migration_service.py",
-        "src/services/v269_semantic_graph_service.py"
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_fact_projection_service.py"
       ],
-      "runner": "src.services.agent_input_transport_v2258_service:ensure_agent1_input_ref",
+      "runner": "src.services.v269_fact_projection_service:ensure_agent1_input_ref",
       "schemaIds": [
         "agent_input.agent1.v3"
       ]
@@ -79,7 +81,7 @@
           "agent1StageOwner": "src.services.agent_runtime_hard_interface_v2257_service",
           "inputContractOwner": "src.services.agent_input_contract_v2258_service",
           "inputResolverOwner": "src.services.agent_input_transport_v2258_service",
-          "inputTransportOwner": "src.services.agent_input_transport_v2258_service",
+          "inputTransportOwner": "src.services.v269_fact_projection_service",
           "stationWorkerFacade": "src.services.station_agent_worker_v2259_service",
           "tokenRuntimeOwner": "src.services.agent_token_runtime_hash_exact_v2259_service"
         },
@@ -116,6 +118,7 @@
         "src/services/agent_token_runtime_hash_exact_v2259_service.py",
         "src/services/real_product_judgment_agent_v2259_service.py",
         "src/services/agent_input_contract_v2258_service.py",
+        "src/services/agent_input_transport_v2257_service.py",
         "src/services/hash_directed_artifact_runtime_v2259_service.py",
         "src/services/agent_runtime_hard_interface_v2257_service.py",
         "src/services/agent_runtime_hard_interface_v22514_service.py",
@@ -123,7 +126,8 @@
         "src/services/station_agent_worker_v22515_service.py",
         "src/services/station_agent_worker_v2259_service.py",
         "src/services/v269_semantic_graph_service.py",
-        "src/services/v269_input_migration_service.py"
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_fact_projection_service.py"
       ],
       "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
       "schemaIds": [
