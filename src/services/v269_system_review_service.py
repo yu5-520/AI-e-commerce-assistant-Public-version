@@ -80,8 +80,31 @@ def _plan_review_windows(plan: Dict[str, Any]) -> list[int]:
 
 
 def _baseline_source_hash(chain: Dict[str, Any]) -> str | None:
-    value = str(chain.get("baselineSourceContentHash") or "").strip()
-    return value or None
+    """Resolve BASE content identity from the accepted Agent1 input Artifact.
+
+    The execution receipt is the authority for which input produced DecisionGraph.
+    Reading BusinessFacts.sourceContentHash from that exact immutable input avoids
+    trusting a top-level convenience field and makes same-report TARGET rejection real.
+    """
+    from src.services.artifact_transport_service import resolve_artifact
+
+    executions = chain.get("executions") if isinstance(chain, dict) else None
+    for execution in executions or []:
+        if not isinstance(execution, dict) or execution.get("agent") != "agent1":
+            continue
+        ref = str(execution.get("inputArtifactRef") or "")
+        if not ref.startswith("ART-"):
+            continue
+        try:
+            envelope = resolve_artifact(ref)
+        except Exception:
+            continue
+        payload = envelope.get("payload") if isinstance(envelope, dict) else None
+        facts = payload.get("BusinessFacts") if isinstance(payload, dict) else None
+        value = str((facts or {}).get("sourceContentHash") or "").strip()
+        if value:
+            return value
+    return None
 
 
 def register_review_in_conn(
@@ -92,8 +115,11 @@ def register_review_in_conn(
     chain: Dict[str, Any],
     frozen_at_millis: int | None = None,
 ) -> Dict[str, Any]:
-    """Register review identity inside the caller's task-admission transaction."""
-    ensure_review_tables()
+    """Register review identity inside caller's existing task-admission transaction.
+
+    The caller MUST call ensure_review_tables() before BEGIN IMMEDIATE. Opening a second
+    SQLite connection here would break the single atomic authority transaction.
+    """
     task_id = str(task.get("taskId") or task.get("id") or "").strip()
     graphs.require(bool(task_id), "review_task_id_required")
     decision_graph = decision.get("DecisionGraph")
@@ -107,6 +133,8 @@ def register_review_in_conn(
     frozen = int(frozen_at_millis if frozen_at_millis is not None else _epoch_millis())
     contract_hash = str(plan_graph.get("contractHash") or "")
     graphs.require(contract_hash == graphs.digest(graphs.contract()), "review_semantic_contract_hash")
+    baseline_source_hash = _baseline_source_hash(chain)
+    graphs.require(bool(baseline_source_hash), "review_baseline_source_content_hash_required")
     payload = {
         "schema": REVIEW_SCHEMA,
         "version": VERSION,
@@ -118,7 +146,7 @@ def register_review_in_conn(
         "PlanGraph": deepcopy(plan_graph),
         "OperationGraph": deepcopy(operation_graph),
         "baselineFacts": deepcopy(fact_values),
-        "baselineSourceContentHash": _baseline_source_hash(chain),
+        "baselineSourceContentHash": baseline_source_hash,
         "frozenAtMillis": frozen,
         "successfulNodeHashes": [],
         "ragFeedbackAllowed": False,
@@ -137,13 +165,14 @@ def register_review_in_conn(
              decision_graph_hash=excluded.decision_graph_hash,
              plan_graph_hash=excluded.plan_graph_hash,
              operation_graph_hash=excluded.operation_graph_hash,
+             baseline_source_content_hash=excluded.baseline_source_content_hash,
              payload=excluded.payload,
              updated_at=excluded.updated_at
            WHERE v269_system_reviews.status IN ('PENDING','WAITING_TIME','WAITING_EVIDENCE','REVIEW_UNAVAILABLE')""",
         (
             task_id, payload["storeId"], payload["productId"], contract_hash,
             decision_graph["graphHash"], plan_graph["graphHash"], operation_graph["graphHash"],
-            frozen, payload["baselineSourceContentHash"], dumps(payload), now, now,
+            frozen, baseline_source_hash, dumps(payload), now, now,
         ),
     )
     return {
@@ -152,7 +181,7 @@ def register_review_in_conn(
         "taskId": task_id,
         "frozenAtMillis": frozen,
         "PlanGraphHash": plan_graph["graphHash"],
-        "baselineSourceContentHash": payload["baselineSourceContentHash"],
+        "baselineSourceContentHash": baseline_source_hash,
         "status": "PENDING",
     }
 
