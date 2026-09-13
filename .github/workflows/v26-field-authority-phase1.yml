@@ -5,6 +5,7 @@ on:
     paths:
       - 'config/v26_field_authority_contract.json'
       - 'config/v23_registry_runtime.json'
+      - 'rag/manifest/v269b_manifest.json'
       - 'src/services/v26_field_authority_contract_service.py'
       - 'src/services/runtime_contract_guard_v1_service.py'
       - 'governance/v26-field-authority-update-policy.json'
@@ -35,6 +36,7 @@ on:
     paths:
       - 'config/v26_field_authority_contract.json'
       - 'config/v23_registry_runtime.json'
+      - 'rag/manifest/v269b_manifest.json'
       - 'src/services/v26_field_authority_contract_service.py'
       - 'src/services/runtime_contract_guard_v1_service.py'
       - 'governance/v26-field-authority-update-policy.json'
@@ -134,7 +136,32 @@ jobs:
           assert registry['fieldAuthorityContractVersion'] == '26.1.0'
           assert registry['fieldAuthorityContractPath'] == 'config/v26_field_authority_contract.json'
           assert registry['registryRootHash'] == 'sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac'
-          assert len(registry['requiredModules']) == 10
+          required_modules = registry['requiredModules']
+          assert isinstance(required_modules, list) and required_modules
+          assert len(required_modules) == len(set(required_modules))
+          assert set(required_modules) <= set(registry['modules'])
+          base_modules = {
+              'release_governance',
+              'signal_admission',
+              'agent1_input_projection',
+              'agent1_runtime',
+              'agent2_runtime',
+              'agent3_input_projection',
+              'agent3_runtime',
+              'task_mapping',
+              'task_pool',
+              'frontend_view',
+          }
+          assert base_modules <= set(required_modules)
+          manifest_path = Path('rag/manifest/v269b_manifest.json')
+          if manifest_path.is_file():
+              manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+              if manifest.get('version') == '26.9.B.1':
+                  b_modules = {'experience_store', 'evaluation_plane', 'experience_retrieval'}
+                  if manifest.get('rolloutStatus') == 'active':
+                      assert b_modules <= set(required_modules)
+                  else:
+                      assert not (b_modules & set(required_modules))
           assert registry['rules']['fieldHeaderAuthorityRequired'] is True
           assert registry['rules']['semanticBusinessWordingAuthorityInspectionForbidden'] is True
           assert registry['rules']['systemStageModelMutationForbidden'] is True
@@ -145,6 +172,7 @@ jobs:
           assert profile['allowRuntimeMembershipChange'] is True
           assert profile['allowEdgeChanges'] is True
           print('V26_1_TO_V26_6_REGISTRY_CONTRACT=PASS')
+          print('REQUIRED_MODULES=' + json.dumps(required_modules, ensure_ascii=False))
           PY
 
       - name: Compile V26.1 authority services
