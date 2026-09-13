@@ -1,6 +1,6 @@
 # V26.9.C Promotion Gate / Feedback Loop
 
-状态：`candidate_not_activated`
+状态：`active`（PR #96 已合并；下文 candidate 描述保留为历史阶段）
 
 V26.9.A 继续拥有唯一业务语义链与执行权限；V26.9.B 继续负责 candidate Experience、Evaluation Plane 与 enabled-only field retrieval。V26.9.C 只增加**显式审核后的经验晋级/撤回/替换治理**，不改变三 Agent 的写权限，也不允许 System Review 自动晋级经验。
 

@@ -198,6 +198,8 @@ def _head_in_conn(conn: Any, domain: str) -> str:
 def _gate_in_conn(conn: Any, experience_id: str) -> dict[str, Any]:
     item = _item(conn, experience_id)
     cfg = policy()
+    from src.services.v2610_initialization_service import is_registered_method
+    initialization_method = is_registered_method(conn, item)
     domain = item["domain"]
     rule = (cfg.get("domainRules") or {}).get(domain)
     failures: list[str] = []
@@ -207,7 +209,7 @@ def _gate_in_conn(conn: Any, experience_id: str) -> dict[str, Any]:
     evaluations = _linked_evaluations(conn, experience_id)
     sample_count = _sample_count(conn, item)
 
-    if item.get("source_type") != cfg.get("sourceType"):
+    if not initialization_method and item.get("source_type") != cfg.get("sourceType"):
         failures.append("SOURCE_TYPE_NOT_RUNTIME")
     if item.get("lifecycle_status") not in {"candidate", "approved"}:
         failures.append("LIFECYCLE_NOT_PROMOTABLE")
@@ -215,11 +217,11 @@ def _gate_in_conn(conn: Any, experience_id: str) -> dict[str, Any]:
         failures.append("DOMAIN_NOT_PROMOTABLE")
         rule = {}
     review_status = applicability.get("reviewStatus") if isinstance(applicability, dict) else None
-    if review_status not in set(cfg.get("eligibleReviewStatuses") or []):
+    if not initialization_method and review_status not in set(cfg.get("eligibleReviewStatuses") or []):
         failures.append("SOURCE_REVIEW_NOT_SETTLED")
     if len(set(str(ref) for ref in evidence_refs if str(ref))) < int(cfg.get("minimumEvidenceRefs") or 0):
         failures.append("EVIDENCE_INCOMPLETE")
-    if sample_count < int(rule.get("minimumSampleCount") or 0):
+    if not initialization_method and sample_count < int(rule.get("minimumSampleCount") or 0):
         failures.append("SAMPLE_COUNT_LOW")
     for flag in cfg.get("deniedApplicabilityFlags") or []:
         if isinstance(applicability, dict) and applicability.get(flag) is True:
@@ -274,6 +276,8 @@ def _gate_in_conn(conn: Any, experience_id: str) -> dict[str, Any]:
         "sourceTaskId": item["source_task_id"],
         "policyHash": policy_hash(),
         "sampleCount": sample_count,
+        "knowledgeKind": "initialization_method" if initialization_method else "runtime_experience",
+        "historicalOutcomeProof": not initialization_method,
         "evidenceRefCount": len(set(str(ref) for ref in evidence_refs if str(ref))),
         "linkedEvaluationCount": len(evaluations),
         "usableEvaluationMetrics": sorted({row["metric_id"] for row in usable}),

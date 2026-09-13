@@ -1,6 +1,6 @@
 # V26.9.B Experience Store / Evaluation Plane
 
-状态：`production_activation_transaction / effective_only_after_merge`
+状态：`active`（PR #94 已合并；下文 activation 过程保留为历史记录）
 
 V26.9.A 已在 `main` production-active。V26.9.B 只在 A 的执行结果之后增加经验保存、版本化评测与字段检索，不改变 `DecisionGraph → ActionAdmission → PlanGraph → OperationGraph → Task Mapping → Execution / System Review` 的业务权威。
 

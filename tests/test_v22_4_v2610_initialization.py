@@ -1,0 +1,120 @@
+"""Initialization provenance, holdout isolation and the real C review/retrieval path."""
+from copy import deepcopy
+import json
+from pathlib import Path
+import pytest
+from scripts.compile_v2610_initialization import compile_bundle
+from src.repositories import sqlite_repository as repo
+from src.services import v2610_initialization_service as init
+from src.services import v269_promotion_gate_service as promotion
+from src.services import v269_experience_retrieval_service as retrieval
+from src.services import v269_experience_store_service as store
+
+ROOT=Path(__file__).resolve().parents[1]
+
+@pytest.fixture
+def db(tmp_path,monkeypatch):
+    monkeypatch.setattr(repo,'DB_PATH',tmp_path/'test.sqlite')
+    monkeypatch.setattr(repo,'_WAL_INITIALIZED',False)
+    return tmp_path
+
+
+def test_bundle_reproduces_source_and_keeps_holdout_out_of_training():
+    profile=json.loads((ROOT/'config/v2610_initialization_profile.json').read_text())
+    scenario=json.loads((ROOT/profile['sourcePath']).read_text())
+    a=compile_bundle(scenario,profile)
+    assert a==init.bundle()
+    scenario['reports'][2]['rows'][0]['roi']=900
+    b=compile_bundle(scenario,profile)
+    assert a['bundleHash']!=b['bundleHash']
+    assert a['initializationHash']==b['initializationHash']
+    assert a['methods']==b['methods']
+    assert a['realSampleCount']==0
+    unit=a['operatingUnits'][0]
+    assert 'roiDefinitionMismatch' in unit
+    assert unit['reportedRoi']!=unit['derived']['revenue_ad_spend_ratio']['value']
+    assert unit['baseline']['roi']['absoluteDelta']==unit['baseline']['roi']['second']-unit['baseline']['roi']['first']
+
+
+def test_initialization_is_idempotent_and_does_not_create_outcomes(db):
+    first=init.initialize_bundle();second=init.initialize_bundle()
+    assert first==second
+    with repo.connect() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM v269b_experience_items').fetchone()[0]==len(init.bundle()['methods'])
+        assert conn.execute('SELECT COUNT(*) FROM v269b_evaluation_results').fetchone()[0]==0
+        assert conn.execute("SELECT COUNT(*) FROM v269b_experience_items WHERE lifecycle_status='enabled'").fetchone()[0]==0
+    assert all(store.experience_view(experience_id=e)['payload']['sampleCount']==0 for e in first['experienceIds'])
+
+
+def test_review_enable_retrieve_withdraw_and_replay_use_existing_authority(db):
+    receipt=init.initialize_bundle()
+    ids=receipt['experienceIds'][:3]
+    for eid in ids:
+        item=store.experience_view(experience_id=eid)
+        agent=item['payload']['agent'];scope=item['payload']['scope']
+        query={'category':item['payload']['category']} if agent!='agent3' else {'platform':item['payload']['platform']}
+        args={'business_scope':scope}
+        assert retrieval.retrieve_experience(agent,query,**args)['matchCount']==0
+        gate=promotion.evaluate_promotion_gate(eid)
+        assert gate['approvedForPromotion'] and gate['knowledgeKind']=='initialization_method'
+        assert gate['sampleCount']==0 and not gate['historicalOutcomeProof']
+        promotion.review_candidate(eid,reviewer_id='test-reviewer',decision='approve',rationale='测试审核方法口径')
+        assert retrieval.retrieve_experience(agent,query,**args)['matchCount']==0
+        promotion.enable_experience(eid,operator_id='test-operator',explicit_operator_intent=True)
+        result=retrieval.retrieve_experience(agent,query,**args)
+        assert result['resultIds']==[eid]
+        assert result['results'][0]['officialEligible']
+        assert result['results'][0]['sourceType']=='seed'
+        assert retrieval.retrieve_experience(agent,query,business_scope={**scope,'storeId':'other'})['matchCount']==0
+        assert retrieval.retrieve_experience(agent,query)['matchCount']==0
+        head=result['knowledgeHead']
+        promotion.disable_experience(eid,operator_id='test-operator',reason='测试撤回',explicit_operator_intent=True)
+        init.initialize_bundle()
+        result=retrieval.retrieve_experience(agent,query,**args)
+        assert result['matchCount']==0 and result['knowledgeHead']!=head
+        assert store.experience_view(experience_id=eid)['lifecycleStatus']=='disabled'
+
+
+def test_relabelled_or_modified_seed_cannot_be_enabled(db):
+    receipt=init.initialize_bundle();eid=receipt['experienceIds'][0]
+    with repo.connect() as conn:
+        p=json.loads(conn.execute('SELECT payload FROM v269b_experience_items WHERE experience_id=?',(eid,)).fetchone()[0])
+        p['sampleCount']=99
+        conn.execute('UPDATE v269b_experience_items SET payload=? WHERE experience_id=?',(json.dumps(p),eid));conn.commit()
+    gate=promotion.evaluate_promotion_gate(eid)
+    assert not gate['approvedForPromotion']
+    assert 'SOURCE_TYPE_NOT_RUNTIME' in gate['failures']
+
+
+def test_initialization_reference_is_frozen_in_sop_and_cache_head(db):
+    from src.services import v269_input_migration_service as migration
+    receipt=init.initialize_bundle();eid=receipt['experienceIds'][0]
+    item=store.experience_view(experience_id=eid);payload=item['payload']
+    promotion.review_candidate(eid,reviewer_id='reviewer',decision='approve',rationale='method checked')
+    promotion.enable_experience(eid,operator_id='operator',explicit_operator_intent=True)
+    base={'retrievalPolicyHash':'policy','records':[]};base={**base,'headHash':store.digest(base)}
+    source={**payload['scope'],'BusinessFacts':{'category':payload['category']}}
+    # Use a deterministic field query while exercising the existing context rebind.
+    from unittest.mock import patch
+    with patch.object(retrieval,'derive_queries',return_value=[{'category':payload['category']}]):
+        context=retrieval.attach_official_experience_context('agent1',source,base)
+        assert context==retrieval.attach_official_experience_context('agent1',source,context)
+        evidence=migration.freeze_graph_evidence({'knowledgeContext':context},{})
+        assert evidence['cards'][0]['kind']=='PRESET'
+        frozen=deepcopy(evidence)
+        promotion.disable_experience(eid,operator_id='operator',reason='withdraw',explicit_operator_intent=True)
+        after=retrieval.attach_official_experience_context('agent1',source,context)
+        assert after['headHash']!=context['headHash']
+        assert evidence==frozen
+
+
+def test_parameter_override_is_scoped_and_cannot_change_formula_authority():
+    profile=json.loads((ROOT/'config/v2610_initialization_profile.json').read_text())
+    scenario=json.loads((ROOT/profile['sourcePath']).read_text())
+    profile['parameterOverrides']['store']={'TB-SH-001':{'minimumRelativeThreshold':0.9}}
+    b=compile_bundle(scenario,profile)
+    for unit in b['operatingUnits']:
+        expected=0.9 if unit['storeId']=='TB-SH-001' else profile['minimumRelativeThreshold']
+        assert unit['baseline']['roi']['minimumRelativeThreshold']==expected
+    profile['parameterOverrides']['store']['TB-SH-001']['formula']='invented'
+    with pytest.raises(ValueError,match='parameter_override_not_registered'):compile_bundle(scenario,profile)

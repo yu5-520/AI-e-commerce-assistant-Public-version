@@ -4,8 +4,11 @@ on:
   push:
     branches:
       - feat/v269-a-semantic-cutover
+      - feat/v2610-initialization
     paths:
       - 'src/services/v269_*.py'
+      - 'src/services/v2610_*.py'
+      - 'config/v2610_*.json'
       - 'src/services/agent_runtime_hard_interface_v2257_service.py'
       - 'src/services/agent_runtime_hard_interface_v22515_service.py'
       - 'src/services/station_agent_worker_v22515_service.py'

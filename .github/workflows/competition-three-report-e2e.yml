@@ -153,7 +153,7 @@ jobs:
         run: |
           set -euo pipefail
           ARCHIVE="dist/competition-runtime/competition-runtime-${COMPETITION_SOURCE_COMMIT}.tar.gz"
-          "$COMPETITION_TOOL_PYTHON" scripts/run_competition_three_report_e2e_history_warmup.py \
+          "$COMPETITION_RUNTIME_PYTHON" scripts/run_competition_three_report_e2e_v269.py \
             "$ARCHIVE" \
             --source-commit "$COMPETITION_SOURCE_COMMIT" \
             --scenario fixtures/competition/three_report_scenario.json \

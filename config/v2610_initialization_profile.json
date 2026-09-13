@@ -1,0 +1,190 @@
+{
+  "schema": "business.initialization.profile.v2610.v1",
+  "version": "26.10.0",
+  "profileId": "era-three-report-methods-v1",
+  "sourceType": "synthetic_fixture",
+  "sourcePath": "config/v2610_era_source.json",
+  "trainingReportCount": 2,
+  "holdoutReportCount": 1,
+  "currency": "CNY",
+  "timezone": "Asia/Shanghai",
+  "rateUnit": "ratio",
+  "minimumRelativeThreshold": 0.05,
+  "epsilon": 1e-09,
+  "thresholdFormula": "max(minimumRelativeThreshold, abs(second - first) / abs(first))",
+  "thresholdStatus": "provisional_two_period_preset",
+  "parameterAuthority": "system_versioned_profile",
+  "reportedMetricAuthority": "preserve_reported_value",
+  "implicitMetricSubstitution": false,
+  "realSampleCount": 0,
+  "automaticMethodEnable": false,
+  "executionPermissionGranted": false,
+  "methods": {
+    "agent1": "先核对指标口径和连续变化；用报表基线支持判断与候选动作，不把相关性表述为已证实因果，不填写预算或计划目标。",
+    "agent2": "只对准入动作做参数化；引用当前冻结基线，显式给出预期范围、观察窗口和保护条件。初始化波动阈值仅作参考，不能代替预算权限。",
+    "agent3": "将已接受方案转换为执行步骤；绑定方案节点、对象、顺序、验收和回滚。不得新增预算、改动目标或宣称步骤已经执行。"
+  },
+  "fields": {
+    "store_id": {
+      "type": "string",
+      "unit": null,
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "店铺ID"
+    },
+    "product_id": {
+      "type": "string",
+      "unit": null,
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "商品ID"
+    },
+    "sku_id": {
+      "type": "string",
+      "unit": null,
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "SKU ID"
+    },
+    "store_name": {
+      "type": "string",
+      "unit": null,
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "店铺名称"
+    },
+    "product_name": {
+      "type": "string",
+      "unit": null,
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "商品名称"
+    },
+    "category": {
+      "type": "string",
+      "unit": null,
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "一级类目"
+    },
+    "platform": {
+      "type": "string",
+      "unit": null,
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "平台"
+    },
+    "stock": {
+      "type": "number",
+      "unit": "item",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "库存数量"
+    },
+    "roi": {
+      "type": "number",
+      "unit": "reported_ratio",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "ROI"
+    },
+    "traffic": {
+      "type": "number",
+      "unit": "reported_traffic_count",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "访客数"
+    },
+    "clicks": {
+      "type": "number",
+      "unit": "click",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "广告点击数"
+    },
+    "ctr": {
+      "type": "number",
+      "unit": "ratio",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "点击率"
+    },
+    "conversion_rate": {
+      "type": "number",
+      "unit": "ratio",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "支付转化率"
+    },
+    "gross_margin": {
+      "type": "number",
+      "unit": "ratio",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "毛利率"
+    },
+    "ad_spend": {
+      "type": "number",
+      "unit": "CNY",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "广告消耗"
+    },
+    "sales_volume": {
+      "type": "number",
+      "unit": "item",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "支付件数"
+    },
+    "revenue": {
+      "type": "number",
+      "unit": "CNY",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "支付金额"
+    },
+    "refund_rate": {
+      "type": "number",
+      "unit": "ratio",
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "退款率"
+    },
+    "sourceFields": {
+      "type": "object",
+      "unit": null,
+      "authority": "reported_fact",
+      "missingPolicy": "missing_is_not_zero",
+      "sourceSheet": "商品经营明细",
+      "sourceColumn": "完整原始行"
+    }
+  },
+  "parameterOverrides": {
+    "category": {},
+    "store": {}
+  },
+  "inheritanceOrder": [
+    "profile",
+    "category",
+    "store"
+  ]
+}

@@ -292,6 +292,12 @@ def decision_messages(data_version, products):
 def freeze_graph_evidence(package, output):
     """Freeze public decision records and recomputable PLAN deltas, never hidden reasoning."""
     cards=[]
+    from src.services.v2610_initialization_service import initialization_evidence
+    for record in initialization_evidence(package.get('knowledgeContext',{}).get('records',[])):
+        payload=record['payload']
+        cards.append({'label':'初始化方法与计算标准','field':'initializationMethod','kind':'PRESET',
+            'value':payload,'actor':'已审核初始化方法','status':'INITIALIZATION_NOT_OUTCOME',
+            'sourceHash':graphs.digest(payload),'formula':None,'inputs':payload.get('sourceRefs',[])})
     labels={'reasoning':'判断依据','evidenceRefs':'引用证据','judgementRefs':'判断引用',
         'priority':'动作优先级','confidence':'置信度','decisionActionRef':'候选动作引用',
         'parameters':'方案参数','baseline':'冻结基线','expectedOutcome':'预期结果',

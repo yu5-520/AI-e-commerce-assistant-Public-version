@@ -1,0 +1,29 @@
+name: V26.10 Initialization and Method Knowledge
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'config/v2610_*.json'
+      - 'src/services/v2610_*.py'
+      - 'scripts/compile_v2610_initialization.py'
+      - 'tests/test_v22_4_v2610_initialization.py'
+      - 'src/services/v269_experience_retrieval_service.py'
+      - 'src/services/v269_promotion_gate_service.py'
+      - '.github/workflows/v2610-initialization.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  initialization:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+      - name: Install locked test runtime
+        run: python -m pip install -r requirements-dev.lock
+      - name: Verify initialization reproduces registered reports
+        run: python scripts/compile_v2610_initialization.py --check
+      - name: Verify initialization and existing experience lifecycle
+        run: python -m pytest -q tests/test_v22_4_v2610_initialization.py tests/test_v269b_evaluation_plane.py tests/test_v269b_experience_retrieval.py tests/test_v269b_experience_store.py tests/test_v269c_promotion_feedback.py

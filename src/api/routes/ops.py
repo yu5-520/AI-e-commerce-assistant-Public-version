@@ -147,3 +147,24 @@ def experience_disable(
     )
     result["routeVersion"] = OPS_ROUTE_VERSION
     return result
+
+
+@router.get("/initialization")
+def initialization_preview() -> Dict[str, Any]:
+    from src.services.v2610_initialization_service import bundle
+    value = bundle()
+    return {"bundleHash": value["bundleHash"], "profile": value["profile"],
+            "operatingUnits": value["operatingUnits"], "methodCount": len(value["methods"]),
+            "automaticEnable": False, "recomputedOnRead": False}
+
+
+@router.post("/initialization")
+def initialize_business(request: Request, body: Dict[str, Any] | None = Body(default=None)) -> Dict[str, Any]:
+    from fastapi import HTTPException
+    from src.services.v2610_initialization_service import initialize_bundle, bundle
+    payload = body or {}
+    if payload.get("explicitOperatorIntent") is not True or payload.get("bundleHash") != bundle()["bundleHash"]:
+        raise HTTPException(status_code=409, detail="initialization_requires_explicit_intent_and_exact_bundle")
+    result = initialize_bundle()
+    result["requestedBy"] = request_user_id(request)
+    return result
