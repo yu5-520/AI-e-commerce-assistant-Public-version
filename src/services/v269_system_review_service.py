@@ -2,9 +2,10 @@
 
 Python remains the production lifecycle writer. Java READY_NO_AUTHORITY is the one
 review/revision calculator: this module freezes graph identities at task admission,
-collects later BusinessFacts as TARGET observations, calls the root-bound Java endpoint,
-verifies its immutable receipt, and only then asks the existing task lifecycle state
-machine to persist SETTLED or ADJUSTMENT_REQUIRED.
+collects later BusinessFacts as TARGET observations only after execution has been
+submitted, calls the root-bound Java endpoint, verifies its immutable receipt, and
+only then asks the existing task lifecycle state machine to persist SETTLED or
+ADJUSTMENT_REQUIRED.
 
 No RAG feedback, Evaluation Plane, model call, or legacy recap metric input is allowed.
 """
@@ -80,12 +81,6 @@ def _plan_review_windows(plan: Dict[str, Any]) -> list[int]:
 
 
 def _baseline_source_hash(chain: Dict[str, Any]) -> str | None:
-    """Resolve BASE content identity from the accepted Agent1 input Artifact.
-
-    The execution receipt is the authority for which input produced DecisionGraph.
-    Reading BusinessFacts.sourceContentHash from that exact immutable input avoids
-    trusting a top-level convenience field and makes same-report TARGET rejection real.
-    """
     from src.services.artifact_transport_service import resolve_artifact
 
     executions = chain.get("executions") if isinstance(chain, dict) else None
@@ -115,10 +110,11 @@ def register_review_in_conn(
     chain: Dict[str, Any],
     frozen_at_millis: int | None = None,
 ) -> Dict[str, Any]:
-    """Register review identity inside caller's existing task-admission transaction.
+    """Register BASE identity inside caller's task-admission transaction.
 
-    The caller MUST call ensure_review_tables() before BEGIN IMMEDIATE. Opening a second
-    SQLite connection here would break the single atomic authority transaction.
+    Registration does not authorize review yet. It starts AWAITING_EXECUTION; the
+    lifecycle writer must explicitly call mark_review_pending after an executed task
+    is submitted/approved. The caller must create tables before BEGIN IMMEDIATE.
     """
     task_id = str(task.get("taskId") or task.get("id") or "").strip()
     graphs.require(bool(task_id), "review_task_id_required")
@@ -159,7 +155,7 @@ def register_review_in_conn(
            plan_graph_hash,operation_graph_hash,frozen_at_millis,baseline_source_content_hash,
            status,payload,last_target_content_hash,review_receipt,revision_directive,
            created_at,updated_at
-           ) VALUES(?,?,?,?,?,?,?,?,?,'PENDING',?,NULL,NULL,NULL,?,?)
+           ) VALUES(?,?,?,?,?,?,?,?,?,'AWAITING_EXECUTION',?,NULL,NULL,NULL,?,?)
            ON CONFLICT(task_id) DO UPDATE SET
              semantic_contract_hash=excluded.semantic_contract_hash,
              decision_graph_hash=excluded.decision_graph_hash,
@@ -168,7 +164,7 @@ def register_review_in_conn(
              baseline_source_content_hash=excluded.baseline_source_content_hash,
              payload=excluded.payload,
              updated_at=excluded.updated_at
-           WHERE v269_system_reviews.status IN ('PENDING','WAITING_TIME','WAITING_EVIDENCE','REVIEW_UNAVAILABLE')""",
+           WHERE v269_system_reviews.status IN ('AWAITING_EXECUTION','REVIEW_UNAVAILABLE')""",
         (
             task_id, payload["storeId"], payload["productId"], contract_hash,
             decision_graph["graphHash"], plan_graph["graphHash"], operation_graph["graphHash"],
@@ -182,8 +178,28 @@ def register_review_in_conn(
         "frozenAtMillis": frozen,
         "PlanGraphHash": plan_graph["graphHash"],
         "baselineSourceContentHash": baseline_source_hash,
-        "status": "PENDING",
+        "status": "AWAITING_EXECUTION",
     }
+
+
+def mark_review_pending(task_id: str) -> Dict[str, Any]:
+    """Open TARGET observation only after the execution lifecycle is complete."""
+    ensure_review_tables()
+    now = _now()
+    with connect() as conn:
+        row = conn.execute("SELECT status FROM v269_system_reviews WHERE task_id=?", (task_id,)).fetchone()
+        if not row:
+            return {"ok": False, "status": "review_not_registered", "taskId": task_id}
+        if row["status"] in {"PENDING", "WAITING_TIME", "WAITING_EVIDENCE"}:
+            return {"ok": True, "status": row["status"], "taskId": task_id, "idempotentHit": True}
+        if row["status"] != "AWAITING_EXECUTION":
+            return {"ok": False, "status": row["status"], "taskId": task_id}
+        conn.execute(
+            "UPDATE v269_system_reviews SET status='PENDING',updated_at=? WHERE task_id=? AND status='AWAITING_EXECUTION'",
+            (now, task_id),
+        )
+        conn.commit()
+    return {"ok": True, "status": "PENDING", "taskId": task_id}
 
 
 def mark_successful_nodes(task_id: str, node_hashes: Iterable[str]) -> Dict[str, Any]:
@@ -315,12 +331,7 @@ def observe_candidate_facts(
     source_content_hash: str,
     observed_at_millis: int | None = None,
 ) -> Dict[str, Any]:
-    """Use a later real BusinessFacts projection as TARGET for one active graph task.
-
-    The same report/content hash that created BASE is never accepted as TARGET. If more
-    than one active task exists for the same product, review fails closed instead of
-    guessing which task owns the observation.
-    """
+    """Use a later real BusinessFacts projection as TARGET for one active graph task."""
     store_id = str(candidate.get("storeId") or "")
     product_id = str(candidate.get("productId") or "")
     if not store_id or not product_id:
@@ -405,6 +416,7 @@ __all__ = [
     "VERSION",
     "ensure_review_tables",
     "register_review_in_conn",
+    "mark_review_pending",
     "mark_successful_nodes",
     "pending_review_for_scope",
     "observe_candidate_facts",
