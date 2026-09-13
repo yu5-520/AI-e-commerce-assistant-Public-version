@@ -1,10 +1,10 @@
 """V22.5.15 binding for the existing single station worker.
 
 V23.3 Runtime Generation Barrier keeps the existing one-thread/one-queue ownership
-model and serializes each complete worker iteration against demo Reset. A Reset waits
-for any in-flight Provider/station iteration to finish before rotating the generation
-and deleting mutable runtime state, so an old Agent result cannot repopulate the new
-empty generation.
+model and serializes each complete worker iteration against demo Reset. V26.9.A adds
+only a versioned stage scheduler inside that same worker: DecisionGraph partition/merge,
+Agent3 OperationGraph, deterministic Task Mapping and graph Task Pool admission. No
+second worker, queue or authority root is introduced.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from src.services.agent_runtime_hard_interface_v22515_service import (
     AGENT_RUNTIME_HARD_INTERFACE_VERSION,
     active_agent1_runtime_binding,
     assert_active_agent1_runtime_binding,
-    run_agent_pipeline_tick_hard,
+    run_agent_pipeline_tick_hard as _base_run_agent_pipeline_tick_hard,
     select_runnable_data_version_v225,
 )
 from src.services.competition_signal_handoff_service import (
@@ -28,9 +28,102 @@ from src.services.runtime_generation_barrier_v1_service import (
     mark_runtime_generation_active,
     runtime_execution_guard,
 )
+from src.services.v269_pipeline_orchestration_service import (
+    pending_graph_agent1_count,
+    run_agent2_graph_partition_microbatch,
+)
+from src.services.v269_pipeline_downstream_service import (
+    pending_graph_agent3_count,
+    pending_graph_task_mapping_count,
+    pending_graph_task_pool_count,
+    run_agent3_graph_microbatch,
+    run_graph_task_mapping_microbatch,
+    run_graph_task_pool_microbatch,
+)
 
 THREE_AGENT_PIPELINE_VERSION = legacy.THREE_AGENT_PIPELINE_VERSION
 STATION_AGENT_WORKER_VERSION = "22.5.15"
+V269_SCHEDULER_VERSION = "26.9.0"
+
+
+def run_agent_pipeline_tick_hard(
+    data_version: str | None = None,
+    *,
+    user_id: str | None = None,
+    worker_id: str | None = None,
+    agent1_batch_size: int = 8,
+    action_pack_batch_size: int = 8,
+    agent2_batch_size: int = 5,
+    agent3_batch_size: int = 2,
+    mapping_batch_size: int = 8,
+    pool_batch_size: int = 8,
+    force_new_snapshot: bool = False,
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """Advance exactly one stage in the existing worker, preferring V26.9 descendants.
+
+    Downstream-first ordering preserves the old worker rule that already-started work is
+    drained before creating more upstream work. Only rows carrying semanticContractVersion
+    26.9 are consumed by the graph helpers; all historical rows delegate unchanged.
+    """
+    resolved = data_version or select_runnable_data_version_v225()
+    if resolved:
+        selected = None
+        result: Dict[str, Any] | None = None
+        if pending_graph_task_pool_count(resolved) > 0:
+            selected = "v269_task_mapped_to_atomic_task_pool"
+            result = run_graph_task_pool_microbatch(
+                resolved,
+                user_id=user_id,
+                batch_size=pool_batch_size,
+                force_new_snapshot=force_new_snapshot,
+            )
+        elif pending_graph_task_mapping_count(resolved) > 0:
+            selected = "v269_operation_graph_to_task_mapping"
+            result = run_graph_task_mapping_microbatch(
+                resolved,
+                batch_size=mapping_batch_size,
+            )
+        elif pending_graph_agent3_count(resolved) > 0:
+            selected = "v269_plan_graph_to_operation_graph"
+            result = run_agent3_graph_microbatch(
+                resolved,
+                batch_size=agent3_batch_size,
+            )
+        elif pending_graph_agent1_count(resolved) > 0:
+            selected = "v269_decision_graph_to_partitioned_plan_graph"
+            result = run_agent2_graph_partition_microbatch(
+                resolved,
+                batch_size=agent2_batch_size,
+            )
+        if result is not None:
+            return {
+                "version": STATION_AGENT_WORKER_VERSION,
+                "hardAgentRuntimeVersion": AGENT_RUNTIME_HARD_INTERFACE_VERSION,
+                "v269SchedulerVersion": V269_SCHEDULER_VERSION,
+                "ran": bool(result.get("ran")),
+                "workerId": worker_id,
+                "selectedStage": selected,
+                "dataVersion": resolved,
+                "result": result,
+                "runtimeSource": "single_station_worker.v269_versioned_graph_scheduler",
+                "secondWorkerCreated": False,
+                "fallbackAllowed": False,
+            }
+    return _base_run_agent_pipeline_tick_hard(
+        data_version=resolved or data_version,
+        user_id=user_id,
+        worker_id=worker_id,
+        agent1_batch_size=agent1_batch_size,
+        action_pack_batch_size=action_pack_batch_size,
+        agent2_batch_size=agent2_batch_size,
+        agent3_batch_size=agent3_batch_size,
+        mapping_batch_size=mapping_batch_size,
+        pool_batch_size=pool_batch_size,
+        force_new_snapshot=force_new_snapshot,
+        **kwargs,
+    )
+
 
 # The legacy worker resolves these names from its module globals at tick time.
 # Rebinding them before start preserves one thread and one state owner.
@@ -95,7 +188,7 @@ def _upgrade(value: Any) -> Any:
             result["agent2HashProofBridgeVersion"] = "22.5.15"
         if "executionMode" in result:
             result["executionMode"] = (
-                "agent1_full_audit_then_agent2_evidence_slice_then_hash_proof"
+                "versioned_v269_graph_scheduler_or_legacy_exact_hash_pipeline"
             )
         return result
     if isinstance(value, list):
@@ -108,6 +201,7 @@ def worker_config() -> Dict[str, Any]:
     result.update(
         version=STATION_AGENT_WORKER_VERSION,
         hardAgentRuntimeVersion=AGENT_RUNTIME_HARD_INTERFACE_VERSION,
+        v269SchedulerVersion=V269_SCHEDULER_VERSION,
         agent2EvidenceSliceVersion="22.5.14",
         agent2HashProofBridgeVersion="22.5.15",
         runtimeGenerationBarrierVersion=RUNTIME_GENERATION_VERSION,
@@ -129,8 +223,14 @@ def worker_config() -> Dict[str, Any]:
         providerRequestIdReconstructionAllowed=False,
         agent2HashProofDeadLetterRecovery="before_selection_and_startup",
         executionMode=(
-            "agent1_full_audit_then_agent2_evidence_slice_then_hash_proof"
+            "versioned_v269_graph_scheduler_or_legacy_exact_hash_pipeline"
         ),
+        v269StageOwnership=[
+            "DecisionGraph->ActionAdmission/Partitions->PlanGraph",
+            "PlanGraph->OperationGraph",
+            "OperationGraph->TaskGraphMapping",
+            "TaskGraphMapping->AtomicTaskPoolAdmission",
+        ],
         runtimeResetConcurrency=(
             "one_complete_worker_iteration_and_reset_share_exclusive_generation_barrier"
         ),
@@ -146,14 +246,13 @@ def worker_status(include_queue: bool = True) -> Dict[str, Any]:
     result.update(
         version=STATION_AGENT_WORKER_VERSION,
         hardAgentRuntimeVersion=AGENT_RUNTIME_HARD_INTERFACE_VERSION,
-        agent2EvidenceSliceVersion="22.5.14",
-        agent2HashProofBridgeVersion="22.5.15",
+        v269SchedulerVersion=V269_SCHEDULER_VERSION,
         runtimeGenerationBarrierVersion=RUNTIME_GENERATION_VERSION,
         runtimeGeneration=current_runtime_generation(),
         activeAgent1RuntimeBinding=active_agent1_runtime_binding(),
         config=worker_config(),
         executionMode=(
-            "agent1_full_audit_then_agent2_evidence_slice_then_hash_proof"
+            "versioned_v269_graph_scheduler_or_legacy_exact_hash_pipeline"
         ),
         competitionSignalHandoff="registered_signalRef_to_agent1_pending_v1",
         competitionLegacyStationQueueCriticalPath=False,
@@ -186,8 +285,6 @@ def run_worker_tick(
 ) -> Dict[str, Any]:
     assert_active_agent1_runtime_binding()
     ensure_runtime_generation_state()
-    # Every actual legacy _run_one call is already rebound to _competition_run_one,
-    # so manual ticks use the same barrier as the background thread.
     return _upgrade(
         legacy.run_worker_tick(
             worker_id=worker_id,
@@ -199,6 +296,7 @@ def run_worker_tick(
 __all__ = [
     "THREE_AGENT_PIPELINE_VERSION",
     "STATION_AGENT_WORKER_VERSION",
+    "V269_SCHEDULER_VERSION",
     "worker_config",
     "worker_status",
     "start_station_queue_worker",
