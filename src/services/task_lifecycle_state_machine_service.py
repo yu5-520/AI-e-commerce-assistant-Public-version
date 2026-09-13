@@ -3,6 +3,8 @@
 This service is the only write entrance for visible task lifecycle transitions.
 V12.11.1 keeps auto-accept and repository hydration, and also routes manager
 assign/split through the same state machine instead of direct update_task calls.
+V26.9.A additionally routes deterministic System Review results through this same
+writer without invoking the legacy recap/RAG candidate path.
 """
 
 from __future__ import annotations
@@ -35,6 +37,8 @@ EVENT_BY_ACTION = {
     "review_return": "manager_returned",
     "complete": "task_completed",
     "recap_complete": "task_written_to_recap",
+    "system_review_settled": "system_review_settled",
+    "system_review_adjustment": "system_review_adjustment_required",
 }
 
 
@@ -166,6 +170,33 @@ def _status_patch(task: Dict[str, Any], action: str, actor_user_id: str, payload
         return {"status": "已退回", "workflowStatus": "已退回", "displayStatus": "已退回", "reviewResult": "退回", "reviewNote": note or "复核退回，运营补充材料后再次提交。", "reviewerId": actor_user_id, "reviewedAt": now_iso(), "lifecycleStage": "returned", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION}
     if action == "complete":
         return {"status": "已完成", "workflowStatus": "等待自动复盘", "displayStatus": "等待自动复盘", "completedById": actor_user_id, "completedAt": now_iso(), "lifecycleStage": "recap_scheduled", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION}
+    if action == "system_review_settled":
+        return {
+            "status": "已确认",
+            "workflowStatus": "系统评审通过",
+            "displayStatus": "系统评审通过",
+            "lifecycleStage": "system_review_settled",
+            "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION,
+            "systemReviewStatus": "SETTLED",
+            "systemReviewHash": payload.get("reviewHash"),
+            "systemReviewTargetSourceContentHash": payload.get("targetSourceContentHash"),
+            "systemReviewedAt": now_iso(),
+            "availableActions": ["source", "detail"],
+        }
+    if action == "system_review_adjustment":
+        return {
+            "status": "已退回",
+            "workflowStatus": "系统评审需调整",
+            "displayStatus": "系统评审需调整",
+            "lifecycleStage": "system_review_adjustment_required",
+            "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION,
+            "systemReviewStatus": "ADJUSTMENT_REQUIRED",
+            "systemReviewHash": payload.get("reviewHash"),
+            "systemReviewTargetSourceContentHash": payload.get("targetSourceContentHash"),
+            "systemReviewRevisionHash": payload.get("revisionHash"),
+            "systemReviewedAt": now_iso(),
+            "availableActions": ["source", "detail"],
+        }
     return {}
 
 
@@ -181,6 +212,8 @@ def _transition_message(action: str, task: Dict[str, Any], payload: Dict[str, An
         "review_return": note or "总管复核退回，运营补充材料后再次提交。",
         "complete": note or "任务已完成，系统进入自动复盘等待。",
         "recap_complete": note or "系统复盘完成，生成RAG候选。",
+        "system_review_settled": note or "V26.9 系统评审已通过真实后续事实完成，任务进入已确认；未生成RAG候选。",
+        "system_review_adjustment": note or "V26.9 系统评审发现方案指标违约，任务进入需调整；修订范围由Java确定性计算。",
     }.get(action, note or "任务生命周期已更新。")
 
 
@@ -216,6 +249,9 @@ def _apply_orchestrator(task_id: str, action: str, actor_user_id: str, payload: 
         return handle_manager_reviewed(task_id, approved=False, review={"comment": payload.get("note")}, actor_user_id=actor_user_id)
     if action == "complete":
         return attach_lifecycle(task_id, stage="recap_scheduled", event="task_completed_recap_scheduled", payload=payload, actor_user_id=actor_user_id)
+    # V26.9 System Review deliberately does not call the legacy recap/RAG orchestrator.
+    if action in {"system_review_settled", "system_review_adjustment"}:
+        return None
     return None
 
 
@@ -284,7 +320,7 @@ def transition_lifecycle_task(task_id: str, action: str, *, actor_user_id: str, 
     event = module_task_service.create_task_event(latest, event_type, actor_user_id=actor_user_id, from_status=before_status, from_workflow=before_workflow, message=_transition_message(action, latest, payload))
     mirror_result = _mirror_runtime()
     projected = project_lifecycle_task(latest, actor_user_id)
-    return {"ok": True, "version": TASK_LIFECYCLE_STATE_MACHINE_VERSION, "orchestratorVersion": ORCHESTRATOR_VERSION, "action": action, "eventType": event_type, "message": _transition_message(action, latest, payload), "resolution": resolution, "fromStatus": before_status, "toStatus": latest.get("status"), "fromWorkflowStatus": before_workflow, "toWorkflowStatus": latest.get("workflowStatus"), "task": projected, "event": event, "mirror": mirror_result, "rule": "V12.11.1：接收、派发、提交、复核、复盘必须通过统一生命周期状态机写状态、事件、日志、SQLite镜像和前端投影。"}
+    return {"ok": True, "version": TASK_LIFECYCLE_STATE_MACHINE_VERSION, "orchestratorVersion": ORCHESTRATOR_VERSION, "action": action, "eventType": event_type, "message": _transition_message(action, latest, payload), "resolution": resolution, "fromStatus": before_status, "toStatus": latest.get("status"), "fromWorkflowStatus": before_workflow, "toWorkflowStatus": latest.get("workflowStatus"), "task": projected, "event": event, "mirror": mirror_result, "rule": "V12.11.1：接收、派发、提交、复核、复盘与V26.9系统评审必须通过统一生命周期状态机写状态、事件、日志、SQLite镜像和前端投影；系统评审不触发旧RAG候选。"}
 
 
 def auto_accept_ready_tasks(tasks: Iterable[Dict[str, Any]], *, viewer_id: str | None = None, ctx: Any | None = None) -> Dict[str, Any]:
@@ -308,4 +344,4 @@ def lifecycle_state_summary(limit: int = 80) -> Dict[str, Any]:
     for task in tasks:
         stage = task.get("lifecycleStage") or (task.get("taskLifecycle") or {}).get("stage") or "generated"
         counts[stage] = counts.get(stage, 0) + 1
-    return {"version": TASK_LIFECYCLE_STATE_MACHINE_VERSION, "counts": counts, "taskCount": len(tasks), "eventCount": len(module_task_service.TASK_EVENTS), "rule": "同一个task_id贯穿生成、接收、派发、提交、复核、自动复盘和RAG候选；权限内任务自动接收。"}
+    return {"version": TASK_LIFECYCLE_STATE_MACHINE_VERSION, "counts": counts, "taskCount": len(tasks), "eventCount": len(module_task_service.TASK_EVENTS), "rule": "同一个task_id贯穿生成、接收、派发、提交、系统评审；旧自动复盘/RAG路径不参与V26.9系统评审。"}
