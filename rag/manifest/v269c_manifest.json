@@ -1,7 +1,7 @@
 {
   "schema": "experience.promotion.manifest.v269c.v1",
   "version": "26.9.C.1",
-  "rolloutStatus": "candidate_not_activated",
+  "rolloutStatus": "active",
   "candidateRuntimeEnv": "V269C_CANDIDATE_RUNTIME",
   "policyPath": "config/v269c_promotion_policy.json",
   "migrationPath": "rag/migrations/002_v269c_promotion_feedback.sql",
