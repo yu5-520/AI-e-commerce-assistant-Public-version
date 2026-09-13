@@ -4,7 +4,8 @@ This service is the only V26.9 task-pool admission path. It does not translate
 legacy primary-action semantics into the new graph contract. It verifies the
 accepted Agent execution chain, evaluates the whole PlanGraph under the existing
 authority tables, creates an idempotent quota reservation, materializes the task,
-and commits task-pool admission + quota usage in one SQLite transaction.
+and commits task-pool admission + quota usage + System Review registration in one
+SQLite transaction.
 
 TaskSnapshot is materialized before the final admission transaction because the
 existing snapshot station owns product-lineage freezing. A failed final admission
@@ -522,6 +523,7 @@ def admit_graph_decision_to_task_pool(
     """Admit only the canonical V26.9 graph contract; no legacy fallback."""
     from src.services.v269_input_migration_service import uses_graph_contract, verify_task_execution_chain
     from src.services import task_pool_admission_core_v20_service as legacy_pool
+    from src.services.v269_system_review_service import ensure_review_tables, register_review_in_conn
 
     if not uses_graph_contract(decision):
         return {"ok": False, "status": "v269_graph_contract_required", "createdTaskCount": 0}
@@ -575,6 +577,9 @@ def admit_graph_decision_to_task_pool(
         )
         task = _graph_task(snapshot, decision, authorization)
         legacy_pool._ensure_task_pool_tables()
+        # Review tables must exist before BEGIN IMMEDIATE; register_review_in_conn never
+        # opens a second connection while the task-pool authority transaction is held.
+        ensure_review_tables()
         now = _now()
         entry_id = "TPE269-" + uuid4().hex[:20].upper()
         payload = {
@@ -588,6 +593,7 @@ def admit_graph_decision_to_task_pool(
             "reservationId": reservation_id,
             "legacyBusinessSemanticsUsed": False,
         }
+        review_registration = None
         with connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             duplicate = conn.execute(
@@ -611,6 +617,13 @@ def admit_graph_decision_to_task_pool(
                 authorization = task["authorizationDecision"]
                 payload["task"] = task
                 payload["authorizationDecision"] = authorization
+            review_registration = register_review_in_conn(
+                conn,
+                task=task,
+                decision=decision,
+                chain=chain,
+            )
+            payload["systemReviewRegistration"] = review_registration
             conn.execute(
                 """INSERT INTO task_pool_entries(
                    pool_entry_id,task_snapshot_id,task_id,data_version,status,decision,task_layer,
@@ -637,6 +650,7 @@ def admit_graph_decision_to_task_pool(
             "taskGraphMapping": mapping,
             "executionChainHash": chain.get("receiptHash"),
             "reservationId": reservation_id,
+            "systemReviewRegistration": review_registration,
             "contractVersion": VERSION,
             "legacyBridgeUsed": False,
             "legacyBusinessSemanticsUsed": False,
