@@ -4,6 +4,11 @@
 The base E2E still owns packaging, deployment, real pipeline HTTP calls, replay checks
 and frontend checks. This wrapper removes the retired single action-family-column
 assertion and adds V26.9 scheduler/graph invariants to the same attestation.
+
+Scheduler-stage proof is based on durable pipeline Artifact references rather than a
+transient tick response. A stage may execute inside the single station worker without
+being surfaced as the outer HTTP tick's selectedStage; its persisted output Artifact is
+the authoritative proof that the stage actually completed.
 """
 from __future__ import annotations
 
@@ -133,12 +138,43 @@ def _stage_count(database: dict[str, Any], stage: str) -> int:
     )
 
 
+def _artifact_refs(item: dict[str, Any]) -> dict[str, Any]:
+    raw = item.get("artifact_refs_json")
+    if isinstance(raw, dict):
+        return raw
+    if not isinstance(raw, str) or not raw.strip():
+        return {}
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _durable_scheduler_stages(database: dict[str, Any]) -> set[str]:
+    """Infer completed scheduler stages from immutable downstream Artifact receipts."""
+    stages: set[str] = set()
+    for item in database.get("pipelineItems") or []:
+        if not isinstance(item, dict):
+            continue
+        refs = _artifact_refs(item)
+        if refs.get("agent2DraftRef"):
+            stages.add("v269_decision_graph_to_partitioned_plan_graph")
+        if refs.get("agent3SopRef"):
+            stages.add("v269_plan_graph_to_operation_graph")
+        if refs.get("taskMappingRef"):
+            stages.add("v269_operation_graph_to_task_mapping")
+        if refs.get("taskAdmissionRef") or refs.get("taskAdmissionFailureRef"):
+            stages.add("v269_task_mapped_to_atomic_task_pool")
+    return stages
+
+
 def _augment(output: Path) -> dict[str, Any]:
     report = json.loads(output.read_text(encoding="utf-8"))
-    stages = {
+    tick_stages = {
         str(item.get("selectedStage") or "")
         for item in report.get("ticks") or []
-        if isinstance(item, dict)
+        if isinstance(item, dict) and item.get("selectedStage")
     }
     required_scheduler_stages = {
         "v269_decision_graph_to_partitioned_plan_graph",
@@ -149,10 +185,11 @@ def _augment(output: Path) -> dict[str, Any]:
     provider = ((report.get("replayCheck") or {}).get("before") or {})
     provider_stages = provider.get("stageCounts") if isinstance(provider.get("stageCounts"), dict) else {}
     database = report.get("databaseEvidence") if isinstance(report.get("databaseEvidence"), dict) else {}
+    durable_stages = _durable_scheduler_stages(database)
     probe = _graph_probe()
     assertions = {
         "baseThreeReportE2EVerified": report.get("verified") is True,
-        "allV269SchedulerStagesObserved": required_scheduler_stages.issubset(stages),
+        "allV269SchedulerStagesProven": required_scheduler_stages.issubset(durable_stages),
         "agent1GraphProviderCalled": int(provider_stages.get("product_judgment_agent") or 0) >= 1,
         "agent2GraphProviderCalled": int(provider_stages.get("action_plan_judgment_agent") or 0) >= 1,
         "agent3GraphProviderCalled": int(provider_stages.get("agent3_sop_agent") or 0) >= 1,
@@ -167,7 +204,9 @@ def _augment(output: Path) -> dict[str, Any]:
         "schema": "competition.v269_graph_contract_e2e.v1",
         "assertions": assertions,
         "requiredSchedulerStages": sorted(required_scheduler_stages),
-        "observedSchedulerStages": sorted(stage for stage in stages if stage.startswith("v269_")),
+        "durablyProvenSchedulerStages": sorted(durable_stages),
+        "tickObservedSchedulerStages": sorted(tick_stages),
+        "schedulerProofAuthority": "pipeline_item_artifact_refs",
         "graphProbe": probe,
         "legacySingleActionFamilyAssertionDisabled": True,
         "ragFeedbackActivated": False,
