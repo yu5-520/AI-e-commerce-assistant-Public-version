@@ -1,12 +1,14 @@
-"""V22.5.7 Agent1 semantic-continuity hard runtime.
+"""Agent1 hard runtime with versioned semantic-contract dispatch.
 
-Only Agent1 input projection and model-facing semantics change. Agent2, Agent3, task
-mapping, task pool and the execution-lock contract remain owned by the sealed V22.5.5
-runtime. No runtime replacement, second worker or fallback path is installed.
+Historical V22 inputs keep their sealed execution-lock contract. V26.9 inputs have
+exactly one business interpretation: the accepted DecisionGraph. The same runtime,
+lease, Artifact and exact-hash authorities are reused; no second worker or fallback
+semantic path is installed.
 """
 from __future__ import annotations
 
 from collections import Counter
+from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
 from src.services import agent_runtime_hard_interface_v2255_service as legacy
@@ -27,10 +29,75 @@ from src.services.agent_token_runtime_v2257_service import run_agent1_projected_
 AGENT_RUNTIME_HARD_INTERFACE_VERSION = "22.5.7"
 THREE_AGENT_PIPELINE_VERSION = "22.5.5"
 EXECUTION_LOCK_CONTRACT = "one_problem_one_action_one_owner_one_target"
+V269_SEMANTIC_CONTRACT = "26.9.0"
 
 
 def _dict(value: Any) -> Dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _v269_agent1_payload(
+    projected_signal: Dict[str, Any],
+    judgment: Dict[str, Any],
+    *,
+    envelope: Dict[str, Any],
+    input_ref: str,
+) -> Dict[str, Any]:
+    """Freeze the graph result plus the exact system facts used to produce it."""
+    from src.services import v269_semantic_graph_service as graphs
+
+    decision = judgment.get("DecisionGraph")
+    nodes = graphs.index(decision)
+    graphs.require(decision.get("kind") == "DecisionGraph", "agent1_decision_graph_required")
+    payload = {
+        key: deepcopy(projected_signal[key])
+        for key in (
+            "semanticContractVersion",
+            "packageId",
+            "productId",
+            "storeId",
+            "dataVersion",
+            "knowledgeContext",
+            "BusinessFacts",
+            "evidenceRefs",
+            "correlationId",
+            "signalId",
+            "inputContract",
+        )
+        if key in projected_signal
+    }
+    payload.update(deepcopy(judgment))
+    payload.update(
+        semanticContractVersion=V269_SEMANTIC_CONTRACT,
+        DecisionGraph=decision,
+        decisionType=(
+            "act"
+            if any(node.get("kind") == "DecisionActionNode" for node in nodes.values())
+            else "observe"
+        ),
+        runtimeSource="agent1InputRef.v3+DecisionGraph",
+        agent1InputRef=input_ref,
+        sourceArtifactRefs=deepcopy(envelope.get("sourceArtifactRefs") or []),
+        inputProjectionAudit=deepcopy(envelope.get("projectionAudit") or {}),
+        outputContract="V26.9.agent1_decision_graph",
+        taskAdmissionAllowed=any(
+            node.get("kind") == "DecisionActionNode" for node in nodes.values()
+        ),
+        fallbackAllowed=False,
+        legacyBusinessSemanticsUsed=False,
+        legacyExecutionLockRead=False,
+        graphExecutionRefs={"agent1": judgment.get("executionHash")},
+    )
+    for legacy_field in (
+        "primaryProblemNode",
+        "primaryAction",
+        "primaryExecutionTarget",
+        "primaryOwner",
+        "lockedActionFamily",
+        "executionLock",
+    ):
+        payload.pop(legacy_field, None)
+    return payload
 
 
 def run_agent1_microbatch_hard(
@@ -53,6 +120,7 @@ def run_agent1_microbatch_hard(
     from src.services.operating_policy_context_v2028_service import build_operating_policy_context
     from src.services.pipeline_artifact_contract_service import artifact_refs_from_row
     from src.services.pipeline_item_service import pipeline_item_summary
+    from src.services.v269_input_migration_service import uses_graph_contract
 
     recovery = legacy._recover_unresolved_once()
     stale = recover_stale_agent1_items(data_version)
@@ -69,7 +137,7 @@ def run_agent1_microbatch_hard(
             "provider": {"providerStatus": "skipped_no_pending_items", "actualCalls": 0},
             "staleRunningRecovery": stale,
             "executionLockRecovery": recovery,
-            "runtimeSource": "agent1InputRef.v2",
+            "runtimeSource": "agent1InputRef",
             "executionLockContract": EXECUTION_LOCK_CONTRACT,
             "fallbackAllowed": False,
         }
@@ -108,7 +176,7 @@ def run_agent1_microbatch_hard(
                 "failureOwner": "agent_input_transport_v2257",
                 "version": AGENT_RUNTIME_HARD_INTERFACE_VERSION,
                 "contractVersion": AGENT_RUNTIME_CONTRACT_VERSION,
-                "runtimeSource": "agent1InputRef.v2",
+                "runtimeSource": "agent1InputRef",
                 "agent1InputProjectionVersion": AGENT1_INPUT_PROJECTION_VERSION,
                 "executionLockContract": EXECUTION_LOCK_CONTRACT,
                 "fallbackAllowed": False,
@@ -126,7 +194,7 @@ def run_agent1_microbatch_hard(
             "failedItemCount": len(prepare_failures),
             "pendingItemCount": core.pending_agent1_item_count(data_version),
             "provider": {"providerStatus": "failed_hard_input_contract", "actualCalls": 0},
-            "runtimeSource": "agent1InputRef.v2",
+            "runtimeSource": "agent1InputRef",
             "executionLockContract": EXECUTION_LOCK_CONTRACT,
             "executionLockRecovery": recovery,
             "fallbackAllowed": False,
@@ -139,6 +207,7 @@ def run_agent1_microbatch_hard(
     )
     indexed = core._index_judgments(judgments)
     completed = invalid = failed = observed = diagnostic_hold = 0
+    graph_completed = graph_observed = 0
     missing_counter: Counter[str] = Counter()
     by_family: Counter[str] = Counter()
 
@@ -162,13 +231,67 @@ def run_agent1_microbatch_hard(
                     "contractVersion": AGENT_RUNTIME_CONTRACT_VERSION,
                     "agent1InputRef": input_ref,
                     "agent1InputProjectionVersion": AGENT1_INPUT_PROJECTION_VERSION,
-                    "executionLockContract": EXECUTION_LOCK_CONTRACT,
                     "fallbackAllowed": False,
                 },
             )
             continue
 
         judgment = dict(matched[0])
+        if uses_graph_contract(projected_signal):
+            try:
+                payload = _v269_agent1_payload(
+                    projected_signal,
+                    judgment,
+                    envelope=envelope,
+                    input_ref=input_ref,
+                )
+            except Exception as exc:
+                invalid += 1
+                missing_counter.update(["DecisionGraph"])
+                legacy._finish_agent1(
+                    core,
+                    item,
+                    stage=core.AGENT1_OUTPUT_INVALID_STAGE,
+                    status="failed",
+                    output_ref=f"agent1_output_invalid:{data_version or 'latest'}:{signal_id or item.get('item_id')}",
+                    payload={
+                        "reason": "v269_decision_graph_invalid",
+                        "missing": [str(exc)],
+                        "partialPayload": judgment,
+                        "agent1InputRef": input_ref,
+                        "semanticContractVersion": V269_SEMANTIC_CONTRACT,
+                        "fallbackAllowed": False,
+                        "legacyFallbackUsed": False,
+                    },
+                )
+                continue
+            if payload["decisionType"] == "observe":
+                observed += 1
+                graph_observed += 1
+                legacy._finish_agent1(
+                    core,
+                    item,
+                    stage=core.OBSERVED_STAGE,
+                    status="observed",
+                    output_ref=f"agent1_observed:{data_version or 'latest'}:{signal_id or item.get('item_id')}",
+                    payload={**payload, "observationDeposited": True},
+                )
+                continue
+            completed += 1
+            graph_completed += 1
+            for node in payload["DecisionGraph"]["nodes"]:
+                if node.get("kind") == "DecisionActionNode":
+                    by_family[str(node.get("actionFamily") or "missing")] += 1
+            legacy._finish_agent1(
+                core,
+                item,
+                stage=core.AGENT1_COMPLETED_STAGE,
+                status="ready",
+                output_ref=f"pipeline_items.agent1_completed:{data_version or 'latest'}:{signal_id or item.get('item_id')}",
+                payload=payload,
+            )
+            continue
+
         decision_core = _dict(judgment.get("decisionCore"))
         decision_type = str(
             judgment.get("decisionType") or decision_core.get("decisionType") or ""
@@ -319,6 +442,8 @@ def run_agent1_microbatch_hard(
         "completedItemCount": completed,
         "observedItemCount": observed,
         "diagnosticHoldItemCount": diagnostic_hold,
+        "v269GraphCompletedItemCount": graph_completed,
+        "v269GraphObservedItemCount": graph_observed,
         "invalidItemCount": invalid,
         "failedItemCount": failed + len(prepare_failures),
         "missingCounter": dict(missing_counter),
@@ -329,9 +454,10 @@ def run_agent1_microbatch_hard(
         "pipelineItemSummary": pipeline_item_summary(data_version=data_version, limit=30),
         "staleRunningRecovery": stale,
         "executionLockRecovery": recovery,
-        "runtimeSource": "agent1InputRef.v2",
+        "runtimeSource": "agent1InputRef.versioned_contract",
         "executionLockContract": EXECUTION_LOCK_CONTRACT,
-        "executionMode": "semantic_continuity_then_execution_lock",
+        "v269BusinessSemanticContract": V269_SEMANTIC_CONTRACT,
+        "executionMode": "versioned_contract_dispatch_no_semantic_fallback",
         "fallbackAllowed": False,
     }
     legacy._refresh_read_models(result, data_version)
@@ -416,12 +542,13 @@ def run_agent_pipeline_tick_hard(
         "agent1InputProjectionVersion": AGENT1_INPUT_PROJECTION_VERSION,
         "ran": bool(result.get("ran")),
         "workerId": worker_id,
-        "selectedStage": "agent1InputRef.v2_to_agent1_completed_or_observed",
+        "selectedStage": "agent1InputRef.versioned_to_agent1_completed_or_observed",
         "dataVersion": resolved,
         "result": result,
-        "runtimeSource": "agent1InputRef.v2_or_v22_5_5_downstream_inputs",
+        "runtimeSource": "agent1InputRef.versioned_or_v22_5_5_downstream_inputs",
         "executionLockContract": EXECUTION_LOCK_CONTRACT,
-        "executionMode": "semantic_continuity_then_execution_lock",
+        "v269BusinessSemanticContract": V269_SEMANTIC_CONTRACT,
+        "executionMode": "versioned_contract_dispatch_no_semantic_fallback",
         "fallbackAllowed": False,
     }
     legacy._refresh_read_models(output, resolved)
@@ -435,6 +562,7 @@ __all__ = [
     "AGENT_RUNTIME_HARD_INTERFACE_VERSION",
     "THREE_AGENT_PIPELINE_VERSION",
     "EXECUTION_LOCK_CONTRACT",
+    "V269_SEMANTIC_CONTRACT",
     "run_agent1_microbatch_hard",
     "select_runnable_data_version_v225",
     "run_agent_pipeline_tick_hard",
