@@ -19,7 +19,8 @@ def plan_node(key, ref):
     return {'kind':'PlanActionNode','nodeKey':key,'decisionActionRef':ref,'judgementRefs':['J1'],
         'parameters':{'budget':0},'baseline':{'roas':{'value':0,'unit':'ratio','sourceRef':'fact:1'}},
         'expectedOutcome':{'roas':{'expectedValue':2,'expectedRange':[1,3],'expectedDelta':2}},
-        'reviewWindow':{'durationSeconds':86400},'affectedMetrics':['roas'],'guard':{'stop':'approved:guard'},
+        'reviewWindow':{'durationSeconds':86400},'affectedMetrics':['roas'],
+        'guard':{'stop':{'metric':'roas','comparator':'GTE','value':0}},
         'riskBoundary':[],'acceptanceCriteria':[{'metric':'roas','constraint':'expectedRange'}]}
 
 
@@ -78,6 +79,19 @@ class SemanticGraphTests(unittest.TestCase):
         raw={'nodes':[plan_node('P1','DA1')]};raw['nodes'][0]['expectedOutcome']['roas']['expectedDelta']=3
         with self.assertRaisesRegex(ValueError,'expected_delta_mismatch'):
             g.compile_graph('PlanGraph',raw,upstream=self.d,evidence_refs=['fact:1'],fact_values={'fact:1':{'value':0,'unit':'ratio'}})
+
+    def test_plan_safety_contract_is_structured_and_single_semantic(self):
+        raw={'nodes':[plan_node('P1','DA1')]}
+        g.compile_graph('PlanGraph',raw,upstream=self.d,evidence_refs=['fact:1'],fact_values={'fact:1':{'value':0,'unit':'ratio'}})
+        prose=deepcopy(raw);prose['nodes'][0]['guard']={'stop':'ROI下降时停止'}
+        with self.assertRaisesRegex(ValueError,'plan_safety_rule_shape'):
+            g.compile_graph('PlanGraph',prose,upstream=self.d,evidence_refs=['fact:1'],fact_values={'fact:1':{'value':0,'unit':'ratio'}})
+        unknown=deepcopy(raw);unknown['nodes'][0]['riskBoundary']=[{'metric':'roas','comparator':'EQ','value':1}]
+        with self.assertRaisesRegex(ValueError,'plan_safety_comparator'):
+            g.compile_graph('PlanGraph',unknown,upstream=self.d,evidence_refs=['fact:1'],fact_values={'fact:1':{'value':0,'unit':'ratio'}})
+        criterion=deepcopy(raw);criterion['nodes'][0]['acceptanceCriteria']=[{'metric':'roas','constraint':'manualJudgement'}]
+        with self.assertRaisesRegex(ValueError,'acceptance_criterion_not_compiled'):
+            g.compile_graph('PlanGraph',criterion,upstream=self.d,evidence_refs=['fact:1'],fact_values={'fact:1':{'value':0,'unit':'ratio'}})
 
     def test_legacy_perturbation_and_missing_graph_no_fallback(self):
         original=g.graph_input('agent2',{'DecisionGraph':self.d})
