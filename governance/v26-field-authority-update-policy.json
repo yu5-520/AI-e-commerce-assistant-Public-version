@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.13.17.B-experience-evaluation-bootstrap",
+  "version": "2026.09.13.18.B-experience-lineage-package-init",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
@@ -25,6 +25,7 @@
         "src/services/v269_experience_store_service.py",
         "src/services/v269_evaluation_plane_service.py",
         "src/services/v269_experience_retrieval_service.py",
+        "src/repositories/__init__.py",
         "java-control-plane/src/main/java/com/zcentury/v24/ProductLifecycleAuthority.java",
         "java-control-plane/src/main/java/com/zcentury/v24/VolatilityEnvelope.java",
         "java-control-plane/src/main/java/com/zcentury/v24/PreAgentAdmissionGate.java",
