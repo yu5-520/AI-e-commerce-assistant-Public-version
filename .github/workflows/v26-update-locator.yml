@@ -1,0 +1,63 @@
+name: V26 Update Locator
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'config/v23_registry_runtime.json'
+      - 'governance/v26-field-authority-update-policy.json'
+      - 'governance/update-requests/**'
+      - 'scripts/compile_v26_update_locator.py'
+      - 'tests/test_v26_update_locator.py'
+      - '.github/workflows/v26-update-locator.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-update-plan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+      - name: Compile registry-owned update plan
+        run: |
+          set -euo pipefail
+          mkdir -p dist/v26-update-locator
+          python scripts/compile_v26_update_locator.py \
+            --request governance/update-requests/v269-a-current.json \
+            --output dist/v26-update-locator/v269-a-current.plan.json \
+            | tee dist/v26-update-locator/v269-a-current.plan.log
+      - name: Verify locator invariants
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          plan=json.loads(Path('dist/v26-update-locator/v269-a-current.plan.json').read_text(encoding='utf-8'))
+          assert plan['schema']=='z.update_locator.plan.v1'
+          assert plan['rules']['filenameSimilaritySearchAllowed'] is False
+          assert plan['rules']['unplannedFileMutationAllowed'] is False
+          assert plan['rules']['scopeExpansionRequiresRecompile'] is True
+          assert plan['deniedRegisteredPaths']==[], plan['deniedRegisteredPaths']
+          assert 'agent3_runtime' in [item['moduleId'] for item in plan['selectedModules']]
+          assert 'task_mapping' in [item['moduleId'] for item in plan['selectedModules']]
+          assert 'scripts/run_competition_three_report_e2e_v269.py' in plan['editablePaths']
+          assert 'tests/test_v22_4_v269_agent3_core_bridge.py' in plan['editablePaths']
+          print('V26_UPDATE_LOCATOR=PASS')
+          print('PLAN_HASH='+plan['planHash'])
+          print('EDITABLE_PATHS='+json.dumps(plan['editablePaths'],ensure_ascii=False,sort_keys=True))
+          print('REQUIRED_GATES='+json.dumps(plan['requiredGates'],ensure_ascii=False,sort_keys=True))
+          PY
+      - name: Run locator tests
+        run: python -m pytest -q tests/test_v26_update_locator.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v26-update-locator-${{ github.sha }}
+          path: dist/v26-update-locator
+          retention-days: 14
