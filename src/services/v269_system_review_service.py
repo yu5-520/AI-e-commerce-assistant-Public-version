@@ -1,4 +1,4 @@
-"""V26.9.A production System Review bridge.
+"""V26.9 production System Review bridge with V26.9.B downstream evidence capture.
 
 Python remains the production lifecycle writer. Java READY_NO_AUTHORITY is the one
 review/revision calculator: this module freezes graph identities at task admission,
@@ -7,8 +7,11 @@ BusinessFacts Artifact as TARGET, calls the root-bound Java endpoint, verifies i
 receipt, and only then asks the existing lifecycle writer to persist SETTLED or
 ADJUSTMENT_REQUIRED.
 
-No RAG feedback, Evaluation Plane, model call, current-clock substitution for stale
-facts, or legacy recap metric input is allowed.
+V26.9.B may consume a completed System Review after the A lifecycle write and persist
+candidate-only Experience/Evaluation evidence. That downstream write is fail-isolated:
+it cannot change the A review decision, execution authority, task lifecycle, Promotion
+state, or Knowledge Head. No RAG feedback, model call, current-clock substitution for
+stale facts, or legacy recap metric input is allowed.
 """
 from __future__ import annotations
 
@@ -375,6 +378,100 @@ def _write_review_status(task_id: str, status: str, source_hash: str, *, receipt
         conn.commit()
 
 
+def _write_v269b_evaluation_status(task_id: str, evidence: Dict[str, Any]) -> None:
+    """Attach B evidence to the existing review payload without changing A status."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT payload FROM v269_system_reviews WHERE task_id=?",
+            (task_id,),
+        ).fetchone()
+        if not row:
+            return
+        payload = loads(row["payload"])
+        payload["v269bExperienceEvaluation"] = deepcopy(evidence)
+        conn.execute(
+            "UPDATE v269_system_reviews SET payload=?,updated_at=? WHERE task_id=?",
+            (dumps(payload), _now(), task_id),
+        )
+        conn.commit()
+
+
+def _v269b_runtime_enabled() -> bool:
+    """Use the B manifest as the only activation switch; env is candidate-only."""
+    try:
+        from src.services import v269_experience_store_service as experience_store
+        cfg = experience_store.manifest()
+    except Exception:
+        return False
+    if cfg.get("rolloutStatus") == "active":
+        return True
+    env = str(cfg.get("candidateRuntimeEnv") or "V269B_CANDIDATE_RUNTIME")
+    return str(os.getenv(env, "")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _record_v269b_evaluation(
+    *,
+    payload: Dict[str, Any],
+    target: Dict[str, Any],
+    source_content_hash: str,
+    receipt: Dict[str, Any],
+    review_status: str,
+) -> Dict[str, Any]:
+    """Downstream-only B capture. Never throw into the A review/lifecycle path."""
+    if review_status not in {"SETTLED", "ADJUSTMENT_REQUIRED"}:
+        return {"status": "NOT_APPLICABLE", "promotionPerformed": False, "knowledgeHeadMutated": False}
+    if not _v269b_runtime_enabled():
+        evidence = {
+            "status": "NOT_ACTIVE",
+            "version": "26.9.B.1",
+            "promotionPerformed": False,
+            "knowledgeHeadMutated": False,
+        }
+        _write_v269b_evaluation_status(str(payload.get("taskId") or ""), evidence)
+        return evidence
+    try:
+        from src.services import v269_evaluation_plane_service as evaluation
+        package = {
+            "taskId": payload["taskId"],
+            "storeId": payload["storeId"],
+            "productId": payload["productId"],
+            "semanticContractVersion": VERSION,
+            "DecisionGraph": deepcopy(payload["DecisionGraph"]),
+            "PlanGraph": deepcopy(payload["PlanGraph"]),
+            "OperationGraph": deepcopy(payload["OperationGraph"]),
+            "evidenceRefs": sorted({
+                value for value in (
+                    str(payload.get("baselineSourceContentHash") or ""),
+                    str(source_content_hash or ""),
+                ) if value
+            }),
+        }
+        candidate_receipt = evaluation.record_system_review_candidate(
+            package,
+            target_facts=deepcopy(target),
+            target_source_content_hash=source_content_hash,
+            review_receipt=deepcopy(receipt),
+            review_status=review_status,
+        )
+        evidence = {
+            "status": "RECORDED",
+            "version": "26.9.B.1",
+            "receipt": candidate_receipt,
+            "promotionPerformed": False,
+            "knowledgeHeadMutated": False,
+        }
+    except Exception as exc:
+        evidence = {
+            "status": "FAILED",
+            "version": "26.9.B.1",
+            "reason": str(exc)[:800],
+            "promotionPerformed": False,
+            "knowledgeHeadMutated": False,
+        }
+    _write_v269b_evaluation_status(str(payload.get("taskId") or ""), evidence)
+    return evidence
+
+
 def observe_candidate_facts(
     candidate: Dict[str, Any],
     *,
@@ -410,7 +507,12 @@ def observe_candidate_facts(
         return {"status": "WAITING_EVIDENCE", "taskId": row["task_id"], "reason": "target_metrics_not_present"}
     if row.get("last_target_content_hash") == source_content_hash:
         receipt = loads(row["review_receipt"]) if row.get("review_receipt") else None
-        return {"status": row["status"], "idempotentHit": True, "receipt": receipt}
+        return {
+            "status": row["status"],
+            "idempotentHit": True,
+            "receipt": receipt,
+            "experienceEvaluation": deepcopy(payload.get("v269bExperienceEvaluation")),
+        }
     request_payload = {
         "schema": "v269.system_review.request.v1",
         "taskId": payload["taskId"],
@@ -441,6 +543,7 @@ def observe_candidate_facts(
     _write_review_status(row["task_id"], status, source_content_hash, receipt=receipt, directive=directive)
 
     lifecycle = None
+    experience_evaluation = None
     if status in {"SETTLED", "ADJUSTMENT_REQUIRED"}:
         from src.services.task_lifecycle_state_machine_service import transition_lifecycle_task
         lifecycle = transition_lifecycle_task(
@@ -454,6 +557,15 @@ def observe_candidate_facts(
                 "revisionHash": (directive or {}).get("revisionHash") if directive else None,
             },
         )
+        # B is intentionally after the A lifecycle writer. Any B failure is recorded
+        # as evidence status and cannot roll back or reinterpret the A review result.
+        experience_evaluation = _record_v269b_evaluation(
+            payload=payload,
+            target=target,
+            source_content_hash=source_content_hash,
+            receipt=receipt,
+            review_status=status,
+        )
     return {
         "status": status,
         "taskId": row["task_id"],
@@ -462,6 +574,7 @@ def observe_candidate_facts(
         "parentDecisionGraph": deepcopy(payload["DecisionGraph"]) if directive else None,
         "lifecycle": lifecycle,
         "targetFactsHash": target_hash,
+        "experienceEvaluation": experience_evaluation,
         "ragFeedbackPerformed": False,
     }
 
