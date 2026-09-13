@@ -372,7 +372,8 @@
         "src/services/task_evidence_service.py",
         "src/services/action_authority_v214_service.py",
         "src/services/v269_input_migration_service.py",
-        "src/services/v269_semantic_graph_service.py"
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_production_admission_service.py"
       ],
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_pool_admission_microbatch_v225",
       "schemaIds": []
