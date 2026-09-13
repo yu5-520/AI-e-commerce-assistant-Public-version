@@ -1,6 +1,6 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.B-2026-09-13-production-activation-03",
+  "requestId": "V26.9.B-2026-09-13-production-activation-04",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
@@ -54,6 +54,21 @@
       ],
       "evidencePaths": [
         "tests/test_v269b_experience_retrieval.py"
+      ]
+    },
+    {
+      "targetId": "v269b-active-context-idempotence",
+      "failureClass": "ACTIVE_EXPERIENCE_CONTEXT_REPROJECTION_APPENDS_DUPLICATE_RECEIPTS_AND_BREAKS_SEMANTIC_REPLAY",
+      "registryModules": [
+        "experience_retrieval",
+        "agent1_input_projection",
+        "agent2_runtime",
+        "agent3_input_projection"
+      ],
+      "evidencePaths": [
+        "src/services/v269_experience_retrieval_service.py",
+        "tests/test_v269b_experience_retrieval.py",
+        "tests/test_v22_4_v269_input_migration.py"
       ]
     }
   ]
