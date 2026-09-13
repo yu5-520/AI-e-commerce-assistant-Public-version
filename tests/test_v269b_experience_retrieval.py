@@ -174,7 +174,7 @@ def test_agent2_and_agent3_use_their_registered_field_contracts(isolated_db, mon
     assert any(record.get("schema") == "experience.retrieval.context_receipt.v269b.v1" for record in context3["records"])
 
 
-def test_agent1_project_input_binds_experience_head_into_semantic_identity(isolated_db, monkeypatch):
+def test_agent1_project_input_binds_active_head_and_reprojection_is_idempotent(isolated_db, monkeypatch):
     candidate = store.record_experience(
         source=source("TASK-R-4"),
         domain="decision_patterns",
@@ -191,7 +191,6 @@ def test_agent1_project_input_binds_experience_head_into_semantic_identity(isola
             "sampleCount": 2,
         },
     )
-    enable(candidate["experienceId"])
     base = base_context()
     current = {
         "semanticContractVersion": "26.9.0",
@@ -213,26 +212,47 @@ def test_agent1_project_input_binds_experience_head_into_semantic_identity(isola
         "promptVersion": "test-prompt-v1",
     }
     monkeypatch.delenv("V269B_CANDIDATE_RUNTIME", raising=False)
-    without_b = migration.project_input(
-        "agent1",
-        current,
-        source_ref="ART-TEST-SOURCE",
-        source_content_hash="sha256:" + "a" * 64,
-    )["payload"]
-    identity_without_b = migration.semantic_identity("agent1", without_b, descriptor)["semanticHash"]
-    assert without_b["knowledgeContext"] == base
+    assert retrieval.runtime_enabled() is True
 
-    monkeypatch.setenv("V269B_CANDIDATE_RUNTIME", "1")
-    with_b = migration.project_input(
+    candidate_only = migration.project_input(
         "agent1",
         current,
         source_ref="ART-TEST-SOURCE",
         source_content_hash="sha256:" + "a" * 64,
     )["payload"]
-    identity_with_b = migration.semantic_identity("agent1", with_b, descriptor)["semanticHash"]
-    assert with_b["knowledgeContext"]["headHash"] != base["headHash"]
-    assert any(record.get("experienceId") == candidate["experienceId"] for record in with_b["knowledgeContext"]["records"])
-    assert identity_with_b != identity_without_b
+    candidate_identity = migration.semantic_identity("agent1", candidate_only, descriptor)["semanticHash"]
+    candidate_records = candidate_only["knowledgeContext"]["records"]
+    assert candidate_only["knowledgeContext"]["headHash"] != base["headHash"]
+    assert any(
+        record.get("schema") == "experience.retrieval.context_receipt.v269b.v1"
+        and record.get("emptyResult") is True
+        for record in candidate_records
+    )
+    assert not any(record.get("experienceId") == candidate["experienceId"] for record in candidate_records)
+
+    enable(candidate["experienceId"])
+    enabled = migration.project_input(
+        "agent1",
+        current,
+        source_ref="ART-TEST-SOURCE",
+        source_content_hash="sha256:" + "a" * 64,
+    )["payload"]
+    enabled_identity = migration.semantic_identity("agent1", enabled, descriptor)["semanticHash"]
+    assert any(
+        record.get("experienceId") == candidate["experienceId"]
+        for record in enabled["knowledgeContext"]["records"]
+    )
+    assert enabled_identity != candidate_identity
+
+    reprojected = migration.project_input(
+        "agent1",
+        enabled,
+        source_ref="ART-TEST-SOURCE-REPLAY",
+        source_content_hash="sha256:" + "b" * 64,
+    )["payload"]
+    replay_identity = migration.semantic_identity("agent1", reprojected, descriptor)["semanticHash"]
+    assert reprojected["knowledgeContext"] == enabled["knowledgeContext"]
+    assert replay_identity == enabled_identity
 
 
 def test_no_match_is_explicit_empty_not_seed_fill(isolated_db):
