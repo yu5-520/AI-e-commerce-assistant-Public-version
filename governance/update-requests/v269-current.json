@@ -1,6 +1,6 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.C-2026-09-13-candidate-bootstrap-01",
+  "requestId": "V26.9.C-2026-09-13-candidate-bootstrap-02",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
@@ -52,6 +52,19 @@
         "src/services/v269_semantic_graph_service.py",
         "src/services/v269_input_migration_service.py",
         "src/api/routes/frontend_views.py"
+      ]
+    },
+    {
+      "targetId": "v269c-cross-version-b-gate",
+      "failureClass": "B_GATE_HARDCODES_CURRENT_REQUEST_ID_TO_B_AND_BLOCKS_LATER_V269_TRANSACTIONS",
+      "registryModules": [
+        "release_governance",
+        "experience_store",
+        "evaluation_plane",
+        "experience_retrieval"
+      ],
+      "evidencePaths": [
+        ".github/workflows/v269-b-experience-evaluation.yml"
       ]
     }
   ]
