@@ -1,18 +1,60 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.B-2026-09-13-registry-bootstrap-03",
+  "requestId": "V26.9.B-2026-09-13-foundation-04",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
-      "targetId": "v269b-register-foundation-modules",
-      "failureClass": "EXPERIENCE_EVALUATION_MODULES_NOT_REGISTERED",
+      "targetId": "v269b-experience-store-foundation",
+      "failureClass": "EXPERIENCE_STORE_NOT_PRESENT",
       "registryModules": [
-        "release_governance"
+        "experience_store"
       ],
       "evidencePaths": [
-        "config/v23_registry_runtime.json",
-        "governance/v26-field-authority-update-policy.json",
-        ".github/workflows/v26-update-locator.yml"
+        "rag/schema/v269b_experience_store.sql",
+        "rag/migrations/001_v269b_experience_store.sql",
+        "rag/seeds/v269b_seed.json",
+        "rag/manifest/v269b_manifest.json",
+        "src/services/v269_experience_store_service.py",
+        "tests/test_v269b_experience_store.py"
+      ]
+    },
+    {
+      "targetId": "v269b-versioned-evaluation-plane",
+      "failureClass": "EVALUATION_METRIC_CONTRACT_NOT_VERSIONED",
+      "registryModules": [
+        "evaluation_plane",
+        "experience_store"
+      ],
+      "evidencePaths": [
+        "config/v269b_evaluation_contract.json",
+        "src/services/v269_evaluation_plane_service.py",
+        "tests/test_v269b_evaluation_plane.py"
+      ]
+    },
+    {
+      "targetId": "v269b-field-experience-retrieval",
+      "failureClass": "AGENT_EXPERIENCE_RETRIEVAL_NOT_RECEIPT_BOUND",
+      "registryModules": [
+        "experience_retrieval",
+        "experience_store"
+      ],
+      "evidencePaths": [
+        "src/services/v269_experience_retrieval_service.py",
+        "tests/test_v269b_experience_retrieval.py"
+      ]
+    },
+    {
+      "targetId": "v269b-candidate-evidence",
+      "failureClass": "B_FOUNDATION_REQUIRES_INDEPENDENT_GATE_AND_EVIDENCE",
+      "registryModules": [
+        "release_governance",
+        "experience_store",
+        "evaluation_plane",
+        "experience_retrieval"
+      ],
+      "evidencePaths": [
+        "docs/V26_9_B_EXPERIENCE_EVALUATION.md",
+        ".github/workflows/v269-b-experience-evaluation.yml"
       ]
     }
   ]
