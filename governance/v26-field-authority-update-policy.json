@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.13.15.A-system-review-runtime-scope-draft",
+  "version": "2026.09.13.16.A-update-locator-draft",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
-      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review; V26.5 upgrades the business graph to addressable Judgement/Action/Operation nodes and system-generated lineage edges; V26.6 uses those immutable node identities after review to compile a deterministic local revision scope. V26.7 closes finite numeric/evidence/cache/lifecycle gaps; V26.8 extends evidence continuity. V26.9.A cuts over to one DecisionGraph -> ActionAdmission -> PlanGraph -> OperationGraph business interpretation, adds deterministic BusinessFacts/fact-ledger projection at the existing Agent1 seam, removes old execution-lock reads for V26.9 Agent1 outputs, extends the existing task-pool authority path with an idempotent whole-plan reservation transaction, installs a versioned downstream-first scheduler inside the existing single station worker, and wires the frozen PlanGraph into the existing Java production control-plane process as a root-bound read-only System Review endpoint. Task admission freezes the Review identity in the same transaction as reservation commit and pool admission; execution completion opens the review window; only a later immutable BusinessFacts Artifact may become TARGET; SETTLED or ADJUSTMENT_REQUIRED is written only through the existing Python lifecycle writer. The Java endpoint cannot mutate task, queue, RAG, Experience Store or Authority Generation, and V26.9 tasks do not enter the legacy recap/RAG-candidate path. The public runtime scope admits only the five explicitly registered V26.9 Java review files rather than the whole Java control-plane directory. The A candidate is verified with the existing fixed three-report package/deploy/runtime harness plus graph-only fixtures that author only Agent-owned fields; system hash, admission, partition, merge, permission, reservation, review and task-pool transaction remain real runtime responsibilities. Historical V22 rows are parsed under their historical contract only; they are never a V26.9 semantic fallback. No new authority root, parallel Agent worker, Evaluation Plane or Experience Store is introduced.",
+      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review; V26.5 upgrades the business graph to addressable Judgement/Action/Operation nodes and system-generated lineage edges; V26.6 uses those immutable node identities after review to compile a deterministic local revision scope. V26.7 closes finite numeric/evidence/cache/lifecycle gaps; V26.8 extends evidence continuity. V26.9.A cuts over to one DecisionGraph -> ActionAdmission -> PlanGraph -> OperationGraph business interpretation, adds deterministic BusinessFacts/fact-ledger projection at the existing Agent1 seam, removes old execution-lock reads for V26.9 Agent1 outputs, extends the existing task-pool authority path with an idempotent whole-plan reservation transaction, installs a versioned downstream-first scheduler inside the existing single station worker, and wires the frozen PlanGraph into the existing Java production control-plane process as a root-bound read-only System Review endpoint. Task admission freezes the Review identity in the same transaction as reservation commit and pool admission; execution completion opens the review window; only a later immutable BusinessFacts Artifact may become TARGET; SETTLED or ADJUSTMENT_REQUIRED is written only through the existing Python lifecycle writer. The Java endpoint cannot mutate task, queue, RAG, Experience Store or Authority Generation, and V26.9 tasks do not enter the legacy recap/RAG-candidate path. The public runtime scope admits only the five explicitly registered V26.9 Java review files rather than the whole Java control-plane directory. The A candidate is verified with the existing fixed three-report package/deploy/runtime harness plus graph-only fixtures that author only Agent-owned fields; system hash, admission, partition, merge, permission, reservation, review and task-pool transaction remain real runtime responsibilities. The Z self-update front half is now explicit: an Update Request names registry responsibility modules, the Update Locator compiles registered implementation paths into policy-bounded editablePaths/readOnlyContextPaths plus required gates, filename-similarity search is forbidden, and any scope expansion requires a new compiled planHash. Historical V22 rows are parsed under their historical contract only; they are never a V26.9 semantic fallback. No new authority root, parallel Agent worker, Evaluation Plane or Experience Store is introduced.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -34,6 +34,9 @@
         "java-control-plane/src/main/java/com/zcentury/v24/ProductionAuthorityMain.java",
         "scripts/verify_v24_production_bundle.sh",
         "governance/v26-field-authority-update-policy.json",
+        "governance/update-requests/v269-a-current.json",
+        "scripts/compile_v26_update_locator.py",
+        "tests/test_v26_update_locator.py",
         "tests/test_v26_field_authority_contract.py",
         "tests/test_v26_business_graph_bridge.py",
         "docs/V26_1_FIELD_AUTHORITY_CONTRACT.md",
@@ -41,6 +44,7 @@
         "docs/V26_3_PRE_AGENT_ADMISSION.md",
         "docs/V26_4_SYSTEM_REVIEW.md",
         "docs/V26_6_LOCAL_SUBGRAPH_REVISION.md",
+        ".github/workflows/v26-update-locator.yml",
         ".github/workflows/v26-field-authority-phase1.yml",
         ".github/workflows/v26-business-graphs-phase2.yml",
         ".github/workflows/v26-registry-lineage-pr.yml",
@@ -99,6 +103,7 @@
         "src/services/v269_pipeline_orchestration_service.py",
         "src/services/v269_pipeline_downstream_service.py",
         "tests/test_v22_4_v269_pipeline_scheduler.py",
+        "tests/test_v22_4_v269_agent3_core_bridge.py",
         "scripts/competition_contract_fixture_provider_v269.py",
         "scripts/competition_e2e_compat_runtime/competition_contract_fixture_provider.py",
         "scripts/run_competition_three_report_e2e_v269.py",
