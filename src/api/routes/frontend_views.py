@@ -193,7 +193,10 @@ def task_detail_view(task_id: str, dataVersion: str | None = None) -> Dict[str, 
     result = project_task_detail(internal)
     result = _publish_task_product_lineage(result, internal)
     from src.services.v26_sop_evidence_service import read_task_knowledge_audit
-    result["sopEvidence"]["knowledgeAudit"] = read_task_knowledge_audit(task_id)
+    from src.services.v269_evaluation_plane_service import read_task_evaluation_evidence
+    sop_evidence = result.setdefault("sopEvidence", {})
+    sop_evidence["knowledgeAudit"] = read_task_knowledge_audit(task_id)
+    sop_evidence["evaluation"] = read_task_evaluation_evidence(task_id)
     result["version"] = PUBLIC_TASK_DTO_VERSION
     return result
 

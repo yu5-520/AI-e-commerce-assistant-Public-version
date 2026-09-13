@@ -1,0 +1,45 @@
+{
+  "schema": "experience.store.manifest.v269b.v1",
+  "version": "26.9.B.1",
+  "rolloutStatus": "candidate_not_activated",
+  "candidateRuntimeEnv": "V269B_CANDIDATE_RUNTIME",
+  "database": {
+    "engine": "sqlite",
+    "runtimePath": "logs/product_workbench.sqlite3",
+    "deploymentPackageOwnsRuntimeData": false,
+    "backupDirectory": "logs/experience-backups",
+    "restoreRequiresExplicitOperatorIntent": true
+  },
+  "schemaPath": "rag/schema/v269b_experience_store.sql",
+  "migrations": [
+    "rag/migrations/001_v269b_experience_store.sql"
+  ],
+  "seedPath": "rag/seeds/v269b_seed.json",
+  "domains": [
+    "experience_knowledge",
+    "decision_patterns",
+    "strategy_outcomes",
+    "operation_patterns",
+    "evaluation_results"
+  ],
+  "lifecycle": [
+    "candidate",
+    "approved",
+    "enabled",
+    "disabled",
+    "superseded",
+    "seed"
+  ],
+  "runtimeWritePolicy": {
+    "v269bMayCreateRuntimeStatus": "candidate",
+    "seedStatus": "seed",
+    "promotionEnabled": false,
+    "automaticKnowledgeHeadMutation": false,
+    "officialRetrievalStatus": "enabled",
+    "seedEligibleForOfficialRetrieval": false
+  },
+  "sourceNormalization": {
+    "taskAndGraphIdentityStoredOnce": true,
+    "domainRecordsReferenceSourceId": true
+  }
+}

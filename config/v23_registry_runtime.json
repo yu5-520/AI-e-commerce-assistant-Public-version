@@ -348,6 +348,73 @@
       "runner": "src.services.release_identity_service:assert_release_identity",
       "schemaIds": []
     },
+    "experience_store": {
+      "fieldIds": [
+        "experience.experience_id",
+        "experience.domain",
+        "experience.source_task_id",
+        "experience.graph_identity",
+        "experience.evaluation_version",
+        "experience.lifecycle_status",
+        "experience.evidence_refs",
+        "experience.knowledge_head"
+      ],
+      "implementationPaths": [
+        "rag/schema/v269b_experience_store.sql",
+        "rag/migrations/001_v269b_experience_store.sql",
+        "rag/seeds/v269b_seed.json",
+        "rag/manifest/v269b_manifest.json",
+        "config/v269b_evaluation_contract.json",
+        "src/services/v269_experience_store_service.py"
+      ],
+      "runner": "src.services.v269_experience_store_service:ensure_experience_store",
+      "schemaIds": [
+        "experience.store.v269b"
+      ]
+    },
+    "evaluation_plane": {
+      "fieldIds": [
+        "evaluation.evaluation_id",
+        "evaluation.metric_id",
+        "evaluation.metric_version",
+        "evaluation.numerator",
+        "evaluation.denominator",
+        "evaluation.value",
+        "evaluation.unit",
+        "evaluation.observation_window",
+        "evaluation.sample_count",
+        "evaluation.missing_reason"
+      ],
+      "implementationPaths": [
+        "config/v269b_evaluation_contract.json",
+        "src/services/v269_evaluation_plane_service.py",
+        "src/services/v269_experience_store_service.py"
+      ],
+      "runner": "src.services.v269_evaluation_plane_service:evaluate_execution_result",
+      "schemaIds": [
+        "evaluation.vector.v269b"
+      ]
+    },
+    "experience_retrieval": {
+      "fieldIds": [
+        "retrieval.agent",
+        "retrieval.domain",
+        "retrieval.conditions",
+        "retrieval.sample_count",
+        "retrieval.ranking_basis",
+        "retrieval.knowledge_head",
+        "retrieval.receipt_hash"
+      ],
+      "implementationPaths": [
+        "src/services/v269_experience_retrieval_service.py",
+        "src/services/v269_experience_store_service.py",
+        "config/v269b_evaluation_contract.json"
+      ],
+      "runner": "src.services.v269_experience_retrieval_service:retrieve_experience",
+      "schemaIds": [
+        "experience.retrieval.receipt.v269b"
+      ]
+    },
     "task_mapping": {
       "fieldIds": [
         "entity.product_id",

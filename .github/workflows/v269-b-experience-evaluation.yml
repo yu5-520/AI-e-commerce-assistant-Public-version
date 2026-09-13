@@ -1,0 +1,94 @@
+name: V26.9.B Experience Evaluation Candidate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'rag/**'
+      - 'config/v269b_evaluation_contract.json'
+      - 'src/services/v269_experience_store_service.py'
+      - 'src/services/v269_evaluation_plane_service.py'
+      - 'src/services/v269_experience_retrieval_service.py'
+      - 'src/services/v269_system_review_service.py'
+      - 'src/services/v269_input_migration_service.py'
+      - 'src/services/v269_fact_projection_service.py'
+      - 'src/services/v269_pipeline_orchestration_service.py'
+      - 'src/services/v269_pipeline_downstream_service.py'
+      - 'src/api/routes/frontend_views.py'
+      - 'tests/test_v269b_*.py'
+      - 'docs/V26_9_B_EXPERIENCE_EVALUATION.md'
+      - 'config/v23_registry_runtime.json'
+      - 'governance/update-requests/v269-current.json'
+      - 'governance/v26-field-authority-update-policy.json'
+      - '.github/workflows/v269-b-experience-evaluation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  experience-evaluation-candidate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+      - name: Compile V26.9.B services and production seams
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            src/services/v269_experience_store_service.py \
+            src/services/v269_evaluation_plane_service.py \
+            src/services/v269_experience_retrieval_service.py \
+            src/services/v269_system_review_service.py \
+            src/services/v269_input_migration_service.py \
+            src/services/v269_fact_projection_service.py \
+            src/services/v269_pipeline_orchestration_service.py \
+            src/services/v269_pipeline_downstream_service.py \
+            src/api/routes/frontend_views.py
+      - name: Verify B contracts and A boundary
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest=json.loads(Path('rag/manifest/v269b_manifest.json').read_text(encoding='utf-8'))
+          evaluation=json.loads(Path('config/v269b_evaluation_contract.json').read_text(encoding='utf-8'))
+          authority=json.loads(Path('config/v26_field_authority_contract.json').read_text(encoding='utf-8'))
+          registry=json.loads(Path('config/v23_registry_runtime.json').read_text(encoding='utf-8'))
+          request=json.loads(Path('governance/update-requests/v269-current.json').read_text(encoding='utf-8'))
+
+          assert authority['businessSemanticContract']['rolloutStatus'] == 'active'
+          assert authority['businessSemanticContract']['version'] == '26.9.0'
+          assert manifest['version'] == '26.9.B.1'
+          assert manifest['rolloutStatus'] in {'candidate_not_activated','active'}
+          assert manifest['runtimeWritePolicy']['promotionEnabled'] is False
+          assert manifest['runtimeWritePolicy']['automaticKnowledgeHeadMutation'] is False
+          assert manifest['runtimeWritePolicy']['officialRetrievalStatus'] == 'enabled'
+          assert evaluation['version'] == '26.9.B.1'
+          assert evaluation['noCompositeScore'] is True
+          assert evaluation['causalAttributionForbidden'] is True
+          b_modules={'experience_store','evaluation_plane','experience_retrieval'}
+          assert b_modules <= set(registry['modules'])
+          required=set(registry['requiredModules'])
+          if manifest['rolloutStatus'] == 'active':
+              assert b_modules <= required
+          else:
+              assert not (b_modules & required)
+          assert request['requestId'].startswith('V26.9.B-')
+          print('V269B_CONTRACT_BOUNDARY=PASS')
+          print('V269B_ROLLOUT_STATUS=' + manifest['rolloutStatus'])
+          print('V269B_REQUIRED_MODULES=' + json.dumps(sorted(b_modules & required)))
+          PY
+      - name: Install locked test environment
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.lock
+      - name: Run V26.9.B foundation and runtime-integration tests
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_v269b_experience_store.py \
+            tests/test_v269b_evaluation_plane.py \
+            tests/test_v269b_experience_retrieval.py

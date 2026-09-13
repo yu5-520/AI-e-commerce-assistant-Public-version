@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+env:
+  V26_UPDATE_REQUEST: governance/update-requests/v269-current.json
+  V26_UPDATE_PLAN: dist/v26-update-locator/v269-current.plan.json
+
 jobs:
   compile-update-plan:
     runs-on: ubuntu-24.04
@@ -29,18 +33,19 @@ jobs:
           set -euo pipefail
           mkdir -p dist/v26-update-locator
           python scripts/compile_v26_update_locator.py \
-            --request governance/update-requests/v269-a-current.json \
-            --output dist/v26-update-locator/v269-a-current.plan.json \
-            | tee dist/v26-update-locator/v269-a-current.plan.log
+            --request "$V26_UPDATE_REQUEST" \
+            --output "$V26_UPDATE_PLAN" \
+            | tee dist/v26-update-locator/v269-current.plan.log
       - name: Verify locator invariants
         run: |
           set -euo pipefail
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
 
-          plan = json.loads(Path('dist/v26-update-locator/v269-a-current.plan.json').read_text(encoding='utf-8'))
-          request = json.loads(Path('governance/update-requests/v269-a-current.json').read_text(encoding='utf-8'))
+          plan = json.loads(Path(os.environ['V26_UPDATE_PLAN']).read_text(encoding='utf-8'))
+          request = json.loads(Path(os.environ['V26_UPDATE_REQUEST']).read_text(encoding='utf-8'))
 
           assert plan['schema'] == 'z.update_locator.plan.v1'
           assert plan['requestId'] == request['requestId']
@@ -71,6 +76,7 @@ jobs:
           assert plan['planHash'].startswith('sha256:')
 
           print('V26_UPDATE_LOCATOR=PASS')
+          print('REQUEST=' + os.environ['V26_UPDATE_REQUEST'])
           print('PLAN_HASH=' + plan['planHash'])
           print('SELECTED_MODULES=' + json.dumps(actual_modules, ensure_ascii=False, sort_keys=True))
           print('EDITABLE_PATHS=' + json.dumps(plan['editablePaths'], ensure_ascii=False, sort_keys=True))
