@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from src.services import v269_experience_store_service as store
+from src.services import v269_semantic_graph_service as graphs
 
 VERSION = "26.9.B.1"
 ROOT = Path(__file__).resolve().parents[2]
@@ -202,6 +203,7 @@ def evaluate_execution_result(
         result = _evaluate_metric(metric_id, spec, inputs, epsilon)
         evaluation_material = {
             "sourceHash": store.digest(store._normalize_source(source)),
+            "subjectExperienceId": subject_experience_id,
             "metricId": metric_id,
             "metricVersion": result["metricVersion"],
             "formulaInputs": result["formulaInputs"],
@@ -248,3 +250,166 @@ def evaluate_execution_result(
             receipts.append(recorded["receiptHash"])
         vector["persistenceReceipts"] = receipts
     return vector
+
+
+def _review_source(
+    package: dict[str, Any],
+    *,
+    target_source_content_hash: str,
+    review_receipt: dict[str, Any],
+) -> dict[str, Any]:
+    receipt_hash = str(review_receipt.get("receiptHash") or "")
+    _require(receipt_hash.startswith("sha256:"), "review_receipt_hash")
+    evidence_refs = sorted(set(
+        [str(ref) for ref in package.get("evidenceRefs") or [] if isinstance(ref, str) and ref]
+        + [target_source_content_hash, receipt_hash]
+    ))
+    source = {
+        "sourceTaskId": str(package.get("taskId") or package.get("packageId") or ""),
+        "decisionGraphHash": package["DecisionGraph"]["graphHash"],
+        "planGraphHash": package["PlanGraph"]["graphHash"],
+        "operationGraphHash": package["OperationGraph"]["graphHash"],
+        "graphContractVersion": str(package.get("semanticContractVersion") or "26.9.0"),
+        "evaluationVersion": VERSION,
+        "evidenceRefs": evidence_refs,
+        "businessScope": {
+            "storeId": package.get("storeId"),
+            "productId": package.get("productId"),
+        },
+        "sourceType": "runtime",
+        "sourceVersion": "v269.system_review:" + receipt_hash,
+    }
+    store._normalize_source(source)
+    return source
+
+
+def record_system_review_candidate(
+    package: dict[str, Any],
+    *,
+    target_facts: dict[str, Any],
+    target_source_content_hash: str,
+    review_receipt: dict[str, Any],
+    review_status: str,
+) -> dict[str, Any]:
+    """Persist post-review candidates without granting promotion or execution authority."""
+    _require(review_status in {"SETTLED", "ADJUSTMENT_REQUIRED"}, "review_status")
+    _require(isinstance(target_facts, dict), "target_facts")
+    decision_nodes = graphs.index(package.get("DecisionGraph"))
+    plan_nodes = graphs.index(package.get("PlanGraph"))
+    operation_nodes = graphs.index(package.get("OperationGraph"))
+    source = _review_source(
+        package,
+        target_source_content_hash=target_source_content_hash,
+        review_receipt=review_receipt,
+    )
+
+    strategy_ids: list[str] = []
+    operation_ids: list[str] = []
+    vector_hashes: list[str] = []
+    evaluation_receipts: list[str] = []
+
+    for plan_key, node in sorted(plan_nodes.items()):
+        decision = decision_nodes.get(node.get("decisionActionRef")) or {}
+        action_family = str(node.get("actionFamily") or decision.get("actionFamily") or "")
+        action_type = str(decision.get("actionType") or "")
+        _require(bool(action_family and action_type), "plan_decision_semantics")
+        actual = {
+            metric: deepcopy(target_facts[metric])
+            for metric in node.get("affectedMetrics") or []
+            if isinstance(target_facts.get(metric), dict)
+        }
+        errors = []
+        for metric, observation in actual.items():
+            expected = (node.get("expectedOutcome") or {}).get(metric) or {}
+            if type(expected.get("expectedValue")) in (int, float) and type(observation.get("value")) in (int, float):
+                errors.append(abs(float(expected["expectedValue"]) - float(observation["value"])))
+        strategy_payload = {
+            "decisionActionKey": node["decisionActionRef"],
+            "decisionAction": {"actionType": action_type, "actionFamily": action_family},
+            "planActionKey": plan_key,
+            "planAction": {"actionFamily": action_family},
+            "category": graphs.contract()["actionFamilyDomains"].get(action_family),
+            "strategyType": action_family,
+            "baseline": deepcopy(node.get("baseline") or {}),
+            "expected": deepcopy(node.get("expectedOutcome") or {}),
+            "actual": actual or None,
+            "predictionError": (sum(errors) / len(errors)) if errors else None,
+            "sampleCount": len(actual),
+        }
+        strategy = store.record_experience(
+            source=source,
+            domain="strategy_outcomes",
+            applicability={
+                "actionFamily": action_family,
+                "reviewStatus": review_status,
+                "affectedMetrics": deepcopy(node.get("affectedMetrics") or []),
+            },
+            payload=strategy_payload,
+        )
+        strategy_ids.append(strategy["experienceId"])
+
+        for metric in node.get("affectedMetrics") or []:
+            baseline = (node.get("baseline") or {}).get(metric) or {}
+            expected = (node.get("expectedOutcome") or {}).get(metric) or {}
+            observed = target_facts.get(metric) if isinstance(target_facts.get(metric), dict) else {}
+            inputs = {
+                "baselineValue": baseline.get("value"),
+                "expectedValue": expected.get("expectedValue"),
+                "actualValue": observed.get("value"),
+                "metricUnit": baseline.get("unit") or observed.get("unit"),
+                "reviewWindow": deepcopy(node.get("reviewWindow")),
+                "observationSource": observed.get("sourceRef") or target_source_content_hash,
+                "observedValue": observed.get("value"),
+            }
+            vector = evaluate_execution_result(
+                source,
+                inputs,
+                subject_experience_id=strategy["experienceId"],
+                persist=True,
+            )
+            vector_hashes.append(vector["vectorHash"])
+            evaluation_receipts.extend(vector.get("persistenceReceipts") or [])
+
+    for stage_key, stage in sorted(operation_nodes.items()):
+        refs = stage.get("planActionRefs") or []
+        for plan_ref in refs:
+            plan = plan_nodes.get(plan_ref) or {}
+            action_family = str(plan.get("actionFamily") or "")
+            operations = (((plan.get("parameters") or {}).get("operationPlan") or {}).get("operations") or [])
+            execution_types = sorted({
+                str(item.get("operationType") or "").strip()
+                for item in operations if isinstance(item, dict) and str(item.get("operationType") or "").strip()
+            }) or ["operation_stage"]
+            for execution_type in execution_types:
+                operation = store.record_experience(
+                    source=source,
+                    domain="operation_patterns",
+                    applicability={
+                        "actionFamily": action_family,
+                        "reviewStatus": review_status,
+                    },
+                    payload={
+                        "planActionKey": plan_ref,
+                        "planAction": {"actionFamily": action_family},
+                        "platform": (package.get("BusinessFacts") or {}).get("productIdentity", {}).get("platform"),
+                        "executionType": execution_type,
+                        "completionStatus": review_status,
+                        "rollbackOccurred": None,
+                        "sampleCount": 1,
+                    },
+                )
+                operation_ids.append(operation["experienceId"])
+
+    material = {
+        "schema": "evaluation.system_review_candidate_receipt.v269b.v1",
+        "version": VERSION,
+        "sourceHash": store.digest(store._normalize_source(source)),
+        "reviewStatus": review_status,
+        "strategyExperienceIds": sorted(set(strategy_ids)),
+        "operationExperienceIds": sorted(set(operation_ids)),
+        "evaluationVectorHashes": sorted(set(vector_hashes)),
+        "evaluationPersistenceReceipts": sorted(set(evaluation_receipts)),
+        "promotionPerformed": False,
+        "knowledgeHeadMutated": False,
+    }
+    return {**material, "receiptHash": store.digest(material)}
