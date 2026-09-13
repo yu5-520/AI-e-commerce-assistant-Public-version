@@ -1,0 +1,250 @@
+"""V26.9.B versioned Evaluation Plane.
+
+Metrics are vectors, never a hidden composite score. Every result carries the exact
+metric contract version, formula inputs, missing reason and interpretation limits.
+No metric is allowed to claim causal attribution to an Agent or RAG.
+"""
+from __future__ import annotations
+
+from copy import deepcopy
+import json
+import math
+from pathlib import Path
+from typing import Any
+
+from src.services import v269_experience_store_service as store
+
+VERSION = "26.9.B.1"
+ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = ROOT / "config/v269b_evaluation_contract.json"
+
+
+class EvaluationPlaneError(ValueError):
+    pass
+
+
+def _require(condition: bool, reason: str) -> None:
+    if not condition:
+        raise EvaluationPlaneError("v269b_evaluation_" + reason)
+
+
+def contract() -> dict[str, Any]:
+    value = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+    _require(isinstance(value, dict), "contract_object")
+    _require(value.get("version") == VERSION, "contract_version")
+    _require(value.get("noCompositeScore") is True, "composite_score_forbidden")
+    _require(value.get("causalAttributionForbidden") is True, "causal_attribution_guard")
+    _require(isinstance(value.get("metrics"), dict) and value["metrics"], "metrics_required")
+    return value
+
+
+def _number(value: Any, name: str) -> float:
+    _require(type(value) in (int, float) and math.isfinite(value), name + "_numeric")
+    return float(value)
+
+
+def _nonnegative_count(value: Any, name: str) -> float:
+    number = _number(value, name)
+    _require(number >= 0 and float(number).is_integer(), name + "_count")
+    return number
+
+
+def _window(raw: str, inputs: dict[str, Any]) -> str:
+    mapping = {
+        "PlanAction.reviewWindow": "reviewWindow",
+        "execution_window": "executionWindow",
+        "task_lifecycle": "taskLifecycleWindow",
+        "source_defined": "observationWindow",
+        "review_defined": "reviewWindow",
+        "label_source_defined": "labelWindow",
+        "evaluation_defined": "evaluationWindow",
+    }
+    key = mapping.get(raw)
+    value = inputs.get(key) if key else None
+    if value is None:
+        return raw
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _missing(metric_id: str, spec: dict[str, Any], inputs: dict[str, Any], reason: str) -> dict[str, Any]:
+    formula_inputs = {key: deepcopy(inputs.get(key)) for key in spec.get("requiredInputs") or []}
+    return {
+        "metricId": metric_id,
+        "metricVersion": spec["version"],
+        "definition": spec["definition"],
+        "formula": spec["formula"],
+        "numerator": None,
+        "denominator": None,
+        "value": None,
+        "unit": spec["unit"],
+        "observationWindow": _window(spec["observationWindow"], inputs),
+        "sampleCount": 0,
+        "missingReason": reason,
+        "formulaInputs": formula_inputs,
+        "supports": deepcopy(spec.get("supports") or []),
+        "interpretationLimits": deepcopy(spec.get("doesNotSupport") or []),
+    }
+
+
+def _ratio(metric_id: str, spec: dict[str, Any], inputs: dict[str, Any], *, require_source: str | None = None) -> dict[str, Any]:
+    required = spec["requiredInputs"]
+    if any(inputs.get(key) is None for key in required[:2]):
+        return _missing(metric_id, spec, inputs, spec["missingRules"][0])
+    if require_source:
+        source = inputs.get(require_source)
+        if not isinstance(source, str) or not source.strip():
+            return _missing(metric_id, spec, inputs, spec["missingRules"][0])
+        _require(source not in {"agent1_self", "model_self", "self"}, "self_evaluation_forbidden")
+    numerator = _nonnegative_count(inputs[required[0]], required[0])
+    denominator = _nonnegative_count(inputs[required[1]], required[1])
+    if denominator == 0:
+        return _missing(metric_id, spec, inputs, spec["missingRules"][-1])
+    _require(numerator <= denominator, "ratio_numerator_exceeds_denominator")
+    result = _missing(metric_id, spec, inputs, "")
+    result.update({
+        "numerator": numerator,
+        "denominator": denominator,
+        "value": numerator / denominator,
+        "sampleCount": int(denominator),
+        "missingReason": None,
+    })
+    return result
+
+
+def _evaluate_metric(metric_id: str, spec: dict[str, Any], inputs: dict[str, Any], epsilon: float) -> dict[str, Any]:
+    calculator = spec["calculator"]
+    if calculator == "label_ratio":
+        return _ratio(metric_id, spec, inputs, require_source="labelSource")
+    if calculator == "external_value_ratio":
+        return _ratio(metric_id, spec, inputs, require_source="evaluationSource")
+    if calculator == "count_ratio":
+        return _ratio(metric_id, spec, inputs)
+    if calculator == "relative_prediction_accuracy":
+        if inputs.get("actualValue") is None:
+            return _missing(metric_id, spec, inputs, "ACTUAL_NOT_OBSERVED")
+        expected = _number(inputs.get("expectedValue"), "expectedValue")
+        actual = _number(inputs.get("actualValue"), "actualValue")
+        if abs(expected) <= epsilon:
+            return _missing(metric_id, spec, inputs, "EXPECTED_VALUE_NEAR_ZERO")
+        error = abs(actual - expected)
+        result = _missing(metric_id, spec, inputs, "")
+        result.update({
+            "numerator": error,
+            "denominator": abs(expected),
+            "value": max(0.0, 1.0 - error / abs(expected)),
+            "sampleCount": 1,
+            "missingReason": None,
+        })
+        return result
+    if calculator in {"expected_delta", "actual_delta", "delta_realization_rate"}:
+        if inputs.get("baselineValue") is None:
+            return _missing(metric_id, spec, inputs, "BASELINE_MISSING")
+        baseline = _number(inputs.get("baselineValue"), "baselineValue")
+        if calculator == "expected_delta":
+            if inputs.get("expectedValue") is None:
+                return _missing(metric_id, spec, inputs, "EXPECTED_VALUE_MISSING")
+            expected = _number(inputs.get("expectedValue"), "expectedValue")
+            value = expected - baseline
+            result = _missing(metric_id, spec, inputs, "")
+            result.update({"numerator": value, "value": value, "unit": str(inputs.get("metricUnit") or "metric_native"), "sampleCount": 1, "missingReason": None})
+            return result
+        if inputs.get("actualValue") is None:
+            return _missing(metric_id, spec, inputs, "ACTUAL_NOT_OBSERVED")
+        actual = _number(inputs.get("actualValue"), "actualValue")
+        actual_delta = actual - baseline
+        if calculator == "actual_delta":
+            result = _missing(metric_id, spec, inputs, "")
+            result.update({"numerator": actual_delta, "value": actual_delta, "unit": str(inputs.get("metricUnit") or "metric_native"), "sampleCount": 1, "missingReason": None})
+            return result
+        if inputs.get("expectedValue") is None:
+            return _missing(metric_id, spec, inputs, "EXPECTED_VALUE_MISSING")
+        expected = _number(inputs.get("expectedValue"), "expectedValue")
+        expected_delta = expected - baseline
+        if abs(expected_delta) <= epsilon:
+            return _missing(metric_id, spec, inputs, "EXPECTED_DELTA_NEAR_ZERO")
+        result = _missing(metric_id, spec, inputs, "")
+        result.update({
+            "numerator": actual_delta,
+            "denominator": expected_delta,
+            "value": actual_delta / expected_delta,
+            "sampleCount": 1,
+            "missingReason": None,
+        })
+        return result
+    if calculator == "observed_outcome":
+        if inputs.get("observedValue") is None:
+            return _missing(metric_id, spec, inputs, "OUTCOME_NOT_OBSERVED")
+        source = inputs.get("observationSource")
+        _require(isinstance(source, str) and source, "outcome_source_required")
+        value = _number(inputs.get("observedValue"), "observedValue")
+        result = _missing(metric_id, spec, inputs, "")
+        result.update({"numerator": value, "value": value, "unit": str(inputs.get("metricUnit") or "metric_native"), "sampleCount": 1, "missingReason": None})
+        return result
+    raise EvaluationPlaneError("v269b_evaluation_calculator_unknown:" + str(calculator))
+
+
+def evaluate_execution_result(
+    source: dict[str, Any],
+    inputs: dict[str, Any],
+    *,
+    subject_experience_id: str | None = None,
+    persist: bool = False,
+) -> dict[str, Any]:
+    """Build the complete evaluation vector; missing metrics stay explicit, never invented."""
+    _require(isinstance(inputs, dict), "inputs_object")
+    cfg = contract()
+    epsilon = float(cfg.get("epsilon") or 1e-9)
+    metrics: list[dict[str, Any]] = []
+    for metric_id, spec in sorted(cfg["metrics"].items()):
+        _require(isinstance(spec, dict), "metric_spec")
+        result = _evaluate_metric(metric_id, spec, inputs, epsilon)
+        evaluation_material = {
+            "sourceHash": store.digest(store._normalize_source(source)),
+            "metricId": metric_id,
+            "metricVersion": result["metricVersion"],
+            "formulaInputs": result["formulaInputs"],
+            "observationWindow": result["observationWindow"],
+        }
+        result["evaluationId"] = "V269B-EVAL-" + store.digest(evaluation_material)[-20:].upper()
+        result["subjectExperienceId"] = subject_experience_id
+        metrics.append(result)
+    vector_material = {
+        "schema": "evaluation.vector.v269b.v1",
+        "version": VERSION,
+        "contractHash": store.file_digest(CONTRACT_PATH),
+        "sourceHash": store.digest(store._normalize_source(source)),
+        "subjectExperienceId": subject_experience_id,
+        "metrics": metrics,
+        "compositeScore": None,
+        "causalAttribution": None,
+    }
+    vector = {**vector_material, "vectorHash": store.digest(vector_material)}
+    if persist:
+        receipts = []
+        for metric in metrics:
+            payload = {
+                "subjectExperienceId": subject_experience_id,
+                "evaluationId": metric["evaluationId"],
+                "metricId": metric["metricId"],
+                "metricVersion": metric["metricVersion"],
+                "numerator": metric["numerator"],
+                "denominator": metric["denominator"],
+                "value": metric["value"],
+                "unit": metric["unit"],
+                "observationWindow": metric["observationWindow"],
+                "sampleCount": metric["sampleCount"],
+                "missingReason": metric["missingReason"],
+                "formulaInputs": metric["formulaInputs"],
+                "interpretationLimits": metric["interpretationLimits"],
+            }
+            recorded = store.record_experience(
+                source=source,
+                domain="evaluation_results",
+                applicability={"metricId": metric["metricId"], "metricVersion": metric["metricVersion"]},
+                payload=payload,
+            )
+            receipts.append(recorded["receiptHash"])
+        vector["persistenceReceipts"] = receipts
+    return vector
