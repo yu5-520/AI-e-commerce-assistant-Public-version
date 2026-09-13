@@ -32,6 +32,10 @@ primaryProblemNode、primaryAction、primaryExecutionTarget、primaryOwner、loc
 
 Python 修订验收增加 Decision/Plan 图类型，保留节点内容及关联边必须不变；差异证据逐字段记录修改。它只验证内容和 scope 一致性，不签发 Java 授权。
 
+Java ReviewContractAuthority 新增逐 PlanAction 冻结入口：验证 Python 图/节点哈希与指定合同、核对系统基线事实、预期值/增量/区间，并保留每个动作独立的观察窗口。指标以 PlanAction 引用区分，避免同名指标混淆。未知验收条件及尚未编译的 guard/riskBoundary 明确成为不确定评审合同，不能自动判成功。
+
+Java LocalSubgraphRevisionAuthority 读取新三图的 decisionActionRef、judgementRefs、planActionRefs 与依赖边，复用原确定性范围算法，输出新的 Decision/Plan/Operation 修订字段。跨语言测试验证 Python 图哈希→Java 评审/局部 scope→Python scope 验证；保留“未证明成功的节点不得声称局部保留”的原门禁。新增入口仍须接入现有 RootBoundAuthorityAdapter 调用链，方法存在不等于生产权威已交接。
+
 SOP 证据使用原 v26.sop_evidence.v1 展示接口，记录判断依据、动作权重、方案参数、冻结基线、预期结果、观察窗口、保护条件、执行与回滚。预期增量卡显示公式 expectedValue - baseline.value、输入值、单位、来源证据和图/节点哈希。只展示已记录的结构化决策依据，不暴露或补造模型内部思考。
 
 知识 Head 当前表示单次输入知识快照的内容身份；尚非 Experience Store 全库 Head。不宣称已建立评测或回流效果。
@@ -57,7 +61,9 @@ SOP 证据使用原 v26.sop_evidence.v1 展示接口，记录判断依据、动�
 | Agent2 系统调度 | 自动生成、持久化所有分区输入并执行合并；绑定现有授权来源；校验跨域总预算、资源和失败重试范围 |
 | Agent3 输入站点 | 将已接受的合并 PlanGraph 与公司权限上下文通过注册入口交接 |
 | 任务映射/任务池 | 迁移多动作权限与生命周期消费者，保留真实调用证明及授权额度；不能把图哈希或模型状态当作执行许可 |
-| Java ReviewContract/LocalSubgraphRevision | 将 PlanAction 的观察窗口、预期范围和验收标准绑定到权威评审及局部修订 |
+| Java ReviewContract/LocalSubgraphRevision | 新图内容接口及跨语言验证已完成；仍需接入生产根授权调用与任务观察生命周期，编译公司 guard/riskBoundary |
 | 收口 | 按原注册表→血缘→精确包→门禁流程，跑固定三报表全链验收后统一评估合并 |
 
 保持同一 PR 持续推进，不以内部步骤完成替代整个 A 的验收。持久化经验库、Evaluation Plane 和 Promotion Gate 属于语义稳定后的后续阶段。
+
+远端提交 9869a3c4590747cfdce9585bbae8d1861426e315 的四项 PR 门禁全部通过。后续 Java 接口更新需在新提交上重跑门禁，不能沿用旧提交的通过状态。

@@ -5,6 +5,8 @@ on:
     paths:
       - 'src/services/v269*.py'
       - 'tests/test_v22_4_v269*.py'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java'
       - 'src/services/agent_input_contract_v225_service.py'
       - 'src/services/agent_input_contract_v2258_service.py'
       - 'src/services/agent_input_transport_v2258_service.py'

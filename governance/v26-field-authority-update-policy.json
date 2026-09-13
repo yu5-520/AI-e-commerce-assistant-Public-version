@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.12.9.A-provider-draft",
+  "version": "2026.09.13.9.A-review-draft",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
@@ -78,7 +78,8 @@
         "src/services/agent_input_contract_v2258_service.py",
         "src/services/agent_input_transport_v2258_service.py",
         "src/services/agent_token_runtime_hash_exact_v2259_service.py",
-        "src/services/real_product_judgment_agent_v2259_service.py"
+        "src/services/real_product_judgment_agent_v2259_service.py",
+        "tests/test_v22_4_v269_java_graph_review.py"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",
