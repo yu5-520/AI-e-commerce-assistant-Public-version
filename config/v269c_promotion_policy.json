@@ -1,0 +1,43 @@
+{
+  "schema": "experience.promotion.policy.v269c.v1",
+  "version": "26.9.C.1",
+  "autoPromotion": false,
+  "reviewRequired": true,
+  "explicitEnableRequired": true,
+  "explicitWithdrawalRequired": true,
+  "sourceType": "runtime",
+  "eligibleReviewStatuses": ["SETTLED"],
+  "minimumEvidenceRefs": 2,
+  "deniedApplicabilityFlags": ["manualHold", "withdrawn", "highRiskUnreviewed"],
+  "expiryField": "expiresAt",
+  "conflictPolicy": {
+    "sameDomainAndApplicabilityRequiresExplicitSupersede": true,
+    "exactEnabledDuplicateForbidden": true
+  },
+  "domainRules": {
+    "decision_patterns": {
+      "minimumSampleCount": 1,
+      "requiredEvaluationAnyOf": ["system.evidence_completeness"],
+      "minimumEvaluationSampleCount": 1,
+      "metricThresholds": {"system.evidence_completeness": {"comparator": "GTE", "value": 1.0}}
+    },
+    "strategy_outcomes": {
+      "minimumSampleCount": 1,
+      "requiredEvaluationAnyOf": ["agent2.actual_delta", "agent2.delta_realization_rate", "system.evidence_completeness"],
+      "minimumEvaluationSampleCount": 1,
+      "metricThresholds": {"system.evidence_completeness": {"comparator": "GTE", "value": 1.0}}
+    },
+    "operation_patterns": {
+      "minimumSampleCount": 1,
+      "requiredEvaluationAnyOf": ["system.evidence_completeness"],
+      "minimumEvaluationSampleCount": 1,
+      "metricThresholds": {"system.evidence_completeness": {"comparator": "GTE", "value": 1.0}}
+    },
+    "experience_knowledge": {
+      "minimumSampleCount": 1,
+      "requiredEvaluationAnyOf": ["system.evidence_completeness"],
+      "minimumEvaluationSampleCount": 1,
+      "metricThresholds": {"system.evidence_completeness": {"comparator": "GTE", "value": 1.0}}
+    }
+  }
+}
