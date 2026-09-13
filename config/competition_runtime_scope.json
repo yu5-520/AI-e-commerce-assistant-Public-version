@@ -12,7 +12,13 @@
     "java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java",
     "java-control-plane/src/main/java/com/zcentury/v24/SystemReviewAuthority.java",
     "java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java",
-    "java-control-plane/src/main/java/com/zcentury/v24/V269SystemReviewEndpoint.java"
+    "java-control-plane/src/main/java/com/zcentury/v24/V269SystemReviewEndpoint.java",
+    "rag/schema/v269b_experience_store.sql",
+    "rag/migrations/001_v269b_experience_store.sql",
+    "rag/seeds/v269b_seed.json",
+    "rag/manifest/v269b_manifest.json",
+    "rag/migrations/002_v269c_promotion_feedback.sql",
+    "rag/manifest/v269c_manifest.json"
   ],
   "businessStageOrder": [
     "release_governance",
@@ -25,7 +31,7 @@
     "task_pool",
     "frontend_view"
   ],
-  "description": "比赛公开版固定运营工作台。运行文件由业务注册表、外部接口注册表、生产入口导入闭包和前端引用闭包共同确定；V26.9.A 仅额外允许注册表实际选中的五个 Java System Review 文件进入公开运行血缘，不开放整个 Java control-plane；未注册接口、账号系统和企业组织治理文件默认拒绝。",
+  "description": "比赛公开版固定运营工作台。运行文件由业务注册表、外部接口注册表、生产入口导入闭包和前端引用闭包共同确定；V26.9.A 仅额外允许注册表实际选中的五个 Java System Review 文件进入公开运行血缘，不开放整个 Java control-plane；未注册接口、账号系统和企业组织治理文件默认拒绝。 V26.10 纳入已注册的经验、评测、回流及初始化模块；RAG 静态资源仅按注册表中的精确路径准入，运行数据库不进入发布包。",
   "entrypointSearchPrefixes": [
     "src/"
   ],
@@ -90,7 +96,12 @@
     "agent3_runtime",
     "task_mapping",
     "task_pool",
-    "frontend_view"
+    "frontend_view",
+    "experience_store",
+    "evaluation_plane",
+    "experience_retrieval",
+    "experience_promotion",
+    "business_initialization"
   ],
   "schema": "competition.runtime_scope.v1",
   "seedFiles": [
@@ -144,5 +155,5 @@
   "staticRoots": [
     "web_demo/index.html"
   ],
-  "version": "2026.09.13.1-v269-review-exact-java-scope"
+  "version": "2026.09.13.2-v2610-registered-experience-resources"
 }

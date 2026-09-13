@@ -39,7 +39,9 @@
         ".github/workflows/v269-b-experience-evaluation.yml",
         ".github/workflows/v269-c-promotion-feedback.yml",
         ".github/workflows/v269-a-three-report-candidate.yml",
-        "config/v2610_era_source.json"
+        "config/v2610_era_source.json",
+        "config/competition_runtime_scope.json",
+        "governance/update-requests/v269-current.json"
       ]
     }
   ]

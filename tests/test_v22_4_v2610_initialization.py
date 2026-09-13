@@ -118,3 +118,33 @@ def test_parameter_override_is_scoped_and_cannot_change_formula_authority():
         assert unit['baseline']['roi']['minimumRelativeThreshold']==expected
     profile['parameterOverrides']['store']['TB-SH-001']['formula']='invented'
     with pytest.raises(ValueError,match='parameter_override_not_registered'):compile_bundle(scenario,profile)
+
+
+def test_exact_runtime_contains_registered_rag_resources_and_can_install(db, monkeypatch):
+    """Exercise file reads from the actual lineage selection, not the source checkout."""
+    import shutil
+    monkeypatch.syspath_prepend(str(ROOT/"scripts"))
+    from scripts.compile_competition_lineage import compile_lineage
+    scope=json.loads((ROOT/'config/competition_runtime_scope.json').read_text())
+    result=compile_lineage(ROOT,scope=scope,
+        source_identity=json.loads((ROOT/'config/competition_source_identity.json').read_text()),
+        source_commit='test-initialization-resource-closure')
+    assert result['verificationReport']['verified'], result['verificationReport']['findings']
+    paths={entry['path'] for entry in result['runtimeFiles']}
+    registry=json.loads((ROOT/'config/v23_registry_runtime.json').read_text())
+    required={p for name in ('experience_store','experience_promotion')
+        for p in registry['modules'][name]['implementationPaths'] if p.startswith('rag/')}
+    assert required <= paths
+    assert not any(p.startswith(('logs/','data/')) for p in paths)
+    app=db/'app'
+    for path in required:
+        target=app/path;target.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(ROOT/path,target)
+    for module,names in ((store,('MANIFEST_PATH','SCHEMA_PATH','MIGRATION_PATH','SEED_PATH')),
+                         (promotion,('MANIFEST_PATH','MIGRATION_PATH'))):
+        for name in names:
+            monkeypatch.setattr(module,name,app/getattr(module,name).relative_to(ROOT))
+    assert store.manifest()['version']==store.VERSION
+    store.ensure_experience_store()
+    promotion.ensure_promotion_tables()
+    assert init.initialize_bundle()['automaticEnable'] is False
