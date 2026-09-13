@@ -1,17 +1,12 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.C-2026-09-13-candidate-implementation-01",
+  "requestId": "V26.9.C-2026-09-13-candidate-integration-02",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
       "targetId": "v269c-promotion-policy-and-lifecycle",
       "failureClass": "C_REQUIRES_EXPLICIT_REVIEWED_PROMOTION_WITHDRAWAL_SUPERSEDE_AND_CONTENT_ADDRESSED_HEAD_AUDIT",
-      "registryModules": [
-        "release_governance",
-        "experience_store",
-        "evaluation_plane",
-        "experience_retrieval"
-      ],
+      "registryModules": ["release_governance","experience_store","evaluation_plane","experience_retrieval"],
       "evidencePaths": [
         "config/v269c_promotion_policy.json",
         "rag/migrations/002_v269c_promotion_feedback.sql",
@@ -23,35 +18,22 @@
       ]
     },
     {
-      "targetId": "v269c-feedback-integration",
-      "failureClass": "C_FEEDBACK_LOOP_MUST_USE_B_CANDIDATES_AND_ENABLED_ONLY_OFFICIAL_RETRIEVAL_WITHOUT_AUTO_PROMOTION",
-      "registryModules": [
-        "experience_store",
-        "evaluation_plane",
-        "experience_retrieval",
-        "task_pool"
-      ],
+      "targetId": "v269c-feedback-integration-and-operator-entry",
+      "failureClass": "C_FEEDBACK_LOOP_REQUIRES_EXPLICIT_OPERATOR_ENTRY_AND_READ_ONLY_EVIDENCE_WITHOUT_AUTO_PROMOTION",
+      "registryModules": ["experience_store","evaluation_plane","experience_retrieval","task_pool","frontend_view"],
       "evidencePaths": [
         "src/services/v269_experience_store_service.py",
         "src/services/v269_evaluation_plane_service.py",
         "src/services/v269_experience_retrieval_service.py",
         "src/services/v269_system_review_service.py",
+        "src/api/routes/ops.py",
         "src/api/routes/frontend_views.py"
       ]
     },
     {
       "targetId": "v269c-legacy-projection-cleanup",
       "failureClass": "C_FINAL_LEGACY_BUSINESS_FIELD_REGISTRATION_MUST_EXIT_WHILE_EXECUTION_MUTEX_PERMISSION_AND_IDEMPOTENCY_REMAIN",
-      "registryModules": [
-        "agent1_input_projection",
-        "agent1_runtime",
-        "agent2_runtime",
-        "agent3_input_projection",
-        "agent3_runtime",
-        "task_mapping",
-        "task_pool",
-        "frontend_view"
-      ],
+      "registryModules": ["agent1_input_projection","agent1_runtime","agent2_runtime","agent3_input_projection","agent3_runtime","task_mapping","task_pool","frontend_view"],
       "evidencePaths": [
         "config/v26_field_authority_contract.json",
         "config/v23_registry_runtime.json",
@@ -62,15 +44,8 @@
     {
       "targetId": "v269c-cross-version-b-gate",
       "failureClass": "B_GATE_MUST_REMAIN_ACTIVE_UNDER_LATER_V269_TRANSACTION",
-      "registryModules": [
-        "release_governance",
-        "experience_store",
-        "evaluation_plane",
-        "experience_retrieval"
-      ],
-      "evidencePaths": [
-        ".github/workflows/v269-b-experience-evaluation.yml"
-      ]
+      "registryModules": ["release_governance","experience_store","evaluation_plane","experience_retrieval"],
+      "evidencePaths": [".github/workflows/v269-b-experience-evaluation.yml"]
     }
   ]
 }
