@@ -1,85 +1,110 @@
-# V26.9.A 业务语义主链迁移
+# V26.9.A 业务语义主链迁移与生产激活凭证
 
-状态：同一 PR 中实施；businessSemanticContract 仍为 candidate_not_activated。
-真实运行器的新协议路径已接通，但生产调度、权限准入及 Java 评审尚未全量切换，不能标记 A 完成或生产生效。
+状态：`production_activation_pending_required_gates`
 
-## 唯一业务合同
+V26.9.A 将当前业务解释链统一为：
 
-合同登记于既有 config/v26_field_authority_contract.json 的 businessSemanticContract，复用原注册表与系统权威根。
+`DecisionGraph → ActionAdmissionRecord → PlanGraph → OperationGraph → Task Mapping → Execution / System Review`
 
-| Agent | 新协议输入 → 输出 | 职责 |
+旧单动作字段 `primaryProblemNode / primaryAction / primaryExecutionTarget / primaryOwner / lockedActionFamily / executionLock` 不再作为 V26.9.A 当前业务语义权威或失败回退来源。
+
+## 1. 唯一业务语义合同
+
+合同登记在既有 `config/v26_field_authority_contract.json` 的 `businessSemanticContract`，继续复用原 Field Authority、Registry、Hash Lineage、Task Pool 与 Java production authority root，不新增第二权威根或平行 Agent runner。
+
+| 组件 | 输入 → 输出 | 权责 |
 |---|---|---|
-| Agent1 | BusinessFacts + 冻结知识 → DecisionGraph | 判断、证据、因果关系、候选动作、权重；不能写预算与目标参数 |
-| Agent2 | DecisionGraph + 系统准入/分区 + factValues → PlanGraph | 对分区内动作逐个方案化；不得重选动作；基线、预期值、范围与增量一致 |
-| Agent3 | PlanGraph + 冻结公司知识 → OperationGraph | 执行步骤、负责人、对象、顺序、回滚、停止条件及验收动作；阶段绑定 planActionRefs |
+| Agent1 | BusinessFacts + 冻结知识 → DecisionGraph | 经营判断、证据、因果、候选动作、动作权重；不得写 PLAN 数字 |
+| System Admission | DecisionGraph + 权限/依赖/冲突 → ActionAdmissionRecord | 只准入 Agent1 已提出的动作，不创造新业务动作 |
+| Agent2 | admitted DecisionAction + 冻结事实 → PlanGraph | 逐动作参数化；不得换动作；负责预算、目标、guard、riskBoundary、expectedOutcome |
+| Agent3 | PlanGraph → OperationGraph | 只编译执行阶段；共享步骤显式绑定 PlanAction；不得扩张授权 |
+| System | OperationGraph → Task Mapping → Execution / Review | 原子 reservation、任务接纳、durable scheduling、System Review / Revision |
 
-primaryProblemNode、primaryAction、primaryExecutionTarget、primaryOwner、lockedActionFamily、executionLock 在新协议输入、生成、归一化、语义缓存和图谱 RAG 路由中不再参与业务决策。来源投影剔除这些字段；在封装好的新输入或模型输出中夹带旧字段会被拒绝。旧协议仍供尚未切换的生产消费者使用；这不等于全仓已删除旧字段。
+## 2. Candidate 基线
 
-## 已接入原运行器
+V26.9.A 候选实现已在 PR #91 完成 `code-complete / candidate-validated` 并合入 `main`。
 
-- Agent1 使用真实 v3 输入接口及其 22,000 字符预算。旧知识入口对新协议保留 knowledgeContext，不再注入 diagnosticRag/unifiedKnowledge。精确输出仍按 itemExecutionId + inputContentHash 匹配；未知业务字段直接拒绝。
-- Agent2 提示词直接读取系统分区与 DecisionGraph，输出 PlanGraph。实际批次保持原 Artifact、claim、provider、输出接受流程；新协议按业务域分组，不调用旧 selected_family。分区结果必须完整覆盖指定动作。
-- Agent3 直接读取 PlanGraph，并回传执行身份。匹配失败不进入归一化与接受；不再调用旧动作族约束编译器。
-- 三者语义身份绑定各自事实/图谱、知识快照 Head、合同、业务主体、模型与生成配置；Agent2 另绑定分区和系统事实；修订输入额外绑定 scope 与父图。
-- Agent2/3 在原 accepted execution index 查找图谱缓存。验证来源 Artifact 类型、内容哈希、语义身份和主体，当前输入重编译通过后写入新的输出 Artifact。不能复用旧 familyPayload 或旧 SOP；缓存命中不生成模型调用。
-- Agent1 缓存重绑定重新编译 DecisionGraph 并校验证据引用，保留原精确执行流水。
+- PR：`#91 V26.9.A 唯一业务语义合同与三图生产主链切换`
+- Candidate HEAD：`1334bac729d93086bfdd1ddd7ccd3a0e38ad4f16`
+- Merge commit：`7fb1b83e5d1c4c173c598d58fadf4a3dd8fd0ec1`
+- 固定三报表候选验收：`V26.9.A Three Report Candidate Gate` run #23，`completed / success`
+- 已覆盖：唯一语义合同、Agent1/2/3 三图链、ActionAdmission、Semantic Identity、原子 graph authority reservation、task-pool admission、durable scheduler、System Review / LocalSubgraphRevision、legacy poison probe、fixed three-report attestation。
 
-## 图谱、修订与 SOP 证据
+PR merge 仅表示候选代码进入 `main`，不自动等价于 production activation。
 
-编译器校验字段所有权、有限数值、证据引用、图规模、重复节点/边与依赖环；重算哈希不能绕过 DecisionGraph 的语义校验。动作准入回执记录系统提供的 allowedActionKeys，分区时重新推导冲突和依赖结果，拒绝仅重签哈希的篡改。
+## 3. Production Activation Update Locator
 
-系统按注册域分区并合并为单一 PlanGraph，补回跨域依赖；分区缺失、重复、换动作或覆盖不完整时拒绝合并。
+生产切换由独立 PR #92 执行，先提交 Update Request，再由既有 Registry / Policy 编译 exact mutation scope。
 
-Python 修订验收增加 Decision/Plan 图类型，保留节点内容及关联边必须不变；差异证据逐字段记录修改。它只验证内容和 scope 一致性，不签发 Java 授权。
+Update Request：`V26.9.A-2026-09-13-production-activation-02`
 
-Java ReviewContractAuthority 新增逐 PlanAction 冻结入口：验证 Python 图/节点哈希与指定合同、核对系统基线事实、预期值/增量/区间，并保留每个动作独立的观察窗口。指标以 PlanAction 引用区分，避免同名指标混淆。未知验收条件及尚未编译的 guard/riskBoundary 明确成为不确定评审合同，不能自动判成功。
+第一次 activation Locator 暴露旧 workflow invariant 仍硬编码上一轮 candidate 文件。修复后，Locator invariant 改为依据当前 request 校验：
 
-Java LocalSubgraphRevisionAuthority 读取新三图的 decisionActionRef、judgementRefs、planActionRefs 与依赖边，复用原确定性范围算法，输出新的 Decision/Plan/Operation 修订字段。跨语言测试验证 Python 图哈希→Java 评审/局部 scope→Python scope 验证；保留“未证明成功的节点不得声称局部保留”的原门禁。新增入口仍须接入现有 RootBoundAuthorityAdapter 调用链，方法存在不等于生产权威已交接。
+- `requestId / policyProfile` 必须与 compiled plan 一致；
+- `selectedModules` 必须等于当前 request 的 registryModules 并集；
+- `evidencePaths` 必须等于当前 request 的 evidencePaths 并集；
+- evidence 必须属于 `editablePaths`；
+- `editablePaths` 与 `readOnlyContextPaths` 不得重叠；
+- filename similarity search、unplanned mutation、read-only mutation 均保持禁止；
+- scope expansion 必须重新编译。
 
-SOP 证据使用原 v26.sop_evidence.v1 展示接口，记录判断依据、动作权重、方案参数、冻结基线、预期结果、观察窗口、保护条件、执行与回滚。预期增量卡显示公式 expectedValue - baseline.value、输入值、单位、来源证据和图/节点哈希。只展示已记录的结构化决策依据，不暴露或补造模型内部思考。
+V26 Update Locator run #16：`completed / success`。
 
-知识 Head 当前表示单次输入知识快照的内容身份；尚非 Experience Store 全库 Head。不宣称已建立评测或回流效果。
+Compiled plan：
 
-## 验证
+- `planHash = sha256:96673981e87ae0418ebf1e0fb4c7a0cbaa5ffdb3370d25f8802a77b5d2d73d67`
+- `registryRootHash = sha256:c6308a05333fadc9467413cb7a68099d2e6958bceca0b265b764a4407b4eb0ac`
+- `config/v26_field_authority_contract.json`：authorized editable path
+- `docs/V26_9_A_SEMANTIC_CUTOVER.md`：authorized activation evidence path
+- `.github/workflows/v26-update-locator.yml` 与 `tests/test_v26_update_locator.py`：authorized locator repair evidence paths
 
-新增集成用例使用临时 SQLite 与真实本地 Artifact 存储，调用现有三个运行器；仅模型网关使用固定响应：
+## 4. Production Semantic Switch
 
-1. Agent1 精确输入产出 DecisionGraph。
-2. Agent2 两个业务域执行、接受、完整合并 PlanGraph。
-3. Agent3 产出 OperationGraph，完成三图映射校验。
-4. 更换执行身份后 Agent2/3 命中语义缓存、重编译并写新输出 Artifact；网关调用次数不增加。
+Locator 授权后执行唯一生产语义开关：
 
-另覆盖错误执行身份、缺图、旧字段注入、知识篡改、换动作、非法参数、基线漂移、旧缓存拒绝、保留边被修改及 SOP 公式复算。
+`businessSemanticContract.rolloutStatus: candidate_not_activated → active`
 
-这属于运行器集成验证，不等于固定三报表到任务池的生产端到端验证，也不等于线上模型质量验证。精确 Python 3.11.9 的默认回归由既有 V26 Registry Lineage PR Gate 执行；本地 Python 3.12 的版本门禁失败不予放宽。
+Activation switch commit：`343a3b983043fa891633efbac9e1e1089e016574`
 
-## 全量激活前仍需完成
+该切换只改变已经完成 candidate validation 的 V26.9.A 业务语义合同状态，不引入新 Agent、第二业务语义、第二权限根或并行 runner。
 
-| 入口 | 剩余工作 |
-|---|---|
-| Agent1 调度及动作包站点 | 将新事实输入和系统动作准入连接到现有流水线，替换旧动作包合同及字段登记 |
-| Agent2 系统调度 | 自动生成、持久化所有分区输入并执行合并；绑定现有授权来源；校验跨域总预算、资源和失败重试范围 |
-| Agent3 输入站点 | 将已接受的合并 PlanGraph 与公司权限上下文通过注册入口交接 |
-| 任务映射/任务池 | 迁移多动作权限与生命周期消费者，保留真实调用证明及授权额度；不能把图哈希或模型状态当作执行许可 |
-| Java ReviewContract/LocalSubgraphRevision | 新图内容接口及跨语言验证已完成；仍需接入生产根授权调用与任务观察生命周期，编译公司 guard/riskBoundary |
-| 收口 | 按原注册表→血缘→精确包→门禁流程，跑固定三报表全链验收后统一评估合并 |
+## 5. Required Gates
 
-保持同一 PR 持续推进，不以内部步骤完成替代整个 A 的验收。持久化经验库、Evaluation Plane 和 Promotion Gate 属于语义稳定后的后续阶段。
+本 activation receipt 只有在当前 activation HEAD 的 required gates 全部通过后才可视为 `verified_active`：
 
-远端提交 c2bec790cddacc58f442ffb2815421ceab6eaeae 的六项 PR 检查全部通过，包括 Java authority kernel/root 和 Registry Lineage。下述权限与任务来源更新需在新提交上重新验证。
+- `V26 Update Locator`
+- `V26 Registry Lineage PR Gate`
+- `V26 Field Authority Phase1`
+- `V26 Business Graphs Phase2`
+- `V24 Production Authority Bundle`
+- `Competition Registry Lineage`
+- `V26.9.A Three Report Candidate Gate`
 
+任何 required gate 失败时，PR #92 不应合并，`active` 仅为待验证分支状态，不构成 `main` 的生产生效事实。
 
-## 完整任务来源与多动作权限核算
+## 6. V26.9.A 明确边界
 
-`verify_task_execution_chain` 从现有 accepted execution 账本读取 Agent1、全部 Agent2 分区和 Agent3 的真实输入输出 Artifact，检查执行身份、Artifact 内容哈希、输入合同和商品/店铺作用域。随后重编译 DecisionGraph，按原分区完整合并 PlanGraph，重编译 OperationGraph，最后验证三图任务映射。漏分区、伪造执行号、跨店铺引用及不匹配的图谱均拒绝。`provenanceVerified` 只证明接受过的执行来源，不是业务授权。
+V26.9.A 不激活以下后续能力：
 
-现有 `action_authority_v214_service.authorize_decision` 对新图合同进入完整方案核算，先验证上述执行链，再从现有运营绑定、运营动作权限表及店铺策略读取规则。旧任务负责人、动作族锁及旧主动作字段不参与该分支。
+- Experience Store 正式运行态；
+- Evaluation Plane 正式指标运行；
+- Experience Promotion / Knowledge Head 更新；
+- RAG experience feedback / 自动经验回流。
 
-- 预算变更按每个操作的 `abs(targetBudget-currentBudget)` 求和，避免不同动作分别检查导致整体超限；日额度和滚动额度读取全部已登记动作族的历史用量。
-- 操作必须给出资源对象、当前值、目标值和 `currentValueRef`，当前值/单位必须匹配冻结输入事实；模型填写的调整金额须与复算一致。
-- 同一资源和操作类型重复出现、无资源归属的预算、未编译的操作类型均拒绝。出价/目标 ROAS 另检查变动比例和最低目标值。
-- 输出固定公式、输入引用、操作差值、总额、策略快照和哈希，供后续 SOP 数据卡接入。
+这些继续留给 V26.9.B / V26.9.C，避免 A 阶段重新引入第二套业务语义或把经验层与生产语义切换混为一个事务。
 
-**本轮没有建立原子额度占用。** `reservationCreated=false`。新图授权结果经 `apply_authorization_to_decision` 后保持 `graph_authorization_pending`，不落入旧单动作任务快照与用量写入器。后续需在现有事务权威中完成多动作额度占用、重试幂等和生命周期交接，再解除此阻断。
+## 7. 完成判定
 
-本地针对图合同、输入/缓存、真实账本链路、权限、Java Review/Revision 和既有 V26 回归，共 66 项测试通过。运行器测试使用固定模型网关；未宣称完成固定三报表生产全链验收。
+V26.9.A 的最终完成条件为：
+
+`PR #91 candidate validated + merged main`
+
+→ `PR #92 Locator exact plan verified`
+
+→ `rolloutStatus = active`
+
+→ `activation HEAD required gates all success`
+
+→ `PR #92 merge main`
+
+只有最后一步完成后，V26.9.A 才正式记为 `production-active / complete`。
