@@ -62,8 +62,8 @@ jobs:
           assert request['requestId'].startswith('V26.9.B-')
           print('V269B_CONTRACT_BOUNDARY=PASS')
           PY
-      - name: Install test dependency
-        run: python -m pip install --disable-pip-version-check pytest==9.0.1
+      - name: Install locked test environment
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.lock
       - name: Run V26.9.B foundation tests
         run: |
           set -euo pipefail
