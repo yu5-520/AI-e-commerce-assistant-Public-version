@@ -1,9 +1,10 @@
-"""V26.9.B Evaluation Plane tests."""
+"""V26.9.B Evaluation Plane and downstream System Review bridge tests."""
 import pytest
 
 from src.repositories import sqlite_repository as repo
 from src.services import v269_evaluation_plane_service as evaluation
 from src.services import v269_experience_store_service as store
+from src.services import v269_system_review_service as system_review
 
 
 @pytest.fixture
@@ -115,3 +116,73 @@ def test_persisted_vector_writes_candidate_evaluation_records_only(isolated_db):
             ).fetchall()
         }
     assert statuses == {"candidate"}
+
+
+def test_sop_evaluation_evidence_reads_persisted_vector_without_recompute_or_write(isolated_db):
+    vector = evaluation.evaluate_execution_result(
+        runtime_source(),
+        {
+            "baselineValue": 100,
+            "expectedValue": 120,
+            "actualValue": 115,
+            "metricUnit": "CNY",
+            "reviewWindow": {"durationSeconds": 3600},
+            "presentRequiredEvidence": 3,
+            "requiredEvidence": 4,
+        },
+        persist=True,
+    )
+    with repo.connect() as conn:
+        before = conn.execute("SELECT COUNT(*) AS c FROM v269b_experience_items").fetchone()["c"]
+    evidence = evaluation.read_task_evaluation_evidence("TASK-EVAL-1")
+    with repo.connect() as conn:
+        after = conn.execute("SELECT COUNT(*) AS c FROM v269b_experience_items").fetchone()["c"]
+    assert before == after
+    assert evidence["status"] == "RECORDED"
+    assert evidence["recomputedOnRead"] is False
+    assert evidence["compositeScore"] is None
+    assert evidence["causalAttribution"] is None
+    assert evidence["receiptHash"].startswith("sha256:")
+    assert len(evidence["items"]) == len(vector["metrics"])
+    expected_delta = next(item for item in evidence["items"] if item["metricId"] == "agent2.expected_delta")
+    assert expected_delta["formula"]
+    assert expected_delta["formulaInputs"]["baselineValue"] == 100
+    assert expected_delta["formulaInputs"]["expectedValue"] == 120
+    assert expected_delta["observationWindow"]
+    assert "interpretationLimits" in expected_delta
+
+
+def test_system_review_b_evaluation_failure_is_fail_isolated(monkeypatch, isolated_db):
+    captured = {}
+    monkeypatch.setattr(system_review, "_v269b_runtime_enabled", lambda: True)
+    monkeypatch.setattr(
+        system_review,
+        "_write_v269b_evaluation_status",
+        lambda task_id, evidence: captured.update(taskId=task_id, evidence=evidence),
+    )
+    monkeypatch.setattr(
+        evaluation,
+        "record_system_review_candidate",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("forced-b-failure")),
+    )
+    result = system_review._record_v269b_evaluation(
+        payload={
+            "taskId": "TASK-B-FAIL",
+            "storeId": "store-1",
+            "productId": "product-1",
+            "DecisionGraph": {},
+            "PlanGraph": {},
+            "OperationGraph": {},
+            "baselineSourceContentHash": "sha256:" + "1" * 64,
+        },
+        target={"roas": {"value": 2.1, "unit": "ratio", "sourceRef": "fact:metric:roas"}},
+        source_content_hash="sha256:" + "2" * 64,
+        receipt={"receiptHash": "sha256:" + "3" * 64},
+        review_status="SETTLED",
+    )
+    assert result["status"] == "FAILED"
+    assert "forced-b-failure" in result["reason"]
+    assert result["promotionPerformed"] is False
+    assert result["knowledgeHeadMutated"] is False
+    assert captured["taskId"] == "TASK-B-FAIL"
+    assert captured["evidence"]["status"] == "FAILED"
