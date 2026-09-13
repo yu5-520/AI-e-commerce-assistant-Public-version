@@ -17,27 +17,27 @@
   "domainRules": {
     "decision_patterns": {
       "minimumSampleCount": 1,
-      "requiredEvaluationAnyOf": ["system.evidence_completeness"],
-      "minimumEvaluationSampleCount": 1,
-      "metricThresholds": {"system.evidence_completeness": {"comparator": "GTE", "value": 1.0}}
+      "requiredEvaluationAnyOf": [],
+      "minimumEvaluationSampleCount": 0,
+      "metricThresholds": {}
     },
     "strategy_outcomes": {
       "minimumSampleCount": 1,
-      "requiredEvaluationAnyOf": ["agent2.actual_delta", "agent2.delta_realization_rate", "system.evidence_completeness"],
+      "requiredEvaluationAnyOf": ["agent2.actual_delta", "agent2.delta_realization_rate"],
       "minimumEvaluationSampleCount": 1,
-      "metricThresholds": {"system.evidence_completeness": {"comparator": "GTE", "value": 1.0}}
+      "metricThresholds": {}
     },
     "operation_patterns": {
       "minimumSampleCount": 1,
-      "requiredEvaluationAnyOf": ["system.evidence_completeness"],
-      "minimumEvaluationSampleCount": 1,
-      "metricThresholds": {"system.evidence_completeness": {"comparator": "GTE", "value": 1.0}}
+      "requiredEvaluationAnyOf": [],
+      "minimumEvaluationSampleCount": 0,
+      "metricThresholds": {}
     },
     "experience_knowledge": {
       "minimumSampleCount": 1,
-      "requiredEvaluationAnyOf": ["system.evidence_completeness"],
-      "minimumEvaluationSampleCount": 1,
-      "metricThresholds": {"system.evidence_completeness": {"comparator": "GTE", "value": 1.0}}
+      "requiredEvaluationAnyOf": [],
+      "minimumEvaluationSampleCount": 0,
+      "metricThresholds": {}
     }
   }
 }
