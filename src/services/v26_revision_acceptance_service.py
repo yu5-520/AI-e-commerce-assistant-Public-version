@@ -8,6 +8,9 @@ from src.services.v26_sop_evidence_service import digest
 
 
 def verify_graph(graph):
+    if isinstance(graph, dict) and graph.get('contractVersion') == '26.9.0':
+        from src.services.v269_semantic_graph_service import index
+        return index(graph)
     if not isinstance(graph, dict) or graph.get("graphHash") != digest({k: v for k, v in graph.items() if k != "graphHash"}):
         raise ValueError("revision_graph_content_mismatch")
     nodes = graph.get("nodes", [])
@@ -29,9 +32,14 @@ def verify_graph(graph):
 
 def verify_revision_result(parent, target, scope, *, graph_kind):
     """Validate preserved content and forbid silent scope expansion on acceptance."""
-    if graph_kind not in {"Judgement", "Action", "Operation"}:
+    if graph_kind not in {"Judgement", "Action", "Operation", "Decision", "Plan"}:
         raise ValueError("revision_graph_kind_invalid")
     before, after = verify_graph(parent), verify_graph(target)
+    if parent.get('contractVersion') == '26.9.0' or target.get('contractVersion') == '26.9.0':
+        if parent.get('kind') != graph_kind + 'Graph' or target.get('kind') != parent.get('kind'):
+            raise ValueError('revision_graph_kind_mismatch')
+        if parent.get('contractHash') != target.get('contractHash'):
+            raise ValueError('revision_contract_mismatch')
     if scope.get("parent" + graph_kind + "GraphHash") != parent["graphHash"]:
         raise ValueError("revision_parent_mismatch")
     if scope.get("revisionHash") != digest({k: v for k, v in scope.items() if k != "revisionHash"}):
@@ -52,7 +60,7 @@ def verify_revision_result(parent, target, scope, *, graph_kind):
     def protected_edges(graph):
         edges = []
         for edge in graph.get('edges', []):
-            if edge.get('sourceKey') not in preserved_keys and edge.get('targetKey') not in preserved_keys:
+            if edge.get('sourceRef', edge.get('sourceKey')) not in preserved_keys and edge.get('targetRef', edge.get('targetKey')) not in preserved_keys:
                 continue
             material = {k:v for k,v in edge.items() if k != 'edgeHash'}
             for side in ('source', 'target'):
@@ -73,7 +81,9 @@ def freeze_revision_acceptance(parent, target, scope, *, graph_kind):
     for key in sorted(before):
         old, new = before[key], after[key]
         fields = []
-        a, b = old.get('authorityHeaders', {}), new.get('authorityHeaders', {})
+        a, b = (
+            ({k:v for k,v in old.items() if k!='nodeHash'}, {k:v for k,v in new.items() if k!='nodeHash'})
+            if parent.get('contractVersion') == '26.9.0' else (old.get('authorityHeaders', {}), new.get('authorityHeaders', {})))
         for field in sorted(set(a) | set(b)):
             if field not in a or field not in b or a[field] != b[field]:
                 fields.append({'field': field, 'beforePresent': field in a, 'afterPresent': field in b,

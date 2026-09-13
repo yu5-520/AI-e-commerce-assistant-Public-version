@@ -55,6 +55,16 @@ def _family(package: Dict[str, Any]) -> str:
 
 
 def _route_tags(package: Dict[str, Any], *, stage: str) -> List[str]:
+    from src.services.v269_input_migration_service import uses_graph_contract, validate_payload
+    if uses_graph_contract(package):
+        agent='agent2' if stage==AGENT2_RAG_STAGE else 'agent3'
+        validate_payload(agent,package)
+        graph=package['DecisionGraph' if agent=='agent2' else 'PlanGraph']
+        selected=set(package['partition']['actionKeys']) if agent=='agent2' else {n['nodeKey'] for n in graph['nodes']}
+        families=sorted({n['actionFamily'] for n in graph['nodes'] if n['nodeKey'] in selected})
+        return [f'stage:{stage}', 'contract:26.9.0',
+            'rag_domain:'+('vertical_action' if agent=='agent2' else 'company_sop'),
+            *['action_family:'+family for family in families]]
     family = _family(package)
     if not family:
         raise ValueError("agent_rag_route_action_family_missing")
@@ -110,10 +120,12 @@ def build_agent_rag_route(
 ) -> Dict[str, Any]:
     if stage not in {AGENT2_RAG_STAGE, AGENT3_RAG_STAGE}:
         raise ValueError("agent_rag_route_stage_unsupported")
-    snapshot = _dict(snapshot)
+    from src.services.v269_input_migration_service import uses_graph_contract
+    graph_mode=uses_graph_contract(package)
+    snapshot = {} if graph_mode else _dict(snapshot)
     route = build_hash_route(
         _route_tags(package, stage=stage),
-        query=_query(snapshot, package),
+        query=package["knowledgeContext"]["headHash"] if graph_mode else _query(snapshot, package),
         relationship_required=_relationship_required(snapshot),
     )
     route = bind_legacy_rag_document_ids(route, _legacy_ids(snapshot))

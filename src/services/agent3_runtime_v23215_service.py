@@ -300,8 +300,10 @@ def build_agent3_semantic_identity(
 
 
 def _entry(envelope: Dict[str, Any]) -> Dict[str, Any]:
-    from src.services.v269_input_migration_service import reject_unmigrated_provider
-    reject_unmigrated_provider(envelope.get('payload'))
+    from src.services.v269_input_migration_service import uses_graph_contract, validate_payload
+    graph_mode = uses_graph_contract(envelope.get("payload"))
+    if graph_mode:
+        validate_payload("agent3", envelope["payload"])
     package = dict(_dict(envelope.get("payload")))
     descriptor = hash_runtime._binding_descriptor(
         envelope,
@@ -317,10 +319,11 @@ def _entry(envelope: Dict[str, Any]) -> Dict[str, Any]:
         semanticContractHash=semantic.get("semanticContractHash"),
         semanticIdentitySchema=semantic.get("schema"),
         semanticCacheContractVersion=AGENT3_PERFORMANCE_VERSION,
-        semanticCacheEligible=True,
+        semanticCacheEligible=semantic.get("cacheEligible") is True,
+        semanticCachedChannel=semantic.get("cachedChannel", "sop"),
         batchCompatibilityHash=semantic.get("batchCompatibilityHash"),
-        actionFamily=package.get("lockedActionFamily")
-        or _dict(package.get("agent2ActionDraft")).get("actionFamily"),
+        actionFamily=None if graph_mode else (package.get("lockedActionFamily")
+        or _dict(package.get("agent2ActionDraft")).get("actionFamily")),
     )
     return {
         "envelope": envelope,
@@ -362,6 +365,9 @@ def _semantic_sop_body(source: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _accepted_semantic_sop(descriptor: Dict[str, Any]) -> Dict[str, Any] | None:
+    if descriptor.get("semanticIdentitySchema") == "v269.agent3.semantic_identity.v1":
+        from src.services.v269_input_migration_service import accepted_graph_cache
+        return accepted_graph_cache('agent3', descriptor, AGENT3_OUTPUT_TYPE)
     semantic_hash = _text(descriptor.get("semanticHash"), 160)
     if not semantic_hash or descriptor.get("semanticCacheEligible") is not True:
         return None
@@ -436,6 +442,9 @@ def _rebind_semantic_sop(
     *,
     entry: Dict[str, Any],
 ) -> Dict[str, Any] | None:
+    if entry["package"].get("semanticContractVersion") == "26.9.0":
+        from src.services.v269_input_migration_service import rebind_graph_cache
+        return rebind_graph_cache('agent3', source, entry)
     source_sop = _dict(source.get("sop"))
     if not source_sop:
         return None
@@ -552,6 +561,15 @@ def _provider_batch_once(
         raise ValueError("agent3_batch_package_id_duplicate")
 
     messages, cache_payload = core._build_messages(data_version, packages)
+    from src.services.v269_input_migration_service import uses_graph_contract
+    graph_descriptors = {}
+    if any(uses_graph_contract(p) for p in packages):
+        import json
+        graph_descriptors = {p["packageId"]: _entry(e)["descriptor"] for p,e in zip(packages,envelopes)}
+        for prompt_package in cache_payload["packages"]:
+            descriptor = graph_descriptors[prompt_package["packageId"]]
+            prompt_package.update({k: descriptor[k] for k in ("itemExecutionId", "inputContentHash")})
+        messages[-1]["content"] = json.dumps(cache_payload, ensure_ascii=False, sort_keys=True)
     payload, usage = call_json(
         stage=AGENT3_STAGE,
         prompt_version=core.AGENT3_SOP_CORE_VERSION,
@@ -593,6 +611,11 @@ def _provider_batch_once(
             errors.append(f"{package_id}:agent3_provider_proof_invalid")
             continue
 
+        if package_id in graph_descriptors:
+            descriptor = graph_descriptors[package_id]
+            if any(raw.get(k) != descriptor.get(k) for k in ("itemExecutionId", "inputContentHash")):
+                errors.append(f"{package_id}:v269_output_execution_identity_mismatch")
+                continue
         normalized = core._normalize_sop(raw, package, initial_proof)
         validation = _dict(normalized.get("contractValidation"))
         repairable = core.repairable_agent3_auxiliary_missing(validation.get("missing"))

@@ -114,8 +114,8 @@ def estimated_tokens(value: Any) -> int:
 
 
 def _item_budget(schema: str) -> int:
-    if schema == AGENT1_INPUT_SCHEMA:
-        return AGENT1_MAX_ITEM_CHARS
+    if schema in {AGENT1_INPUT_SCHEMA, "agent_input.agent1.v3"}:
+        return 22_000 if schema == "agent_input.agent1.v3" else AGENT1_MAX_ITEM_CHARS
     if schema == AGENT2_DRAFT_INPUT_SCHEMA:
         return AGENT2_MAX_ITEM_CHARS
     if schema == AGENT3_SOP_INPUT_SCHEMA:
@@ -124,8 +124,8 @@ def _item_budget(schema: str) -> int:
 
 
 def batch_char_budget(schema: str) -> int:
-    if schema == AGENT1_INPUT_SCHEMA:
-        return AGENT1_MAX_BATCH_CHARS
+    if schema in {AGENT1_INPUT_SCHEMA, "agent_input.agent1.v3"}:
+        return 72_000 if schema == "agent_input.agent1.v3" else AGENT1_MAX_BATCH_CHARS
     if schema == AGENT2_DRAFT_INPUT_SCHEMA:
         return AGENT2_MAX_BATCH_CHARS
     if schema == AGENT3_SOP_INPUT_SCHEMA:
@@ -134,7 +134,7 @@ def batch_char_budget(schema: str) -> int:
 
 
 def _stage(schema: str) -> str:
-    if schema == AGENT1_INPUT_SCHEMA:
+    if schema in {AGENT1_INPUT_SCHEMA, "agent_input.agent1.v3"}:
         return "agent1"
     if schema == AGENT2_DRAFT_INPUT_SCHEMA:
         return "agent2_draft"
@@ -189,7 +189,8 @@ def validate_agent_input_envelope(
     if not isinstance(value, dict):
         return {"ok": False, "errors": ["envelope_not_object"]}
     schema = str(value.get("schema") or "")
-    if schema == AGENT1_INPUT_SCHEMA:
+    from src.services.v269_input_migration_service import uses_graph_contract
+    if schema == AGENT1_INPUT_SCHEMA and not uses_graph_contract(value.get("payload")):
         # Existing Agent1 artifacts remain valid during the V22.5 semantic split.
         return legacy.validate_agent_input_envelope(
             value,
@@ -199,12 +200,12 @@ def validate_agent_input_envelope(
     errors: List[str] = []
     if expected_schema and schema != expected_schema:
         errors.append("schema_mismatch")
-    if schema not in {AGENT2_DRAFT_INPUT_SCHEMA, AGENT3_SOP_INPUT_SCHEMA}:
+    if schema not in {AGENT1_INPUT_SCHEMA, "agent_input.agent1.v3", AGENT2_DRAFT_INPUT_SCHEMA, AGENT3_SOP_INPUT_SCHEMA}:
         errors.append("unsupported_schema")
     unknown = sorted(set(value) - _TOP_LEVEL_KEYS)
     if unknown:
         errors.append("unknown_top_level_fields:" + ",".join(unknown))
-    if value.get("projectionVersion") != AGENT_INPUT_CONTRACT_VERSION:
+    if value.get("projectionVersion") != ("22.5.8" if schema == "agent_input.agent1.v3" else AGENT_INPUT_CONTRACT_VERSION):
         errors.append("projection_version_mismatch")
     hard = value.get("hardInterface") if isinstance(value.get("hardInterface"), dict) else {}
     if hard.get("enabled") is not True or hard.get("fallbackAllowed") is not False:
@@ -219,7 +220,7 @@ def validate_agent_input_envelope(
         errors.append("payload_missing")
     from src.services.v269_input_migration_service import uses_graph_contract, FIELDS, validate_payload
     graph_contract = uses_graph_contract(payload)
-    agent = 'agent2' if schema == AGENT2_DRAFT_INPUT_SCHEMA else 'agent3'
+    agent = 'agent1' if schema in {AGENT1_INPUT_SCHEMA, 'agent_input.agent1.v3'} else ('agent2' if schema == AGENT2_DRAFT_INPUT_SCHEMA else 'agent3')
     allowed = FIELDS[agent] if graph_contract else (_AGENT2_DRAFT_KEYS if schema == AGENT2_DRAFT_INPUT_SCHEMA else _AGENT3_SOP_KEYS)
     payload_unknown = sorted(set(payload) - allowed) if payload else []
     if payload_unknown:

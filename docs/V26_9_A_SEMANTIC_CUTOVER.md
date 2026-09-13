@@ -1,52 +1,63 @@
 # V26.9.A 业务语义主链迁移
 
-状态：实现中，候选合同尚未激活；不能标记 A 完成或生产生效。
+状态：同一 PR 中实施；businessSemanticContract 仍为 candidate_not_activated。
+真实运行器的新协议路径已接通，但生产调度、权限准入及 Java 评审尚未全量切换，不能标记 A 完成或生产生效。
 
-## 确定的业务边界
+## 唯一业务合同
 
-唯一合同登记于既有 config/v26_field_authority_contract.json 的 businessSemanticContract。Agent1 写 JudgementNode / DecisionActionNode；Agent2 为已准入动作写 PlanActionNode，不能换动作或改写系统基线；Agent3 为方案写 OperationStage，停止条件引用方案 guard。判断置信度和优先级不同于预算/目标等 PLAN 数字。
+合同登记于既有 config/v26_field_authority_contract.json 的 businessSemanticContract，复用原注册表与系统权威根。
 
-六类旧字段 primaryProblemNode、primaryAction、primaryExecutionTarget、primaryOwner、lockedActionFamily、executionLock 不得参与 Agent2 输入决策、Agent3 约束、任务准入、缓存身份、修订范围及 RAG 路由。并发锁与执行权限保持系统控制。旧 UI 如需兼容字段，只能从新图单向投影。
-
-## 本工作分支已实现
-
-- 候选唯一合同：精确节点字段所有权、关系类型、前置依赖方向、图规模、动作族到业务域映射。
-- 三图规范化与哈希编译：拒绝未知字段、无效证据、非有限数、重复节点、循环依赖；PLAN 基线核对系统事实值及单位，预期区间与增量一致性检查。
-- 动作准入：使用系统提供的允许动作集合，冲突双方暂缓、依赖未满足传播暂缓，不让 Agent2 替换候选。
-- 系统分区合并：按注册业务域分区；校验分区身份、完整覆盖、重复/遗漏；跨域依赖由 DecisionGraph 确定性投影。
-- 语义身份：图谱/事实、职责知识 Head、合同、业务主体、模型配置、检索策略；图谱输入投影不读取旧字段，也无缺图回退。
-- 候选任务映射：三图哈希链与动作/步骤完整覆盖检查。
-
-这些是编译与验收能力，不是第二套 Agent 执行器；原 runner 尚未替换。注册表 implementationPaths 登记依赖不代表运行入口已经切换。
-
-## A 完成前必须继续实施
-
-| 消费者 | 现有入口 | 必须完成的迁移 |
+| Agent | 新协议输入 → 输出 | 职责 |
 |---|---|---|
-| Agent1 | real_product_judgment_agent_v2259_service / v26_node_edge_lineage_service | 用实际 provider 结构化输出编译 DecisionGraph，移除旧 primary 合同对输出的约束，保留精确执行身份核对 |
-| Agent2 输入与调用 | agent_input_transport_v225_service / agent_input_contract_v225_service / agent_token_runtime_v22520_service | 按准入与分区投递新图，替换 familyPayload 缓存、重绑定和归一化路径 |
-| Agent2 方案 | agent2_action_draft_core_v225_service | 取消单一动作族锁，接 PlanAction；实现跨分区总预算、资源和权限校验 |
-| Agent3 | agent3_sop_core_v225_service / agent3_runtime_v23215_service / agent3_system_constraint_* | 替换旧输入/约束/缓存为 PlanGraph 与 planActionRefs，绑定新型执行 proof |
-| 任务准入与详情 | pipeline_task_mapping_v225_service / task_pool_admission_* / v2177_agent2_single_action_contract_service | 多动作任务及节点状态、图合同准入、单向 UI 投影 |
-| RAG 路由与缓存 | agent_hash_routed_rag_bridge_v1_service / v25_agent_input_ingress_service | 依据图节点分类和实际知识域 Head，清退任务级旧锁 |
-| 修订与 SOP 证据 | Java ReviewContract/LocalSubgraphRevision / v26_revision_acceptance_service / v26_sop_evidence_service | 改用 DecisionAction/PlanAction 引用，并继承已有保留节点/边校验 |
+| Agent1 | BusinessFacts + 冻结知识 → DecisionGraph | 判断、证据、因果关系、候选动作、权重；不能写预算与目标参数 |
+| Agent2 | DecisionGraph + 系统准入/分区 + factValues → PlanGraph | 对分区内动作逐个方案化；不得重选动作；基线、预期值、范围与增量一致 |
+| Agent3 | PlanGraph + 冻结公司知识 → OperationGraph | 执行步骤、负责人、对象、顺序、回滚、停止条件及验收动作；阶段绑定 planActionRefs |
 
-还需完善候选合同：参数单位与权限预算、跨域资源总量、分区失败/重试预算、字段化验收条件，以及准入回执绑定既有授权来源。哈希一致性不能代替授权验证。
+primaryProblemNode、primaryAction、primaryExecutionTarget、primaryOwner、lockedActionFamily、executionLock 在新协议输入、生成、归一化、语义缓存和图谱 RAG 路由中不再参与业务决策。来源投影剔除这些字段；在封装好的新输入或模型输出中夹带旧字段会被拒绝。旧协议仍供尚未切换的生产消费者使用；这不等于全仓已删除旧字段。
 
-## 验收及发布边界
+## 已接入原运行器
 
-使用原注册表→血缘→精确包→门禁流程。候选编译器专项通过不等于实际 Agent 链路通过。必须补齐实际 provider 输入输出、旧字段扰动不变性、缺图拒绝、跨域执行完整性、终态重放不新增调用和固定三报表端到端验证。
+- Agent1 使用真实 v3 输入接口及其 22,000 字符预算。旧知识入口对新协议保留 knowledgeContext，不再注入 diagnosticRag/unifiedKnowledge。精确输出仍按 itemExecutionId + inputContentHash 匹配；未知业务字段直接拒绝。
+- Agent2 提示词直接读取系统分区与 DecisionGraph，输出 PlanGraph。实际批次保持原 Artifact、claim、provider、输出接受流程；新协议按业务域分组，不调用旧 selected_family。分区结果必须完整覆盖指定动作。
+- Agent3 直接读取 PlanGraph，并回传执行身份。匹配失败不进入归一化与接受；不再调用旧动作族约束编译器。
+- 三者语义身份绑定各自事实/图谱、知识快照 Head、合同、业务主体、模型与生成配置；Agent2 另绑定分区和系统事实；修订输入额外绑定 scope 与父图。
+- Agent2/3 在原 accepted execution index 查找图谱缓存。验证来源 Artifact 类型、内容哈希、语义身份和主体，当前输入重编译通过后写入新的输出 Artifact。不能复用旧 familyPayload 或旧 SOP；缓存命中不生成模型调用。
+- Agent1 缓存重绑定重新编译 DecisionGraph 并校验证据引用，保留原精确执行流水。
 
-本地 Python 3.12 的回归结果：134 passed / 6 skipped / 1 failed；失败为发布身份要求 Python 3.11.9，未修改该门禁。新编译器的 7 项专项测试通过。应在精确 3.11.9 环境重验，再评估合并。当前保持 draft，不部署、不宣称全消费者迁移完成。
+## 图谱、修订与 SOP 证据
 
-## 输入与身份消费者迁移进展（同一 PR）
+编译器校验字段所有权、有限数值、证据引用、图规模、重复节点/边与依赖环；重算哈希不能绕过 DecisionGraph 的语义校验。动作准入回执记录系统提供的 allowedActionKeys，分区时重新推导冲突和依赖结果，拒绝仅重签哈希的篡改。
 
-实际 compile_agent2_draft_envelope / compile_agent3_sop_envelope 入口已识别 V26.9 图合同请求，通过原输入 Envelope 校验、来源 Artifact 引用和原字符预算生成投影。V26.5 的 Agent2 包装层对新协议不再附加旧 JudgementGraph 或尝试读取旧锁。新协议与历史协议显式区分，最终全量激活仍未完成。
+系统按注册域分区并合并为单一 PlanGraph，补回跨域依赖；分区缺失、重复、换动作或覆盖不完整时拒绝合并。
 
-新投影白名单仅包含图谱、系统动作准入/分区、冻结事实、知识上下文和业务身份。旧业务字段从来源剔除；在已生成的新协议 payload 中重新注入旧字段，即使重算 payload 哈希，也会被拒绝。缺图、合同版本错误、分区篡改、知识快照内容与 Head 不符或输入超预算均拒绝。
+Python 修订验收增加 Decision/Plan 图类型，保留节点内容及关联边必须不变；差异证据逐字段记录修改。它只验证内容和 scope 一致性，不签发 Java 授权。
 
-Agent2/Agent3 的原 semantic identity 入口已识别新协议。Agent2 除整图身份外绑定具体分区和 factValues，防止同图不同分区缓存串用；provider/model/生成参数/提示合同与业务主体也参与身份。知识 Head 在此是调用输入的冻结知识快照身份，不表示已经建好 Experience Store 或全库版本管理。
+SOP 证据使用原 v26.sop_evidence.v1 展示接口，记录判断依据、动作权重、方案参数、冻结基线、预期结果、观察窗口、保护条件、执行与回滚。预期增量卡显示公式 expectedValue - baseline.value、输入值、单位、来源证据和图/节点哈希。只展示已记录的结构化决策依据，不暴露或补造模型内部思考。
 
-输出缓存、真实 provider 合同和输出接受路径仍未迁移完成：cacheEligible=false，实际执行入口在旧 Artifact claim/cache/provider 前拒绝 v269_provider_cutover_not_ready。不能将新图请求降级为 familyPayload 或旧 SOP 请求。这是临时迁移隔离，后续完成新输出通道和重绑定后移除，不能计为 A 已完成。
+知识 Head 当前表示单次输入知识快照的内容身份；尚非 Experience Store 全库 Head。不宣称已建立评测或回流效果。
 
-新增 5 项测试运行实际已安装的输入与身份函数，结合既有 7 项候选编译测试共 12 项通过。本地 Python 3.12 全量 139 passed / 6 skipped / 1 failed，仍为原发布版本校验。原 V26 Registry Lineage PR Gate 增加锁定 3.11.9、按 requirements-dev.lock 安装依赖并执行既有默认回归范围；未关闭或放宽任何校验。
+## 验证
+
+新增集成用例使用临时 SQLite 与真实本地 Artifact 存储，调用现有三个运行器；仅模型网关使用固定响应：
+
+1. Agent1 精确输入产出 DecisionGraph。
+2. Agent2 两个业务域执行、接受、完整合并 PlanGraph。
+3. Agent3 产出 OperationGraph，完成三图映射校验。
+4. 更换执行身份后 Agent2/3 命中语义缓存、重编译并写新输出 Artifact；网关调用次数不增加。
+
+另覆盖错误执行身份、缺图、旧字段注入、知识篡改、换动作、非法参数、基线漂移、旧缓存拒绝、保留边被修改及 SOP 公式复算。
+
+这属于运行器集成验证，不等于固定三报表到任务池的生产端到端验证，也不等于线上模型质量验证。精确 Python 3.11.9 的默认回归由既有 V26 Registry Lineage PR Gate 执行；本地 Python 3.12 的版本门禁失败不予放宽。
+
+## 全量激活前仍需完成
+
+| 入口 | 剩余工作 |
+|---|---|
+| Agent1 调度及动作包站点 | 将新事实输入和系统动作准入连接到现有流水线，替换旧动作包合同及字段登记 |
+| Agent2 系统调度 | 自动生成、持久化所有分区输入并执行合并；绑定现有授权来源；校验跨域总预算、资源和失败重试范围 |
+| Agent3 输入站点 | 将已接受的合并 PlanGraph 与公司权限上下文通过注册入口交接 |
+| 任务映射/任务池 | 迁移多动作权限与生命周期消费者，保留真实调用证明及授权额度；不能把图哈希或模型状态当作执行许可 |
+| Java ReviewContract/LocalSubgraphRevision | 将 PlanAction 的观察窗口、预期范围和验收标准绑定到权威评审及局部修订 |
+| 收口 | 按原注册表→血缘→精确包→门禁流程，跑固定三报表全链验收后统一评估合并 |
+
+保持同一 PR 持续推进，不以内部步骤完成替代整个 A 的验收。持久化经验库、Evaluation Plane 和 Promotion Gate 属于语义稳定后的后续阶段。

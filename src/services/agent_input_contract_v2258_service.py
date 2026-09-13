@@ -279,7 +279,12 @@ def build_projection_envelope(*, schema: str, payload: Dict[str, Any], source_ar
         raise AgentInputContractV2258Error("source_artifact_ref_required")
     if not isinstance(payload, dict) or not payload:
         raise AgentInputContractV2258Error("projected_payload_required")
-    payload, dedupe_audit = _compact_agent1_payload(payload)
+    from src.services.v269_input_migration_service import uses_graph_contract
+    if uses_graph_contract(payload):
+        from copy import deepcopy
+        payload, dedupe_audit = deepcopy(payload), {"graphProjectionPreserved": True}
+    else:
+        payload, dedupe_audit = _compact_agent1_payload(payload)
     chars = len(stable_json(payload))
     envelope = {
         "schema": schema,
@@ -315,6 +320,10 @@ def _as_int(value: Any) -> int:
         return 0
 
 def validate_agent_input_envelope(value: Any, *, expected_schema: str | None = None) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract
+    if isinstance(value, dict) and uses_graph_contract(value.get('payload')):
+        from src.services.agent_input_contract_v225_service import validate_agent_input_envelope as validate_graph_envelope
+        return validate_graph_envelope(value, expected_schema=expected_schema or AGENT1_INPUT_SCHEMA)
     if expected_schema == AGENT2_INPUT_SCHEMA or (isinstance(value, dict) and value.get("schema") == AGENT2_INPUT_SCHEMA):
         return legacy.validate_agent_input_envelope(value, expected_schema=expected_schema)
     errors: List[str] = []
@@ -393,7 +402,7 @@ def split_envelopes_by_budget(values: List[Dict[str, Any]], *, expected_schema: 
     batches, current, current_chars = [], [], 0
     for value in values:
         assert_agent_input_envelope(value, expected_schema=expected_schema)
-        chars = int((value.get("projectionAudit") or {}).get("projectedChars") or 0)
+        chars = len(stable_json(value.get("payload") or {}))
         if current and (len(current) >= max(1, max_items) or current_chars + chars > limit):
             batches.append(current)
             current, current_chars = [], 0

@@ -62,7 +62,9 @@
       "implementationPaths": [
         "src/services/agent_input_contract_v2258_service.py",
         "src/services/agent_input_transport_v2258_service.py",
-        "src/services/hard_interface_bridge_v2301_service.py"
+        "src/services/hard_interface_bridge_v2301_service.py",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_semantic_graph_service.py"
       ],
       "runner": "src.services.agent_input_transport_v2258_service:ensure_agent1_input_ref",
       "schemaIds": [
@@ -120,7 +122,8 @@
         "src/services/agent_runtime_hard_interface_v22515_service.py",
         "src/services/station_agent_worker_v22515_service.py",
         "src/services/station_agent_worker_v2259_service.py",
-        "src/services/v269_semantic_graph_service.py"
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_input_migration_service.py"
       ],
       "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
       "schemaIds": [
@@ -293,7 +296,9 @@
         "src/services/v26_sop_evidence_service.py",
         "src/services/v26_revision_acceptance_service.py",
         "src/services/task_evidence_canonical_history_install_v1_service.py",
-        "web_demo/sop-ui.css"
+        "web_demo/sop-ui.css",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_semantic_graph_service.py"
       ],
       "runner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
       "schemaIds": [
@@ -344,7 +349,8 @@
         "src/services/pipeline_artifact_contract_service.py",
         "src/services/v26_sop_evidence_service.py",
         "src/services/v26_revision_acceptance_service.py",
-        "src/services/v269_semantic_graph_service.py"
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_input_migration_service.py"
       ],
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_mapping_microbatch_v225",
       "schemaIds": []

@@ -46,14 +46,26 @@ def index(graph):
     c=contract()
     require(graph.get('contractVersion')==c['version'] and graph.get('contractHash')==digest(c), 'graph_contract_mismatch')
     require(graph.get('graphHash') == digest({k:v for k,v in graph.items() if k != 'graphHash'}), 'graph_hash_mismatch')
+    require(set(graph)=={'kind','contractVersion','contractHash','upstreamGraphHash','nodes','edges','graphHash'}, 'graph_field_authority')
+    require(graph['kind'] in {'DecisionGraph','PlanGraph','OperationGraph'}, 'graph_kind_invalid')
     nodes = graph.get('nodes')
-    require(isinstance(nodes, list), 'nodes_required')
+    require(isinstance(nodes, list) and 0<len(nodes)<=c['limits']['maxNodes'], 'nodes_required')
+    require(isinstance(graph.get('edges'),list) and len(graph['edges'])<=c['limits']['maxEdges'],'graph_budget')
+    require(len(json.dumps(graph,ensure_ascii=False).encode())<=c['limits']['maxGraphBytes']+20000,'graph_budget')
     result = {}
     for node in nodes:
         require(isinstance(node, dict) and isinstance(node.get('nodeKey'), str), 'node_invalid')
         require(node['nodeKey'] not in result, 'duplicate_node')
         require(node.get('nodeHash') == digest({k:v for k,v in node.items() if k != 'nodeHash'}), 'node_hash_mismatch')
         result[node['nodeKey']] = node
+    for edge in graph['edges']:
+        require(isinstance(edge,dict) and set(edge)=={'sourceRef','targetRef','relation'},'edge_shape')
+        require(edge['sourceRef'] in result and edge['targetRef'] in result,'edge_ref_invalid')
+    acyclic(result,graph['edges'])
+    if graph['kind']=='DecisionGraph':
+        raw={'nodes':[{k:v for k,v in n.items() if k!='nodeHash'} for n in nodes],'edges':graph['edges']}
+        rebuilt=compile_graph('DecisionGraph',raw,evidence_refs={ref for n in nodes for ref in n.get('evidenceRefs',[])})
+        require(rebuilt==graph,'graph_semantic_mismatch')
     return result
 
 
@@ -113,7 +125,7 @@ def compile_graph(kind, raw, *, upstream=None, evidence_refs=(), fact_values=Non
             require(strings(node['judgementRefs']) and set(node['judgementRefs']) == set(decision['judgementRefs']), 'judgement_reselection')
             require(strings(node['affectedMetrics']) and node['affectedMetrics'], 'affected_metrics_required')
             require(isinstance(node['parameters'], dict) and isinstance(node['guard'], dict), 'plan_parameters_invalid')
-            require(isinstance(node['baseline'], dict) and set(node['affectedMetrics']) <= set(node['baseline']), 'baseline_missing')
+            require(isinstance(node['baseline'], dict) and set(node['affectedMetrics']) == set(node['baseline']), 'baseline_missing')
             expected = node['expectedOutcome']
             require(isinstance(expected, dict) and set(expected) == set(node['affectedMetrics']), 'expected_metrics_mismatch')
             for metric, value in expected.items():
@@ -172,6 +184,7 @@ def admit_actions(decision, allowed_action_keys):
     require(decision.get('kind')=='DecisionGraph', 'decision_graph_required')
     actions={k:n for k,n in nodes.items() if n['kind']=='DecisionActionNode'}
     require(set(allowed_action_keys) <= set(actions), 'permission_unknown_action')
+    require(isinstance(allowed_action_keys,(list,tuple,set)) and all(isinstance(k,str) for k in allowed_action_keys),'permission_scope_invalid')
     admitted=set(allowed_action_keys)
     reasons={k:'PERMISSION_NOT_GRANTED' for k in actions if k not in admitted}
     for edge in decision['edges']:
@@ -186,12 +199,13 @@ def admit_actions(decision, allowed_action_keys):
                 admitted.remove(edge['targetRef']);reasons[edge['targetRef']]='DEPENDENCY_NOT_ADMITTED';changed=True
     return seal({'schema':'v269.action_admission.v1','decisionGraphHash':decision['graphHash'],
                  'admitted':sorted(admitted,key=lambda k:(-actions[k]['priority'],k)), 'deferred':reasons,
-                 'policyHash':digest(contract()['admission'])})
+                 'allowedActionKeys':sorted(set(allowed_action_keys)), 'policyHash':digest(contract()['admission'])})
 
 
 def partition_actions(decision, admission):
     require(admission.get('receiptHash')==digest({k:v for k,v in admission.items() if k!='receiptHash'}), 'admission_hash')
     require(admission['decisionGraphHash']==decision['graphHash'], 'admission_parent')
+    require(admission==admit_actions(decision,admission.get('allowedActionKeys',[])), 'admission_semantics_mismatch')
     nodes=index(decision); groups={}
     for key in admission['admitted']:
         require(nodes.get(key,{}).get('kind')=='DecisionActionNode','admission_node')

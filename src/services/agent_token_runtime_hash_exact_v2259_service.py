@@ -225,6 +225,9 @@ def build_agent1_semantic_identity(
 
     from src.services import real_product_judgment_agent_v2259_service as core
 
+    from src.services.v269_input_migration_service import uses_graph_contract, semantic_identity
+    if uses_graph_contract(envelope.get('payload')):
+        return semantic_identity('agent1', envelope['payload'], descriptor)
     semantic_payload = _semantic_business_payload(envelope)
     semantic_input_hash = hash_value(semantic_payload)
     contract = {
@@ -372,7 +375,13 @@ def _rebind_semantic_output(
     product: Dict[str, Any],
     source: Dict[str, Any],
 ) -> Dict[str, Any]:
-    result = _semantic_business_body(cached)
+    from src.services.v269_input_migration_service import uses_graph_contract, model_graph_body, normalize_decision
+    if uses_graph_contract(product):
+        result = normalize_decision({'DecisionGraph': model_graph_body(cached.get('DecisionGraph'))}, product)
+        if result['DecisionGraph'] != cached['DecisionGraph']:
+            raise ValueError('v269_cache_graph_revalidation_mismatch')
+    else:
+        result = _semantic_business_body(cached)
     source_execution = _dict(source.get("execution"))
     result.update(
         dataVersion=product.get("dataVersion") or descriptor.get("dataVersion"),
@@ -617,7 +626,7 @@ def _provider_batch(
     messages, _ = core._build_messages(
         data_version,
         products,
-        _policy(core, products[0]) if products else core.build_agent1_rag_context(),
+        {} if products and products[0].get("semanticContractVersion") == "26.9.0" else (_policy(core, products[0]) if products else core.build_agent1_rag_context()),
     )
     payload, usage = call_json_exact_artifact(
         stage=_AGENT1_STAGE,

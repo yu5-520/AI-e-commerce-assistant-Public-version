@@ -251,6 +251,10 @@ def _augment_agent2_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _augment_payload(schema: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract, knowledge_identity
+    if uses_graph_contract(payload):
+        knowledge_identity(payload.get('knowledgeContext'))
+        return deepcopy(payload)
     if str(schema).startswith("agent_input.agent1."):
         return _augment_agent1_payload(payload)
     if str(schema).startswith("agent_input.agent2."):
@@ -268,6 +272,13 @@ def _knowledge_errors(value: Any) -> List[str]:
     ):
         return []
     payload = _dict(value.get("payload"))
+    from src.services.v269_input_migration_service import uses_graph_contract, knowledge_identity
+    if uses_graph_contract(payload):
+        try:
+            knowledge_identity(payload.get('knowledgeContext'))
+            return []
+        except ValueError as exc:
+            return [str(exc)]
     contract = _dict(payload.get("inputContract"))
     knowledge = _dict(payload.get("unifiedKnowledge"))
     guardrails = _dict(payload.get("runtimeGuardrails"))

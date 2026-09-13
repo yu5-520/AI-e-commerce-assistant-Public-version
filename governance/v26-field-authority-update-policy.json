@@ -1,6 +1,6 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.12.9.A-input-draft",
+  "version": "2026.09.12.9.A-provider-draft",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
@@ -73,7 +73,12 @@
         "src/services/agent_input_contract_v225_service.py",
         "src/services/agent_token_runtime_v22520_service.py",
         "src/services/agent3_runtime_v23215_service.py",
-        "tests/test_v22_4_v269_input_migration.py"
+        "tests/test_v22_4_v269_input_migration.py",
+        "src/services/agent_hash_routed_rag_bridge_v1_service.py",
+        "src/services/agent_input_contract_v2258_service.py",
+        "src/services/agent_input_transport_v2258_service.py",
+        "src/services/agent_token_runtime_hash_exact_v2259_service.py",
+        "src/services/real_product_judgment_agent_v2259_service.py"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",
@@ -83,7 +88,8 @@
         "release_governance",
         "frontend_view",
         "task_mapping",
-        "task_pool"
+        "task_pool",
+        "agent1_input_projection"
       ],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
