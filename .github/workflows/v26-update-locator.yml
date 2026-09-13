@@ -42,15 +42,17 @@ jobs:
           assert plan['schema']=='z.update_locator.plan.v1'
           assert plan['rules']['filenameSimilaritySearchAllowed'] is False
           assert plan['rules']['unplannedFileMutationAllowed'] is False
+          assert plan['rules']['readOnlyContextMutationAllowed'] is False
           assert plan['rules']['scopeExpansionRequiresRecompile'] is True
-          assert plan['deniedRegisteredPaths']==[], plan['deniedRegisteredPaths']
           assert 'agent3_runtime' in [item['moduleId'] for item in plan['selectedModules']]
           assert 'task_mapping' in [item['moduleId'] for item in plan['selectedModules']]
           assert 'scripts/run_competition_three_report_e2e_v269.py' in plan['editablePaths']
           assert 'tests/test_v22_4_v269_agent3_core_bridge.py' in plan['editablePaths']
+          assert not (set(plan['editablePaths']) & set(plan['readOnlyContextPaths']))
           print('V26_UPDATE_LOCATOR=PASS')
           print('PLAN_HASH='+plan['planHash'])
           print('EDITABLE_PATHS='+json.dumps(plan['editablePaths'],ensure_ascii=False,sort_keys=True))
+          print('READ_ONLY_CONTEXT_PATHS='+json.dumps(plan['readOnlyContextPaths'],ensure_ascii=False,sort_keys=True))
           print('REQUIRED_GATES='+json.dumps(plan['requiredGates'],ensure_ascii=False,sort_keys=True))
           PY
       - name: Run locator tests
