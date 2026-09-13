@@ -144,6 +144,26 @@ def _registered_allowed_actions(decision: Dict[str, Any]) -> List[str]:
     )
 
 
+def _provider_diagnostics(provider: Dict[str, Any]) -> Dict[str, Any]:
+    """Expose only existing fail-closed Agent2 diagnostics to the scheduler evidence.
+
+    The exact runtime already records these fields. Keeping this projection explicit
+    avoids leaking provider configuration/credentials while preventing a generic
+    NO_OUTPUT retry from hiding the actual prepare/claim/batch failure class.
+    """
+    allowed = (
+        'providerBatchCount',
+        'alreadyRunningCount',
+        'exactContractInvalidCount',
+        'trueMissingCount',
+        'singletonRetryCount',
+        'errors',
+        'itemFailures',
+        'batchDiagnostics',
+    )
+    return {key: deepcopy(provider.get(key)) for key in allowed if key in provider}
+
+
 def run_agent2_graph_partition_microbatch(
     data_version: str | None,
     *,
@@ -216,6 +236,7 @@ def run_agent2_graph_partition_microbatch(
                 results.append({'partitionHash':partition['receiptHash'],'plan':migration.model_graph_body(output['PlanGraph'])})
             if errors:
                 failed+=1
+                diagnostics=_provider_diagnostics(provider)
                 _finish(
                     item,stage=AGENT1_COMPLETED_STAGE,status='retry',
                     output_ref=f"v269_agent2_partition_incomplete:{item.get('item_id')}",
@@ -223,7 +244,12 @@ def run_agent2_graph_partition_microbatch(
                         'provider':provider,'taskAdmissionAllowed':False,'fallbackAllowed':False,
                         'legacyBusinessSemanticsUsed':False},
                 )
-                details.append({'itemId':item.get('item_id'),'status':'partition_incomplete','errors':errors})
+                details.append({
+                    'itemId':item.get('item_id'),
+                    'status':'partition_incomplete',
+                    'errors':errors,
+                    'providerDiagnostics':diagnostics,
+                })
                 continue
             plan=graphs.merge_plans(
                 decision,admission,partitions,results,
