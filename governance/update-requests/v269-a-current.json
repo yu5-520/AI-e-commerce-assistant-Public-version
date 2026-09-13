@@ -1,6 +1,6 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.A-2026-09-13-finalize-02",
+  "requestId": "V26.9.A-2026-09-13-finalize-03",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
@@ -35,6 +35,16 @@
       ],
       "evidencePaths": [
         ".github/workflows/v269-a-three-report-candidate.yml"
+      ]
+    },
+    {
+      "targetId": "v269-a-final-evidence-closeout",
+      "failureClass": "STATUS_DOCUMENT_STALE_AFTER_ALL_GATES_PASS",
+      "registryModules": [
+        "release_governance"
+      ],
+      "evidencePaths": [
+        "docs/V26_9_A_SEMANTIC_CUTOVER.md"
       ]
     }
   ]
