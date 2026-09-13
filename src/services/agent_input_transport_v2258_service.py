@@ -389,6 +389,9 @@ def compile_agent1_envelope(
     source_content_hash: str,
     policy_context: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract, project_input
+    if uses_graph_contract(source):
+        return project_input('agent1', source, source_ref=source_ref, source_content_hash=source_content_hash)
     root = _payload(source)
     identity = _identity(source)
     product_id = _text(identity.get("productId"), 160)

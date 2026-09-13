@@ -18,6 +18,7 @@ final class ReviewContractAuthority {
     private static final Set<String> SUPPORTED_TRENDS = Set.of(
         "NON_DECREASE", "INCREASE", "NON_INCREASE", "DECREASE", "ANY"
     );
+    private static final Set<String> SUPPORTED_SAFETY_COMPARATORS = Set.of("GTE", "LTE");
 
     record Contract(
         String productId,
@@ -157,6 +158,143 @@ final class ReviewContractAuthority {
             unsupported.isEmpty(),
             contractHash
         );
+    }
+
+    /** Freeze one PlanAction without collapsing other actions or their review windows. */
+    static Contract freezePlanAction(String productId, String taskId, Map<String, Object> graph,
+        String expectedContractHash, String actionRef, Map<String, Object> facts, long frozenAtMillis) {
+        Map<String, Map<String, Object>> nodes = semanticGraph(graph, "PlanGraph", expectedContractHash);
+        Map<String, Object> node = nodes.get(actionRef);
+        if (node == null || !"PlanActionNode".equals(node.get("kind")))
+            throw new IllegalArgumentException("review_plan_action_missing");
+        Map<String, Object> baseline = Json.object(node.get("baseline"));
+        Map<String, Object> outcomes = Json.object(node.get("expectedOutcome"));
+        TreeMap<String, Double> bases = new TreeMap<>(), lower = new TreeMap<>(), upper = new TreeMap<>();
+        ArrayList<Object> criteria = new ArrayList<>(), safetyCriteria = new ArrayList<>();
+        if (outcomes.isEmpty() || !outcomes.keySet().equals(baseline.keySet()) || Json.array(node.get("acceptanceCriteria")).isEmpty())
+            throw new IllegalArgumentException("review_plan_criteria_or_baseline_missing");
+        for (Map.Entry<String, Object> entry : outcomes.entrySet()) {
+            String metric = entry.getKey(), scoped = actionRef + ":" + metric;
+            Map<String, Object> base = Json.object(baseline.get(metric));
+            Map<String, Object> fact = Json.object(facts.get(text(base.get("sourceRef"))));
+            Double value = finiteNumber(base.get("value"));
+            if (value == null || !value.equals(finiteNumber(fact.get("value")))
+                || !base.get("unit").equals(fact.get("unit")))
+                throw new IllegalArgumentException("review_baseline_fact_mismatch");
+            Map<String, Object> outcome = Json.object(entry.getValue());
+            List<Object> bounds = Json.array(outcome.get("expectedRange"));
+            Double expected = finiteNumber(outcome.get("expectedValue")), delta = finiteNumber(outcome.get("expectedDelta"));
+            if (bounds.size() != 2 || expected == null || delta == null
+                || finiteNumber(bounds.get(0)) == null || finiteNumber(bounds.get(1)) == null)
+                throw new IllegalArgumentException("review_expected_value_invalid");
+            double lo = finiteNumber(bounds.get(0)), hi = finiteNumber(bounds.get(1));
+            if (lo > expected || expected > hi || Math.abs(expected - value - delta) > Math.max(1e-9, Math.abs(delta) * 1e-9))
+                throw new IllegalArgumentException("review_expected_delta_or_range_mismatch");
+            bases.put(scoped, value); lower.put(scoped, lo); upper.put(scoped, hi);
+        }
+        for (Object raw : Json.array(node.get("acceptanceCriteria"))) {
+            Map<String, Object> rule = Json.object(raw);
+            String scoped = actionRef + ":" + text(rule.get("metric"));
+            if (rule.keySet().equals(Set.of("metric", "constraint")) && "expectedRange".equals(rule.get("constraint")) && lower.containsKey(scoped)) {
+                criteria.add(Map.of("metric", scoped, "constraint", "lower_guard"));
+                criteria.add(Map.of("metric", scoped, "constraint", "upper_guard"));
+            } else criteria.add(Map.of("metric", scoped, "constraint", "uncompiled_plan_criterion"));
+        }
+
+        // Agent2 may supply deterministic safety rules. Java never interprets prose:
+        // only {metric, comparator:GTE|LTE, value:<finite number>} is compilable.
+        for (Map.Entry<String, Object> entry : new TreeMap<>(Json.object(node.get("guard"))).entrySet()) {
+            if (!compileSafetyRule(actionRef, "guard:" + entry.getKey(), entry.getValue(), bases, lower, upper, safetyCriteria)) {
+                safetyCriteria.add(Map.of(
+                    "metric", actionRef,
+                    "constraint", "uncompiled_plan_safety_rule",
+                    "ruleId", "guard:" + entry.getKey()
+                ));
+            }
+        }
+        int riskIndex = 0;
+        for (Object raw : Json.array(node.get("riskBoundary"))) {
+            String ruleId = "risk:" + (++riskIndex);
+            if (!compileSafetyRule(actionRef, ruleId, raw, bases, lower, upper, safetyCriteria)) {
+                safetyCriteria.add(Map.of(
+                    "metric", actionRef,
+                    "constraint", "uncompiled_plan_safety_rule",
+                    "ruleId", ruleId
+                ));
+            }
+        }
+
+        Object secondsRaw = Json.object(node.get("reviewWindow")).get("durationSeconds");
+        if (!(secondsRaw instanceof Number seconds) || seconds.doubleValue() != seconds.longValue() || seconds.longValue() <= 0)
+            throw new IllegalArgumentException("review_duration_invalid");
+        long due = Math.addExact(frozenAtMillis, Math.multiplyExact(seconds.longValue(), 1000L));
+        LinkedHashMap<String, Object> headers = new LinkedHashMap<>();
+        headers.put("plan.lower_guard", lower); headers.put("plan.upper_guard", upper);
+        headers.put("plan.acceptance_criteria", criteria); headers.put("plan.risk_boundaries", safetyCriteria);
+        headers.put("plan.review_window", seconds.longValue() + "s");
+        headers.put("plan.action_ref", actionRef); headers.put("plan.node_hash", node.get("nodeHash"));
+        headers.put("plan.semantic_contract_hash", expectedContractHash);
+        return freeze(productId, taskId, text(graph.get("graphHash")), headers, bases, frozenAtMillis, due);
+    }
+
+    private static boolean compileSafetyRule(
+        String actionRef,
+        String ruleId,
+        Object raw,
+        Map<String, Double> baseline,
+        Map<String, Double> lower,
+        Map<String, Double> upper,
+        List<Object> compiled
+    ) {
+        if (!(raw instanceof Map<?, ?> source)) return false;
+        Map<String, Object> rule = stringKeyMap(source);
+        if (!rule.keySet().equals(Set.of("metric", "comparator", "value"))) return false;
+        String metric = text(rule.get("metric"));
+        String comparator = text(rule.get("comparator")).toUpperCase();
+        Double threshold = finiteNumber(rule.get("value"));
+        String scoped = actionRef + ":" + metric;
+        if (metric.isBlank() || threshold == null || !SUPPORTED_SAFETY_COMPARATORS.contains(comparator)
+            || !baseline.containsKey(scoped)) return false;
+        String constraint;
+        if ("GTE".equals(comparator)) {
+            lower.put(scoped, Math.max(lower.getOrDefault(scoped, threshold), threshold));
+            constraint = "lower_guard";
+        } else {
+            upper.put(scoped, Math.min(upper.getOrDefault(scoped, threshold), threshold));
+            constraint = "upper_guard";
+        }
+        compiled.add(Map.of(
+            "metric", scoped,
+            "constraint", constraint,
+            "ruleId", ruleId
+        ));
+        return true;
+    }
+
+    /** Content verification; the caller still supplies an authority-bound Artifact and contract hash. */
+    static Map<String, Map<String, Object>> semanticGraph(Map<String, Object> graph, String kind, String contractHash) {
+        if (!"26.9.0".equals(graph.get("contractVersion")) || !kind.equals(graph.get("kind"))
+            || !requireText(contractHash, "semantic_contract_required").equals(graph.get("contractHash")))
+            throw new IllegalArgumentException("semantic_graph_contract_mismatch");
+        TreeMap<String, Object> body = new TreeMap<>(graph); Object declared = body.remove("graphHash");
+        if (!Hashing.canonicalHash(body).equals(declared)) throw new IllegalArgumentException("semantic_graph_hash_mismatch");
+        TreeMap<String, Map<String, Object>> nodes = new TreeMap<>();
+        List<Object> rawNodes = Json.array(graph.get("nodes"));
+        if (rawNodes.isEmpty() || rawNodes.size() > 64 || Json.array(graph.get("edges")).size() > 256)
+            throw new IllegalArgumentException("semantic_graph_budget");
+        for (Object raw : rawNodes) {
+            Map<String, Object> node = Json.object(raw);
+            TreeMap<String, Object> material = new TreeMap<>(node); Object hash = material.remove("nodeHash");
+            String key = requireText(text(node.get("nodeKey")), "semantic_node_key_required");
+            if (!Hashing.canonicalHash(material).equals(hash) || nodes.putIfAbsent(key, node) != null)
+                throw new IllegalArgumentException("semantic_node_hash_or_identity_invalid");
+        }
+        for (Object raw : Json.array(graph.get("edges"))) {
+            Map<String, Object> edge = Json.object(raw);
+            if (!nodes.containsKey(text(edge.get("sourceRef"))) || !nodes.containsKey(text(edge.get("targetRef"))))
+                throw new IllegalArgumentException("semantic_edge_ref_invalid");
+        }
+        return nodes;
     }
 
     private static Map<String, String> trendMap(Object raw, List<String> unsupported) {

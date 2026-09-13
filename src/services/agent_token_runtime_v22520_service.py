@@ -116,6 +116,9 @@ def build_agent2_semantic_identity(
     descriptor: Dict[str, Any],
     package: Dict[str, Any],
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract, semantic_identity
+    if uses_graph_contract(package):
+        return semantic_identity('agent2', package, descriptor)
     semantic_input = {
         "actionFamily": selected_family(package),
         "compactPackage": _semantic_compact_package(package),
@@ -161,6 +164,10 @@ def _entry(
     *,
     provider: Dict[str, Any],
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract, validate_payload
+    graph_mode = uses_graph_contract(envelope.get("payload"))
+    if graph_mode:
+        validate_payload("agent2", envelope["payload"])
     binding = resolve_input_binding(
         envelope,
         expected_type=AGENT2_DRAFT_INPUT_SCHEMA,
@@ -201,7 +208,8 @@ def _entry(
         storeId=package.get("storeId") or descriptor.get("storeId"),
         productId=package.get("productId") or descriptor.get("productId"),
         dataVersion=package.get("dataVersion") or descriptor.get("dataVersion"),
-        actionFamily=selected_family(package),
+        actionFamily=None if graph_mode else selected_family(package),
+        businessPartition=package["partition"]["domain"] if graph_mode else None,
     )
     semantic = build_agent2_semantic_identity(envelope, descriptor, package)
     descriptor.update(
@@ -211,7 +219,7 @@ def _entry(
         semanticIdentitySchema=semantic.get("schema"),
         semanticCacheContractVersion=AGENT2_FAMILY_PAYLOAD_CACHE_VERSION,
         semanticCacheEligible=semantic.get("cacheEligible") is True,
-        semanticCachedChannel="familyPayload",
+        semanticCachedChannel=semantic.get("cachedChannel", "familyPayload"),
     )
     return {
         "envelope": envelope,
@@ -282,6 +290,9 @@ def _decorate_output(
 def _accepted_semantic_family_payload(
     descriptor: Dict[str, Any],
 ) -> Dict[str, Any] | None:
+    if descriptor.get("semanticIdentitySchema") == "v269.agent2.semantic_identity.v1":
+        from src.services.v269_input_migration_service import accepted_graph_cache
+        return accepted_graph_cache('agent2', descriptor, AGENT2_EXACT_OUTPUT_TYPE)
     if descriptor.get("semanticCacheEligible") is not True:
         return None
     semantic_hash = _text(descriptor.get("semanticHash"), 160)
@@ -360,6 +371,9 @@ def _rebind_semantic_family_payload(
     *,
     entry: Dict[str, Any],
 ) -> Dict[str, Any] | None:
+    if entry["package"].get("semanticContractVersion") == "26.9.0":
+        from src.services.v269_input_migration_service import rebind_graph_cache
+        return rebind_graph_cache('agent2', source, entry)
     family_payload = _dict(source.get("familyPayload"))
     if not family_payload:
         return None
@@ -489,7 +503,7 @@ def _inject_exact_contract(
         "identitySource": "corresponding_input_package",
         "identityPlacement": "plan_top_level",
         "exactlyOneBusinessChannel": [
-            "familyPayload", "missingData", "conflictReasons", "rejectedReason"
+            "PlanGraph" if entries[0]["package"].get("semanticContractVersion") == "26.9.0" else "familyPayload", "missingData", "conflictReasons", "rejectedReason"
         ],
         "systemFillsMissingIdentity": False,
     }
@@ -640,7 +654,8 @@ def _execute_batch(
         raw_batch_output_ref=raw_ref,
     )
     diagnostic = {
-        "actionFamily": selected_family(packages[0]) if packages else None,
+        "actionFamily": descriptors[0].get("actionFamily") if descriptors else None,
+        "businessPartition": descriptors[0].get("businessPartition") if descriptors else None,
         "batchManifestRef": batch.get("batchManifestRef"),
         "batchManifestHash": batch.get("batchManifestHash"),
         "rawBatchOutputRef": raw_ref,
@@ -804,7 +819,8 @@ def run_agent2_draft_projected_inputs(
 
     grouped: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for entry in claimed:
-        grouped[str(entry["descriptor"].get("actionFamily") or "")].append(entry)
+        group_key = ("v269:" + str(entry["descriptor"].get("businessPartition"))) if entry["package"].get("semanticContractVersion") == "26.9.0" else str(entry["descriptor"].get("actionFamily") or "")
+        grouped[group_key].append(entry)
 
     true_missing: List[Dict[str, Any]] = []
     provider_batch_count = 0

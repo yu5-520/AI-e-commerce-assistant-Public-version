@@ -19,6 +19,11 @@ import java.util.concurrent.Executors;
  * sealed Java runtime and control-plane artifact can start on ECS before one atomic Authority
  * Generation transfers Compatibility, Runtime Admission, Gate/Task State, Queue/Generation and
  * Frontend Head/SSE ownership. Deployment and legacy removal remain outside this service.
+ *
+ * V26.9.A adds one root-bound read-only System Review endpoint. The endpoint may evaluate frozen
+ * plan facts and compile a revision scope, but cannot mutate task state, queue state, RAG state or
+ * Authority Generation. Python remains the production lifecycle writer while mode is
+ * READY_NO_AUTHORITY.
  */
 public final class ProductionAuthorityMain {
     static final String VERSION = "24.21.0";
@@ -38,6 +43,7 @@ public final class ProductionAuthorityMain {
         server.createContext("/readyz", exchange -> write(exchange, 200, status()));
         server.createContext("/v1/authority/status", exchange -> write(exchange, 200, status()));
         server.createContext(LiveInformationMirror.PATH, LiveInformationMirror::handle);
+        server.createContext(V269SystemReviewEndpoint.PATH, V269SystemReviewEndpoint::handle);
         server.setExecutor(Executors.newFixedThreadPool(2));
         Runtime.getRuntime().addShutdownHook(new Thread(() -> server.stop(1), "v24-authority-shutdown"));
         server.start();
@@ -93,6 +99,9 @@ public final class ProductionAuthorityMain {
         value.put("legacyRemovalAllowed", false);
         value.put("liveMirrorDomains", List.of("INFORMATION"));
         value.put("liveMirrorOperation", "canonical-product");
+        value.put("v269SystemReviewPath", V269SystemReviewEndpoint.PATH);
+        value.put("v269SystemReviewMutationAllowed", false);
+        value.put("v269SystemReviewRagFeedbackAllowed", false);
         value.put("externalProductionMirrorParityProven", false);
         value.put("statusHash", Hashing.canonicalHash(value));
         return value;

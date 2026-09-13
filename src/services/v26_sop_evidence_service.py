@@ -41,6 +41,9 @@ def verified(receipt):
 
 def freeze_decision_evidence(package, sop):
     """Only accepted structured outputs, never raw prompt/provider response."""
+    from src.services.v269_input_migration_service import uses_graph_contract, freeze_graph_evidence
+    if uses_graph_contract(package) or uses_graph_contract(sop):
+        return freeze_graph_evidence(package,sop)
     draft = obj(package.get("agent2ActionDraft"))
     graphs = [obj(package.get("v26JudgementGraph")), obj(draft.get("v26ActionGraph")), obj(sop.get("v26OperationGraph"))]
     cards = []
@@ -129,7 +132,7 @@ def public_evidence(decisions, metrics):
             continue
         for card in receipt.get("cards", []):
             result["cards"].append({k: deepcopy(card[k]) for k in
-                ("label", "kind", "value", "status", "formula", "formulaVersion", "inputs", "reason", "actor", "nodeKey", "nodeHash", "sourceHash") if k in card})
+                ("label", "kind", "value", "unit", "status", "formula", "formulaVersion", "inputs", "reason", "actor", "nodeKey", "nodeHash", "sourceHash") if k in card})
         result["receipts"].append({"kind": name, "hash": receipt["receiptHash"], "status": "VERIFIED"})
     if verified(decisions):
         result["knowledge"] = deepcopy(decisions.get("knowledge", {}))

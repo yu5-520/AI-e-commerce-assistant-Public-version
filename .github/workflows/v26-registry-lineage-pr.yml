@@ -3,6 +3,23 @@ name: V26 Registry Lineage PR Gate
 on:
   pull_request:
     paths:
+      - 'src/services/v269*.py'
+      - 'src/services/action_authority_v214_service.py'
+      - 'tests/test_v22_4_v269*.py'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java'
+      - 'java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java'
+      - 'src/services/agent_input_contract_v225_service.py'
+      - 'src/services/agent_input_contract_v2258_service.py'
+      - 'src/services/agent_input_transport_v2258_service.py'
+      - 'src/services/agent_token_runtime_hash_exact_v2259_service.py'
+      - 'src/services/real_product_judgment_agent_v2259_service.py'
+      - 'src/services/v25_agent_input_ingress_service.py'
+      - 'src/services/agent_hash_routed_rag_bridge_v1_service.py'
+      - 'src/services/v26_revision_acceptance_service.py'
+      - 'src/services/v26_sop_evidence_service.py'
+      - 'src/services/agent_input_transport_v225_service.py'
+      - 'src/services/agent_token_runtime_v22520_service.py'
+      - 'src/services/agent3_runtime_v23215_service.py'
       - 'config/v23_registry_runtime.json'
       - 'config/v26_field_authority_contract.json'
       - 'governance/v26-field-authority-update-policy.json'
@@ -42,10 +59,10 @@ jobs:
           path: base-src
           persist-credentials: false
 
-      - name: Prepare Python 3.11
+      - name: Prepare exact release Python 3.11.9
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.11.9'
 
       - name: Compile exact BASE and TARGET lineage evidence
         shell: bash
@@ -92,3 +109,11 @@ jobs:
           print('TARGET=' + report['targetCommit'])
           print('UPDATE_HASH=' + report['updateHash'])
           PY
+
+      - name: Verify runtime regressions on exact release Python
+        working-directory: target-src
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r requirements-dev.lock
+          python -m pytest -q

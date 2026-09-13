@@ -233,6 +233,87 @@ final class LocalSubgraphRevisionAuthority {
         );
     }
 
+    /** Adapt sealed graph nodes into the existing deterministic dependency planner. */
+    static Map<String, Object> planSemantic(ReviewContractAuthority.Contract contract,
+        SystemReviewAuthority.Result review, Map<String, Object> decision, Map<String, Object> plan,
+        Map<String, Object> operation, String contractHash, Set<String> successfulHashes) {
+        var decisions = ReviewContractAuthority.semanticGraph(decision, "DecisionGraph", contractHash);
+        var plans = ReviewContractAuthority.semanticGraph(plan, "PlanGraph", contractHash);
+        var operations = ReviewContractAuthority.semanticGraph(operation, "OperationGraph", contractHash);
+        if (!decision.get("graphHash").equals(plan.get("upstreamGraphHash"))
+            || !plan.get("graphHash").equals(operation.get("upstreamGraphHash")))
+            throw new IllegalArgumentException("revision_semantic_lineage_mismatch");
+        ArrayList<JudgementNode> decisionNodes = new ArrayList<>();
+        for (var node : decisions.values()) {
+            if (!Set.of("JudgementNode", "DecisionActionNode").contains(text(node.get("kind"))))
+                throw new IllegalArgumentException("revision_decision_node_kind_invalid");
+            decisionNodes.add(new JudgementNode(text(node.get("nodeKey")), text(node.get("nodeHash"))));
+        }
+        ArrayList<ActionNode> planNodes = new ArrayList<>();
+        for (var node : plans.values()) {
+            String key = text(node.get("nodeKey")), candidate = text(node.get("decisionActionRef"));
+            if (!"PlanActionNode".equals(node.get("kind")) || !decisions.containsKey(candidate)
+                || !"DecisionActionNode".equals(decisions.get(candidate).get("kind")))
+                throw new IllegalArgumentException("revision_decision_action_ref_invalid");
+            List<String> refs = semanticStrings(node.get("judgementRefs"));
+            if (!new TreeSet<>(refs).equals(new TreeSet<>(semanticStrings(decisions.get(candidate).get("judgementRefs")))))
+                throw new IllegalArgumentException("revision_judgement_reselection");
+            for (String ref : refs) if (!decisions.containsKey(ref) || !"JudgementNode".equals(decisions.get(ref).get("kind")))
+                throw new IllegalArgumentException("revision_judgement_ref_invalid");
+            ArrayList<String> supporting = new ArrayList<>(refs); supporting.add(candidate);
+            planNodes.add(new ActionNode(key, text(node.get("nodeHash")), supporting,
+                semanticDependencies(plan, key), semanticStrings(node.get("affectedMetrics")).stream().map(m -> key + ":" + m).toList()));
+        }
+        ArrayList<OperationNode> operationNodes = new ArrayList<>();
+        for (var node : operations.values()) {
+            if (!"OperationStage".equals(node.get("kind"))) throw new IllegalArgumentException("revision_operation_node_kind_invalid");
+            operationNodes.add(new OperationNode(text(node.get("nodeKey")), text(node.get("nodeHash")),
+                semanticStrings(node.get("planActionRefs")), semanticDependencies(operation, text(node.get("nodeKey")))));
+        }
+        Scope scope = plan(contract, review, new GraphSnapshot(text(decision.get("graphHash")),
+            text(plan.get("graphHash")), text(operation.get("graphHash")), decisionNodes, planNodes, operationNodes, successfulHashes));
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
+        result.put("schema", "v269.local_subgraph_revision.v1");
+        result.put("scopeMode", scope.mode().name()); result.put("reason", scope.reason());
+        result.put("reviewHash", scope.reviewHash()); result.put("breachedMetrics", scope.breachedMetrics());
+        result.put("parentDecisionGraphHash", scope.parentJudgementGraphHash());
+        result.put("parentPlanGraphHash", scope.parentActionGraphHash());
+        result.put("parentOperationGraphHash", scope.parentOperationGraphHash());
+        result.put("reopenDecisionNodeHashes", scope.reopenJudgementNodeHashes());
+        result.put("reopenPlanNodeHashes", scope.reopenActionNodeHashes());
+        result.put("reopenOperationNodeHashes", scope.reopenOperationNodeHashes());
+        result.put("preservedDecisionNodeHashes", scope.preservedJudgementNodeHashes());
+        result.put("preservedPlanNodeHashes", scope.preservedActionNodeHashes());
+        result.put("preservedOperationNodeHashes", scope.preservedOperationNodeHashes());
+        result.put("revisionHash", Hashing.canonicalHash(result));
+        return Map.copyOf(result);
+    }
+
+    private static String text(Object value) {
+        if (!(value instanceof String text) || text.isBlank()) throw new IllegalArgumentException("revision_semantic_text_required");
+        return text;
+    }
+
+    private static List<String> semanticStrings(Object raw) {
+        ArrayList<String> result = new ArrayList<>();
+        for (Object value : Json.array(raw)) {
+            if (!(value instanceof String text) || text.isBlank() || result.contains(text))
+                throw new IllegalArgumentException("revision_semantic_refs_invalid");
+            result.add(text);
+        }
+        return List.copyOf(result);
+    }
+
+    private static List<String> semanticDependencies(Map<String, Object> graph, String key) {
+        TreeSet<String> result = new TreeSet<>();
+        for (Object raw : Json.array(graph.get("edges"))) {
+            Map<String, Object> edge = Json.object(raw);
+            if (key.equals(edge.get("targetRef")) && Set.of("depends_on", "sequence", "enables").contains(text(edge.get("relation"))))
+                result.add(text(edge.get("sourceRef")));
+        }
+        return List.copyOf(result);
+    }
+
     static Map<String, Object> authorityHeaders(Scope scope) {
         if (scope == null) throw new IllegalArgumentException("revision_scope_required");
         LinkedHashMap<String, Object> headers = new LinkedHashMap<>();

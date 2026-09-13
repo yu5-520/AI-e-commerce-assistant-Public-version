@@ -337,6 +337,14 @@ def admit_decision_to_task_pool(
     created_by: str | None = None,
     force_new_snapshot: bool = False,
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import uses_graph_contract
+    if uses_graph_contract(decision):
+        from src.services.v269_production_admission_service import admit_graph_decision_to_task_pool
+        return admit_graph_decision_to_task_pool(
+            decision,
+            created_by=created_by,
+            force_new_snapshot=force_new_snapshot,
+        )
     if not _chain_integrity_passed(decision):
         return {"ok": False, "status": "rejected_by_chain_integrity_gate", "createdTaskCount": 0, "decisionId": decision.get("decisionId"), "reason": "semantic_chain_integrity_missing", "taskPoolAdmissionCoreVersion": VERSION}
     provider_ok, provider_reason = _provider_passed(decision)

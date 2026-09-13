@@ -28,9 +28,12 @@ ACTION_NODE_SCHEMA = "v26.action_node.v1"
 OPERATION_NODE_SCHEMA = "v26.operation_node.v1"
 GRAPH_EDGE_SCHEMA = "v26.business_graph_edge.v1"
 
-_V262_COMPILE_JUDGEMENT = bridge.compile_judgement_graph
-_V262_COMPILE_ACTION = bridge.compile_action_graph
-_V262_COMPILE_OPERATION = bridge.compile_operation_graph
+# Keep the original compilers stable even when inspection loads this module again
+# after the public bridge API has been rebound to addressable graphs.
+if not hasattr(bridge, '_v262_original_graph_compilers'):
+    bridge._v262_original_graph_compilers = (
+        bridge.compile_judgement_graph, bridge.compile_action_graph, bridge.compile_operation_graph)
+_V262_COMPILE_JUDGEMENT, _V262_COMPILE_ACTION, _V262_COMPILE_OPERATION = bridge._v262_original_graph_compilers
 _INSTALLED = False
 
 _ALLOWED_JUDGEMENT_RELATIONS = {
@@ -639,6 +642,10 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
     agent1_normalize = agent1_core._normalize_judgments
 
     def agent1_build_v265(*args, **kwargs):
+        from src.services.v269_input_migration_service import uses_graph_contract, decision_messages
+        products = kwargs.get('products', args[1] if len(args)>1 else [])
+        if any(uses_graph_contract(p) for p in products):
+            return decision_messages(kwargs.get('data_version', args[0] if args else None), products)
         messages, payload = agent1_build(*args, **kwargs)
         return _append_system_contract(
             messages,
@@ -650,6 +657,11 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
         ), payload
 
     def agent1_normalize_v265(provider_payload, products, data_version):
+        from src.services.v269_input_migration_service import uses_graph_contract
+        if any(uses_graph_contract(p) for p in products):
+            if not all(uses_graph_contract(p) for p in products):
+                raise ValueError('v269_mixed_provider_contracts')
+            return agent1_core._normalize_exact_judgments(provider_payload, products, data_version)
         normalized, diagnostics = agent1_normalize(provider_payload, products, data_version)
         raw_map = _raw_by_execution(_dict(provider_payload), "judgments")
         for item in normalized:
@@ -672,6 +684,9 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
         source_ref,
         source_content_hash,
     ):
+        from src.services.v269_input_migration_service import uses_graph_contract, project_input
+        if uses_graph_contract(source):
+            return project_input('agent2', source, source_ref=source_ref, source_content_hash=source_content_hash)
         base = compile_agent2_v225(
             source,
             source_ref=source_ref,
@@ -720,6 +735,10 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
     agent2_normalize = agent2_core._normalize_draft
 
     def agent2_build_v265(*args, **kwargs):
+        from src.services.v269_input_migration_service import uses_graph_contract, provider_messages
+        packages = kwargs.get("packages", args[1] if len(args) > 1 else [])
+        if any(uses_graph_contract(p) for p in packages):
+            return provider_messages('agent2', kwargs.get("data_version", args[0] if args else None), packages)
         messages, payload = agent2_build(*args, **kwargs)
         return _append_system_contract(
             messages,
@@ -731,6 +750,9 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
         ), payload
 
     def agent2_normalize_v265(raw, package, proof=None):
+        from src.services.v269_input_migration_service import uses_graph_contract, normalize_output
+        if uses_graph_contract(package):
+            return normalize_output('agent2', raw, package, proof)
         normalized = agent2_normalize(raw, package, proof)
         normalized["v26ActionGraph"] = compile_action_graph(normalized, raw, package)
         return normalized
@@ -745,6 +767,9 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
     semantic_identity_v225 = agent2_runtime.build_agent2_semantic_identity
 
     def build_agent2_semantic_identity_v265(envelope, descriptor, package):
+        from src.services.v269_input_migration_service import uses_graph_contract, semantic_identity
+        if uses_graph_contract(package):
+            return semantic_identity('agent2', package, descriptor)
         result = dict(semantic_identity_v225(envelope, descriptor, package))
         graph = _dict(_dict(package).get("v26JudgementGraph"))
         graph_hash = _text(graph.get("graphHash"), 160)
@@ -781,6 +806,10 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
     agent3_normalize = agent3_core._normalize_sop
 
     def agent3_build_v265(*args, **kwargs):
+        from src.services.v269_input_migration_service import uses_graph_contract, provider_messages
+        packages = kwargs.get("packages", args[1] if len(args) > 1 else [])
+        if any(uses_graph_contract(p) for p in packages):
+            return provider_messages('agent3', kwargs.get("data_version", args[0] if args else None), packages)
         messages, payload = agent3_build(*args, **kwargs)
         return _append_system_contract(
             messages,
@@ -790,6 +819,9 @@ def install_v26_node_edge_lineage() -> Dict[str, Any]:
         ), payload
 
     def agent3_normalize_v265(raw, package, proof=None):
+        from src.services.v269_input_migration_service import uses_graph_contract, normalize_output
+        if uses_graph_contract(package):
+            return normalize_output('agent3', raw, package, proof)
         normalized = agent3_normalize(raw, package, proof)
         normalized["v26OperationGraph"] = compile_operation_graph(normalized, raw, package)
         if package.get("revisionScope"):

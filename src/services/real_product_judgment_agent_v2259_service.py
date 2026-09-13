@@ -361,6 +361,9 @@ def _normalize_judgments(
         # Exact execution identity is authoritative. Human-readable business identity
         # is projected from the input Artifact after the hash match, never used to
         # re-select a source item.
+        from src.services.v269_input_migration_service import uses_graph_contract
+        if uses_graph_contract(product) and set(raw) - {'itemExecutionId', 'inputContentHash', 'DecisionGraph'}:
+            raise ValueError('v269_output_field_authority')
         canonical = dict(raw)
         canonical.update(_business_identity(product))
         canonical.update(
@@ -377,7 +380,11 @@ def _normalize_judgments(
     for raw in accepted_raw:
         item_execution_id = _text(raw.get("itemExecutionId"), 120)
         product = expected[item_execution_id]
-        item, warning = _base_business_item(raw, product, data_version)
+        from src.services.v269_input_migration_service import uses_graph_contract, normalize_decision
+        if uses_graph_contract(product):
+            item, warning = normalize_decision(raw, product), {}
+        else:
+            item, warning = _base_business_item(raw, product, data_version)
         execution = _execution(product)
         item.update(
             itemExecutionId=item_execution_id,
@@ -434,6 +441,8 @@ def _normalize_judgments(
     }
     return normalized, diagnostics
 
+
+_normalize_exact_judgments = _normalize_judgments
 
 _source_maps = legacy._source_maps
 

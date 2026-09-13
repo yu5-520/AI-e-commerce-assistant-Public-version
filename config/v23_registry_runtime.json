@@ -62,9 +62,14 @@
       "implementationPaths": [
         "src/services/agent_input_contract_v2258_service.py",
         "src/services/agent_input_transport_v2258_service.py",
-        "src/services/hard_interface_bridge_v2301_service.py"
+        "src/services/agent_input_transport_v2257_service.py",
+        "src/services/hard_interface_bridge_v2301_service.py",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_fact_projection_service.py",
+        "src/services/v269_system_review_service.py"
       ],
-      "runner": "src.services.agent_input_transport_v2258_service:ensure_agent1_input_ref",
+      "runner": "src.services.v269_fact_projection_service:ensure_agent1_input_ref",
       "schemaIds": [
         "agent_input.agent1.v3"
       ]
@@ -77,7 +82,7 @@
           "agent1StageOwner": "src.services.agent_runtime_hard_interface_v2257_service",
           "inputContractOwner": "src.services.agent_input_contract_v2258_service",
           "inputResolverOwner": "src.services.agent_input_transport_v2258_service",
-          "inputTransportOwner": "src.services.agent_input_transport_v2258_service",
+          "inputTransportOwner": "src.services.v269_fact_projection_service",
           "stationWorkerFacade": "src.services.station_agent_worker_v2259_service",
           "tokenRuntimeOwner": "src.services.agent_token_runtime_hash_exact_v2259_service"
         },
@@ -114,12 +119,16 @@
         "src/services/agent_token_runtime_hash_exact_v2259_service.py",
         "src/services/real_product_judgment_agent_v2259_service.py",
         "src/services/agent_input_contract_v2258_service.py",
+        "src/services/agent_input_transport_v2257_service.py",
         "src/services/hash_directed_artifact_runtime_v2259_service.py",
         "src/services/agent_runtime_hard_interface_v2257_service.py",
         "src/services/agent_runtime_hard_interface_v22514_service.py",
         "src/services/agent_runtime_hard_interface_v22515_service.py",
         "src/services/station_agent_worker_v22515_service.py",
-        "src/services/station_agent_worker_v2259_service.py"
+        "src/services/station_agent_worker_v2259_service.py",
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_fact_projection_service.py"
       ],
       "runner": "src.services.agent_token_runtime_hash_exact_v2259_service:run_agent1_projected_inputs",
       "schemaIds": [
@@ -165,7 +174,11 @@
         "src/services/agent2_hash_proof_bridge_v22515_service.py",
         "src/services/hash_directed_artifact_runtime_v2259_service.py",
         "src/services/runtime_contract_guard_v1_service.py",
-        "src/services/v25_agent_input_ingress_service.py"
+        "src/services/v25_agent_input_ingress_service.py",
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_pipeline_orchestration_service.py",
+        "src/services/station_agent_worker_v22515_service.py"
       ],
       "runner": "src.services.agent_runtime_hard_interface_v22515_service:run_agent2_microbatch_hard",
       "schemaIds": [
@@ -196,7 +209,9 @@
         "src/services/agent3_system_constraint_v23215_service.py",
         "src/services/agent_input_contract_v225_service.py",
         "src/services/agent_input_transport_v225_service.py",
-        "src/services/company_sop_rag_context_v225_service.py"
+        "src/services/company_sop_rag_context_v225_service.py",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_pipeline_downstream_service.py"
       ],
       "runner": "src.services.agent3_system_constraint_v23215_service:ensure_agent3_sop_input_ref_v23216",
       "schemaIds": [
@@ -243,7 +258,11 @@
         "src/services/hash_directed_artifact_runtime_v2259_service.py",
         "src/services/pipeline_agent3_sop_v225_service.py",
         "src/services/v26_sop_evidence_service.py",
-        "src/services/v26_revision_acceptance_service.py"
+        "src/services/v26_revision_acceptance_service.py",
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_pipeline_downstream_service.py",
+        "src/services/station_agent_worker_v22515_service.py"
       ],
       "runner": "src.services.pipeline_agent3_sop_v225_service:run_agent3_sop_microbatch_v225",
       "schemaIds": [
@@ -287,7 +306,9 @@
         "src/services/v26_sop_evidence_service.py",
         "src/services/v26_revision_acceptance_service.py",
         "src/services/task_evidence_canonical_history_install_v1_service.py",
-        "web_demo/sop-ui.css"
+        "web_demo/sop-ui.css",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_semantic_graph_service.py"
       ],
       "runner": "src.services.frontend_view_artifact_v2259_service:materialize_frontend_views_v2259",
       "schemaIds": [
@@ -317,7 +338,12 @@
         "release/release-policy.json",
         "config/v23_registry_runtime.json",
         "config/runtime_contract_lineage_registry_v1.json",
-        "config/v26_field_authority_contract.json"
+        "config/v26_field_authority_contract.json",
+        "java-control-plane/src/main/java/com/zcentury/v24/ProductionAuthorityMain.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/ReviewContractAuthority.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/SystemReviewAuthority.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/LocalSubgraphRevisionAuthority.java",
+        "java-control-plane/src/main/java/com/zcentury/v24/V269SystemReviewEndpoint.java"
       ],
       "runner": "src.services.release_identity_service:assert_release_identity",
       "schemaIds": []
@@ -337,7 +363,11 @@
         "src/services/pipeline_task_mapping_v225_service.py",
         "src/services/pipeline_artifact_contract_service.py",
         "src/services/v26_sop_evidence_service.py",
-        "src/services/v26_revision_acceptance_service.py"
+        "src/services/v26_revision_acceptance_service.py",
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_pipeline_downstream_service.py",
+        "src/services/station_agent_worker_v22515_service.py"
       ],
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_mapping_microbatch_v225",
       "schemaIds": []
@@ -352,11 +382,19 @@
         "src/services/pipeline_task_mapping_v225_service.py",
         "src/services/task_pool_admission_core_v20_service.py",
         "src/services/lifecycle_task_v183_service.py",
+        "src/services/task_lifecycle_state_machine_service.py",
         "src/services/task_snapshot_station_service.py",
         "src/services/pipeline_artifact_contract_service.py",
         "src/services/task_detail_snapshot_v2024_service.py",
         "src/services/v26_sop_evidence_service.py",
-        "src/services/task_evidence_service.py"
+        "src/services/task_evidence_service.py",
+        "src/services/action_authority_v214_service.py",
+        "src/services/v269_input_migration_service.py",
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_system_review_service.py",
+        "src/services/v269_production_admission_service.py",
+        "src/services/v269_pipeline_downstream_service.py",
+        "src/services/station_agent_worker_v22515_service.py"
       ],
       "runner": "src.services.pipeline_task_mapping_v225_service:run_task_pool_admission_microbatch_v225",
       "schemaIds": []

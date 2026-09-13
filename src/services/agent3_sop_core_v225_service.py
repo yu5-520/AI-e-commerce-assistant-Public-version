@@ -76,6 +76,14 @@ def _build_messages(
     data_version: str | None,
     packages: List[Dict[str, Any]],
 ) -> Tuple[List[Dict[str, str]], Dict[str, Any]]:
+    from src.services.v269_input_migration_service import provider_messages, uses_graph_contract
+
+    graph_flags = [uses_graph_contract(package) for package in packages]
+    if any(graph_flags):
+        if not all(graph_flags):
+            raise ValueError("mixed_provider_contracts")
+        return provider_messages("agent3", data_version, packages)
+
     constrained_packages = [compile_agent3_provider_package(package) for package in packages]
     payload = {
         "dataVersion": data_version,
@@ -432,6 +440,11 @@ def _normalize_sop(
     package: Dict[str, Any],
     proof: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
+    from src.services.v269_input_migration_service import normalize_output, uses_graph_contract
+
+    if uses_graph_contract(package):
+        return normalize_output("agent3", raw, package, proof)
+
     draft = _dict(package.get("agent2ActionDraft"))
     family = _text(
         package.get("lockedActionFamily")
