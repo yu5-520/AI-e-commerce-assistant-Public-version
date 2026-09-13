@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.13.10.A-production-admission-draft",
+  "version": "2026.09.13.11.A-agent1-graph-cutover-draft",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
-      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review; V26.5 upgrades the business graph to addressable Judgement/Action/Operation nodes and system-generated lineage edges; V26.6 uses those immutable node identities after review to compile a deterministic local revision scope. Structured breached metrics map to exact Action nodes, downstream Action/Operation dependencies are reopened, unrelated successful nodes remain preserved, and revisionHash becomes the Agent1 queue identity. Legacy or unmapped review criteria fail closed to full-graph compatibility rather than pretending to localize. Models may read revision.* but may never author nodeHash, edgeHash, revisionHash, SystemStage or call-graph authority. FACT and DERIVED remain system-owned; Agent1 owns judgement.*, Agent2 owns plan.*, Agent3 owns operation.* and dynamic operation_stage.*; java-control-plane owns revision.*. Existing INFORMATION, INVOCATION, TEMPORAL and MUTATION roots are reused; no new authority domain is created. V26.7 closeout fixes finite numeric values, exact evidence references, graph budgets/cycles, cache identity, durable lifecycle locking, compiled review conditions and complete revision coverage; adds read-only SOP evidence projection and task-scoped V25 audit reads. System Agent topology and authority roots stay fixed. V26.9.A cuts over to one DecisionGraph -> ActionAdmission -> PlanGraph -> OperationGraph business interpretation and extends the existing task-pool authority path with an idempotent whole-plan reservation transaction; it does not create a new authority root or parallel Agent runner.",
+      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2 moves live Agent business semantics onto authority-bearing JudgementGraph, ActionGraph and OperationGraph without changing the sealed system Agent topology; V26.3 extends deterministic INVOCATION authority upstream so product lifecycle and statistical volatility decide whether an observation may enter QueueAuthority/Agent1 at all; V26.4 extends that same product lifecycle downstream through immutable review-contract freezing and deterministic System Review; V26.5 upgrades the business graph to addressable Judgement/Action/Operation nodes and system-generated lineage edges; V26.6 uses those immutable node identities after review to compile a deterministic local revision scope. V26.7 closes finite numeric/evidence/cache/lifecycle gaps; V26.8 extends evidence continuity. V26.9.A cuts over to one DecisionGraph -> ActionAdmission -> PlanGraph -> OperationGraph business interpretation, adds deterministic BusinessFacts/fact-ledger projection at the existing Agent1 seam, removes old execution-lock reads for V26.9 Agent1 outputs, and extends the existing task-pool authority path with an idempotent whole-plan reservation transaction. Historical V22 rows are parsed under their historical contract only; they are never a V26.9 semantic fallback. No new authority root or parallel Agent worker is introduced.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -77,8 +77,12 @@
         "src/services/agent_hash_routed_rag_bridge_v1_service.py",
         "src/services/agent_input_contract_v2258_service.py",
         "src/services/agent_input_transport_v2258_service.py",
+        "src/services/agent_input_transport_v2257_service.py",
         "src/services/agent_token_runtime_hash_exact_v2259_service.py",
         "src/services/real_product_judgment_agent_v2259_service.py",
+        "src/services/agent_runtime_hard_interface_v2257_service.py",
+        "src/services/agent_runtime_hard_interface_v22515_service.py",
+        "src/services/v269_fact_projection_service.py",
         "tests/test_v22_4_v269_java_graph_review.py",
         "src/services/action_authority_v214_service.py",
         "tests/test_v22_4_v269_graph_authority.py",
