@@ -1,6 +1,6 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.A-2026-09-13-finalize-01",
+  "requestId": "V26.9.A-2026-09-13-finalize-02",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
@@ -24,6 +24,17 @@
       ],
       "evidencePaths": [
         "scripts/run_competition_three_report_e2e_v269.py"
+      ]
+    },
+    {
+      "targetId": "three-report-gate-schema-consumer",
+      "failureClass": "ATTESTATION_SCHEMA_CONSUMER_STALE",
+      "registryModules": [
+        "task_mapping",
+        "task_pool"
+      ],
+      "evidencePaths": [
+        ".github/workflows/v269-a-three-report-candidate.yml"
       ]
     }
   ]
