@@ -5,10 +5,15 @@ is converted into the canonical Agent1 input contract plus a small typed fact le
 Candidate execution is explicit until the registered rollout status becomes active.
 Historical V22 rows are still read by their historical projection while V26.9 rows have
 one graph semantic interpretation and never fall back to old primary-action fields.
+
+A later immutable signal Artifact may also be consumed as TARGET evidence for an
+already-executed V26.9 task. That review happens before current Agent1 projection and
+never treats a cache replay of an older Artifact as a new observation.
 """
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timezone
 import math
 import os
 from typing import Any, Dict
@@ -110,6 +115,20 @@ def empty_knowledge_context() -> Dict[str, Any]:
     return {"headHash": graphs.digest(body), **body}
 
 
+def _artifact_observed_at_millis(artifact_id: str) -> int | None:
+    try:
+        metadata = inspect_artifact(artifact_id)
+        raw = metadata.get("created_at") or metadata.get("createdAt")
+        if not raw:
+            return None
+        parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return int(parsed.timestamp() * 1000)
+    except Exception:
+        return None
+
+
 def compile_candidate_source(
     source: Dict[str, Any],
     *,
@@ -165,6 +184,7 @@ def compile_candidate_source(
         "factValues": fact_values,
         "sourceArtifactRef": source_ref,
         "sourceContentHash": source_content_hash,
+        "sourceObservedAtMillis": _artifact_observed_at_millis(source_ref),
     }
     business_facts = {k: v for k, v in business_facts.items() if v not in (None, "", [], {})}
     package_id = str(
@@ -225,12 +245,6 @@ def ensure_candidate_agent1_input_ref(
     source_ref = str(artifact_refs_from_row(row).get("signalRef") or "")
     graphs.require(source_ref.startswith("ART-"), "agent1_source_signal_ref_missing")
     source_hash = _source_hash(source_ref)
-    existing = _existing_candidate(row, source_ref=source_ref, source_hash=source_hash)
-    if existing:
-        attach_pipeline_artifact_ref(
-            str(row.get("item_id")), "agent1InputRef", existing, make_current=True
-        )
-        return existing
     source = resolve_artifact(source_ref)
     graphs.require(isinstance(source, dict) and bool(source), "agent1_source_signal_invalid")
     canonical = compile_candidate_source(
@@ -238,6 +252,31 @@ def ensure_candidate_agent1_input_ref(
         source_ref=source_ref,
         source_content_hash=source_hash,
     )
+
+    from src.services.v269_system_review_service import observe_candidate_facts
+    review = observe_candidate_facts(
+        canonical,
+        source_content_hash=source_hash,
+        observed_at_millis=(canonical.get("BusinessFacts") or {}).get("sourceObservedAtMillis"),
+    )
+    revision = review.get("revisionDirective") if isinstance(review, dict) else None
+    if review.get("status") == "ADJUSTMENT_REQUIRED" and isinstance(revision, dict):
+        parent = review.get("parentDecisionGraph")
+        graphs.require(isinstance(parent, dict), "review_revision_parent_missing")
+        canonical["revisionScope"] = deepcopy(revision)
+        canonical["parentGraph"] = deepcopy(parent)
+
+    # A revision-bearing input is a new semantic input even when the underlying
+    # BusinessFacts Artifact was already projected before execution completed.
+    existing = None if "revisionScope" in canonical else _existing_candidate(
+        row, source_ref=source_ref, source_hash=source_hash
+    )
+    if existing:
+        attach_pipeline_artifact_ref(
+            str(row.get("item_id")), "agent1InputRef", existing, make_current=True
+        )
+        return existing
+
     envelope = migration.project_input(
         "agent1",
         canonical,
@@ -259,7 +298,10 @@ def ensure_candidate_agent1_input_ref(
             "semanticContractVersion": VERSION,
             "sourceArtifactRef": source_ref,
             "sourceContentHash": source_hash,
+            "sourceObservedAtMillis": (canonical.get("BusinessFacts") or {}).get("sourceObservedAtMillis"),
             "projectedContentHash": envelope.get("projectedContentHash"),
+            "systemReviewStatus": review.get("status") if isinstance(review, dict) else None,
+            "systemReviewRevisionHash": (revision or {}).get("revisionHash") if isinstance(revision, dict) else None,
             "candidateRuntime": graphs.contract().get("rolloutStatus") != "active",
             "fallbackAllowed": False,
         },
