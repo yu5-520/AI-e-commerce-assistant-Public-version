@@ -1,4 +1,6 @@
+import json
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
@@ -116,3 +118,37 @@ def test_locator_rejects_policy_forbidden_module():
     bad["targets"][0]["registryModules"] = ["frontend_view"]
     with pytest.raises(UpdateLocatorError, match="REGISTRY_MODULE_NOT_ALLOWED"):
         compile_plan(registry=registry(), policy=policy(), request=bad)
+
+
+def test_current_update_request_drives_plan_without_previous_request_specific_paths():
+    current_registry = json.loads(Path("config/v23_registry_runtime.json").read_text(encoding="utf-8"))
+    current_policy = json.loads(Path("governance/v26-field-authority-update-policy.json").read_text(encoding="utf-8"))
+    current_request = json.loads(Path("governance/update-requests/v269-a-current.json").read_text(encoding="utf-8"))
+
+    plan = compile_plan(
+        registry=current_registry,
+        policy=current_policy,
+        request=current_request,
+    )
+
+    expected_modules = sorted({
+        module_id
+        for target in current_request["targets"]
+        for module_id in target["registryModules"]
+    })
+    expected_evidence = sorted({
+        path
+        for target in current_request["targets"]
+        for path in target.get("evidencePaths", [])
+    })
+
+    assert sorted(item["moduleId"] for item in plan["selectedModules"]) == expected_modules
+    assert plan["evidencePaths"] == expected_evidence
+    assert set(expected_evidence).issubset(set(plan["editablePaths"]))
+    assert not (set(plan["editablePaths"]) & set(plan["readOnlyContextPaths"]))
+    assert plan["requestId"] == current_request["requestId"]
+    assert plan["policyProfile"] == current_request["policyProfile"]
+    assert plan["planHash"].startswith("sha256:")
+
+    assert "scripts/run_competition_three_report_e2e_v269.py" not in expected_evidence
+    assert "tests/test_v22_4_v269_agent3_core_bridge.py" not in expected_evidence
