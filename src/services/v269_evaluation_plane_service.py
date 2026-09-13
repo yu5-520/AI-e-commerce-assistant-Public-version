@@ -304,6 +304,7 @@ def record_system_review_candidate(
         review_receipt=review_receipt,
     )
 
+    decision_ids: list[str] = []
     strategy_ids: list[str] = []
     operation_ids: list[str] = []
     vector_hashes: list[str] = []
@@ -324,12 +325,59 @@ def record_system_review_candidate(
             expected = (node.get("expectedOutcome") or {}).get(metric) or {}
             if type(expected.get("expectedValue")) in (int, float) and type(observation.get("value")) in (int, float):
                 errors.append(abs(float(expected["expectedValue"]) - float(observation["value"])))
+        category = graphs.contract()["actionFamilyDomains"].get(action_family)
+        judgement_refs = sorted(set(str(ref) for ref in decision.get("judgementRefs") or [] if str(ref)))
+        judgement_reasoning = [
+            str((decision_nodes.get(ref) or {}).get("reasoning") or "").strip()
+            for ref in judgement_refs
+            if str((decision_nodes.get(ref) or {}).get("reasoning") or "").strip()
+        ]
+        pattern = json.dumps(
+            {
+                "actionType": action_type,
+                "actionFamily": action_family,
+                "judgementRefs": judgement_refs,
+                "judgementReasoning": judgement_reasoning,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        for metric in node.get("affectedMetrics") or []:
+            baseline = (node.get("baseline") or {}).get(metric) or {}
+            observed = target_facts.get(metric) if isinstance(target_facts.get(metric), dict) else {}
+            baseline_value = baseline.get("value")
+            observed_value = observed.get("value")
+            direction = None
+            if type(baseline_value) in (int, float) and type(observed_value) in (int, float):
+                direction = "up" if observed_value > baseline_value else "down" if observed_value < baseline_value else "flat"
+            decision_experience = store.record_experience(
+                source=source,
+                domain="decision_patterns",
+                applicability={
+                    "actionFamily": action_family,
+                    "reviewStatus": review_status,
+                    "affectedMetric": metric,
+                    "judgementRefs": judgement_refs,
+                },
+                payload={
+                    "decisionActionKey": node["decisionActionRef"],
+                    "conditionKey": None,
+                    "metric": metric,
+                    "direction": direction,
+                    "category": category,
+                    "decisionPattern": pattern,
+                    "sampleCount": 1 if observed else 0,
+                },
+            )
+            decision_ids.append(decision_experience["experienceId"])
+
         strategy_payload = {
             "decisionActionKey": node["decisionActionRef"],
             "decisionAction": {"actionType": action_type, "actionFamily": action_family},
             "planActionKey": plan_key,
             "planAction": {"actionFamily": action_family},
-            "category": graphs.contract()["actionFamilyDomains"].get(action_family),
+            "category": category,
             "strategyType": action_family,
             "baseline": deepcopy(node.get("baseline") or {}),
             "expected": deepcopy(node.get("expectedOutcome") or {}),
@@ -406,6 +454,7 @@ def record_system_review_candidate(
         "version": VERSION,
         "sourceHash": store.digest(store._normalize_source(source)),
         "reviewStatus": review_status,
+        "decisionExperienceIds": sorted(set(decision_ids)),
         "strategyExperienceIds": sorted(set(strategy_ids)),
         "operationExperienceIds": sorted(set(operation_ids)),
         "evaluationVectorHashes": sorted(set(vector_hashes)),
