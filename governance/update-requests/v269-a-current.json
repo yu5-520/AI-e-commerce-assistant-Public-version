@@ -1,19 +1,44 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.B-2026-09-13-bootstrap-02",
+  "requestId": "V26.9.A-2026-09-13-production-activation-02",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
-      "targetId": "v269b-generic-current-request-entrypoint",
-      "failureClass": "UPDATE_LOCATOR_CURRENT_REQUEST_PATH_BOUND_TO_V269_A",
+      "targetId": "v269-business-semantic-production-activation",
+      "failureClass": "CANDIDATE_VALIDATED_BUT_PRODUCTION_ROLLOUT_NOT_ACTIVATED",
+      "registryModules": [
+        "release_governance",
+        "agent1_runtime",
+        "agent2_runtime",
+        "agent3_input_projection",
+        "agent3_runtime",
+        "task_mapping",
+        "task_pool"
+      ],
+      "evidencePaths": [
+        "config/v26_field_authority_contract.json"
+      ]
+    },
+    {
+      "targetId": "v269-production-activation-evidence",
+      "failureClass": "PRODUCTION_SWITCH_REQUIRES_SEPARATE_VERIFIED_RECEIPT",
+      "registryModules": [
+        "release_governance",
+        "task_pool"
+      ],
+      "evidencePaths": [
+        "docs/V26_9_A_SEMANTIC_CUTOVER.md"
+      ]
+    },
+    {
+      "targetId": "update-locator-generic-plan-invariants",
+      "failureClass": "LOCATOR_WORKFLOW_ASSERTS_PREVIOUS_REQUEST_SPECIFIC_PATHS",
       "registryModules": [
         "release_governance"
       ],
       "evidencePaths": [
         ".github/workflows/v26-update-locator.yml",
-        "governance/update-requests/v269-current.json",
-        "governance/v26-field-authority-update-policy.json",
-        "config/v23_registry_runtime.json"
+        "tests/test_v26_update_locator.py"
       ]
     }
   ]
