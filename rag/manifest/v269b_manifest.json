@@ -1,7 +1,7 @@
 {
   "schema": "experience.store.manifest.v269b.v1",
   "version": "26.9.B.1",
-  "rolloutStatus": "candidate_not_activated",
+  "rolloutStatus": "active",
   "candidateRuntimeEnv": "V269B_CANDIDATE_RUNTIME",
   "database": {
     "engine": "sqlite",

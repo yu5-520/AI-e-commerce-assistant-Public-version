@@ -1,74 +1,74 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.B-2026-09-13-runtime-integration-08",
+  "requestId": "V26.9.B-2026-09-13-production-activation-04",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
-      "targetId": "v269b-system-review-to-experience-evaluation",
-      "failureClass": "SETTLED_REVIEW_NOT_RECORDED_AS_CANDIDATE_EXPERIENCE",
+      "targetId": "v269b-production-runtime-activation",
+      "failureClass": "B_CANDIDATE_VALIDATED_BUT_PRODUCTION_RUNTIME_NOT_ACTIVATED",
       "registryModules": [
-        "task_pool",
+        "release_governance",
         "experience_store",
-        "evaluation_plane"
-      ],
-      "evidencePaths": [
-        "src/services/v269_system_review_service.py",
-        "tests/test_v269b_evaluation_plane.py"
-      ]
-    },
-    {
-      "targetId": "v269b-sop-evaluation-evidence",
-      "failureClass": "SOP_EVIDENCE_DOES_NOT_EXPOSE_VERSIONED_EVALUATION_VECTOR",
-      "registryModules": [
-        "frontend_view",
         "evaluation_plane",
-        "experience_store"
-      ],
-      "evidencePaths": [
-        "src/services/v269_evaluation_plane_service.py",
-        "src/api/routes/frontend_views.py",
-        "tests/test_v269b_evaluation_plane.py"
-      ]
-    },
-    {
-      "targetId": "v269b-agent-official-retrieval-bridge",
-      "failureClass": "AGENT_INPUTS_NOT_BOUND_TO_OFFICIAL_EXPERIENCE_RECEIPTS",
-      "registryModules": [
+        "experience_retrieval",
+        "task_pool",
         "agent1_input_projection",
         "agent2_runtime",
         "agent3_input_projection",
+        "frontend_view"
+      ],
+      "evidencePaths": [
+        "rag/manifest/v269b_manifest.json",
+        "config/v23_registry_runtime.json"
+      ]
+    },
+    {
+      "targetId": "v269b-production-activation-evidence",
+      "failureClass": "B_PRODUCTION_SWITCH_REQUIRES_SEPARATE_VERIFIED_RECEIPT",
+      "registryModules": [
+        "release_governance",
+        "experience_store",
+        "evaluation_plane",
         "experience_retrieval"
       ],
       "evidencePaths": [
-        "src/services/v269_fact_projection_service.py",
-        "src/services/v269_pipeline_orchestration_service.py",
-        "src/services/v269_pipeline_downstream_service.py",
+        "docs/V26_9_B_EXPERIENCE_EVALUATION.md"
+      ]
+    },
+    {
+      "targetId": "v269b-field-authority-required-module-invariant",
+      "failureClass": "FIELD_AUTHORITY_WORKFLOW_HARDCODES_PRE_B_REQUIRED_MODULE_COUNT",
+      "registryModules": [
+        "release_governance"
+      ],
+      "evidencePaths": [
+        ".github/workflows/v26-field-authority-phase1.yml"
+      ]
+    },
+    {
+      "targetId": "v269b-active-retrieval-test-contract",
+      "failureClass": "RETRIEVAL_TEST_ASSUMES_CANDIDATE_ENV_CAN_DISABLE_ACTIVE_MANIFEST",
+      "registryModules": [
+        "experience_retrieval",
+        "agent1_input_projection"
+      ],
+      "evidencePaths": [
         "tests/test_v269b_experience_retrieval.py"
       ]
     },
     {
-      "targetId": "v269b-runtime-integration-evidence",
-      "failureClass": "B_RUNTIME_INTEGRATION_REQUIRES_CANDIDATE_GATE_EVIDENCE",
+      "targetId": "v269b-active-context-idempotence",
+      "failureClass": "ACTIVE_EXPERIENCE_CONTEXT_REPROJECTION_APPENDS_DUPLICATE_RECEIPTS_AND_BREAKS_SEMANTIC_REPLAY",
       "registryModules": [
-        "release_governance",
-        "experience_store",
-        "evaluation_plane",
-        "experience_retrieval"
+        "experience_retrieval",
+        "agent1_input_projection",
+        "agent2_runtime",
+        "agent3_input_projection"
       ],
       "evidencePaths": [
-        "docs/V26_9_B_EXPERIENCE_EVALUATION.md",
-        ".github/workflows/v269-b-experience-evaluation.yml"
-      ]
-    },
-    {
-      "targetId": "v269b-lineage-package-initializer-membership",
-      "failureClass": "REGISTERED_EXPERIENCE_STORE_IMPORT_ADDS_UNREGISTERED_PACKAGE_INITIALIZER_TO_RUNTIME_LINEAGE",
-      "registryModules": [
-        "release_governance",
-        "experience_store"
-      ],
-      "evidencePaths": [
-        "governance/v26-field-authority-update-policy.json"
+        "src/services/v269_experience_retrieval_service.py",
+        "tests/test_v269b_experience_retrieval.py",
+        "tests/test_v22_4_v269_input_migration.py"
       ]
     }
   ]
