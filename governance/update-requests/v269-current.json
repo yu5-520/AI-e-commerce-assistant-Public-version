@@ -1,6 +1,6 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.B-2026-09-13-runtime-integration-07",
+  "requestId": "V26.9.B-2026-09-13-runtime-integration-08",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
@@ -25,8 +25,9 @@
         "experience_store"
       ],
       "evidencePaths": [
-        "src/services/v26_sop_evidence_service.py",
-        "tests/test_v269b_experience_store.py"
+        "src/services/v269_evaluation_plane_service.py",
+        "src/api/routes/frontend_views.py",
+        "tests/test_v269b_evaluation_plane.py"
       ]
     },
     {
