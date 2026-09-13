@@ -1,30 +1,11 @@
 {
   "schema": "z.update_request.v1",
-  "requestId": "V26.9.B-2026-09-13-production-activation-04",
+  "requestId": "V26.9.C-2026-09-13-candidate-bootstrap-01",
   "policyProfile": "v26_field_authority",
   "targets": [
     {
-      "targetId": "v269b-production-runtime-activation",
-      "failureClass": "B_CANDIDATE_VALIDATED_BUT_PRODUCTION_RUNTIME_NOT_ACTIVATED",
-      "registryModules": [
-        "release_governance",
-        "experience_store",
-        "evaluation_plane",
-        "experience_retrieval",
-        "task_pool",
-        "agent1_input_projection",
-        "agent2_runtime",
-        "agent3_input_projection",
-        "frontend_view"
-      ],
-      "evidencePaths": [
-        "rag/manifest/v269b_manifest.json",
-        "config/v23_registry_runtime.json"
-      ]
-    },
-    {
-      "targetId": "v269b-production-activation-evidence",
-      "failureClass": "B_PRODUCTION_SWITCH_REQUIRES_SEPARATE_VERIFIED_RECEIPT",
+      "targetId": "v269c-promotion-governance-bootstrap",
+      "failureClass": "C_PROMOTION_GATE_AND_KNOWLEDGE_HEAD_MUTATION_NOT_YET_REGISTERED_OR_POLICY_AUTHORIZED",
       "registryModules": [
         "release_governance",
         "experience_store",
@@ -32,43 +13,45 @@
         "experience_retrieval"
       ],
       "evidencePaths": [
-        "docs/V26_9_B_EXPERIENCE_EVALUATION.md"
+        "config/v23_registry_runtime.json",
+        "governance/v26-field-authority-update-policy.json",
+        "rag/manifest/v269b_manifest.json"
       ]
     },
     {
-      "targetId": "v269b-field-authority-required-module-invariant",
-      "failureClass": "FIELD_AUTHORITY_WORKFLOW_HARDCODES_PRE_B_REQUIRED_MODULE_COUNT",
+      "targetId": "v269c-feedback-lifecycle-boundary",
+      "failureClass": "C_REQUIRES_REVIEWED_PROMOTION_WITHDRAWAL_AND_DOMAIN_HEAD_VERSIONING_WITHOUT_AUTO_PROMOTION",
       "registryModules": [
-        "release_governance"
-      ],
-      "evidencePaths": [
-        ".github/workflows/v26-field-authority-phase1.yml"
-      ]
-    },
-    {
-      "targetId": "v269b-active-retrieval-test-contract",
-      "failureClass": "RETRIEVAL_TEST_ASSUMES_CANDIDATE_ENV_CAN_DISABLE_ACTIVE_MANIFEST",
-      "registryModules": [
+        "experience_store",
+        "evaluation_plane",
         "experience_retrieval",
-        "agent1_input_projection"
+        "task_pool"
       ],
       "evidencePaths": [
-        "tests/test_v269b_experience_retrieval.py"
-      ]
-    },
-    {
-      "targetId": "v269b-active-context-idempotence",
-      "failureClass": "ACTIVE_EXPERIENCE_CONTEXT_REPROJECTION_APPENDS_DUPLICATE_RECEIPTS_AND_BREAKS_SEMANTIC_REPLAY",
-      "registryModules": [
-        "experience_retrieval",
-        "agent1_input_projection",
-        "agent2_runtime",
-        "agent3_input_projection"
-      ],
-      "evidencePaths": [
+        "src/services/v269_experience_store_service.py",
+        "src/services/v269_evaluation_plane_service.py",
         "src/services/v269_experience_retrieval_service.py",
-        "tests/test_v269b_experience_retrieval.py",
-        "tests/test_v22_4_v269_input_migration.py"
+        "config/v269b_evaluation_contract.json"
+      ]
+    },
+    {
+      "targetId": "v269c-legacy-projection-cleanup",
+      "failureClass": "C_FINAL_LEGACY_PROJECTION_CLEANUP_REMAINS_AFTER_CANONICAL_GRAPH_CONSUMER_MIGRATION",
+      "registryModules": [
+        "agent1_input_projection",
+        "agent1_runtime",
+        "agent2_runtime",
+        "agent3_input_projection",
+        "task_mapping",
+        "task_pool",
+        "frontend_view"
+      ],
+      "evidencePaths": [
+        "config/v26_field_authority_contract.json",
+        "config/v23_registry_runtime.json",
+        "src/services/v269_semantic_graph_service.py",
+        "src/services/v269_input_migration_service.py",
+        "src/api/routes/frontend_views.py"
       ]
     }
   ]
