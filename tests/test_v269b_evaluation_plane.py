@@ -4,6 +4,7 @@ import pytest
 from src.repositories import sqlite_repository as repo
 from src.services import v269_evaluation_plane_service as evaluation
 from src.services import v269_experience_store_service as store
+from src.services import v269_semantic_graph_service as graphs
 from src.services import v269_system_review_service as system_review
 
 
@@ -33,6 +34,100 @@ def runtime_source():
 
 def metric_map(vector):
     return {item["metricId"]: item for item in vector["metrics"]}
+
+
+def compiled_review_package():
+    evidence = {"fact:metric:roas"}
+    decision = graphs.compile_graph(
+        "DecisionGraph",
+        {
+            "nodes": [
+                {
+                    "nodeKey": "J1",
+                    "kind": "JudgementNode",
+                    "reasoning": "ROAS below reviewed operating range",
+                    "evidenceRefs": ["fact:metric:roas"],
+                    "confidence": 0.9,
+                    "metric": "roas",
+                    "direction": "down",
+                    "category": "traffic",
+                },
+                {
+                    "nodeKey": "A1",
+                    "kind": "DecisionActionNode",
+                    "judgementRefs": ["J1"],
+                    "actionType": "guard",
+                    "actionFamily": "roas_guard",
+                    "priority": 0.8,
+                    "confidence": 0.85,
+                    "evidenceRefs": ["fact:metric:roas"],
+                },
+            ],
+            "edges": [{"sourceRef": "J1", "targetRef": "A1", "relation": "supports"}],
+        },
+        evidence_refs=evidence,
+    )
+    facts = {"fact:metric:roas": {"value": 2.0, "unit": "ratio"}}
+    plan = graphs.compile_graph(
+        "PlanGraph",
+        {
+            "nodes": [
+                {
+                    "nodeKey": "P1",
+                    "kind": "PlanActionNode",
+                    "decisionActionRef": "A1",
+                    "judgementRefs": ["J1"],
+                    "parameters": {
+                        "operationPlan": {
+                            "operations": [{"operationType": "target_roas_update"}]
+                        }
+                    },
+                    "baseline": {"roas": {"value": 2.0, "unit": "ratio", "sourceRef": "fact:metric:roas"}},
+                    "expectedOutcome": {"roas": {"expectedValue": 2.4, "expectedRange": [2.2, 2.6], "expectedDelta": 0.4}},
+                    "reviewWindow": {"durationSeconds": 3600},
+                    "guard": {"stop": {"metric": "roas", "comparator": "LTE", "value": 1.5}},
+                    "riskBoundary": [{"metric": "roas", "comparator": "LTE", "value": 1.2}],
+                    "acceptanceCriteria": [{"metric": "roas", "constraint": "expectedRange"}],
+                    "affectedMetrics": ["roas"],
+                }
+            ],
+            "edges": [],
+        },
+        upstream=decision,
+        evidence_refs=evidence,
+        fact_values=facts,
+    )
+    operation = graphs.compile_graph(
+        "OperationGraph",
+        {
+            "nodes": [
+                {
+                    "nodeKey": "O1",
+                    "kind": "OperationStage",
+                    "planActionRefs": ["P1"],
+                    "instruction": "Apply the reviewed ROAS guard plan",
+                    "owner": "operator",
+                    "executionObject": "ad_plan",
+                    "sequence": 0,
+                    "rollback": "Restore the previous target when the authorized stop condition is met",
+                    "stopConditionRefs": ["P1:stop"],
+                    "acceptanceActions": ["verify target and evidence"],
+                }
+            ],
+            "edges": [],
+        },
+        upstream=plan,
+    )
+    return {
+        "taskId": "TASK-REVIEW-B",
+        "storeId": "store-1",
+        "productId": "product-1",
+        "semanticContractVersion": "26.9.0",
+        "DecisionGraph": decision,
+        "PlanGraph": plan,
+        "OperationGraph": operation,
+        "evidenceRefs": ["fact:metric:roas"],
+    }
 
 
 def test_unlabelled_agent1_accuracy_stays_explicitly_missing(isolated_db):
@@ -116,6 +211,31 @@ def test_persisted_vector_writes_candidate_evaluation_records_only(isolated_db):
             ).fetchall()
         }
     assert statuses == {"candidate"}
+
+
+def test_system_review_candidate_persists_strategy_operation_and_evaluation_without_promotion(isolated_db):
+    package = compiled_review_package()
+    receipt = evaluation.record_system_review_candidate(
+        package,
+        target_facts={"roas": {"value": 2.35, "unit": "ratio", "sourceRef": "fact:target:roas"}},
+        target_source_content_hash="sha256:" + "a" * 64,
+        review_receipt={"receiptHash": "sha256:" + "b" * 64},
+        review_status="SETTLED",
+    )
+    assert receipt["strategyExperienceIds"]
+    assert receipt["operationExperienceIds"]
+    assert receipt["evaluationVectorHashes"]
+    assert receipt["evaluationPersistenceReceipts"]
+    assert receipt["promotionPerformed"] is False
+    assert receipt["knowledgeHeadMutated"] is False
+    with repo.connect() as conn:
+        domains = {
+            row["domain"]
+            for row in conn.execute(
+                "SELECT domain FROM v269b_experience_items WHERE lifecycle_status='candidate'"
+            ).fetchall()
+        }
+    assert {"strategy_outcomes", "operation_patterns", "evaluation_results"} <= domains
 
 
 def test_sop_evaluation_evidence_reads_persisted_vector_without_recompute_or_write(isolated_db):
