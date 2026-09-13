@@ -117,7 +117,10 @@ def provider_messages(agent, data_version, packages):
     responsibility=(
         '把系统 partition.actionKeys 中的每个 DecisionAction 恰好方案化一次。不得新增、替换或遗漏动作；'
         'decisionActionRef 和 judgementRefs 必须引用原图。baseline 的数值和单位必须来自 factValues，'
-        'expectedDelta = expectedValue - baseline.value。参数、预算、预期区间、复核窗口、保护条件和验收标准由本层给出。'
+        'expectedDelta = expectedValue - baseline.value。参数、预算、预期区间、复核窗口和验收标准由本层给出。'
+        'guard 的每个值以及 riskBoundary 的每一项只能使用 {metric, comparator, value}，其中 comparator 仅允许 GTE 或 LTE，'
+        'metric 必须属于 affectedMetrics，value 必须是有限数值；acceptanceCriteria 只能使用 {metric, constraint:"expectedRange"}。'
+        '无法确定性表达的安全条件不得编造阈值，必须使用 missingData、conflictReasons 或 rejectedReason 明确返回缺口。'
         '拆分和合并由系统完成；禁止自行调用其他 Agent。'
         if agent=='agent2' else
         '仅把 PlanGraph 转为执行阶段，每个阶段绑定 planActionRefs，并完整覆盖方案动作。'
