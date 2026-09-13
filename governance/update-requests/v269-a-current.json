@@ -1,0 +1,30 @@
+{
+  "schema": "z.update_request.v1",
+  "requestId": "V26.9.A-2026-09-13-finalize-01",
+  "policyProfile": "v26_field_authority",
+  "targets": [
+    {
+      "targetId": "agent3-mixed-contract-regression",
+      "failureClass": "MIXED_PROVIDER_CONTRACT_TEST_MISMATCH",
+      "registryModules": [
+        "agent3_runtime"
+      ],
+      "evidencePaths": [
+        "tests/test_v22_4_v269_agent3_core_bridge.py"
+      ]
+    },
+    {
+      "targetId": "three-report-scheduler-attestation",
+      "failureClass": "V269_GRAPH_ASSERTIONS_FAILED:allV269SchedulerStagesObserved",
+      "registryModules": [
+        "agent2_runtime",
+        "agent3_runtime",
+        "task_mapping",
+        "task_pool"
+      ],
+      "evidencePaths": [
+        "scripts/run_competition_three_report_e2e_v269.py"
+      ]
+    }
+  ]
+}
