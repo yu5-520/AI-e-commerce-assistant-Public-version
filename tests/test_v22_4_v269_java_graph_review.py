@@ -41,6 +41,14 @@ public class V269ReviewProbe {
   if(!contract.deterministicSpec())throw new IllegalStateException(contract.unsupportedFields().toString());
   var first=ReviewContractAuthority.freezePlanAction("s/p","task",p,hash,"PDA1",Json.object(input.get("facts")),0L);
   if(first.reviewDueAtMillis()!=43200000L || contract.reviewDueAtMillis()!=86400000L)throw new IllegalStateException("review_windows_collapsed");
+  var structured=Json.object(Json.parse(Json.canonical(p)));
+  var firstNode=Json.object(Json.array(structured.get("nodes")).get(0));
+  firstNode.put("guard",Map.of("roas_floor",Map.of("metric","roas","comparator","GTE","value",1.5)));
+  firstNode.put("riskBoundary",List.of(Map.of("metric","roas","comparator","LTE","value",2.5)));reseal(structured);
+  var safe=ReviewContractAuthority.freezePlanAction("s/p","task",structured,hash,"PDA1",Json.object(input.get("facts")),0L);
+  if(!safe.deterministicSpec())throw new IllegalStateException("structured_safety_not_compiled:"+safe.unsupportedFields());
+  if(!Double.valueOf(1.5).equals(safe.lowerGuard().get("PDA1:roas")))throw new IllegalStateException("structured_lower_guard_lost");
+  if(!Double.valueOf(2.5).equals(safe.upperGuard().get("PDA1:roas")))throw new IllegalStateException("structured_upper_guard_lost");
   var guarded=Json.object(Json.parse(Json.canonical(p)));
   Json.object(Json.array(guarded.get("nodes")).get(0)).put("guard",Map.of("stop","uncompiled company rule"));reseal(guarded);
   if(ReviewContractAuthority.freezePlanAction("s/p","task",guarded,hash,"PDA1",Json.object(input.get("facts")),0L).deterministicSpec())throw new IllegalStateException("unknown_guard_ignored");
