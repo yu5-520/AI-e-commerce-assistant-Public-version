@@ -4,11 +4,19 @@ No vector search and no model-driven query expansion are used in B. Official ret
 reads only runtime experiences already in lifecycle_status=enabled. V26.9.B itself has
 no API capable of creating that state, so Promotion remains a V26.9.C responsibility.
 Seed/candidate inspection must be explicitly requested and is labelled non-official.
+
+The production Agent bridge is candidate-gated. Until the B manifest is activated (or
+an explicit candidate runtime env is set), this module returns the existing A knowledge
+context unchanged. Once active, retrieval receipts and matched experience records are
+folded into the existing knowledgeContext contract, so current semantic identity/cache
+logic automatically binds the Experience Store head without introducing a second RAG
+or cache authority.
 """
 from __future__ import annotations
 
 from copy import deepcopy
 import json
+import os
 from typing import Any
 
 from src.repositories import sqlite_repository as repo
@@ -34,6 +42,14 @@ class ExperienceRetrievalError(ValueError):
 def _require(condition: bool, reason: str) -> None:
     if not condition:
         raise ExperienceRetrievalError("v269b_retrieval_" + reason)
+
+
+def runtime_enabled() -> bool:
+    cfg = store.manifest()
+    if cfg.get("rolloutStatus") == "active":
+        return True
+    env = str(cfg.get("candidateRuntimeEnv") or "V269B_CANDIDATE_RUNTIME")
+    return str(os.getenv(env, "")).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _decode(value: str | None, fallback: Any) -> Any:
@@ -82,6 +98,7 @@ def _fetch_rows(agent: str, *, mode: str, include_seed: bool) -> list[dict[str, 
 
 def _field_value(agent: str, row: dict[str, Any], field: str) -> Any:
     domain = row["domain"]
+    payload = _decode(row.get("payload"), {})
     if agent == "agent1":
         if field == "condition":
             return row["d_condition"] if domain == "decision_patterns" else row["k_condition"]
@@ -95,14 +112,14 @@ def _field_value(agent: str, row: dict[str, Any], field: str) -> Any:
             return row["decision_pattern"]
     elif agent == "agent2":
         return {
-            "decisionAction": row["st_decision_action_key"],
+            "decisionAction": payload.get("decisionAction", row["st_decision_action_key"]),
             "baseline": _decode(row["baseline"], None),
             "category": row["st_category"],
             "strategyType": row["strategy_type"],
         }.get(field)
     else:
         return {
-            "planAction": row["op_plan_action_key"],
+            "planAction": payload.get("planAction", row["op_plan_action_key"]),
             "platform": row["platform"],
             "executionType": row["execution_type"],
         }.get(field)
@@ -205,8 +222,177 @@ def retrieve_experience(
         "knowledgeHead": store.knowledge_head(domains),
         "resultIds": [item["experienceId"] for item in results],
     }
-    return {
-        **material,
-        "results": results,
-        "receiptHash": store.digest(material),
+    return {**material, "results": results, "receiptHash": store.digest(material)}
+
+
+def _direction(current: Any, previous: Any) -> str | None:
+    if isinstance(current, bool) or isinstance(previous, bool):
+        return None
+    if not isinstance(current, (int, float)) or not isinstance(previous, (int, float)):
+        return None
+    if current > previous:
+        return "up"
+    if current < previous:
+        return "down"
+    return "flat"
+
+
+def derive_queries(agent: str, source: dict[str, Any]) -> list[dict[str, Any]]:
+    """Deterministically derive only query fields already present in the current input."""
+    _require(agent in AGENT_DOMAINS and isinstance(source, dict), "query_source")
+    queries: list[dict[str, Any]] = []
+    if agent == "agent1":
+        facts = source.get("BusinessFacts") if isinstance(source.get("BusinessFacts"), dict) else {}
+        signals = facts.get("fieldSignals") if isinstance(facts, dict) else []
+        prepared = []
+        for signal in signals or []:
+            if not isinstance(signal, dict):
+                continue
+            metric = str(signal.get("metricCode") or signal.get("metricName") or "").strip()
+            if not metric:
+                continue
+            query: dict[str, Any] = {"metric": metric}
+            direction = _direction(signal.get("current", signal.get("latest")), signal.get("previous"))
+            if direction:
+                query["direction"] = direction
+            for key, output in (("category", "category"), ("condition", "condition")):
+                value = signal.get(key)
+                if isinstance(value, str) and value.strip():
+                    query[output] = value.strip()
+            prepared.append(query)
+        queries = sorted(prepared, key=lambda q: store.digest(q))[:4]
+    elif agent == "agent2":
+        graph = source.get("DecisionGraph") if isinstance(source.get("DecisionGraph"), dict) else {}
+        nodes = graph.get("nodes") if isinstance(graph, dict) else []
+        for node in nodes or []:
+            if not isinstance(node, dict) or node.get("kind") != "DecisionActionNode":
+                continue
+            action_type = str(node.get("actionType") or "").strip()
+            action_family = str(node.get("actionFamily") or "").strip()
+            if not action_type or not action_family:
+                continue
+            queries.append({
+                "decisionAction": {"actionType": action_type, "actionFamily": action_family},
+                "strategyType": action_family,
+            })
+        queries.sort(key=store.digest)
+    else:
+        graph = source.get("PlanGraph") if isinstance(source.get("PlanGraph"), dict) else {}
+        nodes = graph.get("nodes") if isinstance(graph, dict) else []
+        for node in nodes or []:
+            if not isinstance(node, dict) or node.get("kind") != "PlanActionNode":
+                continue
+            action_family = str(node.get("actionFamily") or "").strip()
+            query: dict[str, Any] = {}
+            if action_family:
+                query["planAction"] = {"actionFamily": action_family}
+            operations = ((node.get("parameters") or {}).get("operationPlan") or {}).get("operations")
+            if isinstance(operations, list) and operations:
+                operation_type = str((operations[0] or {}).get("operationType") or "").strip()
+                if operation_type:
+                    query["executionType"] = operation_type
+            if query:
+                queries.append(query)
+        queries.sort(key=store.digest)
+    unique: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for query in queries:
+        key = store.digest(query)
+        if key not in seen:
+            seen.add(key)
+            unique.append(query)
+    return unique[:8]
+
+
+def attach_official_experience_context(
+    agent: str,
+    source: dict[str, Any],
+    base_context: dict[str, Any],
+) -> dict[str, Any]:
+    """Fold official retrieval receipts into the existing knowledgeContext authority."""
+    _require(agent in AGENT_DOMAINS, "agent_unknown")
+    _require(
+        isinstance(base_context, dict)
+        and set(base_context) == {"headHash", "retrievalPolicyHash", "records"}
+        and isinstance(base_context.get("records"), list),
+        "base_knowledge_context",
+    )
+    if not runtime_enabled():
+        return deepcopy(base_context)
+
+    queries = derive_queries(agent, source)
+    receipts: list[dict[str, Any]] = []
+    experience_records: dict[str, dict[str, Any]] = {}
+    if queries:
+        for query in queries:
+            receipt = retrieve_experience(agent, query, limit=5, mode="official")
+            receipts.append(receipt)
+            for item in receipt["results"]:
+                experience_records[item["experienceId"]] = {
+                    "schema": "experience.context.record.v269b.v1",
+                    "experienceId": item["experienceId"],
+                    "domain": item["domain"],
+                    "payload": deepcopy(item["payload"]),
+                    "applicability": deepcopy(item["applicability"]),
+                    "sampleCount": item["sampleCount"],
+                    "evidenceRefs": deepcopy(item["evidenceRefs"]),
+                    "evaluationVersion": item["evaluationVersion"],
+                    "sourceVersion": item["sourceVersion"],
+                    "graphIdentity": deepcopy(item["graphIdentity"]),
+                }
+    else:
+        material = {
+            "schema": "experience.retrieval.receipt.v269b.v1",
+            "version": VERSION,
+            "agent": agent,
+            "query": {},
+            "mode": "official",
+            "includeSeed": False,
+            "domains": list(AGENT_DOMAINS[agent]),
+            "matchCount": 0,
+            "emptyResult": True,
+            "rankingMethod": "exact_field_match_then_sample_count_then_experience_id",
+            "knowledgeHead": store.knowledge_head(AGENT_DOMAINS[agent]),
+            "resultIds": [],
+            "reason": "QUERY_FIELDS_UNAVAILABLE",
+        }
+        receipts.append({**material, "results": [], "receiptHash": store.digest(material)})
+
+    receipt_records = [
+        {
+            "schema": "experience.retrieval.context_receipt.v269b.v1",
+            "receiptHash": receipt["receiptHash"],
+            "query": deepcopy(receipt["query"]),
+            "matchCount": receipt["matchCount"],
+            "emptyResult": receipt["emptyResult"],
+            "knowledgeHead": receipt["knowledgeHead"],
+            **({"reason": receipt["reason"]} if receipt.get("reason") else {}),
+        }
+        for receipt in receipts
+    ]
+    records = deepcopy(base_context["records"]) + receipt_records + [
+        experience_records[key] for key in sorted(experience_records)
+    ]
+    policy_material = {
+        "schema": "v269b.experience_retrieval_policy.v1",
+        "version": VERSION,
+        "agent": agent,
+        "baseRetrievalPolicyHash": base_context["retrievalPolicyHash"],
+        "mode": "official_exact_field_only",
+        "vectorRetrieval": False,
+        "dynamicQueryExpansion": False,
+        "receiptHashes": [receipt["receiptHash"] for receipt in receipts],
     }
+    body = {"retrievalPolicyHash": store.digest(policy_material), "records": records}
+    return {"headHash": store.digest(body), **body}
+
+
+__all__ = [
+    "VERSION",
+    "AGENT_DOMAINS",
+    "QUERY_FIELDS",
+    "runtime_enabled",
+    "derive_queries",
+    "retrieve_experience",
+    "attach_official_experience_context",
+]
