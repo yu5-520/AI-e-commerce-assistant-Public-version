@@ -50,6 +50,15 @@ def _task_id(task: Dict[str, Any] | None) -> str | None:
     return (task or {}).get("id") or (task or {}).get("taskId")
 
 
+def _is_v269_graph_task(task: Dict[str, Any] | None) -> bool:
+    value = task or {}
+    return (
+        str(value.get("semanticContractVersion") or "") == "26.9.0"
+        or str(value.get("taskGenerationMode") or "") == "v269_canonical_graph_lifecycle"
+        or str(value.get("sourceModule") or "") == "v269_production_admission_service"
+    )
+
+
 def _hydrate_memory_task(task: Dict[str, Any] | None) -> Dict[str, Any] | None:
     if not task or not _task_id(task):
         return task
@@ -137,6 +146,7 @@ def should_auto_accept(task: Dict[str, Any]) -> bool:
 
 def _status_patch(task: Dict[str, Any], action: str, actor_user_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     note = payload.get("note") or payload.get("summary") or ""
+    v269 = _is_v269_graph_task(task)
     if action in {"accept", "auto_accept"}:
         patch = {"status": "处理中", "workflowStatus": "处理中", "displayStatus": "处理中", "lifecycleStage": "accepted", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION}
         if action == "auto_accept":
@@ -163,12 +173,18 @@ def _status_patch(task: Dict[str, Any], action: str, actor_user_id: str, payload
     if action == "submit":
         if _is_manager_required(task):
             return {"status": "待复核", "workflowStatus": "待复核", "displayStatus": "待复核", "submissionNote": note or "运营已提交处理材料。", "submittedById": actor_user_id, "submittedAt": now_iso(), "lifecycleStage": "evidence_submitted", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION}
+        if v269:
+            return {"status": "已完成", "workflowStatus": "等待系统评审", "displayStatus": "等待系统评审", "submissionNote": note or "V26.9 执行材料已提交，等待真实后续经营事实触发系统评审。", "submittedById": actor_user_id, "submittedAt": now_iso(), "lifecycleStage": "system_review_pending", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION, "systemReviewStatus": "PENDING"}
         return {"status": "已完成", "workflowStatus": "等待自动复盘", "displayStatus": "等待自动复盘", "submissionNote": note or "运营已提交处理材料，系统进入自动复盘等待。", "submittedById": actor_user_id, "submittedAt": now_iso(), "lifecycleStage": "recap_scheduled", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION}
     if action == "review_approve":
+        if v269:
+            return {"status": "已完成", "workflowStatus": "等待系统评审", "displayStatus": "等待系统评审", "reviewResult": "通过", "reviewNote": note or "复核通过，等待真实后续经营事实触发V26.9系统评审。", "reviewerId": actor_user_id, "reviewedAt": now_iso(), "lifecycleStage": "system_review_pending", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION, "systemReviewStatus": "PENDING"}
         return {"status": "已完成", "workflowStatus": "等待自动复盘", "displayStatus": "等待自动复盘", "reviewResult": "通过", "reviewNote": note or "复核通过，系统生成自动复盘周期。", "reviewerId": actor_user_id, "reviewedAt": now_iso(), "lifecycleStage": "recap_scheduled", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION}
     if action == "review_return":
         return {"status": "已退回", "workflowStatus": "已退回", "displayStatus": "已退回", "reviewResult": "退回", "reviewNote": note or "复核退回，运营补充材料后再次提交。", "reviewerId": actor_user_id, "reviewedAt": now_iso(), "lifecycleStage": "returned", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION}
     if action == "complete":
+        if v269:
+            return {"status": "已完成", "workflowStatus": "等待系统评审", "displayStatus": "等待系统评审", "completedById": actor_user_id, "completedAt": now_iso(), "lifecycleStage": "system_review_pending", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION, "systemReviewStatus": "PENDING"}
         return {"status": "已完成", "workflowStatus": "等待自动复盘", "displayStatus": "等待自动复盘", "completedById": actor_user_id, "completedAt": now_iso(), "lifecycleStage": "recap_scheduled", "lifecycleVersion": TASK_LIFECYCLE_STATE_MACHINE_VERSION}
     if action == "system_review_settled":
         return {
@@ -202,15 +218,16 @@ def _status_patch(task: Dict[str, Any], action: str, actor_user_id: str, payload
 
 def _transition_message(action: str, task: Dict[str, Any], payload: Dict[str, Any]) -> str:
     note = payload.get("note") or ""
+    v269 = _is_v269_graph_task(task)
     return {
         "auto_accept": note or "系统已自动接收运营权限内任务，进入处理中。",
         "accept": note or "运营已接收任务，进入处理中。",
         "assign": note or "总管已派发任务，等待运营自动接收或手动接收。",
         "split": note or "总管已拆分并派发任务，等待运营自动接收或手动接收。",
-        "submit": note or ("运营已提交处理材料，等待总管复核。" if _is_manager_required(task) else "运营已提交处理材料，系统进入自动复盘等待。"),
-        "review_approve": note or "总管复核通过，系统生成自动复盘周期。",
+        "submit": note or ("运营已提交处理材料，等待总管复核。" if _is_manager_required(task) else ("V26.9 执行材料已提交，等待真实后续经营事实触发系统评审。" if v269 else "运营已提交处理材料，系统进入自动复盘等待。")),
+        "review_approve": note or ("复核通过，等待真实后续经营事实触发V26.9系统评审。" if v269 else "总管复核通过，系统生成自动复盘周期。"),
         "review_return": note or "总管复核退回，运营补充材料后再次提交。",
-        "complete": note or "任务已完成，系统进入自动复盘等待。",
+        "complete": note or ("V26.9 任务执行完成，等待真实后续经营事实触发系统评审。" if v269 else "任务已完成，系统进入自动复盘等待。"),
         "recap_complete": note or "系统复盘完成，生成RAG候选。",
         "system_review_settled": note or "V26.9 系统评审已通过真实后续事实完成，任务进入已确认；未生成RAG候选。",
         "system_review_adjustment": note or "V26.9 系统评审发现方案指标违约，任务进入需调整；修订范围由Java确定性计算。",
@@ -234,22 +251,40 @@ def _persist_primary_task(task: Dict[str, Any] | None, ctx: Any | None = None) -
 
 
 def _apply_orchestrator(task_id: str, action: str, actor_user_id: str, payload: Dict[str, Any], ctx: Any | None = None) -> Dict[str, Any] | None:
+    task, _ = _find_primary_task(task_id, ctx)
+    v269 = _is_v269_graph_task(task)
     if action in {"accept", "auto_accept"}:
         return attach_lifecycle(task_id, stage="accepted", event=EVENT_BY_ACTION.get(action, "operator_accepted"), payload=payload, actor_user_id=actor_user_id)
     if action in {"assign", "split"}:
         return attach_lifecycle(task_id, stage="assigned", event="manager_assigned", payload=payload, actor_user_id=actor_user_id)
     if action == "submit":
-        task, _ = _find_primary_task(task_id, ctx)
         if task and _is_manager_required(task):
             return handle_evidence_submitted(task_id, evidence={"summary": payload.get("note") or "运营已提交处理材料。"}, actor_user_id=actor_user_id)
+        if v269:
+            from src.services.v269_system_review_service import mark_review_pending
+            result = mark_review_pending(task_id)
+            if result.get("ok") is not True:
+                raise RuntimeError("v269_system_review_registration_not_ready:" + str(result.get("status")))
+            return None
         return handle_manager_reviewed(task_id, approved=True, review={"comment": payload.get("note") or "运营提交后自动进入复盘周期。"}, actor_user_id=actor_user_id)
     if action == "review_approve":
+        if v269:
+            from src.services.v269_system_review_service import mark_review_pending
+            result = mark_review_pending(task_id)
+            if result.get("ok") is not True:
+                raise RuntimeError("v269_system_review_registration_not_ready:" + str(result.get("status")))
+            return None
         return handle_manager_reviewed(task_id, approved=True, review={"comment": payload.get("note")}, actor_user_id=actor_user_id)
     if action == "review_return":
         return handle_manager_reviewed(task_id, approved=False, review={"comment": payload.get("note")}, actor_user_id=actor_user_id)
     if action == "complete":
+        if v269:
+            from src.services.v269_system_review_service import mark_review_pending
+            result = mark_review_pending(task_id)
+            if result.get("ok") is not True:
+                raise RuntimeError("v269_system_review_registration_not_ready:" + str(result.get("status")))
+            return None
         return attach_lifecycle(task_id, stage="recap_scheduled", event="task_completed_recap_scheduled", payload=payload, actor_user_id=actor_user_id)
-    # V26.9 System Review deliberately does not call the legacy recap/RAG orchestrator.
     if action in {"system_review_settled", "system_review_adjustment"}:
         return None
     return None
@@ -284,7 +319,7 @@ def _is_idempotent_accept(task: Dict[str, Any], action: str) -> bool:
         return False
     status = str(task.get("status") or "")
     workflow = str(task.get("workflowStatus") or "")
-    return status in PROCESSING or status in REVIEWING or status in DONE_STATUS or workflow in WAITING_RECAP or task.get("lifecycleStage") in {"accepted", "evidence_submitted", "recap_scheduled", "rag_candidate_created"}
+    return status in PROCESSING or status in REVIEWING or status in DONE_STATUS or workflow in WAITING_RECAP or task.get("lifecycleStage") in {"accepted", "evidence_submitted", "recap_scheduled", "rag_candidate_created", "system_review_pending", "system_review_settled"}
 
 
 def transition_lifecycle_task(task_id: str, action: str, *, actor_user_id: str, payload: Dict[str, Any] | None = None, ctx: Any | None = None) -> Dict[str, Any]:
@@ -320,7 +355,7 @@ def transition_lifecycle_task(task_id: str, action: str, *, actor_user_id: str, 
     event = module_task_service.create_task_event(latest, event_type, actor_user_id=actor_user_id, from_status=before_status, from_workflow=before_workflow, message=_transition_message(action, latest, payload))
     mirror_result = _mirror_runtime()
     projected = project_lifecycle_task(latest, actor_user_id)
-    return {"ok": True, "version": TASK_LIFECYCLE_STATE_MACHINE_VERSION, "orchestratorVersion": ORCHESTRATOR_VERSION, "action": action, "eventType": event_type, "message": _transition_message(action, latest, payload), "resolution": resolution, "fromStatus": before_status, "toStatus": latest.get("status"), "fromWorkflowStatus": before_workflow, "toWorkflowStatus": latest.get("workflowStatus"), "task": projected, "event": event, "mirror": mirror_result, "rule": "V12.11.1：接收、派发、提交、复核、复盘与V26.9系统评审必须通过统一生命周期状态机写状态、事件、日志、SQLite镜像和前端投影；系统评审不触发旧RAG候选。"}
+    return {"ok": True, "version": TASK_LIFECYCLE_STATE_MACHINE_VERSION, "orchestratorVersion": ORCHESTRATOR_VERSION, "action": action, "eventType": event_type, "message": _transition_message(action, latest, payload), "resolution": resolution, "fromStatus": before_status, "toStatus": latest.get("status"), "fromWorkflowStatus": before_workflow, "toWorkflowStatus": latest.get("workflowStatus"), "task": projected, "event": event, "mirror": mirror_result, "rule": "V12.11.1：接收、派发、提交、复核、复盘与V26.9系统评审必须通过统一生命周期状态机写状态、事件、日志、SQLite镜像和前端投影；V26.9执行完成不进入旧RAG候选。"}
 
 
 def auto_accept_ready_tasks(tasks: Iterable[Dict[str, Any]], *, viewer_id: str | None = None, ctx: Any | None = None) -> Dict[str, Any]:
