@@ -1,10 +1,10 @@
 {
   "schema": "competition.lineage_update_policy.v1",
-  "version": "2026.09.13.18.B-experience-lineage-package-init",
+  "version": "2026.09.13.19.C-promotion-feedback",
   "defaultProfile": "v26_field_authority",
   "profiles": {
     "v26_field_authority": {
-      "description": "V26 authority migration profile. V26.1 establishes exact field-header ownership; V26.2-V26.8 build graph, review, revision and evidence continuity. V26.9.A is production-active on the canonical DecisionGraph -> ActionAdmission -> PlanGraph -> OperationGraph chain. V26.9.B adds an Experience Store and versioned Evaluation Plane as downstream evidence consumers without changing A business authority, execution permission, task admission or Agent write ownership. B retrieval is field-based and receipt-bearing; stored experience is not automatically promoted into Agent knowledge. The Z self-update front half remains Update Request -> Registry responsibility modules -> policy-bounded exact mutation paths -> required gates. Filename-similarity search, unplanned mutation and read-only mutation remain forbidden; scope expansion requires plan recompilation. V26.9.C alone may enable promotion, knowledge-head mutation, automatic experience feedback or Legacy Projection removal.",
+      "description": "V26 authority migration profile. V26.9.A is production-active on the canonical DecisionGraph -> ActionAdmission -> PlanGraph -> OperationGraph chain. V26.9.B is production-active for Experience Store, Evaluation Plane and receipt-bearing field retrieval. V26.9.C adds explicit reviewed promotion, withdrawal/supersede lifecycle, content-addressed enabled-set Knowledge Head audit events and final legacy business projection cleanup. C must not auto-promote a System Review result, must not create a second knowledge-head authority, and must preserve A execution permission, mutex and idempotency. The Z self-update front half remains Update Request -> Registry responsibility modules -> policy-bounded exact mutation paths -> required gates. Filename-similarity search, unplanned mutation and read-only mutation remain forbidden; scope expansion requires plan recompilation.",
       "requireBaselineVerified": true,
       "requireTargetVerified": true,
       "requireRuntimeHashStable": false,
@@ -17,6 +17,7 @@
         "config/competition_runtime_scope.json",
         "config/v26_field_authority_contract.json",
         "config/v269b_evaluation_contract.json",
+        "config/v269c_promotion_policy.json",
         "src/services/runtime_contract_guard_v1_service.py",
         "src/services/v26_field_authority_contract_service.py",
         "src/services/v26_business_graph_bridge_service.py",
@@ -25,6 +26,7 @@
         "src/services/v269_experience_store_service.py",
         "src/services/v269_evaluation_plane_service.py",
         "src/services/v269_experience_retrieval_service.py",
+        "src/services/v269_promotion_gate_service.py",
         "src/repositories/__init__.py",
         "java-control-plane/src/main/java/com/zcentury/v24/ProductLifecycleAuthority.java",
         "java-control-plane/src/main/java/com/zcentury/v24/VolatilityEnvelope.java",
@@ -48,12 +50,14 @@
         "tests/test_v269b_experience_store.py",
         "tests/test_v269b_evaluation_plane.py",
         "tests/test_v269b_experience_retrieval.py",
+        "tests/test_v269c_promotion_feedback.py",
         "docs/V26_1_FIELD_AUTHORITY_CONTRACT.md",
         "docs/V26_2_BUSINESS_GRAPH_CUTOVER.md",
         "docs/V26_3_PRE_AGENT_ADMISSION.md",
         "docs/V26_4_SYSTEM_REVIEW.md",
         "docs/V26_6_LOCAL_SUBGRAPH_REVISION.md",
         "docs/V26_9_B_EXPERIENCE_EVALUATION.md",
+        "docs/V26_9_C_PROMOTION_FEEDBACK.md",
         ".github/workflows/v26-update-locator.yml",
         ".github/workflows/v26-field-authority-phase1.yml",
         ".github/workflows/v26-business-graphs-phase2.yml",
@@ -61,7 +65,9 @@
         ".github/workflows/v24-production-authority-bundle.yml",
         ".github/workflows/competition-registry-lineage.yml",
         ".github/workflows/v269-b-experience-evaluation.yml",
+        ".github/workflows/v269-c-promotion-feedback.yml",
         "src/api/routes/frontend_views.py",
+        "src/api/routes/ops.py",
         "src/services/pipeline_task_mapping_v225_service.py",
         "src/services/public_task_dto_service.py",
         "src/services/task_evidence_canonical_history_install_v1_service.py",
@@ -121,8 +127,10 @@
         ".github/workflows/v269-a-three-report-candidate.yml",
         "rag/schema/v269b_experience_store.sql",
         "rag/migrations/001_v269b_experience_store.sql",
+        "rag/migrations/002_v269c_promotion_feedback.sql",
         "rag/seeds/v269b_seed.json",
-        "rag/manifest/v269b_manifest.json"
+        "rag/manifest/v269b_manifest.json",
+        "rag/manifest/v269c_manifest.json"
       ],
       "allowedRegistryModules": [
         "agent1_runtime",
@@ -136,7 +144,8 @@
         "agent1_input_projection",
         "experience_store",
         "evaluation_plane",
-        "experience_retrieval"
+        "experience_retrieval",
+        "experience_promotion"
       ],
       "allowedNodePrefixes": [],
       "allowedSpecialHashChanges": []
