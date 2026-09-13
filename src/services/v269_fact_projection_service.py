@@ -3,6 +3,8 @@
 No model call and no RAG feedback happens here. The existing immutable signal Artifact
 is converted into the canonical Agent1 input contract plus a small typed fact ledger.
 Candidate execution is explicit until the registered rollout status becomes active.
+Historical V22 rows are still read by their historical projection while V26.9 rows have
+one graph semantic interpretation and never fall back to old primary-action fields.
 """
 from __future__ import annotations
 
@@ -137,8 +139,6 @@ def compile_candidate_source(
     metric_layer = legacy_facts._metric_layer(root)
     lineage = legacy_facts._source_lineage(root, source_ref, source_content_hash)
     fact_values = _fact_ledger(metric_layer, signals)
-    # The immutable source Artifact itself remains valid evidence even when no scalar
-    # numeric fact is available. Scalar refs are additionally exposed for Plan baselines.
     evidence_refs = list(fact_values)
     if source_ref not in evidence_refs:
         evidence_refs.append(source_ref)
@@ -271,6 +271,20 @@ def ensure_candidate_agent1_input_ref(
     return artifact_id
 
 
+def ensure_agent1_input_ref(
+    row: Dict[str, Any],
+    *,
+    policy_context: Dict[str, Any] | None = None,
+) -> str:
+    """Registered versioned seam: current contract decides the one legal projection."""
+    if candidate_runtime_enabled():
+        return ensure_candidate_agent1_input_ref(row, policy_context=policy_context)
+    return legacy_facts.ensure_agent1_input_ref(row, policy_context=policy_context)
+
+
+resolve_agent_input_ref = legacy_facts.resolve_agent_input_ref
+
+
 __all__ = [
     "VERSION",
     "CANDIDATE_ENV",
@@ -279,4 +293,6 @@ __all__ = [
     "empty_knowledge_context",
     "compile_candidate_source",
     "ensure_candidate_agent1_input_ref",
+    "ensure_agent1_input_ref",
+    "resolve_agent_input_ref",
 ]
