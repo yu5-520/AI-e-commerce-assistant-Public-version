@@ -67,6 +67,12 @@ def project_input(agent,source,*,source_ref,source_content_hash):
         'fallbackAllowed':False,'policyContextHash':graphs.digest({
             'semanticContractHash':graphs.digest(graphs.contract()),
             'admissionHash':source.get('actionAdmission',{}).get('receiptHash') if agent=='agent2' else None})}
+    # V26.9.B reuses the one existing knowledgeContext seam. Until B is activated this
+    # returns the A context byte-for-byte; candidate/active B folds only official,
+    # receipt-bound Experience Store records into the same semantic identity.
+    from src.services.v269_experience_retrieval_service import attach_official_experience_context
+    payload['knowledgeContext']=attach_official_experience_context(
+        agent,payload,deepcopy(payload.get('knowledgeContext') or {}))
     validate_payload(agent,payload)
     if agent=='agent1':
         from src.services import agent_input_contract_v2258_service as envelopes
