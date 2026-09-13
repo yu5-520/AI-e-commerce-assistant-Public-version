@@ -2,12 +2,13 @@
 
 Python remains the production lifecycle writer. Java READY_NO_AUTHORITY is the one
 review/revision calculator: this module freezes graph identities at task admission,
-collects later BusinessFacts as TARGET observations only after execution has been
-submitted, calls the root-bound Java endpoint, verifies its immutable receipt, and
-only then asks the existing task lifecycle state machine to persist SETTLED or
+opens the review window only after execution is submitted, collects a later immutable
+BusinessFacts Artifact as TARGET, calls the root-bound Java endpoint, verifies its
+receipt, and only then asks the existing lifecycle writer to persist SETTLED or
 ADJUSTMENT_REQUIRED.
 
-No RAG feedback, Evaluation Plane, model call, or legacy recap metric input is allowed.
+No RAG feedback, Evaluation Plane, model call, current-clock substitution for stale
+facts, or legacy recap metric input is allowed.
 """
 from __future__ import annotations
 
@@ -110,11 +111,11 @@ def register_review_in_conn(
     chain: Dict[str, Any],
     frozen_at_millis: int | None = None,
 ) -> Dict[str, Any]:
-    """Register BASE identity inside caller's task-admission transaction.
+    """Freeze BASE identity inside caller's task-admission transaction.
 
-    Registration does not authorize review yet. It starts AWAITING_EXECUTION; the
-    lifecycle writer must explicitly call mark_review_pending after an executed task
-    is submitted/approved. The caller must create tables before BEGIN IMMEDIATE.
+    The initial frozen time is an audit registration time only. mark_review_pending()
+    replaces it with the execution-completion time before TARGET observations become
+    eligible. The caller must create tables before BEGIN IMMEDIATE.
     """
     task_id = str(task.get("taskId") or task.get("id") or "").strip()
     graphs.require(bool(task_id), "review_task_id_required")
@@ -126,7 +127,7 @@ def register_review_in_conn(
     fact_values = decision.get("factValues")
     graphs.require(isinstance(fact_values, dict) and fact_values, "review_baseline_facts_required")
     _plan_review_windows(plan_graph)
-    frozen = int(frozen_at_millis if frozen_at_millis is not None else _epoch_millis())
+    registered = int(frozen_at_millis if frozen_at_millis is not None else _epoch_millis())
     contract_hash = str(plan_graph.get("contractHash") or "")
     graphs.require(contract_hash == graphs.digest(graphs.contract()), "review_semantic_contract_hash")
     baseline_source_hash = _baseline_source_hash(chain)
@@ -143,7 +144,8 @@ def register_review_in_conn(
         "OperationGraph": deepcopy(operation_graph),
         "baselineFacts": deepcopy(fact_values),
         "baselineSourceContentHash": baseline_source_hash,
-        "frozenAtMillis": frozen,
+        "registeredAtMillis": registered,
+        "frozenAtMillis": registered,
         "successfulNodeHashes": [],
         "ragFeedbackAllowed": False,
         "evaluationPlaneActive": False,
@@ -168,14 +170,14 @@ def register_review_in_conn(
         (
             task_id, payload["storeId"], payload["productId"], contract_hash,
             decision_graph["graphHash"], plan_graph["graphHash"], operation_graph["graphHash"],
-            frozen, baseline_source_hash, dumps(payload), now, now,
+            registered, baseline_source_hash, dumps(payload), now, now,
         ),
     )
     return {
         "schema": REVIEW_SCHEMA,
         "version": VERSION,
         "taskId": task_id,
-        "frozenAtMillis": frozen,
+        "registeredAtMillis": registered,
         "PlanGraphHash": plan_graph["graphHash"],
         "baselineSourceContentHash": baseline_source_hash,
         "status": "AWAITING_EXECUTION",
@@ -183,23 +185,43 @@ def register_review_in_conn(
 
 
 def mark_review_pending(task_id: str) -> Dict[str, Any]:
-    """Open TARGET observation only after the execution lifecycle is complete."""
+    """Start PlanAction review windows exactly when execution becomes reviewable."""
     ensure_review_tables()
     now = _now()
+    ready_millis = _epoch_millis()
     with connect() as conn:
-        row = conn.execute("SELECT status FROM v269_system_reviews WHERE task_id=?", (task_id,)).fetchone()
+        row = conn.execute(
+            "SELECT status,payload,frozen_at_millis FROM v269_system_reviews WHERE task_id=?",
+            (task_id,),
+        ).fetchone()
         if not row:
             return {"ok": False, "status": "review_not_registered", "taskId": task_id}
         if row["status"] in {"PENDING", "WAITING_TIME", "WAITING_EVIDENCE"}:
-            return {"ok": True, "status": row["status"], "taskId": task_id, "idempotentHit": True}
+            return {
+                "ok": True,
+                "status": row["status"],
+                "taskId": task_id,
+                "reviewWindowStartMillis": int(row["frozen_at_millis"]),
+                "idempotentHit": True,
+            }
         if row["status"] != "AWAITING_EXECUTION":
             return {"ok": False, "status": row["status"], "taskId": task_id}
+        payload = loads(row["payload"])
+        payload["reviewWindowStartMillis"] = ready_millis
+        payload["frozenAtMillis"] = ready_millis
         conn.execute(
-            "UPDATE v269_system_reviews SET status='PENDING',updated_at=? WHERE task_id=? AND status='AWAITING_EXECUTION'",
-            (now, task_id),
+            """UPDATE v269_system_reviews
+               SET status='PENDING',frozen_at_millis=?,payload=?,updated_at=?
+               WHERE task_id=? AND status='AWAITING_EXECUTION'""",
+            (ready_millis, dumps(payload), now, task_id),
         )
         conn.commit()
-    return {"ok": True, "status": "PENDING", "taskId": task_id}
+    return {
+        "ok": True,
+        "status": "PENDING",
+        "taskId": task_id,
+        "reviewWindowStartMillis": ready_millis,
+    }
 
 
 def mark_successful_nodes(task_id: str, node_hashes: Iterable[str]) -> Dict[str, Any]:
@@ -289,6 +311,16 @@ def _call_java(request_payload: Dict[str, Any]) -> Dict[str, Any]:
     try:
         with urlrequest.urlopen(req, timeout=float(os.getenv("V269_REVIEW_TIMEOUT_SECONDS", "8"))) as response:
             body = response.read().decode("utf-8")
+    except urlerror.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        try:
+            value = json.loads(body)
+        except Exception:
+            value = {}
+        reason = str(value.get("reason") or f"http_{exc.code}")
+        if exc.code == 503:
+            raise RuntimeError("v269_java_review_unavailable:" + reason) from exc
+        raise ValueError("v269_java_review_rejected:" + reason) from exc
     except (urlerror.URLError, TimeoutError, OSError) as exc:
         raise RuntimeError("v269_java_review_unavailable:" + type(exc).__name__) from exc
     value = json.loads(body)
@@ -325,13 +357,31 @@ def pending_review_for_scope(store_id: str, product_id: str) -> list[Dict[str, A
     return [dict(row) for row in rows]
 
 
+def _write_review_status(task_id: str, status: str, source_hash: str, *, receipt: Dict[str, Any] | None = None, directive: Dict[str, Any] | None = None) -> None:
+    with connect() as conn:
+        conn.execute(
+            """UPDATE v269_system_reviews
+               SET status=?,last_target_content_hash=?,review_receipt=?,revision_directive=?,updated_at=?
+               WHERE task_id=?""",
+            (
+                status,
+                source_hash,
+                dumps(receipt) if receipt is not None else None,
+                dumps(directive) if directive is not None else None,
+                _now(),
+                task_id,
+            ),
+        )
+        conn.commit()
+
+
 def observe_candidate_facts(
     candidate: Dict[str, Any],
     *,
     source_content_hash: str,
     observed_at_millis: int | None = None,
 ) -> Dict[str, Any]:
-    """Use a later real BusinessFacts projection as TARGET for one active graph task."""
+    """Use only a genuinely later immutable BusinessFacts Artifact as TARGET."""
     store_id = str(candidate.get("storeId") or "")
     product_id = str(candidate.get("productId") or "")
     if not store_id or not product_id:
@@ -343,8 +393,24 @@ def observe_candidate_facts(
     if len(rows) != 1:
         return {"status": "AMBIGUOUS_PENDING_REVIEWS", "taskIds": [row["task_id"] for row in rows]}
     row = rows[0]
+    observed = int(observed_at_millis or 0)
+    if observed <= 0:
+        return {"status": "TARGET_TIME_NOT_RECORDED", "taskId": row["task_id"]}
+    if observed <= int(row.get("frozen_at_millis") or 0):
+        return {
+            "status": "TARGET_NOT_AFTER_EXECUTION",
+            "taskId": row["task_id"],
+            "observedAtMillis": observed,
+            "reviewWindowStartMillis": int(row.get("frozen_at_millis") or 0),
+        }
     payload = loads(row["payload"])
     target = _target_facts(payload, candidate)
+    if not target:
+        _write_review_status(row["task_id"], "WAITING_EVIDENCE", source_content_hash)
+        return {"status": "WAITING_EVIDENCE", "taskId": row["task_id"], "reason": "target_metrics_not_present"}
+    if row.get("last_target_content_hash") == source_content_hash:
+        receipt = loads(row["review_receipt"]) if row.get("review_receipt") else None
+        return {"status": row["status"], "idempotentHit": True, "receipt": receipt}
     request_payload = {
         "schema": "v269.system_review.request.v1",
         "taskId": payload["taskId"],
@@ -356,35 +422,23 @@ def observe_candidate_facts(
         "baselineFacts": payload["baselineFacts"],
         "targetFacts": target,
         "frozenAtMillis": int(payload["frozenAtMillis"]),
-        "observedAtMillis": int(observed_at_millis if observed_at_millis is not None else _epoch_millis()),
+        "observedAtMillis": observed,
         "successfulNodeHashes": list(payload.get("successfulNodeHashes") or []),
     }
     target_hash = graphs.digest(target)
-    if row.get("last_target_content_hash") == source_content_hash:
-        receipt = loads(row["review_receipt"]) if row.get("review_receipt") else None
-        return {"status": row["status"], "idempotentHit": True, "receipt": receipt}
     try:
         receipt = _call_java(request_payload)
         _verify_java_receipt(receipt, payload, target)
+    except ValueError as exc:
+        _write_review_status(row["task_id"], "REVIEW_REJECTED", source_content_hash)
+        return {"status": "REVIEW_REJECTED", "taskId": row["task_id"], "reason": str(exc)[:500]}
     except Exception as exc:
-        with connect() as conn:
-            conn.execute(
-                "UPDATE v269_system_reviews SET status='REVIEW_UNAVAILABLE',last_target_content_hash=?,updated_at=? WHERE task_id=?",
-                (source_content_hash, _now(), row["task_id"]),
-            )
-            conn.commit()
+        _write_review_status(row["task_id"], "REVIEW_UNAVAILABLE", source_content_hash)
         return {"status": "REVIEW_UNAVAILABLE", "taskId": row["task_id"], "reason": str(exc)[:500]}
 
     status = str(receipt.get("aggregateDecision") or "")
     directive = receipt.get("revisionDirective") if status == "ADJUSTMENT_REQUIRED" else None
-    with connect() as conn:
-        conn.execute(
-            """UPDATE v269_system_reviews
-               SET status=?,last_target_content_hash=?,review_receipt=?,revision_directive=?,updated_at=?
-               WHERE task_id=?""",
-            (status, source_content_hash, dumps(receipt), dumps(directive) if directive else None, _now(), row["task_id"]),
-        )
-        conn.commit()
+    _write_review_status(row["task_id"], status, source_content_hash, receipt=receipt, directive=directive)
 
     lifecycle = None
     if status in {"SETTLED", "ADJUSTMENT_REQUIRED"}:
