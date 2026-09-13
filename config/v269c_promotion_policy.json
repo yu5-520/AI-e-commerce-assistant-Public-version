@@ -1,0 +1,43 @@
+{
+  "schema": "experience.promotion.policy.v269c.v1",
+  "version": "26.9.C.1",
+  "autoPromotion": false,
+  "reviewRequired": true,
+  "explicitEnableRequired": true,
+  "explicitWithdrawalRequired": true,
+  "sourceType": "runtime",
+  "eligibleReviewStatuses": ["SETTLED"],
+  "minimumEvidenceRefs": 2,
+  "deniedApplicabilityFlags": ["manualHold", "withdrawn", "highRiskUnreviewed"],
+  "expiryField": "expiresAt",
+  "conflictPolicy": {
+    "sameDomainAndApplicabilityRequiresExplicitSupersede": true,
+    "exactEnabledDuplicateForbidden": true
+  },
+  "domainRules": {
+    "decision_patterns": {
+      "minimumSampleCount": 1,
+      "requiredEvaluationAnyOf": [],
+      "minimumEvaluationSampleCount": 0,
+      "metricThresholds": {}
+    },
+    "strategy_outcomes": {
+      "minimumSampleCount": 1,
+      "requiredEvaluationAnyOf": ["agent2.actual_delta", "agent2.delta_realization_rate"],
+      "minimumEvaluationSampleCount": 1,
+      "metricThresholds": {}
+    },
+    "operation_patterns": {
+      "minimumSampleCount": 1,
+      "requiredEvaluationAnyOf": [],
+      "minimumEvaluationSampleCount": 0,
+      "metricThresholds": {}
+    },
+    "experience_knowledge": {
+      "minimumSampleCount": 1,
+      "requiredEvaluationAnyOf": [],
+      "minimumEvaluationSampleCount": 0,
+      "metricThresholds": {}
+    }
+  }
+}

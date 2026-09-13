@@ -78,10 +78,12 @@ jobs:
               assert b_modules <= required
           else:
               assert not (b_modules & required)
-          assert request['requestId'].startswith('V26.9.B-')
+          assert request['schema'] == 'z.update_request.v1'
+          assert request['requestId'].startswith('V26.9.')
           print('V269B_CONTRACT_BOUNDARY=PASS')
           print('V269B_ROLLOUT_STATUS=' + manifest['rolloutStatus'])
           print('V269B_REQUIRED_MODULES=' + json.dumps(sorted(b_modules & required)))
+          print('V269_CURRENT_REQUEST=' + request['requestId'])
           PY
       - name: Install locked test environment
         run: python -m pip install --disable-pip-version-check -r requirements-dev.lock

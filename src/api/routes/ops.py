@@ -1,4 +1,4 @@
-"""V21.3.1 Ops Diagnostic Train routes."""
+"""V21.3.1 Ops Diagnostic Train routes plus V26.9.C explicit Experience governance."""
 
 from __future__ import annotations
 
@@ -72,4 +72,78 @@ def ops_station_check(request: Request, station_id: str) -> Dict[str, Any]:
     result = check_single_station(station_id, created_by=request_user_id(request))
     result["routeVersion"] = OPS_ROUTE_VERSION
     result["diagnosticTrainVersion"] = OPS_DIAGNOSTIC_TRAIN_VERSION
+    return result
+
+
+@router.get("/experience/{experience_id}/promotion-gate")
+def experience_promotion_gate(experience_id: str) -> Dict[str, Any]:
+    """Read-only deterministic C gate; this endpoint never changes lifecycle state."""
+    from src.services.v269_promotion_gate_service import evaluate_promotion_gate
+    result = evaluate_promotion_gate(experience_id)
+    result["routeVersion"] = OPS_ROUTE_VERSION
+    return result
+
+
+@router.get("/experience/{experience_id}/promotion-history")
+def experience_promotion_history(experience_id: str) -> Dict[str, Any]:
+    from src.services.v269_promotion_gate_service import promotion_history
+    result = promotion_history(experience_id)
+    result["routeVersion"] = OPS_ROUTE_VERSION
+    return result
+
+
+@router.post("/experience/{experience_id}/promotion-review")
+def experience_promotion_review(
+    request: Request,
+    experience_id: str,
+    body: Dict[str, Any] | None = Body(default=None),
+) -> Dict[str, Any]:
+    """Explicit reviewer action. Approve means candidate->approved, never enabled."""
+    from src.services.v269_promotion_gate_service import review_candidate
+    payload = body or {}
+    result = review_candidate(
+        experience_id,
+        reviewer_id=request_user_id(request),
+        decision=str(payload.get("decision") or ""),
+        rationale=str(payload.get("rationale") or ""),
+        supersedes_experience_id=(str(payload.get("supersedesExperienceId")) if payload.get("supersedesExperienceId") else None),
+    )
+    result["routeVersion"] = OPS_ROUTE_VERSION
+    return result
+
+
+@router.post("/experience/{experience_id}/enable")
+def experience_enable(
+    request: Request,
+    experience_id: str,
+    body: Dict[str, Any] | None = Body(default=None),
+) -> Dict[str, Any]:
+    """Second explicit action after review. Intent must be asserted in the request body."""
+    from src.services.v269_promotion_gate_service import enable_experience
+    payload = body or {}
+    result = enable_experience(
+        experience_id,
+        operator_id=request_user_id(request),
+        explicit_operator_intent=payload.get("explicitOperatorIntent") is True,
+    )
+    result["routeVersion"] = OPS_ROUTE_VERSION
+    return result
+
+
+@router.post("/experience/{experience_id}/disable")
+def experience_disable(
+    request: Request,
+    experience_id: str,
+    body: Dict[str, Any] | None = Body(default=None),
+) -> Dict[str, Any]:
+    """Explicit withdrawal; history remains inspectable but formal retrieval stops immediately."""
+    from src.services.v269_promotion_gate_service import disable_experience
+    payload = body or {}
+    result = disable_experience(
+        experience_id,
+        operator_id=request_user_id(request),
+        reason=str(payload.get("reason") or ""),
+        explicit_operator_intent=payload.get("explicitOperatorIntent") is True,
+    )
+    result["routeVersion"] = OPS_ROUTE_VERSION
     return result
