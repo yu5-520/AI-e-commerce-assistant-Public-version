@@ -22,18 +22,13 @@ def test_v269_agent3_messages_delegate_to_graph_contract_without_legacy_compiler
 
 
 def test_v269_agent3_messages_fail_closed_on_mixed_contract_batch():
+    # Use the production contract detector itself. This specifically proves that a
+    # graph package cannot be silently batched with a historical legacy package.
     packages = [
         {"semanticContractVersion": "26.9.0", "packageId": "graph"},
         {"packageId": "legacy"},
     ]
-
-    def is_graph(package):
-        return package.get("semanticContractVersion") == "26.9.0"
-
     with patch(
-        "src.services.v269_input_migration_service.uses_graph_contract",
-        side_effect=is_graph,
-    ), patch(
         "src.services.v269_input_migration_service.provider_messages"
     ) as provider, patch.object(core, "compile_agent3_provider_package") as legacy:
         with pytest.raises(ValueError, match="mixed_provider_contracts"):
