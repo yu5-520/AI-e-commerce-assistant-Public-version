@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reality-bias/experiment-manifest/v1",
+  "type": "object",
+  "required": ["experiment_id", "research_commit", "sut_commit", "model_id", "adapter_version", "budget", "conditions"],
+  "properties": {
+    "experiment_id": {"type": "string", "minLength": 1},
+    "research_commit": {"type": "string", "minLength": 7},
+    "sut_commit": {"type": "string", "minLength": 7},
+    "model_id": {"type": "string", "minLength": 1},
+    "model_version": {"type": ["string", "null"]},
+    "adapter_version": {"type": "string", "minLength": 1},
+    "decoding": {"type": "object"},
+    "budget": {
+      "type": "object",
+      "required": ["max_cost", "max_tokens"],
+      "properties": {
+        "max_cost": {"type": "number", "minimum": 0},
+        "max_tokens": {"type": "integer", "minimum": 1}
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "items": {"enum": ["baseline_runtime", "information_authority", "invocation_authority", "temporal_authority", "full_authority"]},
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true
+}
