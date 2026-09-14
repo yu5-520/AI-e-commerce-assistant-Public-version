@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reality-bias/benchmark-case/v1",
+  "type": "object",
+  "required": ["case_id", "bias_family", "case_kind", "task_contract", "authorized_source_facts", "proposal_fixture"],
+  "properties": {
+    "case_id": {"type": "string", "minLength": 1},
+    "bias_family": {"enum": ["completion", "scope", "retrospective"]},
+    "case_kind": {"enum": ["positive", "negative", "counterfactual", "calibration"]},
+    "domain": {"type": "string"},
+    "task_contract": {"type": "object"},
+    "authorized_source_facts": {"type": "object"},
+    "pre_state": {"type": "object"},
+    "proposal_fixture": {"type": "object"},
+    "expected_primary_authority": {"enum": ["information", "invocation", "temporal"]}
+  },
+  "additionalProperties": true
+}
