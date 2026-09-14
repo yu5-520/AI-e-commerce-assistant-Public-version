@@ -31,6 +31,16 @@ RESERVED_REQUEST_KEYS = {
 PROPOSAL_PROTOCOL_VERSION = "neutral-proposal-v1"
 
 
+def _contains_key(value: Any, target: str) -> bool:
+    if isinstance(value, dict):
+        if target in value:
+            return True
+        return any(_contains_key(child, target) for child in value.values())
+    if isinstance(value, list):
+        return any(_contains_key(child, target) for child in value)
+    return False
+
+
 @dataclass(frozen=True)
 class OpenAICompatibleChatAdapter:
     """Concrete HTTP adapter for OpenAI-compatible chat-completions endpoints.
@@ -128,7 +138,7 @@ class OpenAICompatibleChatAdapter:
             raise ProviderAdapterError("provider_response_invalid") from exc
         if not isinstance(structured, dict) or not isinstance(structured.get("effects"), list):
             raise ProviderAdapterError("provider_structured_output_invalid")
-        if "authorized" in json.dumps(structured, ensure_ascii=False):
+        if _contains_key(structured, "authorized"):
             raise ProviderAdapterError("model_must_not_assign_authorization")
         if "assessment" not in structured:
             structured["assessment"] = ""
