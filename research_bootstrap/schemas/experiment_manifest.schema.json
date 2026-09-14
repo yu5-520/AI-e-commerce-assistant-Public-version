@@ -12,6 +12,7 @@
     "adapter_version",
     "endpoint_hash",
     "decoding",
+    "request_options",
     "budget",
     "conditions"
   ],
@@ -33,6 +34,10 @@
         "max_output_tokens": {"type": "integer", "minimum": 1}
       },
       "additionalProperties": true
+    },
+    "request_options": {
+      "type": "object",
+      "description": "Provider-specific request options frozen into the experiment contract."
     },
     "budget": {
       "type": "object",
