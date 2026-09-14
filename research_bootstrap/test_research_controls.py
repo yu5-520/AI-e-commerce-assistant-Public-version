@@ -31,6 +31,7 @@ class ResearchControlsTest(unittest.TestCase):
             "model_id": "synthetic-model-for-contract-test",
             "model_version": "contract-test-v1",
             "adapter_version": "openai-compatible-http-v2",
+            "proposal_protocol_version": "neutral-proposal-v1",
             "endpoint_hash": sha256_json({"endpoint": self.ENDPOINT}),
             "decoding": {"temperature": 0.0, "top_p": 1.0, "max_output_tokens": 512},
             "request_options": json.loads(json.dumps(self.REQUEST_OPTIONS)),
@@ -112,12 +113,19 @@ class ResearchControlsTest(unittest.TestCase):
         with self.assertRaises(ManifestContractError):
             freeze_manifest(manifest, require_concrete_provider=True)
 
+    def test_manifest_requires_proposal_protocol(self):
+        manifest = self.manifest()
+        manifest.pop("proposal_protocol_version")
+        with self.assertRaises(ManifestContractError):
+            freeze_manifest(manifest, require_concrete_provider=True)
+
     def test_provider_adapter_is_paid_fail_closed(self):
         adapter = self.adapter(execute_enabled=False)
         with self.assertRaises(PaidExecutionDisabled):
             adapter.generate_neutral({"task": "return no action", "authorized_source_facts": {}})
         fragment = adapter.manifest_fragment()
         self.assertFalse(fragment["paid_execution_enabled"])
+        self.assertEqual(fragment["proposal_protocol_version"], "neutral-proposal-v1")
         self.assertEqual(fragment["request_options"], self.REQUEST_OPTIONS)
 
     def test_provider_adapter_rejects_reserved_request_options(self):
@@ -138,6 +146,7 @@ class ResearchControlsTest(unittest.TestCase):
         self.assertTrue(receipt["secret_present"])
         self.assertFalse(receipt["network_request_made"])
         self.assertEqual(receipt["paid_model_calls"], 0)
+        self.assertEqual(receipt["proposal_protocol_version"], "neutral-proposal-v1")
         self.assertEqual(receipt["request_options"], self.REQUEST_OPTIONS)
 
         mismatched_endpoint = OpenAICompatibleChatAdapter(
