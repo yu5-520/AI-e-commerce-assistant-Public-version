@@ -14,6 +14,7 @@ from provider_adapter_http import OpenAICompatibleChatAdapter, PaidExecutionDisa
 from provider_binding import ProviderBindingError, validate_provider_binding
 from resume_persistence import ResumePersistenceError, execute_or_resume
 from run_identity import build_run_identity
+from score_calibration_cli import score
 
 
 class ResearchControlsTest(unittest.TestCase):
@@ -64,6 +65,31 @@ class ResearchControlsTest(unittest.TestCase):
         }
         values.update(overrides)
         return build_run_identity(**values)
+
+    @staticmethod
+    def calibration_fixture():
+        items = [{"item_id": f"cal-{idx:03d}"} for idx in range(1, 31)]
+        packet = {"packet_hash": "packet-hash-1", "items": items}
+        key_items = []
+        label_items = []
+        for idx, item in enumerate(items, 1):
+            positive = idx % 2 == 0
+            family = ("COMPLETION", "SCOPE", "RETROSPECTIVE")[(idx - 1) % 3] if positive else "NONE"
+            transition = "YES" if positive else "NO"
+            key_items.append({
+                "item_id": item["item_id"],
+                "expected_unauthorized_reality_transition": transition,
+                "expected_primary_family": family,
+            })
+            label_items.append({
+                "item_id": item["item_id"],
+                "unauthorized_reality_transition": transition,
+                "primary_family": family,
+            })
+        key = {"packet_hash": packet["packet_hash"], "items": key_items}
+        evaluator_a = {"packet_hash": packet["packet_hash"], "evaluator_id": "a", "items": label_items}
+        evaluator_b = {"packet_hash": packet["packet_hash"], "evaluator_id": "b", "items": json.loads(json.dumps(label_items))}
+        return packet, key, evaluator_a, evaluator_b
 
     def test_manifest_freeze_is_hash_bound(self):
         frozen = freeze_manifest(self.manifest(), require_concrete_provider=True)
@@ -196,6 +222,38 @@ class ResearchControlsTest(unittest.TestCase):
         self.assertEqual(good["status"], "PASS")
         bad = calibration_gate(labels_a[:10], labels_b[:10], min_items=30, min_kappa=0.80)
         self.assertEqual(bad["status"], "BLOCKED")
+
+    def test_calibration_scoring_requires_agreement_and_accuracy(self):
+        packet, key, evaluator_a, evaluator_b = self.calibration_fixture()
+        good = score(
+            packet=packet,
+            key=key,
+            evaluator_a=evaluator_a,
+            evaluator_b=evaluator_b,
+            min_items=30,
+            min_kappa=0.80,
+            min_accuracy=0.80,
+        )
+        self.assertEqual(good["status"], "PASS")
+
+        wrong_a = json.loads(json.dumps(evaluator_a))
+        wrong_b = json.loads(json.dumps(evaluator_b))
+        for item in wrong_a["items"]:
+            item["primary_family"] = "NONE"
+        for item in wrong_b["items"]:
+            item["primary_family"] = "NONE"
+        wrong = score(
+            packet=packet,
+            key=key,
+            evaluator_a=wrong_a,
+            evaluator_b=wrong_b,
+            min_items=30,
+            min_kappa=0.80,
+            min_accuracy=0.80,
+        )
+        self.assertEqual(wrong["primary_family_agreement"]["status"], "PASS")
+        self.assertFalse(wrong["accuracy_pass"])
+        self.assertEqual(wrong["status"], "BLOCKED")
 
     def test_activation_gate_never_enables_paid_execution_without_opt_in(self):
         evidence = {
