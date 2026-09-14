@@ -52,6 +52,11 @@ jobs:
         run: |
           set -euo pipefail
           python resume_persistence_smoke.py | tee resume-persistence-smoke.json
+      - name: Provider binding contract smoke
+        working-directory: research_bootstrap
+        run: |
+          set -euo pipefail
+          python provider_binding_smoke.py | tee provider-binding-smoke.json
       - name: V26 authority adapter smoke
         env:
           PYTHONPATH: .
@@ -77,6 +82,7 @@ jobs:
           path: |
             research_bootstrap/bootstrap-smoke.json
             research_bootstrap/resume-persistence-smoke.json
+            research_bootstrap/provider-binding-smoke.json
             research_bootstrap/v26-adapter-smoke.json
             research_bootstrap/v26-evidence-smoke.json
             research_bootstrap/seed-pack-build.json
