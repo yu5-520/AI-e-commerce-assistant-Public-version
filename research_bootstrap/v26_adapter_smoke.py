@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+import importlib.util
 import json
+from pathlib import Path
 
-from src.services.v26_field_authority_contract_service import (
-    FieldAuthorityViolation,
-    V26FieldAuthorityContract,
-)
+
+ROOT = Path(__file__).resolve().parents[1]
+AUTHORITY_PATH = ROOT / "src/services/v26_field_authority_contract_service.py"
+SPEC = importlib.util.spec_from_file_location("research_v26_field_authority_contract_service", AUTHORITY_PATH)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError(f"cannot load V26 authority module: {AUTHORITY_PATH}")
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+FieldAuthorityViolation = MODULE.FieldAuthorityViolation
+V26FieldAuthorityContract = MODULE.V26FieldAuthorityContract
 
 
 def expect_block(fn, code_prefix: str) -> str:
@@ -55,6 +63,7 @@ def run() -> dict:
 
     return {
         "v26_adapter_smoke": "PASS",
+        "authority_module_load_mode": "direct-file-no-src-init",
         "field_authority_version": receipt["version"],
         "registered_header_count": receipt["registeredHeaderCount"],
         "information_authority": "PASS",
@@ -67,7 +76,7 @@ def run() -> dict:
             "system_stage": stage_block,
             "temporal": temporal_block,
         },
-        "note": "Smoke validates existing V26 contract boundaries only; it does not yet claim full P3.1 pilot readiness."
+        "note": "Smoke validates existing V26 contract boundaries only; it does not boot the full app runtime or claim full P3.1 pilot readiness."
     }
 
 
