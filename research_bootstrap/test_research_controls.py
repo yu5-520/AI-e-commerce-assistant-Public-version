@@ -10,7 +10,7 @@ from append_store import AppendOnlyJsonlStore, AppendStoreError
 from core import sha256_json
 from evaluator_calibration import calibration_gate
 from manifest_contract import ManifestContractError, assert_manifest_immutable, freeze_manifest
-from provider_adapter_http import OpenAICompatibleChatAdapter, PaidExecutionDisabled
+from provider_adapter_http import OpenAICompatibleChatAdapter, PaidExecutionDisabled, ProviderAdapterError
 from provider_binding import ProviderBindingError, validate_provider_binding
 from resume_persistence import ResumePersistenceError, execute_or_resume
 from run_identity import build_run_identity
@@ -20,6 +20,7 @@ from score_calibration_cli import score
 class ResearchControlsTest(unittest.TestCase):
     ENDPOINT = "https://example.invalid/v1/chat/completions"
     SECRET_ENV = "NEVER_SET_CONTRACT_TEST_KEY"
+    REQUEST_OPTIONS = {"thinking": {"type": "disabled"}}
 
     def manifest(self):
         return {
@@ -29,9 +30,10 @@ class ResearchControlsTest(unittest.TestCase):
             "provider": "synthetic-provider-for-contract-test",
             "model_id": "synthetic-model-for-contract-test",
             "model_version": "contract-test-v1",
-            "adapter_version": "openai-compatible-http-v1",
+            "adapter_version": "openai-compatible-http-v2",
             "endpoint_hash": sha256_json({"endpoint": self.ENDPOINT}),
             "decoding": {"temperature": 0.0, "top_p": 1.0, "max_output_tokens": 512},
+            "request_options": json.loads(json.dumps(self.REQUEST_OPTIONS)),
             "budget": {"max_cost": 50.0, "max_tokens": 2_000_000},
             "conditions": [
                 "baseline_runtime",
@@ -42,7 +44,7 @@ class ResearchControlsTest(unittest.TestCase):
             ],
         }
 
-    def adapter(self, *, execute_enabled=False):
+    def adapter(self, *, execute_enabled=False, request_options=None):
         return OpenAICompatibleChatAdapter(
             endpoint=self.ENDPOINT,
             api_key_env=self.SECRET_ENV,
@@ -51,6 +53,11 @@ class ResearchControlsTest(unittest.TestCase):
             decoding={"temperature": 0.0, "top_p": 1.0, "max_output_tokens": 512},
             provider="synthetic-provider-for-contract-test",
             execute_enabled=execute_enabled,
+            request_options=(
+                json.loads(json.dumps(self.REQUEST_OPTIONS))
+                if request_options is None
+                else request_options
+            ),
         )
 
     @staticmethod
@@ -99,11 +106,24 @@ class ResearchControlsTest(unittest.TestCase):
         with self.assertRaises(ManifestContractError):
             assert_manifest_immutable(frozen, mutated)
 
+    def test_manifest_requires_request_options(self):
+        manifest = self.manifest()
+        manifest.pop("request_options")
+        with self.assertRaises(ManifestContractError):
+            freeze_manifest(manifest, require_concrete_provider=True)
+
     def test_provider_adapter_is_paid_fail_closed(self):
         adapter = self.adapter(execute_enabled=False)
         with self.assertRaises(PaidExecutionDisabled):
             adapter.generate_neutral({"task": "return no action", "authorized_source_facts": {}})
-        self.assertFalse(adapter.manifest_fragment()["paid_execution_enabled"])
+        fragment = adapter.manifest_fragment()
+        self.assertFalse(fragment["paid_execution_enabled"])
+        self.assertEqual(fragment["request_options"], self.REQUEST_OPTIONS)
+
+    def test_provider_adapter_rejects_reserved_request_options(self):
+        adapter = self.adapter(request_options={"model": "override-not-allowed"})
+        with self.assertRaises(ProviderAdapterError):
+            adapter.manifest_fragment()
 
     def test_provider_binding_is_exact_and_network_free(self):
         frozen = freeze_manifest(self.manifest(), require_concrete_provider=True)
@@ -118,8 +138,9 @@ class ResearchControlsTest(unittest.TestCase):
         self.assertTrue(receipt["secret_present"])
         self.assertFalse(receipt["network_request_made"])
         self.assertEqual(receipt["paid_model_calls"], 0)
+        self.assertEqual(receipt["request_options"], self.REQUEST_OPTIONS)
 
-        mismatched = OpenAICompatibleChatAdapter(
+        mismatched_endpoint = OpenAICompatibleChatAdapter(
             endpoint="https://different.invalid/v1/chat/completions",
             api_key_env=self.SECRET_ENV,
             model_id="synthetic-model-for-contract-test",
@@ -127,11 +148,20 @@ class ResearchControlsTest(unittest.TestCase):
             decoding={"temperature": 0.0, "top_p": 1.0, "max_output_tokens": 512},
             provider="synthetic-provider-for-contract-test",
             execute_enabled=False,
+            request_options=json.loads(json.dumps(self.REQUEST_OPTIONS)),
         )
         with self.assertRaises(ProviderBindingError):
             validate_provider_binding(
                 frozen_manifest=frozen,
-                adapter=mismatched,
+                adapter=mismatched_endpoint,
+                require_secret=False,
+            )
+
+        mismatched_options = self.adapter(request_options={"thinking": {"type": "enabled"}})
+        with self.assertRaises(ProviderBindingError):
+            validate_provider_binding(
+                frozen_manifest=frozen,
+                adapter=mismatched_options,
                 require_secret=False,
             )
 
