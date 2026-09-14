@@ -401,7 +401,7 @@
   }
 
   let workspace = null, selectedStep = "", stepNotice = "";
-  const stepDrafts = new Map(), workspaceCache = new Map();
+  const stepDrafts = new Map(), workspaceCache = new Map(), stepContentCache = new Map();
   const stepUrl = id => `/api/ops/tasks/${encodeURIComponent(id)}/steps`;
   async function loadWorkspace(id) {
     const cached = workspaceCache.get(id);
@@ -409,6 +409,7 @@
     if (response.status===304 && cached) return cached;
     const body=await response.json();
     if(!response.ok) throw new Error(body.detail || "步骤暂不可用");
+    body.steps=body.steps.map(step=>{if(!step.contentHash)return step;const key=`${id}:${step.contentHash}`;if(!stepContentCache.has(key))stepContentCache.set(key,step);return stepContentCache.get(key);});
     workspaceCache.set(id,body); return body;
   }
   function draftKey(node) {return `${workspace.taskId}:${workspace.graphHash}:${node.nodeHash}`;}
@@ -458,6 +459,7 @@
     },
     mount(ctx) {
       ctx.delegate("[data-step-key]", "click", (event,target)=>{captureStep();selectedStep=target.getAttribute("data-step-key");stepNotice="";paintWorkspace();});
+      ctx.delegate("#step-result-form input[type=file]", "change", (event,target)=>{const step=currentStep();if(step){captureStep();stepDrafts.get(draftKey(step.node)).files=Array.from(target.files);}});
       ctx.delegate("#step-result-form", "submit", submitCurrentStep);
       ctx.delegate("#step-review-form", "submit", async event=>{
         event.preventDefault();captureStep();const step=currentStep();const current=step.records.filter(r=>r.graphHash===workspace.graphHash && r.nodeHash===step.node.nodeHash);const button=event.submitter;button.disabled=true;
@@ -466,7 +468,7 @@
       ctx.delegate("[data-finish-steps]", "click", async (event,target)=>{
         if(!workspace?.allStepsSubmitted){stepNotice="请先提交每个当前版本步骤";paintWorkspace();return;}
         target.disabled=true;
-        try {const result=await AppApi.submitTask(workspace.taskId,{summary:"阶段执行记录已提交",stepHeadHash:workspace.headHash});if(result.ok===false)throw new Error(result.error || "提交失败");stepNotice="已提交任务验收";paintWorkspace();}
+        try {const result=await AppApi.submitTask(workspace.taskId,{summary:"阶段执行记录已提交",stepHeadHash:workspace.headHash});if(result.ok===false)throw new Error(result.error || "提交失败");stepNotice="已提交任务验收";paintWorkspace();AppRouter.schedule("submit-task-report",{taskId:workspace.taskId});}
         catch(error){stepNotice=error.message;paintWorkspace();}finally{target.disabled=false;}
       });
       ctx.delegate("[data-back-task-list]", "click", () => AppRouter.navigate("business-actions"));

@@ -68,3 +68,56 @@ def test_review_return_resubmit_and_stale_receipt(db):
     with pytest.raises(ValueError,match='STALE_STEP_REVIEW'):steps.review_step('task',{**review,'commandId':'review-2'},'operator')
     approved=steps.review_step('task',{**review,'commandId':'review-3','decision':'approve','recordHash':new['steps'][0]['records'][-1]['recordHash']},'operator')
     assert approved['steps'][0]['status']=='completed'
+
+
+def test_immutable_step_content_survives_later_submission(db):
+    first=steps.submit_step('task',command(steps.read_workspace('task')),'operator')
+    original=steps.read_content('task',first['headHash'])
+    later=steps.submit_step('task',{**command(first),'commandId':'next','summary':'补充记录'},'operator')
+    assert later['headHash']!=first['headHash']
+    assert steps.read_content('task',first['headHash'])==original
+    assert steps.digest(original)==first['headHash']
+    with pytest.raises(ValueError):steps.read_content('another-task',first['headHash'])
+
+
+def test_task_submission_keeps_step_evidence_and_fails_closed(db,monkeypatch):
+    from src.services import task_submission_review_station_service as station
+    view=steps.submit_step('task',command(steps.read_workspace('task')),'operator')
+    captured=[]
+    monkeypatch.setattr(station,'submit_task_evidence',lambda task_id,body,**kw: captured.append(body))
+    station.submit_task('task',{'stepHeadHash':view['headHash'],'formFields':{'note':'preserved'}})
+    assert captured[0]['formFields']['stepEvidence']==view
+    assert captured[0]['formFields']['note']=='preserved'
+    with repo.connect() as conn:
+        row=conn.execute('SELECT payload FROM v2611_step_records').fetchone()
+        bad=json.loads(row['payload']);bad['summary']='tampered'
+        conn.execute('UPDATE v2611_step_records SET payload=?',(json.dumps(bad),));conn.commit()
+    with pytest.raises(ValueError,match='STEP_RECORD_HASH_MISMATCH'):
+        station.submit_task('task',{'stepHeadHash':view['headHash']})
+    assert len(captured)==1
+
+
+def test_shared_content_is_scoped_to_each_task(db):
+    with repo.connect() as conn:
+        for task in ('one','two'):
+            conn.execute('INSERT INTO v269_system_reviews VALUES(?,?)',(task,json.dumps(db)))
+        steps._tables(conn)
+        for task in ('one','two'):steps._persist_view(conn,steps._view(conn,task))
+        conn.commit()
+    old=steps.read_workspace('one')['steps'][0]
+    assert old['contentHash']==steps.read_workspace('two')['steps'][0]['contentHash']
+    for task in ('one','two'):
+        steps.submit_step(task,command(steps.read_workspace(task)),'operator')
+        assert steps.read_content(task,old['contentHash'])['status']=='pending'
+
+
+def test_attachment_lookup_before_submissions_and_tamper(db):
+    with pytest.raises(ValueError,match='ATTACHMENT_NOT_FOUND'):steps.attachment('task','missing','missing')
+    view=steps.submit_step('task',command(steps.read_workspace('task')),'operator')
+    record=view['steps'][0]['records'][0]
+    with repo.connect() as conn:
+        row=conn.execute('SELECT payload FROM v2611_step_records').fetchone()
+        bad=json.loads(row['payload']);bad['attachments'][0]['name']='renamed'
+        conn.execute('UPDATE v2611_step_records SET payload=?',(json.dumps(bad),));conn.commit()
+    with pytest.raises(ValueError,match='STEP_RECORD_HASH_MISMATCH'):
+        steps.attachment('task',record['recordHash'],record['attachments'][0]['contentHash'])

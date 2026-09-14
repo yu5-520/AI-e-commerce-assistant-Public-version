@@ -20,14 +20,15 @@ def submit_task(task_id: str, body: Dict[str, Any] | None = None, *, submitter_i
     from src.services.v2611_step_workspace_service import read_workspace
     try:
         workspace=read_workspace(task_id)
-    except ValueError:
+    except ValueError as error:
+        if str(error)!="TASK_GRAPH_NOT_AVAILABLE":raise
         workspace=None
     if workspace is not None:
         if not workspace['allStepsSubmitted']:
             return {'ok':False,'error':'CURRENT_STEP_RECORDS_REQUIRED','taskId':task_id}
         if body.get('stepHeadHash')!=workspace['headHash']:
             return {'ok':False,'error':'STALE_STEP_HEAD','taskId':task_id}
-        body={**body,'stepEvidence':workspace}
+        body={**body,'formFields':{**(body.get('formFields') if isinstance(body.get('formFields'),dict) else {}),'stepEvidence':workspace}}
     evidence_task = submit_task_evidence(task_id, body, submitter_id=submitter_id or body.get("submitterId"))
     if not evidence_task:
         return {"version": TASK_SUBMISSION_REVIEW_STATION_VERSION, "ok": False, "stationId": "task_submission_station", "error": "task_not_found", "taskId": task_id}

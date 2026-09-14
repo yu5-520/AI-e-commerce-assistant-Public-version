@@ -208,3 +208,12 @@ def step_review(task_id: str, request: Request, body: Dict[str, Any] = Body(...)
     from src.services.v2611_step_workspace_service import review_step
     try:return review_step(task_id,body,request_user_id(request))
     except ValueError as exc:raise HTTPException(status_code=409,detail=str(exc))
+
+
+@router.get('/tasks/{task_id}/steps/content/{content_hash}')
+def step_content(task_id: str, content_hash: str):
+    from fastapi.responses import JSONResponse
+    from src.services.v2611_step_workspace_service import read_content
+    try:payload=read_content(task_id,content_hash)
+    except ValueError as exc:raise HTTPException(status_code=404,detail=str(exc))
+    return JSONResponse(payload,headers={'Cache-Control':'private, max-age=31536000, immutable','ETag':'"'+content_hash+'"'})

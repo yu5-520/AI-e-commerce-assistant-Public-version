@@ -1,5 +1,5 @@
 (function installTaskDetailPayloadGuardV23211() {
-  const VERSION = "23.2.11";
+  const VERSION = "26.11.0";
   const MISSING_MARKER = "__taskDetailProjectionMissingV23211";
   const api = window.AppApi = window.AppApi || {};
   const originalFetch = typeof window.fetch === "function" ? window.fetch.bind(window) : null;
@@ -136,7 +136,7 @@
 
 (async function () {
   const ASSET_VERSION = "26.11.0";
-  const ASSET_HASHES = {"dashboard/page.js":"a0213e5d1c3cc962d82b0b33ad9412bb5c2fa92f3e508ff737819d467cdf4cd0","report/page.js":"a333eebf6fa1aefc8841758d7b6ca0283b830d2de1b653a5adeab1c87c0944f4","operating-unit/page.js":"7fd3789684fd8dcbd1c3bda7d3382f65f87c69186aec7f5c539b915e8e10c441","product/page.js":"24f74ffcab49ea6996a2d97b82b27e9c41c3754067c92ab64ddde2e651d4945a","competitor/page.js":"851a1cf0042964b59d0f5db92dae0c373820bdcf7f8e8e4e70f19f590b2172e6","listing/page.js":"a1f58fb669071275c4206490f0509d6c2f2ef01a5a4c069d1b17278e265e23da","traffic/page.js":"b34f4e1454b6827bdcc2ffb5c53e35934378495e7d4105857b9c051643cbf97d","todo/page.js":"c9c35bd6b7845020186e3e19055ea6808b5071a5a062e5e93bf525c86ca98d72","task-report/page.js":"3691405d2699b303bdfe9f0393cb09cb1706eae2d987c73a1081bb5b9ffbdb15","log/page.js":"eeec2ef4786b165a61048c447f89fa1421bec96ca9a2b4786cc96702d1fc2df6","knowledge-center/page.js":"a457566ed81d6e276890c92a368dc1e858aa79c82edb6426337451812f0fdece","system-status/page.js":"7888b8a58aec723133746a118cc6ef7fab154367707e1cfa2e0d3ee645be0b8c"};
+  const ASSET_HASHES = {"dashboard/page.js":"a0213e5d1c3cc962d82b0b33ad9412bb5c2fa92f3e508ff737819d467cdf4cd0","report/page.js":"a333eebf6fa1aefc8841758d7b6ca0283b830d2de1b653a5adeab1c87c0944f4","operating-unit/page.js":"7fd3789684fd8dcbd1c3bda7d3382f65f87c69186aec7f5c539b915e8e10c441","product/page.js":"24f74ffcab49ea6996a2d97b82b27e9c41c3754067c92ab64ddde2e651d4945a","competitor/page.js":"851a1cf0042964b59d0f5db92dae0c373820bdcf7f8e8e4e70f19f590b2172e6","listing/page.js":"a1f58fb669071275c4206490f0509d6c2f2ef01a5a4c069d1b17278e265e23da","traffic/page.js":"b34f4e1454b6827bdcc2ffb5c53e35934378495e7d4105857b9c051643cbf97d","todo/page.js":"c9c35bd6b7845020186e3e19055ea6808b5071a5a062e5e93bf525c86ca98d72","task-report/page.js":"44183a82e94ceeb7cbd1f96b8a14f168628fc77c06fba1394cc8e0071fcbfae7","log/page.js":"eeec2ef4786b165a61048c447f89fa1421bec96ca9a2b4786cc96702d1fc2df6","knowledge-center/page.js":"a457566ed81d6e276890c92a368dc1e858aa79c82edb6426337451812f0fdece","system-status/page.js":"7888b8a58aec723133746a118cc6ef7fab154367707e1cfa2e0d3ee645be0b8c"};
   const PAGE_MANIFEST = [
     ["dashboard", "总览", "DashboardPage", "dashboard/page.js"],
     ["data-check", "AI 经营链路", "ReportPage", "report/page.js"],

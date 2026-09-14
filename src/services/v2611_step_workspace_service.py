@@ -10,6 +10,7 @@ VERSION='26.11.0'
 
 
 def _tables(conn):
+    conn.execute('CREATE TABLE IF NOT EXISTS v2611_step_contents (content_hash TEXT NOT NULL, task_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(task_id,content_hash))')
     conn.execute('CREATE TABLE IF NOT EXISTS v2611_step_reviews (task_id TEXT NOT NULL, command_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(task_id,command_id))')
     conn.execute('CREATE TABLE IF NOT EXISTS v2611_step_records (task_id TEXT NOT NULL, command_id TEXT NOT NULL, record_hash TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(task_id,command_id))')
 
@@ -58,6 +59,7 @@ def submit_step(task_id,body,actor):
     if not isinstance(files,list) or len(files)>5:raise ValueError('ATTACHMENT_LIMIT')
     attachments=[];total=0
     for a in files:
+        if not isinstance(a,dict):raise ValueError('ATTACHMENT_ENCODING')
         name=a.get('name');encoded=a.get('base64','')
         if not isinstance(name,str) or not 1<=len(name)<=255 or '/' in name or '\\' in name:raise ValueError('ATTACHMENT_NAME')
         if not isinstance(encoded,str) or len(encoded)>2800000:raise ValueError('ATTACHMENT_LIMIT')
@@ -81,14 +83,17 @@ def submit_step(task_id,body,actor):
             record={**material,'identityHash':identity,'submittedAt':datetime.now(timezone.utc).isoformat(),'reviewStatus':'NOT_REVIEWED'}
             record['recordHash']=digest(record)
             conn.execute('INSERT INTO v2611_step_records VALUES(?,?,?,?)',(task_id,command,record['recordHash'],repo.dumps(record)))
-        view=_view(conn,task_id);conn.commit();return view
+        view=_view(conn,task_id);_persist_view(conn,view);conn.commit();return view
 
 
 def attachment(task_id,record_hash,content_hash):
     with repo.connect() as conn:
+        if not conn.execute("SELECT 1 FROM sqlite_master WHERE name='v2611_step_records'").fetchone():raise ValueError('ATTACHMENT_NOT_FOUND')
         row=conn.execute('SELECT payload FROM v2611_step_records WHERE task_id=? AND record_hash=?',(task_id,record_hash)).fetchone()
     if row:
-        for a in json.loads(row['payload'])['attachments']:
+        record=json.loads(row['payload'])
+        if record.get('recordHash')!=digest({k:v for k,v in record.items() if k!='recordHash'}):raise ValueError('STEP_RECORD_HASH_MISMATCH')
+        for a in record['attachments']:
             if a['contentHash']==content_hash:
                 if 'sha256:'+hashlib.sha256(base64.b64decode(a['base64'])).hexdigest()!=content_hash:raise ValueError('ATTACHMENT_HASH_MISMATCH')
                 return a
@@ -113,4 +118,26 @@ def review_step(task_id,body,actor):
             receipt={**material,'identityHash':digest(material),'reviewedAt':datetime.now(timezone.utc).isoformat()}
             receipt['receiptHash']=digest(receipt)
             conn.execute('INSERT INTO v2611_step_reviews VALUES(?,?,?)',(task_id,command,repo.dumps(receipt)))
-        result=_view(conn,task_id);conn.commit();return result
+        result=_view(conn,task_id);_persist_view(conn,result);conn.commit();return result
+
+
+
+def _persist_view(conn,view):
+    for step in view['steps']:
+        conn.execute('INSERT OR IGNORE INTO v2611_step_contents VALUES(?,?,?)',(step['contentHash'],view['taskId'],repo.dumps({k:v for k,v in step.items() if k!='contentHash'})))
+    conn.execute('INSERT OR IGNORE INTO v2611_step_contents VALUES(?,?,?)',(view['headHash'],view['taskId'],repo.dumps({k:v for k,v in view.items() if k!='headHash'})))
+
+
+def read_content(task_id,content_hash):
+    with repo.connect() as conn:
+        exists=conn.execute("SELECT 1 FROM sqlite_master WHERE name='v2611_step_contents'").fetchone()
+        row=conn.execute('SELECT payload FROM v2611_step_contents WHERE task_id=? AND content_hash=?',(task_id,content_hash)).fetchone() if exists else None
+        if row:
+            payload=json.loads(row['payload'])
+            if digest(payload)!=content_hash:raise ValueError('STEP_CONTENT_HASH_MISMATCH')
+            return payload
+        view=_view(conn,task_id)
+        if view['headHash']==content_hash:return {k:v for k,v in view.items() if k!='headHash'}
+        for step in view['steps']:
+            if step['contentHash']==content_hash:return {k:v for k,v in step.items() if k!='contentHash'}
+    raise ValueError('STEP_CONTENT_NOT_FOUND')
