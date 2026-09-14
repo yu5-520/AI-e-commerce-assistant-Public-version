@@ -337,3 +337,11 @@ details.page-section > summary { cursor:pointer; padding:16px; font-weight:600; 
 .step-record a { display:block; padding:7px 0; color:var(--workspace-accent); }
 .step-record p { white-space:pre-wrap; }
 @media(max-width:640px) { .step-current { padding:16px; } .step-tabs { position:sticky; top:0; z-index:2; background:white; } .step-instruction { font-size:16px; } #step-result-form button,[data-finish-steps] { width:100%; } }
+.step-workspace, .step-workspace *, [data-finish-steps] { box-sizing:border-box; }
+.step-current, #step-result-form, #step-review-form, #step-result-form label, #step-review-form label { min-width:0; }
+#step-result-form { grid-template-columns:minmax(0,1fr); }
+#step-result-form input, #step-review-form textarea { width:100%; max-width:100%; min-width:0; }
+#step-review-form { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; margin-top:16px; }
+#step-review-form label { display:grid; gap:8px; }
+#step-review-form textarea { padding:12px; font:inherit; border:1px solid #b8c7d9; border-radius:10px; resize:vertical; }
+#step-review-form button { min-height:44px; border:1px solid var(--workspace-border); border-radius:10px; background:#f7f9fc; color:var(--workspace-ink); cursor:pointer; }
