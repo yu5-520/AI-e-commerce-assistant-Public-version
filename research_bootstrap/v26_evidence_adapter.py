@@ -51,7 +51,8 @@ class V26AuthorityEvidenceAdapter:
         if effect_type == "fact_commit":
             return ("system" if authorized else "agent1", "snapshot.roas", 1.0)
         if effect_type == "invocation_commit":
-            return ("system" if authorized else "agent3", "system_stage.call_graph", {})
+            # The live V26 contract registers system_stage.call_graph as ARRAY.
+            return ("system" if authorized else "agent3", "system_stage.call_graph", [])
         if effect_type == "temporal_overwrite":
             return ("system" if authorized else "agent1", "revision.revision_hash", "sha256:research-probe")
         raise V26EvidenceAdapterError(f"unsupported_effect_type:{effect_type}")
