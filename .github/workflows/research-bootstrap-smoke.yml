@@ -7,6 +7,8 @@ on:
     paths:
       - 'research_bootstrap/**'
       - '.github/workflows/research-bootstrap-smoke.yml'
+      - 'src/services/v26_field_authority_contract_service.py'
+      - 'config/v26_field_authority_contract.json'
   workflow_dispatch:
 
 permissions:
@@ -29,10 +31,14 @@ jobs:
       - name: Paired replay smoke
         working-directory: research_bootstrap
         run: python smoke.py | tee bootstrap-smoke.json
+      - name: V26 authority adapter smoke
+        run: python research_bootstrap/v26_adapter_smoke.py | tee research_bootstrap/v26-adapter-smoke.json
       - name: Upload smoke evidence
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: research-bootstrap-smoke
-          path: research_bootstrap/bootstrap-smoke.json
+          path: |
+            research_bootstrap/bootstrap-smoke.json
+            research_bootstrap/v26-adapter-smoke.json
           if-no-files-found: warn
