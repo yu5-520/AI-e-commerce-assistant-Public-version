@@ -1,5 +1,6 @@
 (function () {
   let lastReport = null;
+  const valueText = value => value == null ? "未记录" : typeof value === "object" ? JSON.stringify(value,null,2) : String(value);
   const s = (value) => AppShell.escape(value ?? "");
   const ENGINEERING = [
     /relationConfidence\s*(?:=|为|仅)?\s*[0-9.]+/ig,
@@ -421,12 +422,12 @@
     const selected=currentStep(); if(!selected)return `<section class="page-section">尚无执行步骤</section>`;
     const n=selected.node, draft=stepDrafts.get(draftKey(n)) || {};
     const history=selected.records.map(r=>`<article class="step-record"><strong>${s(r.submittedAt)}</strong><span>${r.graphHash===workspace.graphHash && r.nodeHash===n.nodeHash ? "已提交 · 待验收" : "历史版本"}</span><p>${s(r.summary)}</p>${r.attachments.map(a=>`<a href="${s(stepUrl(workspace.taskId)+"/attachment?recordHash="+encodeURIComponent(r.recordHash)+"&contentHash="+encodeURIComponent(a.contentHash))}" download="${s(a.name)}">${s(a.name)} · ${s(a.size)} B</a>`).join("")}</article>`).join("");
-    return `<section class="page-section step-workspace"><nav class="step-tabs" aria-label="执行步骤">${workspace.steps.map((step,i)=>`<button type="button" data-step-key="${s(step.node.nodeKey)}" aria-current="${step===selected ? "step" : "false"}"><span>${i+1}</span>${s(step.node.title || step.node.nodeKey)}<small>${step.status==="submitted" ? "已提交" : "待执行"}</small></button>`).join("")}</nav>
+    return `<section class="page-section step-workspace"><nav class="step-tabs" aria-label="执行步骤">${workspace.steps.map((step,i)=>`<button type="button" data-step-key="${s(step.node.nodeKey)}" aria-current="${step===selected ? "step" : "false"}"><span>${i+1}</span>${s(step.node.title || step.node.nodeKey)}<small>${({submitted:"待验收",completed:"已验收",returned:"待补交",pending:"待执行"})[step.status] || "待执行"}</small></button>`).join("")}</nav>
       <div class="step-current"><div class="section-header"><h3>${s(n.title || n.nodeKey)}</h3><span>${s(n.owner)}</span></div><p class="step-instruction">${s(n.instruction)}</p><dl><dt>执行对象</dt><dd>${s(valueText(n.executionObject))}</dd></dl>
       <details><summary>验收与停止条件</summary><p>${s(valueText(n.acceptanceActions))}</p><p>${s(valueText(n.stopConditionRefs))}</p><p>回滚：${s(valueText(n.rollback))}</p></details>
       <details><summary>数据与方案依据</summary>${renderSopEvidence(lastReport)}</details>
       <form id="step-result-form"><label>执行记录<textarea required maxlength="10000" rows="3" placeholder="记录本步骤的实际操作与结果">${s(draft.summary || "")}</textarea></label><label>上传凭证<input type="file" multiple /></label><small>最多 5 个文件，合计 2 MB${draft.files?.length ? " · 已选择 "+draft.files.length+" 个文件" : ""}</small><button type="submit">${selected.status==="submitted" ? "补交记录" : "提交本步骤"}</button></form><p role="status">${s(stepNotice)}</p>
-      <details ${history ? "open" : ""}><summary>操作记录 · ${selected.records.length}</summary>${history || "尚无提交"}</details></div></section>`;
+      <details ${history ? "open" : ""}><summary>操作记录 · ${selected.records.length}</summary>${history || "尚无提交"}${arr(selected.reviews).map(r=>`<p>${s(r.reviewedAt)} · ${r.decision==="approve" ? "验收通过" : "退回补交"}：${s(r.note)}</p>`).join("")}</details>${selected.records.some(r=>r.graphHash===workspace.graphHash && r.nodeHash===n.nodeHash) ? `<form id="step-review-form"><label>验收意见<textarea required rows="2"></textarea></label><button type="submit" value="approve">验收通过</button><button type="submit" value="return">退回补交</button></form>` : ""}</div></section>`;
   }
   function paintWorkspace(){const el=document.querySelector("#stage-workspace");if(el)el.innerHTML=stageWorkspace();}
   async function submitCurrentStep(event) {
@@ -458,6 +459,10 @@
     mount(ctx) {
       ctx.delegate("[data-step-key]", "click", (event,target)=>{captureStep();selectedStep=target.getAttribute("data-step-key");stepNotice="";paintWorkspace();});
       ctx.delegate("#step-result-form", "submit", submitCurrentStep);
+      ctx.delegate("#step-review-form", "submit", async event=>{
+        event.preventDefault();captureStep();const step=currentStep();const current=step.records.filter(r=>r.graphHash===workspace.graphHash && r.nodeHash===step.node.nodeHash);const button=event.submitter;button.disabled=true;
+        try{const response=await fetch(stepUrl(workspace.taskId)+"/review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({commandId:crypto.randomUUID(),nodeKey:step.node.nodeKey,recordHash:current.at(-1).recordHash,decision:button.value,note:event.target.querySelector("textarea").value})});const result=await response.json();if(!response.ok)throw new Error(result.detail || "验收失败");workspace=result;workspaceCache.set(workspace.taskId,result);stepNotice="验收记录已保存";paintWorkspace();}catch(error){stepNotice=error.message;paintWorkspace();}finally{button.disabled=false;}
+      });
       ctx.delegate("[data-finish-steps]", "click", async (event,target)=>{
         if(!workspace?.allStepsSubmitted){stepNotice="请先提交每个当前版本步骤";paintWorkspace();return;}
         target.disabled=true;

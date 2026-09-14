@@ -24,6 +24,7 @@ jobs:
         with:
           node-version: '22'
       - run: python -m pip install -r requirements-dev.lock
+      - run: python scripts/compile_v2611_frontend_assets.py --check
       - run: python -m pytest -q tests/test_v2611_step_workspace.py tests/test_v22_4_v2610_initialization.py tests/test_v269b_evaluation_plane.py
       - run: npm install --prefix /tmp/v2611-browser --no-save playwright@1.62.1
       - run: /tmp/v2611-browser/node_modules/.bin/playwright install --with-deps chromium

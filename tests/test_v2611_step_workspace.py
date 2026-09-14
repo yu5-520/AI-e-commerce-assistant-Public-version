@@ -55,3 +55,16 @@ def test_formula_binding_and_missing_expected_value():
     metrics={m['metricId']:m for m in result['metrics']}
     assert metrics['agent2.prediction_accuracy']['missingReason']=='EXPECTED_VALUE_MISSING'
     assert metrics['agent2.actual_delta']['value']==1
+
+
+def test_review_return_resubmit_and_stale_receipt(db):
+    first=steps.submit_step('task',command(steps.read_workspace('task')),'operator')
+    record=first['steps'][0]['records'][0]
+    review={'commandId':'review-1','nodeKey':record['nodeKey'],'recordHash':record['recordHash'],'decision':'return','note':'请补充凭证'}
+    returned=steps.review_step('task',review,'operator')
+    assert returned['steps'][0]['status']=='returned' and not returned['allStepsSubmitted']
+    assert steps.review_step('task',review,'operator')==returned
+    new=steps.submit_step('task',{**command(returned),'commandId':'cmd-2'},'operator')
+    with pytest.raises(ValueError,match='STALE_STEP_REVIEW'):steps.review_step('task',{**review,'commandId':'review-2'},'operator')
+    approved=steps.review_step('task',{**review,'commandId':'review-3','decision':'approve','recordHash':new['steps'][0]['records'][-1]['recordHash']},'operator')
+    assert approved['steps'][0]['status']=='completed'

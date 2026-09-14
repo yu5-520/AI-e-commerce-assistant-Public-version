@@ -10,6 +10,7 @@ VERSION='26.11.0'
 
 
 def _tables(conn):
+    conn.execute('CREATE TABLE IF NOT EXISTS v2611_step_reviews (task_id TEXT NOT NULL, command_id TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(task_id,command_id))')
     conn.execute('CREATE TABLE IF NOT EXISTS v2611_step_records (task_id TEXT NOT NULL, command_id TEXT NOT NULL, record_hash TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(task_id,command_id))')
 
 
@@ -28,14 +29,20 @@ def _view(conn,task_id):
     for record in records:
         if record.get('recordHash')!=digest({k:v for k,v in record.items() if k!='recordHash'}):raise ValueError('STEP_RECORD_HASH_MISMATCH')
     public=[{k:v for k,v in r.items() if k!='attachments'}|{'attachments':[{k:v for k,v in a.items() if k!='base64'} for a in r['attachments']]} for r in records]
+    has_reviews=conn.execute("SELECT 1 FROM sqlite_master WHERE name='v2611_step_reviews'").fetchone()
+    reviews=[json.loads(r['payload']) for r in conn.execute('SELECT payload FROM v2611_step_reviews WHERE task_id=? ORDER BY rowid',(task_id,))] if has_reviews else []
+    for r in reviews:
+        if r.get('receiptHash')!=digest({k:v for k,v in r.items() if k!='receiptHash'}):raise ValueError('STEP_REVIEW_HASH_MISMATCH')
     steps=[]
     for n in sorted(graph['nodes'],key=lambda n:(n.get('sequence',0),n['nodeKey'])):
         if n['kind']!='OperationStage':continue
         history=[r for r in public if r['nodeKey']==n['nodeKey']]
         current=[r for r in history if r['graphHash']==graph['graphHash'] and r['nodeHash']==n['nodeHash']]
-        body={'node':n,'records':history,'status':'submitted' if current else 'pending'}
+        related=[r for r in reviews if current and r['recordHash']==current[-1]['recordHash']]
+        status=('completed' if related[-1]['decision']=='approve' else 'returned') if related else ('submitted' if current else 'pending')
+        body={'node':n,'records':history,'reviews':[r for r in reviews if r['nodeKey']==n['nodeKey']],'status':status}
         steps.append({**body,'contentHash':digest(body)})
-    body={'version':VERSION,'taskId':task_id,'graphHash':graph['graphHash'],'steps':steps,'allStepsSubmitted':bool(steps) and all(s['status']=='submitted' for s in steps)}
+    body={'version':VERSION,'taskId':task_id,'graphHash':graph['graphHash'],'steps':steps,'allStepsSubmitted':bool(steps) and all(s['status'] in ('submitted','completed') for s in steps)}
     return {**body,'headHash':digest(body)}
 
 
@@ -86,3 +93,24 @@ def attachment(task_id,record_hash,content_hash):
                 if 'sha256:'+hashlib.sha256(base64.b64decode(a['base64'])).hexdigest()!=content_hash:raise ValueError('ATTACHMENT_HASH_MISMATCH')
                 return a
     raise ValueError('ATTACHMENT_NOT_FOUND')
+
+
+
+def review_step(task_id,body,actor):
+    command=body.get('commandId');decision=body.get('decision');note=body.get('note','')
+    if not isinstance(command,str) or not 1<=len(command)<=128:raise ValueError('COMMAND_ID_REQUIRED')
+    if decision not in ('approve','return') or not isinstance(note,str) or not 1<=len(note.strip())<=10000:raise ValueError('REVIEW_DECISION_AND_NOTE_REQUIRED')
+    material={'taskId':task_id,'commandId':command,'recordHash':body.get('recordHash'),'nodeKey':body.get('nodeKey'),'decision':decision,'note':note.strip(),'actor':actor}
+    with repo.connect() as conn:
+        _tables(conn);conn.execute('BEGIN IMMEDIATE')
+        old=conn.execute('SELECT payload FROM v2611_step_reviews WHERE task_id=? AND command_id=?',(task_id,command)).fetchone()
+        if old:
+            if json.loads(old['payload'])['identityHash']!=digest(material):raise ValueError('COMMAND_REUSED_WITH_DIFFERENT_CONTENT')
+        else:
+            view=_view(conn,task_id);step=next((x for x in view['steps'] if x['node']['nodeKey']==material['nodeKey']),None)
+            current=[r for r in step['records'] if r['graphHash']==view['graphHash'] and r['nodeHash']==step['node']['nodeHash']] if step else []
+            if not current or current[-1]['recordHash']!=material['recordHash']:raise ValueError('STALE_STEP_REVIEW')
+            receipt={**material,'identityHash':digest(material),'reviewedAt':datetime.now(timezone.utc).isoformat()}
+            receipt['receiptHash']=digest(receipt)
+            conn.execute('INSERT INTO v2611_step_reviews VALUES(?,?,?)',(task_id,command,repo.dumps(receipt)))
+        result=_view(conn,task_id);conn.commit();return result

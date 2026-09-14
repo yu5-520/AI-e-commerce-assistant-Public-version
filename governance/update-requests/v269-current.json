@@ -54,7 +54,8 @@
         "web_demo/sop-ui.css",
         "src/services/task_submission_review_station_service.py",
         "tests/test_v2611_frontend.cjs",
-        ".github/workflows/v2611-frontend.yml"
+        ".github/workflows/v2611-frontend.yml",
+        "scripts/compile_v2611_frontend_assets.py"
       ]
     }
   ]

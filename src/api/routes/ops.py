@@ -201,3 +201,10 @@ def step_attachment(task_id: str, recordHash: str, contentHash: str):
     try:a=attachment(task_id,recordHash,contentHash)
     except ValueError as exc:raise HTTPException(status_code=404,detail=str(exc))
     return Response(base64.b64decode(a['base64']),media_type='application/octet-stream',headers={'Content-Disposition':'attachment','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+
+
+@router.post('/tasks/{task_id}/steps/review')
+def step_review(task_id: str, request: Request, body: Dict[str, Any] = Body(...)):
+    from src.services.v2611_step_workspace_service import review_step
+    try:return review_step(task_id,body,request_user_id(request))
+    except ValueError as exc:raise HTTPException(status_code=409,detail=str(exc))
