@@ -329,6 +329,38 @@
     </details>`;
   }
 
+  function scopedEvidence(report, node) {
+    const evidence=report?.sopEvidence || {}, cards=arr(evidence.cards);
+    const keys=new Set([node.nodeKey,...arr(node.planActionRefs)]);
+    let changed=true;
+    while(changed) {
+      changed=false;
+      for(const card of cards) {
+        if(!keys.has(card.nodeKey) || !["decisionActionRef","judgementRefs","planActionRefs"].includes(card.field))continue;
+        for(const ref of (Array.isArray(card.value)?card.value:[card.value])) {
+          if(typeof ref==="string" && !keys.has(ref)){keys.add(ref);changed=true;}
+        }
+      }
+    }
+    return {...report,sopEvidence:{...evidence,cards:cards.filter(c=>keys.has(c.nodeKey))}};
+  }
+  function renderPresetComparison(report, node) {
+    const cards=arr(report?.sopEvidence?.cards), scoped=arr(scopedEvidence(report,node).sopEvidence.cards);
+    const presets=cards.filter(c=>c.kind==="PRESET" && c.value?.planningPreset);
+    const plans=scoped.filter(c=>c.field==="expectedOutcome");
+    if(!presets.length)return "<p>当前任务未记录企业计划预设。</p>";
+    return presets.map(card=>{
+      const payload=card.value,preset=payload.planningPreset;
+      const rows=plans.map(plan=>{
+        const outcome=plan.value?.[preset.metric];
+        const baseline=scoped.find(c=>c.nodeKey===plan.nodeKey && c.field==="baseline")?.value?.[preset.metric];
+        const comparable=outcome && typeof outcome.expectedValue==="number" && typeof preset.targetValue==="number" && baseline?.unit===preset.unit;
+        const delta=comparable?outcome.expectedValue-preset.targetValue:null;
+        return `<tr><td>${s(plan.nodeKey)}</td><td>${s(valueText(preset.targetValue))} ${s(preset.unit)}</td><td>${s(valueText(outcome?.expectedValue))} ${s(baseline?.unit || "")}</td><td>${comparable?s(valueText(delta)):"口径或值待核对"}</td></tr>`;
+      }).join("");
+      return `<details class="preset-comparison"><summary>${s(payload.category)} · ${s(preset.metric)} 预设与方案对照</summary><div class="preset-table"><table><thead><tr><th>方案</th><th>预设目标</th><th>冻结目标</th><th>数值差</th></tr></thead><tbody>${rows || '<tr><td colspan="4">本步骤尚无可对照的冻结方案</td></tr>'}</tbody></table></div><p>数值差 = 冻结目标 − 预设目标；仅比较相同单位。数值相同不能证明采纳因果。</p><details><summary>预设来源与计算</summary><p>公式：${s(preset.targetFormula)} · 基线 ${s(preset.baseline)}</p><p>真实样本量：${s(payload.realSampleCount ?? "未记录")}</p><pre>${s(valueText({scope:payload.scope,parameters:preset.parameters,sourceRefs:payload.sourceRefs,sourceHash:card.sourceHash}))}</pre></details></details>`;
+    }).join("");
+  }
   function renderSopEvidence(report) {
     const evidence = report?.sopEvidence || {};
     const valueText = (value) => value == null ? "未记录" : typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
@@ -426,7 +458,7 @@
     return `<section class="page-section step-workspace"><nav class="step-tabs" aria-label="执行步骤">${workspace.steps.map((step,i)=>`<button type="button" data-step-key="${s(step.node.nodeKey)}" aria-current="${step===selected ? "step" : "false"}"><span>${i+1}</span>${s(step.node.title || step.node.nodeKey)}<small>${({submitted:"待验收",completed:"已验收",returned:"待补交",pending:"待执行"})[step.status] || "待执行"}</small></button>`).join("")}</nav>
       <div class="step-current"><div class="section-header"><h3>${s(n.title || n.nodeKey)}</h3><span>${s(n.owner)}</span></div><p class="step-instruction">${s(n.instruction)}</p><dl><dt>执行对象</dt><dd>${s(valueText(n.executionObject))}</dd></dl>
       <details><summary>验收与停止条件</summary><p>${s(valueText(n.acceptanceActions))}</p><p>${s(valueText(n.stopConditionRefs))}</p><p>回滚：${s(valueText(n.rollback))}</p></details>
-      <details><summary>数据与方案依据</summary>${renderSopEvidence(lastReport)}</details>
+      <details><summary>本步骤数据与方案依据</summary>${renderSopEvidence(scopedEvidence(lastReport,n))}<details><summary>企业预设与方案差异</summary>${renderPresetComparison(lastReport,n)}</details><details><summary>查看任务全部依据</summary>${renderSopEvidence(lastReport)}</details></details>
       <form id="step-result-form"><label>执行记录<textarea required maxlength="10000" rows="3" placeholder="记录本步骤的实际操作与结果">${s(draft.summary || "")}</textarea></label><label>上传凭证<input type="file" multiple /></label><small>最多 5 个文件，合计 2 MB${draft.files?.length ? " · 已选择 "+draft.files.length+" 个文件" : ""}</small><button type="submit">${selected.status==="submitted" ? "补交记录" : "提交本步骤"}</button></form><p role="status">${s(stepNotice)}</p>
       <details ${history ? "open" : ""}><summary>操作记录 · ${selected.records.length}</summary>${history || "尚无提交"}${arr(selected.reviews).map(r=>`<p>${s(r.reviewedAt)} · ${r.decision==="approve" ? "验收通过" : "退回补交"}：${s(r.note)}</p>`).join("")}</details>${selected.records.some(r=>r.graphHash===workspace.graphHash && r.nodeHash===n.nodeHash) ? `<form id="step-review-form"><label>验收意见<textarea required rows="2"></textarea></label><button type="submit" value="approve">验收通过</button><button type="submit" value="return">退回补交</button></form>` : ""}</div></section>`;
   }

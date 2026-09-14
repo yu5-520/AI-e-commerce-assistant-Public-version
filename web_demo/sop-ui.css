@@ -345,3 +345,7 @@ details.page-section > summary { cursor:pointer; padding:16px; font-weight:600; 
 #step-review-form label { display:grid; gap:8px; }
 #step-review-form textarea { padding:12px; font:inherit; border:1px solid #b8c7d9; border-radius:10px; resize:vertical; }
 #step-review-form button { min-height:44px; border:1px solid var(--workspace-border); border-radius:10px; background:#f7f9fc; color:var(--workspace-ink); cursor:pointer; }
+
+.preset-table { max-width:100%; overflow:auto; }
+.preset-table table { width:100%; border-collapse:collapse; text-align:left; }
+.preset-table th,.preset-table td { padding:10px; border-bottom:1px solid var(--workspace-border); }

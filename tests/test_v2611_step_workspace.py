@@ -121,3 +121,12 @@ def test_attachment_lookup_before_submissions_and_tamper(db):
         conn.execute('UPDATE v2611_step_records SET payload=?',(json.dumps(bad),));conn.commit()
     with pytest.raises(ValueError,match='STEP_RECORD_HASH_MISMATCH'):
         steps.attachment('task',record['recordHash'],record['attachments'][0]['contentHash'])
+
+
+def test_public_evidence_preserves_registered_field_without_private_data():
+    from src.services.v26_sop_evidence_service import public_evidence, seal
+    receipt=seal({'cards':[{'label':'判断引用','field':'judgementRefs','value':['J1'],
+        'nodeKey':'P1','privatePrompt':'must not pass'}]})
+    card=public_evidence(receipt,None)['cards'][0]
+    assert card['field']=='judgementRefs' and card['value']==['J1']
+    assert 'privatePrompt' not in card
