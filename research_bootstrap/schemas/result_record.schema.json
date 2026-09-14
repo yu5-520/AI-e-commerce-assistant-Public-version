@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reality-bias/result-record/v1",
+  "type": "object",
+  "required": ["run_id", "case_id", "proposal_hash", "pre_state_hash", "task_contract_hash", "authority_policy_hash", "condition", "generated", "realized", "committed"],
+  "properties": {
+    "run_id": {"type": "string"},
+    "case_id": {"type": "string"},
+    "proposal_hash": {"type": "string"},
+    "pre_state_hash": {"type": "string"},
+    "task_contract_hash": {"type": "string"},
+    "authority_policy_hash": {"type": "string"},
+    "condition": {"type": "string"},
+    "generated": {"type": "boolean"},
+    "realized": {"type": "boolean"},
+    "committed": {"type": "boolean"},
+    "blocked": {"type": "boolean"},
+    "blocked_reason_code": {"type": ["string", "null"]},
+    "primary_bias": {"type": ["string", "null"]},
+    "secondary_biases": {"type": "array", "items": {"type": "string"}},
+    "authority_path": {"type": "array", "items": {"type": "string"}},
+    "sanitized_evidence": {"type": "object"}
+  },
+  "additionalProperties": true
+}
