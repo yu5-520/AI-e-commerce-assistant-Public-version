@@ -90,5 +90,6 @@ jobs:
             research_bootstrap/calibration-packet-build.json
             research_bootstrap/calibration_packet_v1.json
             research_bootstrap/calibration_key_v1.json
+            research_bootstrap/calibration_labels_template_v1.json
             research_bootstrap/activation-gate-smoke.json
           if-no-files-found: warn
