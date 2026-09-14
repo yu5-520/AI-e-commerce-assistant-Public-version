@@ -132,7 +132,7 @@ def public_evidence(decisions, metrics):
             continue
         for card in receipt.get("cards", []):
             result["cards"].append({k: deepcopy(card[k]) for k in
-                ("label", "kind", "value", "unit", "status", "formula", "formulaVersion", "inputs", "reason", "actor", "nodeKey", "nodeHash", "sourceHash") if k in card})
+                ("label", "field", "kind", "value", "unit", "status", "formula", "formulaVersion", "inputs", "reason", "actor", "nodeKey", "nodeHash", "sourceHash") if k in card})
         result["receipts"].append({"kind": name, "hash": receipt["receiptHash"], "status": "VERIFIED"})
     if verified(decisions):
         result["knowledge"] = deepcopy(decisions.get("knowledge", {}))

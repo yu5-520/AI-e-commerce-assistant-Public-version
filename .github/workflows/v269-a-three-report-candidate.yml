@@ -5,9 +5,13 @@ on:
     branches:
       - feat/v269-a-semantic-cutover
       - feat/v2610-initialization
+      - feat/v2611-frontend
     paths:
       - 'src/services/v269_*.py'
       - 'src/services/v2610_*.py'
+      - 'src/services/v2611_*.py'
+      - 'src/api/routes/ops.py'
+      - 'web_demo/**'
       - 'config/v2610_*.json'
       - 'src/services/agent_runtime_hard_interface_v2257_service.py'
       - 'src/services/agent_runtime_hard_interface_v22515_service.py'

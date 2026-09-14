@@ -1,5 +1,5 @@
 (function () {
-  const API_CLIENT_VERSION = "22.5.5-competition-operator";
+  const API_CLIENT_VERSION = "26.11.0";
   const FIXED_OPERATOR = Object.freeze({
     id: "competition_operator",
     actorId: "competition_operator",

@@ -30,6 +30,16 @@ def _require(condition: bool, reason: str) -> None:
         raise EvaluationPlaneError("v269b_evaluation_" + reason)
 
 
+_CALCULATOR_CONTRACTS = {'agent1.judgement_accuracy': {'calculator': 'label_ratio', 'formula': 'correct_labelled_judgements / labelled_judgements', 'requiredInputs': ['correctLabelledJudgements', 'labelledJudgements', 'labelSource'], 'version': '1.0.0'}, 'agent1.action_relevance': {'calculator': 'label_ratio', 'formula': 'relevant_labelled_actions / labelled_actions', 'requiredInputs': ['relevantLabelledActions', 'labelledActions', 'labelSource'], 'version': '1.0.0'}, 'agent1.graph_value': {'calculator': 'external_value_ratio', 'formula': 'validated_value_events / evaluated_value_events', 'requiredInputs': ['validatedValueEvents', 'evaluatedValueEvents', 'evaluationSource'], 'version': '1.0.0'}, 'agent1.false_expansion_rate': {'calculator': 'label_ratio', 'formula': 'labelled_false_expansions / labelled_expansions', 'requiredInputs': ['labelledFalseExpansions', 'labelledExpansions', 'labelSource'], 'version': '1.0.0'}, 'agent2.prediction_accuracy': {'calculator': 'relative_prediction_accuracy', 'formula': 'max(0, 1 - abs(actual_value - expected_value) / abs(expected_value))', 'requiredInputs': ['expectedValue', 'actualValue'], 'version': '1.0.0'}, 'agent2.expected_delta': {'calculator': 'expected_delta', 'formula': 'expected_value - baseline_value', 'requiredInputs': ['baselineValue', 'expectedValue', 'metricUnit'], 'version': '1.0.0'}, 'agent2.actual_delta': {'calculator': 'actual_delta', 'formula': 'actual_value - baseline_value', 'requiredInputs': ['baselineValue', 'actualValue', 'metricUnit'], 'version': '1.0.0'}, 'agent2.delta_realization_rate': {'calculator': 'delta_realization_rate', 'formula': 'actual_delta / expected_delta', 'requiredInputs': ['baselineValue', 'expectedValue', 'actualValue', 'metricUnit'], 'version': '1.0.0'}, 'agent3.sop_fidelity': {'calculator': 'count_ratio', 'formula': 'matched_authorized_steps / required_authorized_steps', 'requiredInputs': ['matchedAuthorizedSteps', 'requiredAuthorizedSteps'], 'version': '1.0.0'}, 'agent3.execution_completion': {'calculator': 'count_ratio', 'formula': 'completed_stages / planned_stages', 'requiredInputs': ['completedStages', 'plannedStages'], 'version': '1.0.0'}, 'agent3.deviation_rate': {'calculator': 'count_ratio', 'formula': 'deviation_events / executed_steps', 'requiredInputs': ['deviationEvents', 'executedSteps'], 'version': '1.0.0'}, 'agent3.rollback_rate': {'calculator': 'count_ratio', 'formula': 'rollback_events / eligible_executions', 'requiredInputs': ['rollbackEvents', 'eligibleExecutions'], 'version': '1.0.0'}, 'system.evidence_completeness': {'calculator': 'count_ratio', 'formula': 'present_required_evidence / required_evidence', 'requiredInputs': ['presentRequiredEvidence', 'requiredEvidence'], 'version': '1.0.0'}, 'system.business_outcome': {'calculator': 'observed_outcome', 'formula': 'observed_value', 'requiredInputs': ['observedValue', 'metricUnit', 'observationSource'], 'version': '1.0.0'}}
+
+def _validate_calculator_bindings(cfg):
+    _require(set(cfg.get("metrics",{}))==set(_CALCULATOR_CONTRACTS), "calculator_metric_set")
+    for key,expected in _CALCULATOR_CONTRACTS.items():
+        _require(all(cfg["metrics"][key].get(field)==value for field,value in expected.items()), "formula_calculator_binding")
+    epsilon=cfg.get("epsilon")
+    _require(type(epsilon) in (int,float) and math.isfinite(epsilon) and epsilon>0, "epsilon_invalid")
+
+
 def contract() -> dict[str, Any]:
     value = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
     _require(isinstance(value, dict), "contract_object")
@@ -37,6 +47,7 @@ def contract() -> dict[str, Any]:
     _require(value.get("noCompositeScore") is True, "composite_score_forbidden")
     _require(value.get("causalAttributionForbidden") is True, "causal_attribution_guard")
     _require(isinstance(value.get("metrics"), dict) and value["metrics"], "metrics_required")
+    _validate_calculator_bindings(value)
     return value
 
 
@@ -51,6 +62,7 @@ def validate_frozen_standard(standard):
     _require(isinstance(cfg,dict) and store.digest(cfg)==standard.get('contractHash'),'frozen_standard_hash')
     _require(cfg.get('noCompositeScore') is True and cfg.get('causalAttributionForbidden') is True,'frozen_standard_boundaries')
     _require(cfg.get('version')==VERSION,'unsupported_frozen_calculator_version')
+    _validate_calculator_bindings(cfg)
     return cfg
 
 
@@ -138,6 +150,8 @@ def _evaluate_metric(metric_id: str, spec: dict[str, Any], inputs: dict[str, Any
     if calculator == "count_ratio":
         return _ratio(metric_id, spec, inputs)
     if calculator == "relative_prediction_accuracy":
+        if inputs.get("expectedValue") is None:
+            return _missing(metric_id, spec, inputs, "EXPECTED_VALUE_MISSING")
         if inputs.get("actualValue") is None:
             return _missing(metric_id, spec, inputs, "ACTUAL_NOT_OBSERVED")
         expected = _number(inputs.get("expectedValue"), "expectedValue")
