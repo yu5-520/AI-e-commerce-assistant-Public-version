@@ -31,7 +31,7 @@ jobs:
         run: python -m compileall -q research_bootstrap
       - name: Unit tests
         working-directory: research_bootstrap
-        run: python -m unittest -v test_bootstrap.py test_research_controls.py test_v26_evidence_adapter.py
+        run: python -m unittest -v test_bootstrap.py test_research_controls.py test_v26_evidence_adapter.py test_proposal_authority_classifier.py
       - name: Build and validate P3.1 Seed Pack
         working-directory: research_bootstrap
         run: |
