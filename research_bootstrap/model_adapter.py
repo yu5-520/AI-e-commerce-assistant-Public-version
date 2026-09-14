@@ -53,9 +53,11 @@ class FixtureNeutralAdapter:
             "model_id": self.model_id,
             "model_version": self.model_version,
             "adapter_version": self.adapter_version,
+            "proposal_protocol_version": "fixture-proposal-v1",
             "input_hash": sha256_json(model_view),
-            "structured_output": {"effects": []},
+            "structured_output": {"assessment": "", "effects": []},
             "usage": {"input_tokens": 0, "output_tokens": 0},
+            "raw_response_hash": None,
             "raw_response_ref": None,
         }
 
@@ -67,14 +69,20 @@ def freeze_generation_record(*, case_id: str, model_view: Dict[str, Any], respon
         raise ValueError("structured_output must be an object")
     record = {
         "case_id": case_id,
+        "provider": response.get("provider"),
         "model_id": response.get("model_id"),
         "model_version": response.get("model_version"),
         "adapter_version": response.get("adapter_version"),
+        "proposal_protocol_version": response.get("proposal_protocol_version"),
         "model_input_hash": sha256_json(model_view),
+        "provider_input_hash": response.get("input_hash"),
         "proposal": structured,
         "proposal_hash": sha256_json(structured),
         "usage": response.get("usage") or {},
+        "raw_response_hash": response.get("raw_response_hash"),
         "raw_response_ref": response.get("raw_response_ref"),
     }
+    if record["provider_input_hash"] and record["provider_input_hash"] != record["model_input_hash"]:
+        raise ValueError("provider_input_hash_mismatch")
     record["generation_record_hash"] = sha256_json(record)
     return record
