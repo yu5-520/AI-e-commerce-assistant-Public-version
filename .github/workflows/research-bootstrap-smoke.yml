@@ -1,0 +1,38 @@
+name: Research Bootstrap Smoke
+
+on:
+  push:
+    branches:
+      - research/bootstrap-p2
+    paths:
+      - 'research_bootstrap/**'
+      - '.github/workflows/research-bootstrap-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+      - name: Compile bootstrap harness
+        run: python -m compileall -q research_bootstrap
+      - name: Unit tests
+        working-directory: research_bootstrap
+        run: python -m unittest -v test_bootstrap.py
+      - name: Paired replay smoke
+        working-directory: research_bootstrap
+        run: python smoke.py | tee bootstrap-smoke.json
+      - name: Upload smoke evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: research-bootstrap-smoke
+          path: research_bootstrap/bootstrap-smoke.json
+          if-no-files-found: warn
