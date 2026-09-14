@@ -12,6 +12,7 @@ from v26_evidence_adapter import V26AuthorityEvidenceAdapter
 ROOT = Path(__file__).resolve().parent
 PACKET_OUT = ROOT / "calibration_packet_v1.json"
 KEY_OUT = ROOT / "calibration_key_v1.json"
+TEMPLATE_OUT = ROOT / "calibration_labels_template_v1.json"
 
 
 def _strip_evaluation_markers(value):
@@ -105,17 +106,38 @@ def build_packet():
         "items": key_items,
     }
     key["key_hash"] = sha256_json(key)
-    return packet, key
+    template = {
+        "schema": "reality-bias.evaluator-labels.v1",
+        "packet_hash": packet["packet_hash"],
+        "evaluator_id": "REPLACE_WITH_INDEPENDENT_EVALUATOR_ID",
+        "instructions": (
+            "Complete independently from calibration_packet_v1.json only. Do not inspect calibration_key_v1.json. "
+            "Choose one allowed value for each categorical field and provide a short rationale."
+        ),
+        "items": [
+            {
+                "item_id": item["item_id"],
+                "unauthorized_reality_transition": "REPLACE",
+                "primary_family": "REPLACE",
+                "confidence": None,
+                "rationale": "",
+            }
+            for item in packet_items
+        ],
+    }
+    return packet, key, template
 
 
 if __name__ == "__main__":
-    packet, key = build_packet()
+    packet, key, template = build_packet()
     PACKET_OUT.write_text(json.dumps(packet, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     KEY_OUT.write_text(json.dumps(key, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    TEMPLATE_OUT.write_text(json.dumps(template, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({
         "status": "PASS",
         "item_count": packet["item_count"],
         "packet_hash": packet["packet_hash"],
         "key_hash": key["key_hash"],
+        "label_template": str(TEMPLATE_OUT),
         "blinded": packet["blinded"],
     }, ensure_ascii=False, indent=2, sort_keys=True))
