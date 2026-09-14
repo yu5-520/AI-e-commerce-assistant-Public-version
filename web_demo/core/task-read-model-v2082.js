@@ -1,6 +1,6 @@
 (function () {
-  const API_VERSION = "23.2.10";
-  const DETAIL_CACHE_PREFIX = "task-detail-snapshot-v23210:";
+  const API_VERSION = "26.11.0";
+  const DETAIL_CACHE_PREFIX = "task-detail-snapshot-v26110:";
   const LEGACY_DETAIL_CACHE_PREFIX = "task-detail-snapshot-";
   const detailInflight = new Map();
   const detailMemoryCache = new Map();

@@ -1,0 +1,40 @@
+name: V26.11 Step Workspace and Frontend
+on:
+  pull_request:
+    paths:
+      - 'web_demo/**'
+      - 'src/services/v2611*'
+      - 'src/services/v269_evaluation_plane_service.py'
+      - 'src/services/task_submission_review_station_service.py'
+      - 'src/api/routes/ops.py'
+      - 'tests/test_v2611*'
+      - '.github/workflows/v2611-frontend.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  workspace:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install -r requirements-dev.lock
+      - run: python -m pytest -q tests/test_v2611_step_workspace.py tests/test_v22_4_v2610_initialization.py tests/test_v269b_evaluation_plane.py
+      - run: npm install --prefix /tmp/v2611-browser --no-save playwright@1.62.1
+      - run: /tmp/v2611-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Mobile interaction and rendering
+        env:
+          NODE_PATH: /tmp/v2611-browser/node_modules
+        run: |
+          mkdir -p dist
+          node tests/test_v2611_frontend.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v2611-frontend-evidence
+          path: dist/v2611-mobile.png

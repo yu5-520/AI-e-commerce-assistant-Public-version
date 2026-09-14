@@ -311,3 +311,29 @@
 .sop-evidence summary:focus-visible { outline: 2px solid #2563eb; outline-offset: 4px; }
 .sop-evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; font: inherit; }
 .sop-evidence-hash { overflow-wrap: anywhere; font-family: monospace; }
+
+/* V26.11: compact evidence-first workspace, shared mobile/desktop surfaces. */
+:root { --workspace-ink:#15243b; --workspace-muted:#607086; --workspace-accent:#245bd6; --workspace-border:#dce4ee; }
+body { color:var(--workspace-ink); background:#f3f6fa; }
+.page-section { border:1px solid var(--workspace-border); border-radius:16px; background:#fff; box-shadow:0 4px 18px #243a5910; }
+details.page-section > summary { cursor:pointer; padding:16px; font-weight:600; }
+.step-tabs { display:flex; gap:8px; overflow-x:auto; padding:12px; border-bottom:1px solid var(--workspace-border); scroll-snap-type:x proximity; }
+.step-tabs button { flex:0 0 auto; min-width:126px; padding:12px 16px; display:grid; grid-template-columns:24px 1fr; gap:6px; text-align:left; border:1px solid var(--workspace-border); border-radius:12px; color:var(--workspace-ink); background:#f7f9fc; scroll-snap-align:start; }
+.step-tabs button[aria-current=step] { color:#fff; background:var(--workspace-accent); border-color:var(--workspace-accent); }
+.step-tabs small { grid-column:2; opacity:.85; }
+.step-tabs button:focus-visible, .step-current button:focus-visible { outline:3px solid #90b4ff; outline-offset:3px; }
+.step-current { max-width:1000px; margin:auto; padding:24px; }
+.step-instruction { font-size:18px; line-height:1.8; white-space:pre-wrap; }
+.step-current details { margin:12px 0; padding:12px; border:1px solid var(--workspace-border); border-radius:10px; }
+.step-current summary { cursor:pointer; font-weight:600; }
+.step-current pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; }
+#step-result-form { display:grid; gap:14px; padding-top:20px; border-top:1px solid var(--workspace-border); }
+#step-result-form label { display:grid; gap:8px; font-weight:600; }
+#step-result-form textarea { width:100%; box-sizing:border-box; padding:12px; font:inherit; border:1px solid #b8c7d9; border-radius:10px; resize:vertical; }
+#step-result-form button, [data-finish-steps] { min-height:44px; padding:12px 20px; border:0; border-radius:10px; background:var(--workspace-accent); color:white; cursor:pointer; }
+#step-result-form small { color:var(--workspace-muted); }
+.step-record { border-top:1px solid var(--workspace-border); padding:14px 0; overflow-wrap:anywhere; }
+.step-record span { display:block; color:var(--workspace-muted); font-size:12px; }
+.step-record a { display:block; padding:7px 0; color:var(--workspace-accent); }
+.step-record p { white-space:pre-wrap; }
+@media(max-width:640px) { .step-current { padding:16px; } .step-tabs { position:sticky; top:0; z-index:2; background:white; } .step-instruction { font-size:16px; } #step-result-form button,[data-finish-steps] { width:100%; } }

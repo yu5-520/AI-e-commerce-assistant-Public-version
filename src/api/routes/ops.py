@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, Body, Query, Request
+from fastapi import APIRouter, Body, Query, Request, HTTPException
 
 from src.runtime_version import API_VERSION
 from src.services.competition_operator_context_service import user_id_from_headers
@@ -171,3 +171,33 @@ def initialize_business(request: Request, body: Dict[str, Any] | None = Body(def
     result = initialize_bundle()
     result["requestedBy"] = request_user_id(request)
     return result
+
+
+@router.get('/tasks/{task_id}/steps')
+def step_workspace(task_id: str, request: Request):
+    from src.services.v2611_step_workspace_service import read_workspace
+    from fastapi.responses import JSONResponse, Response
+    try:
+        view=read_workspace(task_id)
+        etag='"'+view["headHash"]+'"'
+        headers={"ETag":etag,"Cache-Control":"private, no-cache"}
+        if request.headers.get("if-none-match")==etag:return Response(status_code=304,headers=headers)
+        return JSONResponse(view,headers=headers)
+    except ValueError as exc:raise HTTPException(status_code=404,detail=str(exc))
+
+
+@router.post('/tasks/{task_id}/steps')
+def step_submit(task_id: str, request: Request, body: Dict[str, Any] = Body(...)):
+    from src.services.v2611_step_workspace_service import submit_step
+    try:return submit_step(task_id,body,request_user_id(request))
+    except ValueError as exc:raise HTTPException(status_code=409,detail=str(exc))
+
+
+@router.get('/tasks/{task_id}/steps/attachment')
+def step_attachment(task_id: str, recordHash: str, contentHash: str):
+    import base64
+    from fastapi.responses import Response
+    from src.services.v2611_step_workspace_service import attachment
+    try:a=attachment(task_id,recordHash,contentHash)
+    except ValueError as exc:raise HTTPException(status_code=404,detail=str(exc))
+    return Response(base64.b64decode(a['base64']),media_type='application/octet-stream',headers={'Content-Disposition':'attachment','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})

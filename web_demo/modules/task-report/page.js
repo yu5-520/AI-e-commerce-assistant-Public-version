@@ -353,7 +353,7 @@
       </details>
       <details><summary>知识引用与审核回流</summary><pre>${s(valueText(evidence.knowledge || {}))}</pre><p>${s(evidence.knowledgeEffect || "尚无对照评测证据")}</p><p>${s(evidence.knowledgeAudit?.status === "RECORDED" ? "已记录任务关联知识版本与审核事件" : evidence.knowledgeAudit?.status === "INVALID_EVIDENCE" ? "部分审核证据校验失败" : "未记录审核回流结果")}</p><pre>${s(valueText({ revisions: evidence.knowledgeAudit?.revisions || [], reviewEvents: evidence.knowledgeAudit?.events || [] }))}</pre>${renderKnowledgeReuse(evidence.knowledgeAudit)}</details>
       <details><summary>运营复核与系统审核</summary>
-        <p>运营复核是人工记录；系统自动审核尚未接入此任务链路。复核记录保存不等于生命周期转换成功。</p>
+        <p>运营复核是人工记录；系统审核结果以本任务保存的回执为准。复核记录保存不等于生命周期转换成功。</p>
         <p>仅显示最近保留的 10 条记录；旧记录缺少冻结回执时不补造证明。</p>
         <pre>${s(valueText(evidence.operatorReviews || { status: "NOT_RECORDED" }))}</pre>
       </details>
@@ -399,6 +399,50 @@
     }
   }
 
+  let workspace = null, selectedStep = "", stepNotice = "";
+  const stepDrafts = new Map(), workspaceCache = new Map();
+  const stepUrl = id => `/api/ops/tasks/${encodeURIComponent(id)}/steps`;
+  async function loadWorkspace(id) {
+    const cached = workspaceCache.get(id);
+    const response = await fetch(stepUrl(id), {cache:"no-cache", headers:cached ? {"If-None-Match":`"${cached.headHash}"`} : {}});
+    if (response.status===304 && cached) return cached;
+    const body=await response.json();
+    if(!response.ok) throw new Error(body.detail || "步骤暂不可用");
+    workspaceCache.set(id,body); return body;
+  }
+  function draftKey(node) {return `${workspace.taskId}:${workspace.graphHash}:${node.nodeHash}`;}
+  function currentStep() {return workspace?.steps.find(x=>x.node.nodeKey===selectedStep) || workspace?.steps[0];}
+  function captureStep() {
+    const step=currentStep(), form=document.querySelector("#step-result-form");
+    if(step && form) {const old=stepDrafts.get(draftKey(step.node)) || {}; stepDrafts.set(draftKey(step.node),{...old,summary:form.querySelector("textarea").value,files:form.querySelector("input[type=file]").files.length ? Array.from(form.querySelector("input[type=file]").files) : (old.files || [])});}
+  }
+  function stageWorkspace() {
+    if(!workspace) return `<section class="page-section"><p role="status">${s(stepNotice || "当前任务没有可用的图谱步骤")}</p></section>`;
+    const selected=currentStep(); if(!selected)return `<section class="page-section">尚无执行步骤</section>`;
+    const n=selected.node, draft=stepDrafts.get(draftKey(n)) || {};
+    const history=selected.records.map(r=>`<article class="step-record"><strong>${s(r.submittedAt)}</strong><span>${r.graphHash===workspace.graphHash && r.nodeHash===n.nodeHash ? "已提交 · 待验收" : "历史版本"}</span><p>${s(r.summary)}</p>${r.attachments.map(a=>`<a href="${s(stepUrl(workspace.taskId)+"/attachment?recordHash="+encodeURIComponent(r.recordHash)+"&contentHash="+encodeURIComponent(a.contentHash))}" download="${s(a.name)}">${s(a.name)} · ${s(a.size)} B</a>`).join("")}</article>`).join("");
+    return `<section class="page-section step-workspace"><nav class="step-tabs" aria-label="执行步骤">${workspace.steps.map((step,i)=>`<button type="button" data-step-key="${s(step.node.nodeKey)}" aria-current="${step===selected ? "step" : "false"}"><span>${i+1}</span>${s(step.node.title || step.node.nodeKey)}<small>${step.status==="submitted" ? "已提交" : "待执行"}</small></button>`).join("")}</nav>
+      <div class="step-current"><div class="section-header"><h3>${s(n.title || n.nodeKey)}</h3><span>${s(n.owner)}</span></div><p class="step-instruction">${s(n.instruction)}</p><dl><dt>执行对象</dt><dd>${s(valueText(n.executionObject))}</dd></dl>
+      <details><summary>验收与停止条件</summary><p>${s(valueText(n.acceptanceActions))}</p><p>${s(valueText(n.stopConditionRefs))}</p><p>回滚：${s(valueText(n.rollback))}</p></details>
+      <details><summary>数据与方案依据</summary>${renderSopEvidence(lastReport)}</details>
+      <form id="step-result-form"><label>执行记录<textarea required maxlength="10000" rows="3" placeholder="记录本步骤的实际操作与结果">${s(draft.summary || "")}</textarea></label><label>上传凭证<input type="file" multiple /></label><small>最多 5 个文件，合计 2 MB${draft.files?.length ? " · 已选择 "+draft.files.length+" 个文件" : ""}</small><button type="submit">${selected.status==="submitted" ? "补交记录" : "提交本步骤"}</button></form><p role="status">${s(stepNotice)}</p>
+      <details ${history ? "open" : ""}><summary>操作记录 · ${selected.records.length}</summary>${history || "尚无提交"}</details></div></section>`;
+  }
+  function paintWorkspace(){const el=document.querySelector("#stage-workspace");if(el)el.innerHTML=stageWorkspace();}
+  async function submitCurrentStep(event) {
+    event.preventDefault();captureStep();const step=currentStep();if(!step)return;
+    const draft=stepDrafts.get(draftKey(step.node));const button=event.target.querySelector("button[type=submit]");button.disabled=true;
+    try {
+      const files=draft.files || [];if(files.length>5 || files.reduce((n,f)=>n+f.size,0)>2*1024*1024)throw new Error("附件最多 5 个，合计 2 MB");
+      const attachments=await Promise.all(files.map(file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve({name:file.name,base64:String(reader.result).split(",")[1]});reader.onerror=reject;reader.readAsDataURL(file);}))); 
+      const body={commandId:draft.commandId || crypto.randomUUID(),graphHash:workspace.graphHash,nodeKey:step.node.nodeKey,nodeHash:step.node.nodeHash,summary:draft.summary,attachments};
+      const signature=JSON.stringify({summary:body.summary,attachments});
+      if(draft.signature && draft.signature!==signature)body.commandId=crypto.randomUUID();
+      draft.signature=signature;draft.commandId=body.commandId;const response=await fetch(stepUrl(workspace.taskId),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw new Error(result.detail || "提交失败");
+      workspace=result;workspaceCache.set(workspace.taskId,result);stepDrafts.delete(draftKey(step.node));stepNotice="记录已保存，等待验收";paintWorkspace();
+    } catch(error) {stepNotice=error.message || "提交失败，请重试";paintWorkspace();} finally {button.disabled=false;}
+  }
+
   window.TaskReportPage = {
     route: "task-report",
     title: "任务详情",
@@ -407,9 +451,19 @@
       lastReport = null;
       if (!taskId) return missingTaskView();
       const report = await loadReport(taskId);
-      return `${renderHero(report)}${renderProductObject(report)}${renderAgentJudgment(report)}${renderTaskMetricEvidence(report)}${renderStepsWithEvidence(report)}${renderAutoReview(report)}${renderLifecycleActions(report, taskId)}`;
+      captureStep();stepNotice="";
+      try {workspace=await loadWorkspace(taskId);} catch(error){workspace=null;stepNotice=error.message;}
+      return `${renderHero(report)}${lifecycleMode(report)==="accept" ? `<button type="button" data-accept-task="${s(taskId)}">接收任务</button>` : ""}<details class="page-section"><summary>经营数据与诊断</summary>${renderProductObject(report)}${renderAgentJudgment(report)}${renderTaskMetricEvidence(report)}</details><div id="stage-workspace">${stageWorkspace()}</div><button type="button" data-finish-steps="${s(taskId)}">提交全部步骤验收</button><details class="page-section"><summary>效果评测</summary>${renderAutoReview(report)}</details>`;
     },
     mount(ctx) {
+      ctx.delegate("[data-step-key]", "click", (event,target)=>{captureStep();selectedStep=target.getAttribute("data-step-key");stepNotice="";paintWorkspace();});
+      ctx.delegate("#step-result-form", "submit", submitCurrentStep);
+      ctx.delegate("[data-finish-steps]", "click", async (event,target)=>{
+        if(!workspace?.allStepsSubmitted){stepNotice="请先提交每个当前版本步骤";paintWorkspace();return;}
+        target.disabled=true;
+        try {const result=await AppApi.submitTask(workspace.taskId,{summary:"阶段执行记录已提交",stepHeadHash:workspace.headHash});if(result.ok===false)throw new Error(result.error || "提交失败");stepNotice="已提交任务验收";paintWorkspace();}
+        catch(error){stepNotice=error.message;paintWorkspace();}finally{target.disabled=false;}
+      });
       ctx.delegate("[data-back-task-list]", "click", () => AppRouter.navigate("business-actions"));
       ctx.delegate("[data-accept-task]", "click", async (event, target) => { const taskId = target.getAttribute("data-accept-task"); target.disabled = true; try { await AppApi.acceptTask(taskId); AppRouter.schedule("accept-task-report", { taskId }); } finally { target.disabled = false; } });
       ctx.delegate("[data-submit-task]", "click", (event, target) => AppRouter.navigate("task-submit", { taskId: target.getAttribute("data-submit-task") }));
