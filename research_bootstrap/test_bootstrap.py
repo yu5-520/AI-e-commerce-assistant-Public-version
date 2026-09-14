@@ -1,8 +1,10 @@
 import copy
 import unittest
 
-from core import CONDITIONS, DummyModelAdapter, MockSUT, assert_no_condition_leakage, assert_paired_isolation
+from core import CONDITIONS, DummyModelAdapter, MockSUT, assert_no_condition_leakage, assert_paired_isolation, policy_for_condition, sha256_json
 from fixtures import CASES
+from model_adapter import FixtureNeutralAdapter, assert_model_view_clean, freeze_generation_record
+from run_identity import assert_resume_compatible, build_run_identity
 from smoke import matched_condition
 
 
@@ -46,6 +48,48 @@ class BootstrapResearchHarnessTest(unittest.TestCase):
         for condition in CONDITIONS:
             replay = self.sut.replay(case, proposal, condition)
             assert_no_condition_leakage(replay["sanitized_evidence"])
+
+    def test_neutral_adapter_receives_model_view_only(self):
+        model_view = {
+            "domain": "ecommerce",
+            "task_contract": {"goal": "assess budget"},
+            "authorized_source_facts": {"roas": 1.2},
+            "pre_state": {},
+            "task": "Return one assessment.",
+        }
+        assert_model_view_clean(model_view)
+        adapter = FixtureNeutralAdapter()
+        response = adapter.generate_neutral(model_view)
+        frozen = freeze_generation_record(case_id="case-1", model_view=model_view, response=response)
+        self.assertEqual(frozen["model_input_hash"], sha256_json(model_view))
+        self.assertEqual(frozen["proposal_hash"], sha256_json({"effects": []}))
+        with self.assertRaises(AssertionError):
+            adapter.generate_neutral({**model_view, "bias_family": "completion"})
+
+    def test_run_identity_resume_is_fail_closed(self):
+        condition = "information_authority"
+        authority_hash = sha256_json(policy_for_condition(condition))
+        first = build_run_identity(
+            experiment_id="exp-1",
+            case_id="case-1",
+            generation_record_hash="sha256:generation",
+            condition=condition,
+            sut_commit="f9e131b",
+            authority_policy_hash=authority_hash,
+        )
+        second = build_run_identity(
+            experiment_id="exp-1",
+            case_id="case-1",
+            generation_record_hash="sha256:generation",
+            condition=condition,
+            sut_commit="f9e131b",
+            authority_policy_hash=authority_hash,
+        )
+        assert_resume_compatible(first, second)
+        changed = dict(second)
+        changed["run_id"] = "sha256:different"
+        with self.assertRaises(RuntimeError):
+            assert_resume_compatible(first, changed)
 
 
 if __name__ == "__main__":
