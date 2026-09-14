@@ -25,6 +25,7 @@ def run() -> dict:
         execute_enabled=False,
         request_options=json.loads(json.dumps(REQUEST_OPTIONS)),
     )
+    fragment = adapter.manifest_fragment()
     manifest = freeze_manifest(
         {
             "experiment_id": "provider-binding-smoke",
@@ -34,6 +35,7 @@ def run() -> dict:
             "model_id": adapter.model_id,
             "model_version": adapter.model_version,
             "adapter_version": adapter.adapter_version,
+            "proposal_protocol_version": fragment["proposal_protocol_version"],
             "endpoint_hash": sha256_json({"endpoint": ENDPOINT}),
             "decoding": dict(adapter.decoding),
             "request_options": json.loads(json.dumps(REQUEST_OPTIONS)),
@@ -62,6 +64,7 @@ def run() -> dict:
         "provider_binding_contract": "PASS",
         "manifest_hash": receipt["manifest_hash"],
         "endpoint_hash": receipt["endpoint_hash"],
+        "proposal_protocol_version": receipt["proposal_protocol_version"],
         "request_options": receipt["request_options"],
         "secret_presence_check": "PASS",
         "network_request_made": False,
