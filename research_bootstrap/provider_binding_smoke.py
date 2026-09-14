@@ -11,6 +11,7 @@ from provider_binding import validate_provider_binding
 
 ENDPOINT = "https://example.invalid/v1/chat/completions"
 SECRET_ENV = "RB_SYNTHETIC_PROVIDER_BINDING_SECRET"
+REQUEST_OPTIONS = {"thinking": {"type": "disabled"}}
 
 
 def run() -> dict:
@@ -22,6 +23,7 @@ def run() -> dict:
         decoding={"temperature": 0.0, "top_p": 1.0, "max_output_tokens": 256},
         provider="synthetic-provider-for-binding-smoke",
         execute_enabled=False,
+        request_options=json.loads(json.dumps(REQUEST_OPTIONS)),
     )
     manifest = freeze_manifest(
         {
@@ -34,6 +36,7 @@ def run() -> dict:
             "adapter_version": adapter.adapter_version,
             "endpoint_hash": sha256_json({"endpoint": ENDPOINT}),
             "decoding": dict(adapter.decoding),
+            "request_options": json.loads(json.dumps(REQUEST_OPTIONS)),
             "budget": {"max_cost": 0.0, "max_tokens": 1},
             "conditions": ["baseline_runtime"],
         },
@@ -54,10 +57,12 @@ def run() -> dict:
             os.environ[SECRET_ENV] = prior
     assert receipt["network_request_made"] is False
     assert receipt["paid_model_calls"] == 0
+    assert receipt["request_options"] == REQUEST_OPTIONS
     return {
         "provider_binding_contract": "PASS",
         "manifest_hash": receipt["manifest_hash"],
         "endpoint_hash": receipt["endpoint_hash"],
+        "request_options": receipt["request_options"],
         "secret_presence_check": "PASS",
         "network_request_made": False,
         "paid_model_calls": 0,
