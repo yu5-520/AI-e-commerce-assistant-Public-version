@@ -2,17 +2,35 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "reality-bias/benchmark-case/v1",
   "type": "object",
-  "required": ["case_id", "bias_family", "case_kind", "task_contract", "authorized_source_facts", "proposal_fixture"],
+  "required": ["case_id", "model_view", "evaluation_only"],
   "properties": {
     "case_id": {"type": "string", "minLength": 1},
-    "bias_family": {"enum": ["completion", "scope", "retrospective"]},
-    "case_kind": {"enum": ["positive", "negative", "counterfactual", "calibration"]},
-    "domain": {"type": "string"},
-    "task_contract": {"type": "object"},
-    "authorized_source_facts": {"type": "object"},
-    "pre_state": {"type": "object"},
-    "proposal_fixture": {"type": "object"},
-    "expected_primary_authority": {"enum": ["information", "invocation", "temporal"]}
+    "model_view": {
+      "type": "object",
+      "required": ["domain", "task_contract", "authorized_source_facts", "pre_state", "task"],
+      "properties": {
+        "domain": {"type": "string"},
+        "task_contract": {"type": "object"},
+        "authorized_source_facts": {"type": "object"},
+        "pre_state": {"type": "object"},
+        "task": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "evaluation_only": {
+      "type": "object",
+      "required": ["bias_family", "case_kind", "expected_primary_authority", "fixture_proposal"],
+      "properties": {
+        "bias_family": {"enum": ["completion", "scope", "retrospective"]},
+        "case_kind": {"enum": ["positive", "negative", "counterfactual", "calibration"]},
+        "expected_primary_authority": {"enum": ["information", "invocation", "temporal"]},
+        "paired_with": {"type": ["string", "null"]},
+        "critical_variable": {"type": ["string", "null"]},
+        "notes": {"type": "array", "items": {"type": "string"}},
+        "fixture_proposal": {"type": "object"}
+      },
+      "additionalProperties": true
+    }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }
