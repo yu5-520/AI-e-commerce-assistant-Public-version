@@ -26,7 +26,8 @@ class ManifestContractError(ValueError):
 def validate_manifest(manifest: Dict[str, Any], *, require_concrete_provider: bool = False) -> None:
     required = {
         "experiment_id", "research_commit", "sut_commit", "provider", "model_id",
-        "model_version", "adapter_version", "decoding", "budget", "conditions",
+        "model_version", "adapter_version", "endpoint_hash", "decoding",
+        "request_options", "budget", "conditions",
     }
     missing = sorted(required - set(manifest))
     if missing:
@@ -43,6 +44,9 @@ def validate_manifest(manifest: Dict[str, Any], *, require_concrete_provider: bo
     decoding = manifest.get("decoding")
     if not isinstance(decoding, dict) or not REQUIRED_DECODING.issubset(decoding):
         raise ManifestContractError("manifest_decoding_incomplete")
+    request_options = manifest.get("request_options")
+    if not isinstance(request_options, dict):
+        raise ManifestContractError("manifest_request_options_invalid")
     budget = manifest.get("budget")
     if not isinstance(budget, dict) or float(budget.get("max_cost", -1)) < 0 or int(budget.get("max_tokens", 0)) <= 0:
         raise ManifestContractError("manifest_budget_invalid")
