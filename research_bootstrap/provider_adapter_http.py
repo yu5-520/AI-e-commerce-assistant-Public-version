@@ -19,13 +19,23 @@ class ProviderAdapterError(RuntimeError):
     pass
 
 
+RESERVED_REQUEST_KEYS = {
+    "model",
+    "messages",
+    "temperature",
+    "top_p",
+    "max_tokens",
+    "response_format",
+}
+
+
 @dataclass(frozen=True)
 class OpenAICompatibleChatAdapter:
     """Concrete HTTP adapter for OpenAI-compatible chat-completions endpoints.
 
     Network execution is fail-closed by default. Merely constructing the adapter never
-    performs a paid request. The caller must set execute_enabled=True explicitly and
-    provide the configured API key environment variable.
+    performs a paid request. Provider-specific request options are frozen into the
+    manifest contract and cannot override the core neutral-generation fields.
     """
 
     endpoint: str
@@ -35,9 +45,17 @@ class OpenAICompatibleChatAdapter:
     decoding: Dict[str, Any]
     provider: str
     execute_enabled: bool = False
-    adapter_version: str = "openai-compatible-http-v1"
+    adapter_version: str = "openai-compatible-http-v2"
     timeout_seconds: int = 90
     extra_headers: Dict[str, str] = field(default_factory=dict)
+    request_options: Dict[str, Any] = field(default_factory=dict)
+
+    def _validated_request_options(self) -> Dict[str, Any]:
+        options = dict(self.request_options)
+        reserved = sorted(set(options) & RESERVED_REQUEST_KEYS)
+        if reserved:
+            raise ProviderAdapterError(f"provider_request_option_reserved:{','.join(reserved)}")
+        return options
 
     def manifest_fragment(self) -> Dict[str, Any]:
         return {
@@ -46,6 +64,7 @@ class OpenAICompatibleChatAdapter:
             "model_version": self.model_version,
             "adapter_version": self.adapter_version,
             "decoding": dict(self.decoding),
+            "request_options": self._validated_request_options(),
             "endpoint_hash": sha256_json({"endpoint": self.endpoint}),
             "paid_execution_enabled": bool(self.execute_enabled),
         }
@@ -74,6 +93,7 @@ class OpenAICompatibleChatAdapter:
             "top_p": self.decoding["top_p"],
             "max_tokens": self.decoding["max_output_tokens"],
             "response_format": {"type": "json_object"},
+            **self._validated_request_options(),
         }
         request = urllib.request.Request(
             self.endpoint,
