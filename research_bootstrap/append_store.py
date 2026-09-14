@@ -68,6 +68,19 @@ class AppendOnlyJsonlStore:
             os.fsync(handle.fileno())
             return event
 
+    def get(self, run_id: str) -> Dict[str, Any] | None:
+        run_id = str(run_id or "").strip()
+        if not run_id or not self.path.exists():
+            return None
+        with self.path.open("r", encoding="utf-8") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_SH)
+            events = self._read_locked(handle)
+        self._verify_events(events)
+        for event in events:
+            if event.get("record", {}).get("run_id") == run_id:
+                return event
+        return None
+
     def verify(self) -> Dict[str, Any]:
         if not self.path.exists():
             return {"status": "PASS", "events": 0, "head_event_hash": None}
