@@ -39,4 +39,4 @@ await page.locator('#step-review-form button[value=approve]').click();
 await page.getByText('验收记录已保存',{exact:true}).waitFor();
 if(!(await page.locator('[data-step-key="O0"]').innerText()).includes('已验收'))throw Error('approval status missing');
 if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('mobile overflow');
-await page.screenshot({path:'dist/v2611-mobile.png',fullPage:true});console.log(JSON.stringify({errors,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),stepCount:await page.locator('[data-step-key]').count(),draftPreserved:true,submissionReviewResubmission:true}));await browser.close();if(errors.length)process.exitCode=1;})();
+await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'dist/v2611-mobile.png',fullPage:true});console.log(JSON.stringify({errors,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),stepCount:await page.locator('[data-step-key]').count(),draftPreserved:true,submissionReviewResubmission:true}));await browser.close();if(errors.length)process.exitCode=1;})();

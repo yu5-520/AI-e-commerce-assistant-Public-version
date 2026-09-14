@@ -450,11 +450,16 @@
     const step=currentStep(), form=document.querySelector("#step-result-form");
     if(step && form) {const old=stepDrafts.get(draftKey(step.node)) || {}; stepDrafts.set(draftKey(step.node),{...old,summary:form.querySelector("textarea").value,files:form.querySelector("input[type=file]").files.length ? Array.from(form.querySelector("input[type=file]").files) : (old.files || [])});}
   }
+  function recordStatus(record, step) {
+    if(record.graphHash!==workspace.graphHash || record.nodeHash!==step.node.nodeHash)return "历史版本";
+    const review=arr(step.reviews).filter(r=>r.recordHash===record.recordHash).at(-1);
+    return review?(review.decision==="approve"?"已验收":"已退回") : "已提交 · 待验收";
+  }
   function stageWorkspace() {
     if(!workspace) return `<section class="page-section"><p role="status">${s(stepNotice || "当前任务没有可用的图谱步骤")}</p></section>`;
     const selected=currentStep(); if(!selected)return `<section class="page-section">尚无执行步骤</section>`;
     const n=selected.node, draft=stepDrafts.get(draftKey(n)) || {};
-    const history=selected.records.map(r=>`<article class="step-record"><strong>${s(r.submittedAt)}</strong><span>${r.graphHash===workspace.graphHash && r.nodeHash===n.nodeHash ? "已提交 · 待验收" : "历史版本"}</span><p>${s(r.summary)}</p>${r.attachments.map(a=>`<a href="${s(stepUrl(workspace.taskId)+"/attachment?recordHash="+encodeURIComponent(r.recordHash)+"&contentHash="+encodeURIComponent(a.contentHash))}" download="${s(a.name)}">${s(a.name)} · ${s(a.size)} B</a>`).join("")}</article>`).join("");
+    const history=selected.records.map(r=>`<article class="step-record"><strong>${s(r.submittedAt)}</strong><span>${recordStatus(r,selected)}</span><p>${s(r.summary)}</p>${r.attachments.map(a=>`<a href="${s(stepUrl(workspace.taskId)+"/attachment?recordHash="+encodeURIComponent(r.recordHash)+"&contentHash="+encodeURIComponent(a.contentHash))}" download="${s(a.name)}">${s(a.name)} · ${s(a.size)} B</a>`).join("")}</article>`).join("");
     return `<section class="page-section step-workspace"><nav class="step-tabs" aria-label="执行步骤">${workspace.steps.map((step,i)=>`<button type="button" data-step-key="${s(step.node.nodeKey)}" aria-current="${step===selected ? "step" : "false"}"><span>${i+1}</span>${s(step.node.title || step.node.nodeKey)}<small>${({submitted:"待验收",completed:"已验收",returned:"待补交",pending:"待执行"})[step.status] || "待执行"}</small></button>`).join("")}</nav>
       <div class="step-current"><div class="section-header"><h3>${s(n.title || n.nodeKey)}</h3><span>${s(n.owner)}</span></div><p class="step-instruction">${s(n.instruction)}</p><dl><dt>执行对象</dt><dd>${s(valueText(n.executionObject))}</dd></dl>
       <details><summary>验收与停止条件</summary><p>${s(valueText(n.acceptanceActions))}</p><p>${s(valueText(n.stopConditionRefs))}</p><p>回滚：${s(valueText(n.rollback))}</p></details>
