@@ -1,18 +1,25 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from activation_gate import evaluate_stage_a_gate
 from append_store import AppendOnlyJsonlStore, AppendStoreError
+from core import sha256_json
 from evaluator_calibration import calibration_gate
 from manifest_contract import ManifestContractError, assert_manifest_immutable, freeze_manifest
 from provider_adapter_http import OpenAICompatibleChatAdapter, PaidExecutionDisabled
+from provider_binding import ProviderBindingError, validate_provider_binding
 from resume_persistence import ResumePersistenceError, execute_or_resume
 from run_identity import build_run_identity
 
 
 class ResearchControlsTest(unittest.TestCase):
+    ENDPOINT = "https://example.invalid/v1/chat/completions"
+    SECRET_ENV = "NEVER_SET_CONTRACT_TEST_KEY"
+
     def manifest(self):
         return {
             "experiment_id": "stage-a-smoke",
@@ -22,6 +29,7 @@ class ResearchControlsTest(unittest.TestCase):
             "model_id": "synthetic-model-for-contract-test",
             "model_version": "contract-test-v1",
             "adapter_version": "openai-compatible-http-v1",
+            "endpoint_hash": sha256_json({"endpoint": self.ENDPOINT}),
             "decoding": {"temperature": 0.0, "top_p": 1.0, "max_output_tokens": 512},
             "budget": {"max_cost": 50.0, "max_tokens": 2_000_000},
             "conditions": [
@@ -32,6 +40,17 @@ class ResearchControlsTest(unittest.TestCase):
                 "full_authority",
             ],
         }
+
+    def adapter(self, *, execute_enabled=False):
+        return OpenAICompatibleChatAdapter(
+            endpoint=self.ENDPOINT,
+            api_key_env=self.SECRET_ENV,
+            model_id="synthetic-model-for-contract-test",
+            model_version="contract-test-v1",
+            decoding={"temperature": 0.0, "top_p": 1.0, "max_output_tokens": 512},
+            provider="synthetic-provider-for-contract-test",
+            execute_enabled=execute_enabled,
+        )
 
     @staticmethod
     def run_identity(**overrides):
@@ -55,18 +74,51 @@ class ResearchControlsTest(unittest.TestCase):
             assert_manifest_immutable(frozen, mutated)
 
     def test_provider_adapter_is_paid_fail_closed(self):
-        adapter = OpenAICompatibleChatAdapter(
-            endpoint="https://example.invalid/v1/chat/completions",
-            api_key_env="NEVER_SET_CONTRACT_TEST_KEY",
-            model_id="synthetic-model",
-            model_version="v1",
-            decoding={"temperature": 0.0, "top_p": 1.0, "max_output_tokens": 128},
-            provider="synthetic-provider",
-            execute_enabled=False,
-        )
+        adapter = self.adapter(execute_enabled=False)
         with self.assertRaises(PaidExecutionDisabled):
             adapter.generate_neutral({"task": "return no action", "authorized_source_facts": {}})
         self.assertFalse(adapter.manifest_fragment()["paid_execution_enabled"])
+
+    def test_provider_binding_is_exact_and_network_free(self):
+        frozen = freeze_manifest(self.manifest(), require_concrete_provider=True)
+        adapter = self.adapter(execute_enabled=False)
+        with patch.dict(os.environ, {self.SECRET_ENV: "synthetic-secret"}, clear=False):
+            receipt = validate_provider_binding(
+                frozen_manifest=frozen,
+                adapter=adapter,
+                require_secret=True,
+            )
+        self.assertEqual(receipt["status"], "PASS")
+        self.assertTrue(receipt["secret_present"])
+        self.assertFalse(receipt["network_request_made"])
+        self.assertEqual(receipt["paid_model_calls"], 0)
+
+        mismatched = OpenAICompatibleChatAdapter(
+            endpoint="https://different.invalid/v1/chat/completions",
+            api_key_env=self.SECRET_ENV,
+            model_id="synthetic-model-for-contract-test",
+            model_version="contract-test-v1",
+            decoding={"temperature": 0.0, "top_p": 1.0, "max_output_tokens": 512},
+            provider="synthetic-provider-for-contract-test",
+            execute_enabled=False,
+        )
+        with self.assertRaises(ProviderBindingError):
+            validate_provider_binding(
+                frozen_manifest=frozen,
+                adapter=mismatched,
+                require_secret=False,
+            )
+
+    def test_provider_binding_requires_secret_when_requested(self):
+        frozen = freeze_manifest(self.manifest(), require_concrete_provider=True)
+        adapter = self.adapter(execute_enabled=False)
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(ProviderBindingError):
+                validate_provider_binding(
+                    frozen_manifest=frozen,
+                    adapter=adapter,
+                    require_secret=True,
+                )
 
     def test_append_store_is_idempotent_and_tamper_evident(self):
         with tempfile.TemporaryDirectory() as tmp:
