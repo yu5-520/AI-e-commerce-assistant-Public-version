@@ -146,3 +146,30 @@ def test_experience_overview_reads_without_initializing(db):
     assert all(g['sourceType']=='seed' for g in result['groups'])
     assert all('payload' not in r for r in result['recent'])
     assert store.digest({k:v for k,v in result.items() if k!='contentHash'})==result['contentHash']
+
+
+def test_same_task_http_cache_submission_review_and_historical_content(db):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from src.api.routes.ops import router
+    app=FastAPI();app.include_router(router)
+    with TestClient(app) as client:
+        url='/api/ops/tasks/task/steps'
+        first=client.get(url);assert first.status_code==200
+        assert client.get(url,headers={'If-None-Match':first.headers['etag']}).status_code==304
+        body=command(first.json())
+        submitted=client.post(url,json=body);assert submitted.status_code==200
+        assert submitted.json()['allStepsSubmitted']
+        record=submitted.json()['steps'][0]['records'][-1]
+        attachment=client.get(url+'/attachment',params={'recordHash':record['recordHash'],'contentHash':record['attachments'][0]['contentHash']})
+        assert attachment.status_code==200 and attachment.content==b'evidence'
+        assert attachment.headers['x-content-type-options']=='nosniff'
+        review={'commandId':'http-review','nodeKey':record['nodeKey'],'recordHash':record['recordHash'],'decision':'approve','note':'凭证完整'}
+        approved=client.post(url+'/review',json=review);assert approved.status_code==200
+        assert approved.json()['steps'][0]['status']=='completed'
+        historical=client.get(url+'/content/'+submitted.json()['headHash'])
+        assert historical.status_code==200 and historical.json()['steps'][0]['status']=='submitted'
+        assert 'immutable' in historical.headers['cache-control']
+        current=client.get(url,headers={'If-None-Match':first.headers['etag']})
+        assert current.status_code==200 and current.json()['headHash']==approved.json()['headHash']
+        assert client.get('/api/ops/tasks/missing/steps/content/'+submitted.json()['headHash']).status_code==404
