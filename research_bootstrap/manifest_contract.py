@@ -67,11 +67,21 @@ def freeze_manifest(manifest: Dict[str, Any], *, require_concrete_provider: bool
     return frozen
 
 
+def _assert_self_hash(manifest: Dict[str, Any], *, label: str) -> None:
+    declared = str(manifest.get("manifest_hash") or "")
+    if not declared:
+        raise ManifestContractError(f"{label}_manifest_hash_missing")
+    body = {k: v for k, v in manifest.items() if k != "manifest_hash"}
+    if sha256_json(body) != declared:
+        raise ManifestContractError(f"{label}_manifest_tampered")
+
+
 def assert_manifest_immutable(existing: Dict[str, Any], requested: Dict[str, Any]) -> None:
     if existing.get("status") != "frozen":
         raise ManifestContractError("existing_manifest_not_frozen")
+    if requested.get("status") != "frozen":
+        raise ManifestContractError("requested_manifest_not_frozen")
+    _assert_self_hash(existing, label="existing")
+    _assert_self_hash(requested, label="requested")
     if existing.get("manifest_hash") != requested.get("manifest_hash"):
         raise ManifestContractError("frozen_manifest_hash_mismatch")
-    existing_body = {k: v for k, v in existing.items() if k != "manifest_hash"}
-    if sha256_json(existing_body) != existing.get("manifest_hash"):
-        raise ManifestContractError("existing_manifest_tampered")
