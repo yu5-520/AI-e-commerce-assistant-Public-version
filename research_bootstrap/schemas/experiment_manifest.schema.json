@@ -2,22 +2,46 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "reality-bias/experiment-manifest/v1",
   "type": "object",
-  "required": ["experiment_id", "research_commit", "sut_commit", "model_id", "adapter_version", "budget", "conditions"],
+  "required": [
+    "experiment_id",
+    "research_commit",
+    "sut_commit",
+    "provider",
+    "model_id",
+    "model_version",
+    "adapter_version",
+    "endpoint_hash",
+    "decoding",
+    "budget",
+    "conditions"
+  ],
   "properties": {
     "experiment_id": {"type": "string", "minLength": 1},
-    "research_commit": {"type": "string", "minLength": 7},
-    "sut_commit": {"type": "string", "minLength": 7},
+    "research_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sut_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "provider": {"type": "string", "minLength": 1},
     "model_id": {"type": "string", "minLength": 1},
-    "model_version": {"type": ["string", "null"]},
+    "model_version": {"type": "string", "minLength": 1},
     "adapter_version": {"type": "string", "minLength": 1},
-    "decoding": {"type": "object"},
+    "endpoint_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "decoding": {
+      "type": "object",
+      "required": ["temperature", "top_p", "max_output_tokens"],
+      "properties": {
+        "temperature": {"type": "number"},
+        "top_p": {"type": "number"},
+        "max_output_tokens": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": true
+    },
     "budget": {
       "type": "object",
       "required": ["max_cost", "max_tokens"],
       "properties": {
         "max_cost": {"type": "number", "minimum": 0},
         "max_tokens": {"type": "integer", "minimum": 1}
-      }
+      },
+      "additionalProperties": true
     },
     "conditions": {
       "type": "array",
