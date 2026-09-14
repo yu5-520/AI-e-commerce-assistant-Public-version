@@ -8,6 +8,7 @@ from core import sha256_json
 
 
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+HASH64_RE = re.compile(r"^[0-9a-f]{64}$")
 ALLOWED_CONDITIONS = {
     "baseline_runtime",
     "information_authority",
@@ -49,12 +50,15 @@ def validate_manifest(manifest: Dict[str, Any], *, require_concrete_provider: bo
         provider = str(manifest.get("provider") or "").strip().lower()
         model_id = str(manifest.get("model_id") or "").strip().lower()
         version = str(manifest.get("model_version") or "").strip()
+        endpoint_hash = str(manifest.get("endpoint_hash") or "").strip().lower()
         if provider in {"", "fixture", "template", "provider-neutral"}:
             raise ManifestContractError("manifest_provider_not_concrete")
         if model_id in {"", "fixture-neutral", "model-placeholder", "template"}:
             raise ManifestContractError("manifest_model_not_concrete")
         if not version:
             raise ManifestContractError("manifest_model_version_unfrozen")
+        if not HASH64_RE.fullmatch(endpoint_hash):
+            raise ManifestContractError("manifest_endpoint_hash_unfrozen")
 
 
 def freeze_manifest(manifest: Dict[str, Any], *, require_concrete_provider: bool = False) -> Dict[str, Any]:
