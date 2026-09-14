@@ -37,6 +37,11 @@ jobs:
         run: |
           set -euo pipefail
           python build_seed_pack_v2.py | tee seed-pack-build.json
+      - name: Build blinded evaluator calibration packet
+        working-directory: research_bootstrap
+        run: |
+          set -euo pipefail
+          python build_calibration_packet.py | tee calibration-packet-build.json
       - name: Paired replay smoke
         working-directory: research_bootstrap
         run: |
@@ -70,5 +75,8 @@ jobs:
             research_bootstrap/v26-evidence-smoke.json
             research_bootstrap/seed-pack-build.json
             research_bootstrap/seed_pack_v1.json
+            research_bootstrap/calibration-packet-build.json
+            research_bootstrap/calibration_packet_v1.json
+            research_bootstrap/calibration_key_v1.json
             research_bootstrap/activation-gate-smoke.json
           if-no-files-found: warn
