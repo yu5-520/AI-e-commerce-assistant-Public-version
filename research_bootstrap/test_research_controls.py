@@ -8,6 +8,8 @@ from append_store import AppendOnlyJsonlStore, AppendStoreError
 from evaluator_calibration import calibration_gate
 from manifest_contract import ManifestContractError, assert_manifest_immutable, freeze_manifest
 from provider_adapter_http import OpenAICompatibleChatAdapter, PaidExecutionDisabled
+from resume_persistence import ResumePersistenceError, execute_or_resume
+from run_identity import build_run_identity
 
 
 class ResearchControlsTest(unittest.TestCase):
@@ -30,6 +32,19 @@ class ResearchControlsTest(unittest.TestCase):
                 "full_authority",
             ],
         }
+
+    @staticmethod
+    def run_identity(**overrides):
+        values = {
+            "experiment_id": "stage-a-smoke",
+            "case_id": "completion-positive-01",
+            "generation_record_hash": "gen-hash-1",
+            "condition": "baseline_runtime",
+            "sut_commit": "b" * 40,
+            "authority_policy_hash": "policy-hash-1",
+        }
+        values.update(overrides)
+        return build_run_identity(**values)
 
     def test_manifest_freeze_is_hash_bound(self):
         frozen = freeze_manifest(self.manifest(), require_concrete_provider=True)
@@ -68,6 +83,58 @@ class ResearchControlsTest(unittest.TestCase):
             path.write_text(text, encoding="utf-8")
             with self.assertRaises(AppendStoreError):
                 store.verify()
+
+    def test_resume_returns_stored_result_without_reexecution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AppendOnlyJsonlStore(Path(tmp) / "results.jsonl")
+            identity = self.run_identity()
+            calls = {"count": 0}
+
+            def execute():
+                calls["count"] += 1
+                return {"realized": True, "source": "first-execution"}
+
+            first = execute_or_resume(store=store, requested_identity=identity, execute_fn=execute)
+            self.assertEqual(first["status"], "EXECUTED")
+            self.assertEqual(calls["count"], 1)
+
+            resumed = execute_or_resume(
+                store=store,
+                requested_identity=identity,
+                execute_fn=execute,
+                resume_from_run_id=identity["run_id"],
+            )
+            self.assertEqual(resumed["status"], "RESUMED")
+            self.assertFalse(resumed["executed"])
+            self.assertEqual(resumed["result"], first["result"])
+            self.assertEqual(calls["count"], 1, "resume must not invoke execution again")
+            self.assertEqual(store.verify()["events"], 1)
+
+    def test_resume_rejects_any_identity_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AppendOnlyJsonlStore(Path(tmp) / "results.jsonl")
+            original = self.run_identity()
+            execute_or_resume(
+                store=store,
+                requested_identity=original,
+                execute_fn=lambda: {"realized": True},
+            )
+            drifted_identities = [
+                self.run_identity(generation_record_hash="gen-hash-2"),
+                self.run_identity(condition="information_authority"),
+                self.run_identity(sut_commit="c" * 40),
+                self.run_identity(authority_policy_hash="policy-hash-2"),
+            ]
+            for drifted in drifted_identities:
+                with self.subTest(run_id=drifted["run_id"]):
+                    with self.assertRaises(ResumePersistenceError):
+                        execute_or_resume(
+                            store=store,
+                            requested_identity=drifted,
+                            execute_fn=lambda: {"should_not": "execute"},
+                            resume_from_run_id=original["run_id"],
+                        )
+            self.assertEqual(store.verify()["events"], 1)
 
     def test_kappa_gate_requires_enough_agreement(self):
         labels_a = ["PASS", "FAIL"] * 15
