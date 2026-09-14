@@ -10,6 +10,7 @@
     "model_id",
     "model_version",
     "adapter_version",
+    "proposal_protocol_version",
     "endpoint_hash",
     "decoding",
     "request_options",
@@ -24,6 +25,7 @@
     "model_id": {"type": "string", "minLength": 1},
     "model_version": {"type": "string", "minLength": 1},
     "adapter_version": {"type": "string", "minLength": 1},
+    "proposal_protocol_version": {"type": "string", "minLength": 1},
     "endpoint_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "decoding": {
       "type": "object",
