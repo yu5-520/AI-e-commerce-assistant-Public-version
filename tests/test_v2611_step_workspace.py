@@ -130,3 +130,19 @@ def test_public_evidence_preserves_registered_field_without_private_data():
     card=public_evidence(receipt,None)['cards'][0]
     assert card['field']=='judgementRefs' and card['value']==['J1']
     assert 'privatePrompt' not in card
+
+
+def test_experience_overview_reads_without_initializing(db):
+    from src.services import v269_experience_store_service as store
+    before=store.read_experience_overview()
+    assert before['initialized'] is False and before['totalCount']==0
+    with repo.connect() as conn:
+        assert not conn.execute("SELECT 1 FROM sqlite_master WHERE name='v269b_experience_items'").fetchone()
+    store.ensure_experience_store()
+    store.import_seed()
+    result=store.read_experience_overview()
+    assert result['initialized'] and result['totalCount']>0
+    assert sum(g['count'] for g in result['groups'])==result['totalCount']
+    assert all(g['sourceType']=='seed' for g in result['groups'])
+    assert all('payload' not in r for r in result['recent'])
+    assert store.digest({k:v for k,v in result.items() if k!='contentHash'})==result['contentHash']

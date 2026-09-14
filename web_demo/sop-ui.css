@@ -349,3 +349,11 @@ details.page-section > summary { cursor:pointer; padding:16px; font-weight:600; 
 .preset-table { max-width:100%; overflow:auto; }
 .preset-table table { width:100%; border-collapse:collapse; text-align:left; }
 .preset-table th,.preset-table td { padding:10px; border-bottom:1px solid var(--workspace-border); }
+.dashboard-status-band > details { background:#fff; padding:16px; border:1px solid var(--workspace-border); border-radius:14px; min-width:0; }
+.dashboard-status-band > details summary { cursor:pointer; }
+.dashboard-status-band > details strong { display:block; font-size:28px; }
+.dashboard-status-band > details button { display:block; width:100%; min-height:44px; margin:8px 0; border:1px solid var(--workspace-border); border-radius:8px; background:#f7f9fc; color:var(--workspace-ink); }
+.kc-state-grid details { padding:12px; border:1px solid var(--workspace-border); border-radius:10px; min-width:0; overflow-wrap:anywhere; }
+.kc-state-grid summary { cursor:pointer; }
+.kc-card code,.kc-card details p { overflow-wrap:anywhere; }
+.kc-card [data-kc-task] { min-height:44px; border:1px solid var(--workspace-border); border-radius:8px; color:var(--workspace-accent); background:#f7f9fc; }

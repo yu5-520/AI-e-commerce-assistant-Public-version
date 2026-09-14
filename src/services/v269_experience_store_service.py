@@ -486,3 +486,29 @@ def restore_experience_store(source: Path, *, explicit_operator_intent: bool = F
         "explicitOperatorIntent": True,
     }
     return {**material, "receiptHash": digest(material)}
+
+
+def read_experience_overview() -> dict[str, Any]:
+    """Bounded read model of the runtime store. A page read never initializes it."""
+    with repo.connect() as conn:
+        exists = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v269b_experience_items'").fetchone()
+        groups = []
+        recent = []
+        if exists:
+            groups = [dict(row) for row in conn.execute('''
+                SELECT i.domain, i.lifecycle_status AS status, s.source_type AS sourceType, COUNT(*) AS count
+                FROM v269b_experience_items i JOIN v269b_experience_sources s ON i.source_id=s.source_id
+                GROUP BY i.domain,i.lifecycle_status,s.source_type ORDER BY i.domain,i.lifecycle_status,s.source_type
+            ''')]
+            recent = [dict(row) for row in conn.execute('''
+                SELECT i.experience_id AS experienceId, i.domain, i.lifecycle_status AS status,
+                    s.source_task_id AS sourceTaskId, s.source_type AS sourceType,
+                    s.source_hash AS sourceHash, i.updated_at AS updatedAt
+                FROM v269b_experience_items i JOIN v269b_experience_sources s ON i.source_id=s.source_id
+                ORDER BY i.updated_at DESC,i.experience_id LIMIT 30
+            ''')]
+    material = {'version':'26.11.0','initialized':bool(exists),'groups':groups,'recent':recent,
+        'totalCount':sum(row['count'] for row in groups),'recentLimit':30,
+        'countFormula':'COUNT(items) GROUP BY domain, lifecycle_status, source_type',
+        'source':'v269b_experience_items JOIN v269b_experience_sources'}
+    return {**material,'contentHash':digest(material)}

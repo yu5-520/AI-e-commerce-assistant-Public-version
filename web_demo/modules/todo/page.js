@@ -110,7 +110,7 @@
   }
 
   function openTaskReport(taskId) { AppRouter.navigate("task-report", { taskId }); }
-  function openTaskSubmit(taskId) { AppRouter.navigate("task-submit", { taskId }); }
+  function openTaskSubmit(taskId) { AppRouter.navigate("task-report", { taskId }); }
   function primaryAction(task) {
     const visible = Array.isArray(task.visibleTaskActions) ? task.visibleTaskActions : [];
     const primary = task.primaryTaskAction || visible.find((item) => item?.primary) || visible[0] || null;
@@ -125,7 +125,7 @@
     if (!action) return "";
     const id = s(task.id);
     if (action.action === "accept") return `<button type="button" class="primary" data-accept="${id}">接收任务</button>`;
-    if (action.action === "submit" || action.action === "supplement") return `<button type="button" class="primary" data-submit-page="${id}">提交任务</button>`;
+    if (action.action === "submit" || action.action === "supplement") return `<button type="button" class="primary" data-submit-page="${id}">填写步骤记录</button>`;
     if (action.action === "approve" || action.action === "reject" || action.action === "review") return `<button type="button" class="primary" data-task-report="${id}">复核处理</button>`;
     if (action.action === "confirm") return `<button type="button" class="primary" data-task-report="${id}">确认任务</button>`;
     return "";
@@ -203,7 +203,7 @@
       const empty = apiError ? `任务接口异常：${apiError}` : "当前账号没有需要立即处理的本轮经营任务。观察项进入后台等待下一份报表，不进入任务池。";
       const managerCount = tasks.filter(isManagerTask).length;
       const queueTitle = managerCount ? "主管处理队列" : "执行队列";
-      return `<section class="todo-toolbar"><div><p class="eyebrow">TASK CENTER · V20.24</p><h2>任务处理</h2><p>当前以 ${s(user.roleName || "默认账号")} 查看任务。</p></div></section>${notice ? AppShell.notice("操作结果", notice) : ""}<section class="kpi-grid todo-metrics">${metrics(tasks).map(([x,y,z]) => AppShell.metricCard(x,y,z)).join("")}</section><section class="page-section todo-list-section"><div class="section-header"><h3>${queueTitle}</h3><span class="status-badge">${tasks.length} 个本轮任务</span></div><div class="todo-queue-list">${tasks.length ? tasks.map((task, index) => row(task, index, focusTaskId)).join("") : `<div class="todo-empty">${s(empty)}</div>`}</div></section>`;
+      return `<section class="todo-toolbar"><div><p class="eyebrow">TASK CENTER · V26.11</p><h2>任务处理</h2><p>当前以 ${s(user.roleName || "默认账号")} 查看任务。</p></div></section>${notice ? AppShell.notice("操作结果", notice) : ""}<section class="kpi-grid todo-metrics">${metrics(tasks).map(([x,y,z]) => AppShell.metricCard(x,y,z)).join("")}</section><section class="page-section todo-list-section"><div class="section-header"><h3>${queueTitle}</h3><span class="status-badge">${tasks.length} 个本轮任务</span></div><div class="todo-queue-list">${tasks.length ? tasks.map((task, index) => row(task, index, focusTaskId)).join("") : `<div class="todo-empty">${s(empty)}</div>`}</div></section>`;
     },
     mount(ctx) {
       focusTask(ctx.state?.focusTaskId);

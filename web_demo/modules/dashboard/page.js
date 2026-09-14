@@ -82,19 +82,9 @@
     return counts;
   }
   function countsFromPayload(payload, tasks) {
-    const counts = countsFromTasks(tasks);
-    const neural = payload?.neuralOperating?.signalCounts || {};
-    const apply = (target, source) => {
-      const value = Number(neural[source]);
-      if (Number.isFinite(value)) counts[target] = value;
-    };
-    apply("pending", "actionReady");
-    apply("processing", "executing");
-    apply("review", "reviewPending");
-    apply("overdue", "blocked");
-    apply("completed", "learned");
-    return counts;
+    return countsFromTasks(tasks);
   }
+
   function metricNumber(payload, label) {
     const item = arr(payload?.metrics).find((entry) => text(entry.label) === label);
     const number = Number(item?.value);
@@ -149,9 +139,9 @@
     const profile = operatorProfile(payload);
     return `<section class="dashboard-home-hero dashboard-profile-hero">${renderPulseGraphic()}<div class="dashboard-home-hero-copy"><span class="dashboard-home-date">${s(todayLabel())}</span><p>AI 运营中心</p><h2>欢迎回来，${s(profile.displayName)}</h2><div class="dashboard-profile-meta"><span>${s(profile.positionTitle)}</span><span>在职第 ${s(profile.tenureDays)} 天</span><span>累计完成 ${s(profile.completedTaskCount)} 项经营任务</span></div>${renderExperience(profile)}</div><div class="dashboard-neural-visual" aria-hidden="true"><span class="node sensed"></span><span class="node interpreted"></span><span class="node active"></span><span class="node learned"></span><i></i></div></section>`;
   }
-  function renderStatusBand(counts) {
-    const items = [["待执行", counts.pending], ["处理中", counts.processing], ["待复核", counts.review], ["已超时", counts.overdue]];
-    return `<section class="dashboard-status-band">${items.map(([label, value]) => `<article><span>${s(label)}</span><strong>${s(value)}</strong></article>`).join("")}</section>`;
+  function renderStatusBand(counts,tasks) {
+    const items = [["待执行", counts.pending,"pending"], ["处理中", counts.processing,"processing"], ["待复核", counts.review,"review"], ["已超时", counts.overdue,"overdue"]];
+    return `<section class="dashboard-status-band">${items.map(([label, value,key]) => `<details><summary><span>${s(label)}</span><strong>${s(value)}</strong></summary><p>当前任务列表中该状态的任务数。</p>${tasks.filter(task=>statusBucket(task)===key).map(task=>`<button type="button" data-open-task="${s(task.id)}">${s(task.title)}</button>`).join("") || "暂无任务"}</details>`).join("")}</section>`;
   }
   function renderTaskRow(task) {
     return `<article class="dashboard-execution-row"><div class="dashboard-execution-time"><strong>${String(task.rank).padStart(2, "0")}</strong><span></span><small>${s(task.deadline)}</small></div><div class="dashboard-execution-main"><div class="dashboard-execution-title"><strong>${s(task.title)}</strong><span class="dashboard-priority ${s(task.priorityLevel)}">${s(task.priority)}</span></div><p>${s(task.subtitle)}</p><div class="dashboard-execution-meta"><span>${s(task.assigneeName)}</span><span>${s(task.status)}</span>${task.storeName ? `<span>${s(task.storeName)}</span>` : ""}</div></div><button type="button" data-open-task="${s(task.id)}">查看详情</button></article>`;
@@ -187,13 +177,13 @@
       ["已沉淀", Number(neural.learned || counts.completed || 0)],
       ["链路状态", payload?.neuralOperating?.health?.status === "attention" ? "需要关注" : "正常"],
     ];
-    return `<section class="dashboard-footprint"><div><span>经营神经概览</span><strong>数据、判断、动作与记忆正在同一条链路中流转</strong></div>${items.map(([label, value]) => `<article><span>${s(label)}</span><strong>${s(value)}</strong></article>`).join("")}</section>`;
+    return `<section class="dashboard-footprint"><div><span>经营神经概览</span><strong>数据、判断、动作与记忆正在同一条链路中流转</strong></div>${items.map(([label, value,key]) => `<details><summary><span>${s(label)}</span><strong>${s(value)}</strong></summary><p>当前任务列表中该状态的任务数。</p>${tasks.filter(task=>statusBucket(task)===key).map(task=>`<button type="button" data-open-task="${s(task.id)}">${s(task.title)}</button>`).join("") || "暂无任务"}</details>`).join("")}</section>`;
   }
   function renderDashboard(payload) {
     const tasks = normalizeTasks(payload);
     const counts = countsFromPayload(payload, tasks);
     const report = payload?.todayWorkbench?.latestReportResult || payload?.latestImport || {};
-    return `<div class="dashboard-home">${renderHero(payload)}${renderStatusBand(counts)}<section class="dashboard-home-grid">${renderQueue(tasks)}${renderReminderPanel(tasks, counts, report)}</section>${renderFootprint(payload, tasks, counts)}</div>`;
+    return `<div class="dashboard-home">${renderHero(payload)}${renderStatusBand(counts,tasks)}<section class="dashboard-home-grid">${renderQueue(tasks)}${renderReminderPanel(tasks, counts, report)}</section>${renderFootprint(payload, tasks, counts)}</div>`;
   }
 
   window.DashboardPage = {
@@ -204,7 +194,7 @@
       return renderDashboard(payload);
     },
     mount(ctx) {
-      ctx.delegate("[data-open-task]", "click", (_, node) => node.dataset.openTask ? AppTaskActions.openTodoTask(node.dataset.openTask) : AppRouter.navigate("business-actions"));
+      ctx.delegate("[data-open-task]", "click", (_, node) => node.dataset.openTask ? AppRouter.navigate("task-report",{taskId:node.dataset.openTask}) : AppRouter.navigate("business-actions"));
       ctx.delegate("[data-open-tasks]", "click", () => AppRouter.navigate("business-actions"));
       ctx.addCleanup(AppTaskStore.subscribe(() => AppRouter.schedule("task-store")));
     },

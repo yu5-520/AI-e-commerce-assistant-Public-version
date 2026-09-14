@@ -217,3 +217,15 @@ def step_content(task_id: str, content_hash: str):
     try:payload=read_content(task_id,content_hash)
     except ValueError as exc:raise HTTPException(status_code=404,detail=str(exc))
     return JSONResponse(payload,headers={'Cache-Control':'private, max-age=31536000, immutable','ETag':'"'+content_hash+'"'})
+
+
+@router.get('/experience-overview')
+def experience_overview(request: Request):
+    from src.services.v269_experience_store_service import read_experience_overview
+    from fastapi.responses import JSONResponse, Response
+    body = read_experience_overview()
+    etag = '"'+body['contentHash']+'"'
+    headers = {'ETag':etag,'Cache-Control':'private, no-cache'}
+    if request.headers.get('if-none-match') == etag:
+        return Response(status_code=304,headers=headers)
+    return JSONResponse(body,headers=headers)
