@@ -18,9 +18,10 @@ def validate_provider_binding(
 ) -> Dict[str, Any]:
     """Validate a concrete provider binding without making any network request.
 
-    The frozen manifest is self-verified first. Adapter identity, decoding parameters and
-    endpoint hash must exactly match the frozen contract. Secret presence is checked by
-    environment-variable name only; the secret value is never returned or hashed here.
+    The frozen manifest is self-verified first. Adapter identity, decoding parameters,
+    provider-specific request options and endpoint hash must exactly match the frozen
+    contract. Secret presence is checked by environment-variable name only; the secret
+    value is never returned or hashed here.
     """
     validate_manifest(frozen_manifest, require_concrete_provider=True)
     assert_manifest_immutable(frozen_manifest, frozen_manifest)
@@ -32,6 +33,7 @@ def validate_provider_binding(
         "model_version",
         "adapter_version",
         "decoding",
+        "request_options",
         "endpoint_hash",
     )
     mismatches = []
@@ -54,6 +56,7 @@ def validate_provider_binding(
         "model_id": fragment["model_id"],
         "model_version": fragment["model_version"],
         "adapter_version": fragment["adapter_version"],
+        "request_options": fragment["request_options"],
         "endpoint_hash": fragment["endpoint_hash"],
         "manifest_hash": frozen_manifest["manifest_hash"],
         "secret_env": secret_name,
