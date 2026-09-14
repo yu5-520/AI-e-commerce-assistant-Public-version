@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   smoke:
     runs-on: ubuntu-24.04
@@ -30,12 +34,20 @@ jobs:
         run: python -m unittest -v test_bootstrap.py
       - name: Build and validate P3.1 Seed Pack
         working-directory: research_bootstrap
-        run: python build_seed_pack.py | tee seed-pack-build.json
+        run: |
+          set -euo pipefail
+          python build_seed_pack_v2.py | tee seed-pack-build.json
       - name: Paired replay smoke
         working-directory: research_bootstrap
-        run: python smoke.py | tee bootstrap-smoke.json
+        run: |
+          set -euo pipefail
+          python smoke.py | tee bootstrap-smoke.json
       - name: V26 authority adapter smoke
-        run: python research_bootstrap/v26_adapter_smoke.py | tee research_bootstrap/v26-adapter-smoke.json
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          python research_bootstrap/v26_adapter_smoke.py | tee research_bootstrap/v26-adapter-smoke.json
       - name: Upload smoke evidence
         uses: actions/upload-artifact@v4
         if: always()
